@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise 42U Cisco Rack & Cabling Studio</title>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-panel: #151d2f;
+      --bg-panel-light: #243048;
+      --border-color: #334155;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --rack-body: #11141c;
+      --rack-post: #1c2230;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(90deg, #151d2f 0%, #0b0f19 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--accent-blue);
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand span {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: var(--bg-panel-light);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: #64748b;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      border-color: #ef4444;
+    }
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    /* Main Container */
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px 1fr 370px;
+      height: calc(100vh - 57px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Hardware Library */
+    .sidebar-left {
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .device-card {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .device-card:hover {
+      border-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .device-card.active {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 1px var(--accent-blue);
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .device-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .device-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #fff;
+    }
+
+    .device-u-badge {
+      font-size: 0.7rem;
+      background: #243048;
+      padding: 1px 6px;
+      border-radius: 3px;
+      color: var(--accent-blue);
+      font-weight: 700;
+    }
+
+    .device-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .device-ports-tag {
+      margin-top: 6px;
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+    }
+
+    /* Middle Area: 42U Rack Viewport */
+    .viewport {
+      background: #070a11;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow-y: auto;
+      padding: 24px 10px 60px 10px;
+    }
+
+    .viewport-controls {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(8px);
+      padding: 8px 18px;
+      border-radius: 30px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .color-swatch-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.2);
+    }
+
+    .color-swatch.selected {
+      border-color: #fff;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    /* 42U Rack Container */
+    .rack-container {
+      position: relative;
+      width: 630px;
+      background: #11141c;
+      border: 8px solid #262c3a;
+      border-radius: 8px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0,0,0,0.95);
+      display: flex;
+    }
+
+    .rack-rail {
+      width: 44px;
+      background: #1a202c;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #333d4e;
+      border-right: 1px solid #333d4e;
+    }
+
+    .rack-rail.left {
+      border-left: none;
+    }
+
+    .rack-rail.right {
+      border-right: none;
+    }
+
+    .rack-main-space {
+      width: 530px;
+      position: relative;
+      background: repeating-linear-gradient(
+        0deg,
+        #11141c,
+        #11141c 31px,
+        #151923 31px,
+        #151923 32px
+      );
+    }
+
+    /* U Slots */
+    .u-unit {
+      height: 32px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+
+    .u-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #64748b;
+      width: 100%;
+      text-align: center;
+      line-height: 32px;
+      font-family: monospace;
+    }
+
+    .rack-holes {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      height: 100%;
+      padding: 2px 0;
+    }
+
+    .hole {
+      width: 5px;
+      height: 5px;
+      background: #090c12;
+      border: 1px solid #3b4252;
+      border-radius: 1px;
+    }
+
+    .rack-slot {
+      height: 32px;
+      width: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+
+    .rack-slot:hover {
+      background: rgba(56, 189, 248, 0.06);
+    }
+
+    /* Mounted Device */
+    .mounted-device {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      background: #181e2b;
+      border-top: 1px solid #4a5568;
+      border-bottom: 1px solid #0f131a;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 3px 8px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      z-index: 2;
+      transition: outline 0.15s;
+    }
+
+    .mounted-device:hover {
+      outline: 1px solid #38bdf8;
+    }
+
+    .device-faceplate {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 6px;
+      position: relative;
+    }
+
+    .bezel-badge {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 86px;
+      max-width: 90px;
+    }
+
+    .bezel-logo {
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+
+    .bezel-model {
+      font-size: 0.55rem;
+      color: #94a3b8;
+      font-family: monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-status-leds {
+      display: flex;
+      gap: 3px;
+      margin-right: 4px;
+    }
+
+    .status-led {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 4px #22c55e;
+    }
+
+    .ports-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 100%;
+      overflow-x: auto;
+      padding: 2px 0;
+    }
+
+    .port-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 1px 3px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .port-row {
+      display: flex;
+      gap: 2px;
+    }
+
+    /* Port Visuals */
+    .port {
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    /* RJ45 Port */
+    .port-rj45 {
+      width: 11px;
+      height: 10px;
+      background: #0f131a;
+      border: 1px solid #4a5568;
+      border-radius: 1px;
+    }
+
+    .port-rj45::after {
+      content: "";
+      width: 5px;
+      height: 3px;
+      background: #d97706;
+      position: absolute;
+      bottom: 1px;
+      border-radius: 0.5px;
+    }
+
+    /* SFP / SFP+ Port */
+    .port-sfp {
+      width: 14px;
+      height: 12px;
+      background: #1a202c;
+      border: 1px solid #718096;
+      border-radius: 1px;
+    }
+
+    .port-sfp::after {
+      content: "";
+      width: 8px;
+      height: 4px;
+      background: #cbd5e1;
+      opacity: 0.4;
+    }
+
+    /* Fiber LC Duplex Port */
+    .port-lc {
+      width: 13px;
+      height: 12px;
+      background: #0284c7;
+      border: 1px solid #38bdf8;
+      border-radius: 2px;
+      display: flex;
+      gap: 1px;
+      padding: 1px;
+    }
+
+    .port-lc-inner {
+      width: 4px;
+      height: 8px;
+      background: #0c4a6e;
+      border-radius: 1px;
+    }
+
+    .port:hover {
+      filter: brightness(1.7);
+      outline: 1.5px solid #facc15;
+    }
+
+    .port.selected {
+      outline: 2px solid #38bdf8 !important;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: pulse-border 1s infinite alternate;
+    }
+
+    .port.connected {
+      position: relative;
+    }
+
+    .port.connected::before {
+      content: "";
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: currentColor;
+      border-radius: 50%;
+      top: -3px;
+      right: -3px;
+      z-index: 5;
+    }
+
+    @keyframes pulse-border {
+      from { transform: scale(1); }
+      to { transform: scale(1.2); }
+    }
+
+    /* Organizer Design */
+    .organizer-faceplate {
+      background: #10141e;
+      border-top: 1px solid #334155;
+      border-bottom: 1px solid #1e293b;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 10px;
+    }
+
+    .organizer-slot {
+      width: 18px;
+      height: 14px;
+      background: #090c12;
+      border-radius: 2px;
+      border: 1px solid #1e293b;
+    }
+
+    .organizer-brush {
+      height: 8px;
+      flex: 0.9;
+      background: repeating-linear-gradient(90deg, #1e293b, #1e293b 2px, #0f172a 2px, #0f172a 4px);
+      border-radius: 2px;
+      border: 1px solid #334155;
+    }
+
+    /* Device Controls Overlay */
+    .device-controls {
+      position: absolute;
+      right: 4px;
+      display: none;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      z-index: 6;
+    }
+
+    .mounted-device:hover .device-controls {
+      display: flex;
+    }
+
+    .dev-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 2px 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .dev-btn:hover {
+      color: #ef4444;
+    }
+
+    /* Cable Canvas (SVG Layer) */
+    .cables-svg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .cable-path {
+      fill: none;
+      cursor: pointer;
+      pointer-events: stroke;
+      transition: stroke-width 0.2s, filter 0.2s;
+    }
+
+    .cable-path:hover {
+      stroke-width: 4.5px !important;
+      filter: drop-shadow(0 0 5px currentColor);
+    }
+
+    .cable-path.highlighted {
+      stroke-width: 5px !important;
+      filter: drop-shadow(0 0 8px #ffffff);
+      animation: cable-glow 1s infinite alternate;
+    }
+
+    @keyframes cable-glow {
+      from { filter: drop-shadow(0 0 4px #fff); }
+      to { filter: drop-shadow(0 0 10px #fff); }
+    }
+
+    /* Right Sidebar: Run Schedule & Details */
+    .sidebar-right {
+      background-color: var(--bg-panel);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .schedule-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .schedule-table-wrapper {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      text-align: left;
+    }
+
+    .schedule-table th {
+      background: rgba(11, 15, 25, 0.9);
+      color: var(--text-muted);
+      padding: 8px 10px;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .schedule-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+
+    .schedule-table tr {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .schedule-table tr:hover {
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .schedule-table tr.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-left: 3px solid var(--accent-blue);
+    }
+
+    .cable-color-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .del-cable-btn {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .del-cable-btn:hover {
+      color: #ef4444;
+    }
+
+    /* Floating Tooltip */
+    .tooltip {
+      position: fixed;
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: #f8fafc;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: none;
+    }
+
+    /* Stats bar */
+    .status-bar {
+      background: #0b0f19;
+      border-top: 1px solid var(--border-color);
+      padding: 4px 16px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+    }
+
+    /* Hidden file input */
+    #file-import {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v3h16V5H4zm0 5v4h16v-4H4zm0 6v3h16v-3H4z"/>
+      </svg>
+      <div>
+        <h1>Cisco Enterprise 42U Rack & Cabling Studio</h1>
+      </div>
+      <span>EIA-310-D Standard</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn" id="btn-load-preset" title="Hazır Veri Merkezi Topolojisi Yükle">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
+        Örnek Şablon
+      </button>
+      <button class="btn" id="btn-export-json" title="Topoloji JSON indir">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+        JSON Kaydet
+      </button>
+      <button class="btn" id="btn-import-json" title="Topoloji JSON yükle">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>
+        JSON Yükle
+      </button>
+      <input type="file" id="file-import" accept=".json">
+      <button class="btn btn-primary" id="btn-export-visio" title="Microsoft Visio Uyumlu Vektörel SVG Çıkar">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg>
+        Visio SVG İndir
+      </button>
+      <button class="btn btn-danger" id="btn-clear-all" title="Tüm kabini ve kabloları temizle">
+        Sıfırla
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Three-Pane Application -->
+  <div class="workspace">
+
+    <!-- 1. LEFT SIDEBAR: Hardware Library -->
+    <aside class="sidebar-left">
+      <div class="panel-section">
+        <div class="section-title">
+          <span>Donanım Kütüphanesi</span>
+          <span style="font-size:0.68rem; color:var(--accent-blue)">Cihaz Seç & U'ya Tıkla</span>
+        </div>
+        <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">
+          Listeden donanım seçin, ardından kabin üzerindeki <b>U Seviyesine</b> tıklayarak monte edin.
+        </p>
+      </div>
+
+      <!-- Cisco Catalyst Access & Distribution -->
+      <div class="panel-section">
+        <div class="section-title">Cisco Catalyst Swıtchler</div>
+
+        <div class="device-card" data-device-id="cisco-9300-48u">
+          <div class="device-header">
+            <span class="device-name">Cisco Catalyst 9300X-48HX</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Omurga/Kenar switch, 48x Multigigabit PoE+, modüler 4x 25G SFP28 Uplink.</div>
+          <div class="device-ports-tag">
+            <span class="tag">48x RJ45 mGig</span>
+            <span class="tag">4x SFP28 (25G)</span>
+            <span class="tag">UPOE+</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="cisco-9200-24p">
+          <div class="device-header">
+            <span class="device-name">Cisco Catalyst 9200-24P</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Kurumsal kenar switch, 24x 1G PoE+ ve 4x 10G SFP+ sabit uplink.</div>
+          <div class="device-ports-tag">
+            <span class="tag">24x RJ45 1G</span>
+            <span class="tag">4x SFP+ (10G)</span>
+            <span class="tag">PoE+</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="cisco-3850-48p">
+          <div class="device-header">
+            <span class="device-name">Cisco Catalyst 3850-48P</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Stackable L3 switch, 48 Port GigE PoE+ ve modüler 4x 10G SFP+.</div>
+          <div class="device-ports-tag">
+            <span class="tag">48x RJ45 1G</span>
+            <span class="tag">4x SFP+</span>
+            <span class="tag">StackWise</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="cisco-2960x-24">
+          <div class="device-header">
+            <span class="device-name">Cisco Catalyst 2960-X 24TS</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Klasik kurumsal L2 switch, 24x GigE bakır port ve 4x SFP uplink.</div>
+          <div class="device-ports-tag">
+            <span class="tag">24x RJ45 1G</span>
+            <span class="tag">4x 1G SFP</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="cisco-9500-24y4c">
+          <div class="device-header">
+            <span class="device-name">Cisco Catalyst 9500-24Y4C</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Yüksek performanslı Core switch, 24x 1/10/25G SFP28 + 4x 40/100G QSFP28.</div>
+          <div class="device-ports-tag">
+            <span class="tag">24x SFP28 (25G)</span>
+            <span class="tag">4x QSFP28 (100G)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cisco Nexus Data Center -->
+      <div class="panel-section">
+        <div class="section-title">Cisco Nexus Verı Merkezı</div>
+
+        <div class="device-card" data-device-id="cisco-nexus-93180yc">
+          <div class="device-header">
+            <span class="device-name">Cisco Nexus 93180YC-FX</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Top-of-Rack DC switch, 48x 10/25G SFP28 ve 6x 40/100G QSFP28 uplink.</div>
+          <div class="device-ports-tag">
+            <span class="tag">48x SFP28</span>
+            <span class="tag">6x QSFP28</span>
+            <span class="tag">VXLAN / ACI</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patch Panels & Fiber ODF -->
+      <div class="panel-section">
+        <div class="section-title">Patch Paneller & Altyapı</div>
+
+        <div class="device-card" data-device-id="patch-cat6-24">
+          <div class="device-header">
+            <span class="device-name">1U 24-Port Cat6A Patch Panel</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Numaralandırılmış etiket şeritli 24 Port RJ45 UTP/STP yapısal kablolama.</div>
+          <div class="device-ports-tag">
+            <span class="tag">24x RJ45 Keystone</span>
+            <span class="tag">Cat6A 10Gbps</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="patch-cat6-48">
+          <div class="device-header">
+            <span class="device-name">1U 48-Port Yüksek Yoğunluk RJ45</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">1U yüksek yoğunluklu (High Density) 48 Port Cat6 RJ45 patch paneli.</div>
+          <div class="device-ports-tag">
+            <span class="tag">48x RJ45 HD</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="fiber-odf-24">
+          <div class="device-header">
+            <span class="device-name">1U 24-Port Fiber ODF (LC Duplex)</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">24 Duplex LC (48 Çekirdek) Aqua OM4 Multimode Fiber Dağıtım Paneli.</div>
+          <div class="device-ports-tag">
+            <span class="tag">24x LC Duplex</span>
+            <span class="tag">OM4 Multi-Mode</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cable Organizers & Accessories -->
+      <div class="panel-section">
+        <div class="section-title">Kablo Düzenleyıcı & Aksesuar</div>
+
+        <div class="device-card" data-device-id="organizer-1u">
+          <div class="device-header">
+            <span class="device-name">1U Yatay Kablo Düzenleyici</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Fırçalı ve kanallı 1U kablo toparlayıcı organizer panel.</div>
+          <div class="device-ports-tag">
+            <span class="tag">Fırçalı Geçiş</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="organizer-2u">
+          <div class="device-header">
+            <span class="device-name">2U Kapaklı Yatay Kablo Düzenleyici</span>
+            <span class="device-u-badge">2U</span>
+          </div>
+          <div class="device-desc">Yüksek kapasiteli, ön kapaklı parmak tipi (finger duct) 2U organizer.</div>
+          <div class="device-ports-tag">
+            <span class="tag">2U Finger Duct</span>
+            <span class="tag">Ön Kapaklı</span>
+          </div>
+        </div>
+
+        <div class="device-card" data-device-id="blank-panel-1u">
+          <div class="device-header">
+            <span class="device-name">1U Boşluk Kapatma Paneli (Blanking)</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">Hava akışını yönlendirmek ve boş U'ları kapatmak için kör panel.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. CENTER AREA: 42U Rack Viewport -->
+    <main class="viewport" id="rack-viewport">
+      
+      <!-- Top Cable Controls Bar -->
+      <div class="viewport-controls">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Kablo Rengi:</span>
+        <div class="color-swatch-group">
+          <div class="color-swatch selected" data-color="#2563eb" style="background:#2563eb;" title="Cat6 Veri (Mavi)"></div>
+          <div class="color-swatch" data-color="#eab308" style="background:#eab308;" title="VoIP / VLAN (Sarı)"></div>
+          <div class="color-swatch" data-color="#22c55e" style="background:#22c55e;" title="Yönetim / MGMT (Yeşil)"></div>
+          <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Kritik / Uplink (Kırmızı)"></div>
+          <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4;" title="OM4 Fiber (Aqua Turkuaz)"></div>
+          <div class="color-swatch" data-color="#f97316" style="background:#f97316;" title="OS2 Fiber / Özel (Turuncu)"></div>
+          <div class="color-swatch" data-color="#a855f7" style="background:#a855f7;" title="Storage / SAN (Mor)"></div>
+          <div class="color-swatch" data-color="#94a3b8" style="background:#94a3b8;" title="Konsol / Standart (Gri)"></div>
+        </div>
+
+        <div style="height:16px; width:1px; background:var(--border-color); margin:0 4px;"></div>
+
+        <span style="font-size:0.72rem; color:#94a3b8;" id="connection-status-hint">
+          Bağlamak için <b>Kaynak Porta</b> tıklayın
+        </span>
+      </div>
+
+      <!-- Physical 42U Rack Enclosure -->
+      <div class="rack-container" id="rack-container">
+        
+        <!-- Left Post & Rail -->
+        <div class="rack-rail left" id="rail-left"></div>
+
+        <!-- Center Mounting Space (42U) -->
+        <div class="rack-main-space" id="rack-space">
+          <!-- SVG Cabling Overlay -->
+          <svg class="cables-svg-layer" id="cables-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+              </filter>
+            </defs>
+            <g id="cables-group"></g>
+          </svg>
+        </div>
+
+        <!-- Right Post & Rail -->
+        <div class="rack-rail right" id="rail-right"></div>
+
+      </div>
+
+    </main>
+
+    <!-- 3. RIGHT SIDEBAR: Run Schedule & Cable Tracing -->
+    <aside class="sidebar-right">
+      <div class="schedule-header">
+        <div>
+          <div style="font-weight:700; font-size:0.88rem; color:#fff;">Bağlantı Listesi</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);" id="cable-count-label">0 Bağlantı Yapıldı</div>
+        </div>
+        <button class="btn" id="btn-clear-cables" style="font-size:0.7rem; padding:3px 8px;">Kabloları Sil</button>
+      </div>
+
+      <div class="schedule-table-wrapper">
+        <table class="schedule-table" id="schedule-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Kaynak (A)</th>
+              <th>Hedef (B)</th>
+              <th>Metraj</th>
+              <th>İşlem</th>
+            </tr>
+          </thead>
+          <tbody id="schedule-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Quick Info / Selected Port Panel -->
+      <div class="panel-section" style="border-top: 1px solid var(--border-color); background: rgba(11,15,25,0.7);">
+        <div class="section-title">Port & Donanım Detayı</div>
+        <div id="inspector-info" style="font-size:0.75rem; color:#cbd5e1; line-height:1.4;">
+          Bir porta tıkladığınızda veya fareyle üzerine geldiğinizde detaylar burada gösterilir.
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Status Bar Footer -->
+  <footer class="status-bar">
+    <div class="status-badge">
+      <span class="status-indicator"></span>
+      <span>Enterprise Cisco Studio (Hazır)</span>
+    </div>
+    <div id="status-selection-text">
+      Kütüphaneden bir donanım seçip boş bir U pozisyonuna monte edebilirsiniz.
+    </div>
+    <div>
+      <span>19" EIA-310-D | 42U Dikey Kabinet</span>
+    </div>
+  </footer>
+
+  <!-- Tooltip Floating Element -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- Application Logic -->
+  <script>
+    // --- HARDWARE CATALOG SPECIFICATIONS ---
+    const HARDWARE_CATALOG = {
+      'cisco-9300-48u': {
+        name: 'Cisco Catalyst 9300X-48HX',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: 'CATALYST 9300X',
+        ports: [
+          ...Array.from({ length: 48 }, (_, i) => ({
+            id: `p${i + 1}`,
+            name: `Gi1/0/${i + 1}`,
+            type: 'rj45',
+            group: Math.floor(i / 12),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '10G mGig PoE+'
+          })),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            id: `up${i + 1}`,
+            name: `Te1/1/${i + 1}`,
+            type: 'sfp',
+            group: 4,
+            row: 0,
+            speed: '25G SFP28'
+          }))
+        ]
+      },
+      'cisco-9200-24p': {
+        name: 'Cisco Catalyst 9200-24P',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: 'CAT 9200-24P',
+        ports: [
+          ...Array.from({ length: 24 }, (_, i) => ({
+            id: `p${i + 1}`,
+            name: `Gi1/0/${i + 1}`,
+            type: 'rj45',
+            group: Math.floor(i / 12),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '1G PoE+'
+          })),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            id: `up${i + 1}`,
+            name: `Te1/1/${i + 1}`,
+            type: 'sfp',
+            group: 2,
+            row: 0,
+            speed: '10G SFP+'
+          }))
+        ]
+      },
+      'cisco-3850-48p': {
+        name: 'Cisco Catalyst 3850-48P',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: 'WS-C3850-48P',
+        ports: [
+          ...Array.from({ length: 48 }, (_, i) => ({
+            id: `p${i + 1}`,
+            name: `Gi1/0/${i + 1}`,
+            type: 'rj45',
+            group: Math.floor(i / 12),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '1G PoE+'
+          })),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            id: `up${i + 1}`,
+            name: `Te1/1/${i + 1}`,
+            type: 'sfp',
+            group: 4,
+            row: 0,
+            speed: '10G SFP+'
+          }))
+        ]
+      },
+      'cisco-2960x-24': {
+        name: 'Cisco Catalyst 2960-X 24TS',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: '2960-X 24TS',
+        ports: [
+          ...Array.from({ length: 24 }, (_, i) => ({
+            id: `p${i + 1}`,
+            name: `Gi1/0/${i + 1}`,
+            type: 'rj45',
+            group: Math.floor(i / 12),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '1G RJ45'
+          })),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            id: `up${i + 1}`,
+            name: `SFP1/1/${i + 1}`,
+            type: 'sfp',
+            group: 2,
+            row: 0,
+            speed: '1G SFP'
+          }))
+        ]
+      },
+      'cisco-9500-24y4c': {
+        name: 'Cisco Catalyst 9500-24Y4C',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: 'C9500-24Y4C',
+        ports: [
+          ...Array.from({ length: 24 }, (_, i) => ({
+            id: `p${i + 1}`,
+            name: `TwentyFiveGigE1/0/${i + 1}`,
+            type: 'sfp',
+            group: Math.floor(i / 8),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '25G SFP28'
+          })),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            id: `q${i + 1}`,
+            name: `HundredGigE1/0/${i + 25}`,
+            type: 'sfp',
+            group: 3,
+            row: 0,
+            speed: '100G QSFP28'
+          }))
+        ]
+      },
+      'cisco-nexus-93180yc': {
+        name: 'Cisco Nexus 93180YC-FX',
+        u: 1,
+        category: 'switch',
+        logo: 'CISCO',
+        modelTag: 'N9K-C93180YC',
+        ports: [
+          ...Array.from({ length: 48 }, (_, i) => ({
+            id: `eth1/${i + 1}`,
+            name: `Eth1/${i + 1}`,
+            type: 'sfp',
+            group: Math.floor(i / 12),
+            row: (i % 2 === 0) ? 0 : 1,
+            speed: '10/25G SFP28'
+          })),
+          ...Array.from({ length: 6 }, (_, i) => ({
+            id: `eth1/${i + 49}`,
+            name: `Eth1/${i + 49}`,
+            type: 'sfp',
+            group: 4,
+            row: 0,
+            speed: '40/100G QSFP28'
+          }))
+        ]
+      },
+      'patch-cat6-24': {
+        name: '1U 24-Port Cat6A Patch Panel',
+        u: 1,
+        category: 'patch',
+        logo: 'PANEL',
+        modelTag: 'CAT6A 24P-UTP',
+        ports: Array.from({ length: 24 }, (_, i) => ({
+          id: `pt${i + 1}`,
+          name: `Port ${i + 1}`,
+          type: 'rj45',
+          group: Math.floor(i / 6),
+          row: 0,
+          speed: 'Cat6A 10G'
+        }))
+      },
+      'patch-cat6-48': {
+        name: '1U 48-Port Yüksek Yoğunluk RJ45',
+        u: 1,
+        category: 'patch',
+        logo: 'PANEL',
+        modelTag: 'CAT6-48P-HD',
+        ports: Array.from({ length: 48 }, (_, i) => ({
+          id: `pt${i + 1}`,
+          name: `Port ${i + 1}`,
+          type: 'rj45',
+          group: Math.floor(i / 12),
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: 'Cat6 1G'
+        }))
+      },
+      'fiber-odf-24': {
+        name: '1U 24-Port Fiber ODF (LC Duplex)',
+        u: 1,
+        category: 'patch',
+        logo: 'FIBER ODF',
+        modelTag: 'OM4 LC-DUPLEX',
+        ports: Array.from({ length: 24 }, (_, i) => ({
+          id: `lc${i + 1}`,
+          name: `Fiber ${i * 2 + 1}-${i * 2 + 2}`,
+          type: 'lc',
+          group: Math.floor(i / 6),
+          row: 0,
+          speed: 'OM4 50/125 Multimode'
+        }))
+      },
+      'organizer-1u': {
+        name: '1U Yatay Kablo Düzenleyici',
+        u: 1,
+        category: 'organizer',
+        logo: 'ORGANIZER',
+        modelTag: '1U HORIZONTAL BRUSH',
+        ports: []
+      },
+      'organizer-2u': {
+        name: '2U Kapaklı Yatay Kablo Düzenleyici',
+        u: 2,
+        category: 'organizer',
+        logo: 'ORGANIZER',
+        modelTag: '2U FINGER-DUCT ORGANIZER',
+        ports: []
+      },
+      'blank-panel-1u': {
+        name: '1U Boşluk Kapatma Paneli',
+        u: 1,
+        category: 'blank',
+        logo: 'BLANK',
+        modelTag: '1U BLANKING PANEL',
+        ports: []
+      }
+    };
+
+    // --- APPLICATION STATE ---
+    const STATE = {
+      rackUnits: Array(43).fill(null),
+      devices: [],
+      cables: [],
+      selectedLibraryItem: null,
+      selectedCableColor: '#2563eb',
+      pendingConnection: null,
+      highlightedCableId: null
+    };
+
+    // --- DOM REFERENCES ---
+    const dom = {
+      railLeft: document.getElementById('rail-left'),
+      railRight: document.getElementById('rail-right'),
+      rackSpace: document.getElementById('rack-space'),
+      cablesSvg: document.getElementById('cables-svg'),
+      cablesGroup: document.getElementById('cables-group'),
+      scheduleTbody: document.getElementById('schedule-tbody'),
+      cableCountLabel: document.getElementById('cable-count-label'),
+      connectionStatusHint: document.getElementById('connection-status-hint'),
+      inspectorInfo: document.getElementById('inspector-info'),
+      tooltip: document.getElementById('tooltip'),
+      statusSelectionText: document.getElementById('status-selection-text'),
+      fileImport: document.getElementById('file-import'),
+      btnExportVisio: document.getElementById('btn-export-visio'),
+      btnExportJson: document.getElementById('btn-export-json'),
+      btnImportJson: document.getElementById('btn-import-json'),
+      btnLoadPreset: document.getElementById('btn-load-preset'),
+      btnClearAll: document.getElementById('btn-clear-all'),
+      btnClearCables: document.getElementById('btn-clear-cables')
+    };
+
+    function init() {
+      renderRackRailsAndSlots();
+      bindCatalogEvents();
+      bindColorSwatchEvents();
+      bindHeaderActionEvents();
+      bindGlobalEvents();
+      loadEnterprisePreset();
+    }
+
+    function renderRackRailsAndSlots() {
+      dom.railLeft.innerHTML = '';
+      dom.railRight.innerHTML = '';
+      dom.rackSpace.innerHTML = '';
+
+      dom.rackSpace.appendChild(dom.cablesSvg);
+
+      for (let u = 42; u >= 1; u--) {
+        const leftU = document.createElement('div');
+        leftU.className = 'u-unit';
+        leftU.innerHTML = `
+          <div class="rack-holes">
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+          </div>
+          <div class="u-label">${u}</div>
+        `;
+        dom.railLeft.appendChild(leftU);
+
+        const rightU = document.createElement('div');
+        rightU.className = 'u-unit';
+        rightU.innerHTML = `
+          <div class="u-label">${u}</div>
+          <div class="rack-holes">
+            <div class="hole"></div>
+            <div class="hole"></div>
+            <div class="hole"></div>
+          </div>
+        `;
+        dom.railRight.appendChild(rightU);
+
+        const slot = document.createElement('div');
+        slot.className = 'rack-slot';
+        slot.dataset.u = u;
+        slot.id = `rack-slot-u${u}`;
+
+        slot.addEventListener('click', (e) => {
+          if (e.target.closest('.mounted-device')) return;
+          handleSlotClick(u);
+        });
+
+        dom.rackSpace.appendChild(slot);
+      }
+    }
+
+    function bindCatalogEvents() {
+      const cards = document.querySelectorAll('.device-card');
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          cards.forEach(c => c.classList.remove('active'));
+          const devId = card.dataset.deviceId;
+          if (STATE.selectedLibraryItem === devId) {
+            STATE.selectedLibraryItem = null;
+            dom.statusSelectionText.textContent = 'Kütüphaneden bir donanım seçin veya kablolama yapın.';
+          } else {
+            card.classList.add('active');
+            STATE.selectedLibraryItem = devId;
+            const item = HARDWARE_CATALOG[devId];
+            dom.statusSelectionText.textContent = `Seçili: [${item.name}] (${item.u}U). Yerleştirmek için kabin üzerinde boş bir U yuvasına tıklayın.`;
+          }
+        });
+      });
+    }
+
+    function bindColorSwatchEvents() {
+      const swatches = document.querySelectorAll('.color-swatch');
+      swatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          swatches.forEach(s => s.classList.remove('selected'));
+          swatch.classList.add('selected');
+          STATE.selectedCableColor = swatch.dataset.color;
+        });
+      });
+    }
+
+    function handleSlotClick(targetU) {
+      if (!STATE.selectedLibraryItem) {
+        showTemporaryTooltip(event.clientX, event.clientY, "Lütfen önce sol menüden monte edilecek bir donanım seçin!");
+        return;
+      }
+
+      const catalogItem = HARDWARE_CATALOG[STATE.selectedLibraryItem];
+      const requiredU = catalogItem.u;
+
+      const startU = targetU;
+      const endU = targetU - requiredU + 1;
+
+      if (endU < 1) {
+        alert(`Bu cihaz ${requiredU}U yüksekliğinde. U${targetU} seviyesine sığmıyor.`);
+        return;
+      }
+
+      for (let u = endU; u <= startU; u++) {
+        if (STATE.rackUnits[u] !== null) {
+          alert(`U${u} pozisyonu dolu! Lütfen boş bir slot seçin.`);
+          return;
+        }
+      }
+
+      const instanceId = 'dev-' + Math.random().toString(36).substring(2, 9);
+      const newDevice = {
+        instanceId,
+        catalogKey: STATE.selectedLibraryItem,
+        topU: startU,
+        uHeight: requiredU
+      };
+
+      for (let u = endU; u <= startU; u++) {
+        STATE.rackUnits[u] = instanceId;
+      }
+      STATE.devices.push(newDevice);
+
+      renderMountedDevices();
+      renderAllCables();
+    }
+
+    function removeDevice(instanceId) {
+      STATE.cables = STATE.cables.filter(c => c.from.instanceId !== instanceId && c.to.instanceId !== instanceId);
+      
+      for (let u = 1; u <= 42; u++) {
+        if (STATE.rackUnits[u] === instanceId) {
+          STATE.rackUnits[u] = null;
+        }
+      }
+
+      STATE.devices = STATE.devices.filter(d => d.instanceId !== instanceId);
+
+      if (STATE.pendingConnection && STATE.pendingConnection.instanceId === instanceId) {
+        cancelPendingConnection();
+      }
+
+      renderMountedDevices();
+      renderScheduleTable();
+      renderAllCables();
+    }
+
+    function renderMountedDevices() {
+      document.querySelectorAll('.mounted-device').forEach(el => el.remove());
+
+      STATE.devices.forEach(dev => {
+        const cat = HARDWARE_CATALOG[dev.catalogKey];
+        const slotEl = document.getElementById(`rack-slot-u${dev.topU}`);
+        if (!slotEl) return;
+
+        const devEl = document.createElement('div');
+        devEl.className = 'mounted-device';
+        devEl.id = dev.instanceId;
+        devEl.style.height = `${dev.uHeight * 32}px`;
+        devEl.style.top = '0px';
+
+        if (cat.category === 'organizer') {
+          devEl.innerHTML = renderOrganizerFaceplate(cat, dev);
+        } else if (cat.category === 'blank') {
+          devEl.innerHTML = renderBlankFaceplate(cat, dev);
+        } else {
+          devEl.innerHTML = renderSwitchOrPatchFaceplate(cat, dev);
+        }
+
+        slotEl.appendChild(devEl);
+
+        const delBtn = devEl.querySelector('.del-device-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`${cat.name} cihazını ve tüm bağlı kablolarını kaldırmak istiyor musunuz?`)) {
+              removeDevice(dev.instanceId);
+            }
+          });
+        }
+      });
+
+      bindPortInteractions();
+    }
+
+    function renderOrganizerFaceplate(cat, dev) {
+      const is2U = dev.uHeight === 2;
+      return `
+        <div class="organizer-faceplate" style="${is2U ? 'background: #0d121c;' : ''}">
+          <div class="device-controls">
+            <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+          </div>
+          <div style="font-size:0.6rem; color:#64748b; font-family:monospace; font-weight:700; padding:0 8px;">
+            ${cat.modelTag}
+          </div>
+          <div class="organizer-brush" style="${is2U ? 'height:24px;' : ''}"></div>
+          <div style="display:flex; gap:4px;">
+            <div class="organizer-slot"></div>
+            <div class="organizer-slot"></div>
+            <div class="organizer-slot"></div>
+            <div class="organizer-slot"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBlankFaceplate(cat, dev) {
+      return `
+        <div style="width:100%; height:100%; background:#141720; border-top:1px solid #2d3340; display:flex; align-items:center; justify-content:center; position:relative;">
+          <div class="device-controls">
+            <button class="dev-btn del-device-btn" title="Paneli Kaldır">✕</button>
+          </div>
+          <span style="font-size:0.6rem; color:#475569; font-family:monospace; letter-spacing:2px;">BLANK COVER PANEL 1U</span>
+        </div>
+      `;
+    }
+
+    function renderSwitchOrPatchFaceplate(cat, dev) {
+      const groups = {};
+      cat.ports.forEach(p => {
+        if (!groups[p.group]) groups[p.group] = [];
+        groups[p.group].push(p);
+      });
+
+      let portsHtml = '';
+      Object.keys(groups).forEach(gId => {
+        const groupPorts = groups[gId];
+        const isTwoRows = groupPorts.some(p => p.row === 1);
+
+        if (isTwoRows) {
+          const row0 = groupPorts.filter(p => p.row === 0);
+          const row1 = groupPorts.filter(p => p.row === 1);
+
+          portsHtml += `
+            <div class="port-group">
+              <div class="port-row">
+                ${row0.map(p => renderPortIcon(dev.instanceId, p)).join('')}
+              </div>
+              <div class="port-row">
+                ${row1.map(p => renderPortIcon(dev.instanceId, p)).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          portsHtml += `
+            <div class="port-group">
+              <div class="port-row">
+                ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      return `
+        <div class="device-faceplate">
+          <div class="device-controls">
+            <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+          </div>
+          <div class="bezel-badge">
+            <span class="bezel-logo">${cat.logo}</span>
+            <span class="bezel-model">${cat.modelTag}</span>
+          </div>
+          <div class="device-status-leds">
+            <div class="status-led" title="Power: OK"></div>
+            <div class="status-led" style="background:#38bdf8; box-shadow:0 0 4px #38bdf8;" title="Status: Active"></div>
+          </div>
+          <div class="ports-area">
+            ${portsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPortIcon(instanceId, port) {
+      let typeClass = 'port-rj45';
+      let inner = '';
+      if (port.type === 'sfp') {
+        typeClass = 'port-sfp';
+      } else if (port.type === 'lc') {
+        typeClass = 'port-lc';
+        inner = '<div class="port-lc-inner"></div><div class="port-lc-inner"></div>';
+      }
+
+      const isConnected = STATE.cables.some(c => 
+        (c.from.instanceId === instanceId && c.from.portId === port.id) ||
+        (c.to.instanceId === instanceId && c.to.portId === port.id)
+      );
+
+      return `
+        <div class="port ${typeClass} ${isConnected ? 'connected' : ''}" 
+             data-instance-id="${instanceId}" 
+             data-port-id="${port.id}"
+             data-port-name="${port.name}"
+             data-port-type="${port.type}"
+             data-port-speed="${port.speed}"
+             id="port-${instanceId}-${port.id}">
+          ${inner}
+        </div>
+      `;
+    }
+
+    function bindPortInteractions() {
+      const portElements = document.querySelectorAll('.port');
+      portElements.forEach(portEl => {
+        portEl.addEventListener('mouseenter', handlePortHover);
+        portEl.addEventListener('mouseleave', handlePortLeave);
+        portEl.addEventListener('click', handlePortClick);
+      });
+    }
+
+    function handlePortHover(e) {
+      const portEl = e.currentTarget;
+      const instanceId = portEl.dataset.instanceId;
+      const portId = portEl.dataset.portId;
+      const portName = portEl.dataset.portName;
+      const portSpeed = portEl.dataset.portSpeed;
+
+      const dev = STATE.devices.find(d => d.instanceId === instanceId);
+      const cat = HARDWARE_CATALOG[dev.catalogKey];
+
+      const connectedCable = STATE.cables.find(c => 
+        (c.from.instanceId === instanceId && c.from.portId === portId) ||
+        (c.to.instanceId === instanceId && c.to.portId === portId)
+      );
+
+      let connectionInfo = '<span style="color:#94a3b8;">Boş / Bağlantı Yok</span>';
+      if (connectedCable) {
+        const otherEndpoint = (connectedCable.from.instanceId === instanceId && connectedCable.from.portId === portId)
+          ? connectedCable.to
+          : connectedCable.from;
+        const otherDev = STATE.devices.find(d => d.instanceId === otherEndpoint.instanceId);
+        const otherCat = HARDWARE_CATALOG[otherDev.catalogKey];
+        const otherPort = otherCat.ports.find(p => p.id === otherEndpoint.portId);
+
+        connectionInfo = `<span style="color:#22c55e;">Bağlı -> ${otherCat.name} [${otherPort.name}]</span>`;
+      }
+
+      dom.inspectorInfo.innerHTML = `
+        <div style="font-weight:700; color:#fff; margin-bottom:3px;">${cat.name} (U${dev.topU})</div>
+        <div><b>Port:</b> ${portName} (${portSpeed})</div>
+        <div><b>Tip:</b> ${portEl.dataset.portType.toUpperCase()}</div>
+        <div><b>Durum:</b> ${connectionInfo}</div>
+      `;
+
+      const rect = portEl.getBoundingClientRect();
+      dom.tooltip.style.display = 'block';
+      dom.tooltip.style.left = `${rect.right + 10}px`;
+      dom.tooltip.style.top = `${rect.top - 5}px`;
+      dom.tooltip.innerHTML = `<b>${cat.modelTag}</b> &bull; ${portName}<br><span style="color:#94a3b8; font-size:0.68rem;">${portSpeed}</span>`;
+    }
+
+    function handlePortLeave() {
+      dom.tooltip.style.display = 'none';
+    }
+
+    function handlePortClick(e) {
+      e.stopPropagation();
+      const portEl = e.currentTarget;
+      const instanceId = portEl.dataset.instanceId;
+      const portId = portEl.dataset.portId;
+
+      if (!STATE.pendingConnection) {
+        const isOccupied = STATE.cables.some(c => 
+          (c.from.instanceId === instanceId && c.from.portId === portId) ||
+          (c.to.instanceId === instanceId && c.to.portId === portId)
+        );
+
+        if (isOccupied) {
+          if (confirm("Bu portta zaten bir kablo takılı. Kabloyu sökmek istiyor musunuz?")) {
+            STATE.cables = STATE.cables.filter(c => 
+              !(c.from.instanceId === instanceId && c.from.portId === portId) &&
+              !(c.to.instanceId === instanceId && c.to.portId === portId)
+            );
+            renderMountedDevices();
+            renderScheduleTable();
+            renderAllCables();
+          }
+          return;
+        }
+
+        STATE.pendingConnection = {
+          instanceId,
+          portId,
+          element: portEl
+        };
+
+        portEl.classList.add('selected');
+        const dev = STATE.devices.find(d => d.instanceId === instanceId);
+        const cat = HARDWARE_CATALOG[dev.catalogKey];
+        const port = cat.ports.find(p => p.id === portId);
+
+        dom.connectionStatusHint.innerHTML = `Kaynak: <span style="color:#38bdf8;">${cat.modelTag} (${port.name})</span> &rarr; <b>Hedef Porta Tıklayın</b>`;
+      } else {
+        const source = STATE.pendingConnection;
+
+        if (source.instanceId === instanceId && source.portId === portId) {
+          cancelPendingConnection();
+          return;
+        }
+
+        const isTargetOccupied = STATE.cables.some(c => 
+          (c.from.instanceId === instanceId && c.from.portId === portId) ||
+          (c.to.instanceId === instanceId && c.to.portId === portId)
+        );
+
+        if (isTargetOccupied) {
+          alert("Hedef port dolu! Lütfen boş bir port seçin.");
+          return;
+        }
+
+        const newCable = {
+          id: 'CBL-' + String(STATE.cables.length + 1).padStart(3, '0'),
+          from: { instanceId: source.instanceId, portId: source.portId },
+          to: { instanceId, portId },
+          color: STATE.selectedCableColor,
+          lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId)
+        };
+
+        STATE.cables.push(newCable);
+        cancelPendingConnection();
+
+        renderMountedDevices();
+        renderScheduleTable();
+        renderAllCables();
+      }
+    }
+
+    function cancelPendingConnection() {
+      if (STATE.pendingConnection && STATE.pendingConnection.element) {
+        STATE.pendingConnection.element.classList.remove('selected');
+      }
+      STATE.pendingConnection = null;
+      dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
+    }
+
+    function calculateCableLengthMeters(instA, instB) {
+      const devA = STATE.devices.find(d => d.instanceId === instA);
+      const devB = STATE.devices.find(d => d.instanceId === instB);
+      if (!devA || !devB) return 1.5;
+      const uDiff = Math.abs(devA.topU - devB.topU);
+      const length = 0.5 + (uDiff * 0.045) + (uDiff > 5 ? 0.8 : 0.2);
+      return parseFloat(length.toFixed(2));
+    }
+
+    function renderAllCables() {
+      dom.cablesGroup.innerHTML = '';
+
+      const svgRect = dom.cablesSvg.getBoundingClientRect();
+
+      STATE.cables.forEach(cable => {
+        const portFromEl = document.getElementById(`port-${cable.from.instanceId}-${cable.from.portId}`);
+        const portToEl = document.getElementById(`port-${cable.to.instanceId}-${cable.to.portId}`);
+
+        if (!portFromEl || !portToEl) return;
+
+        const rectA = portFromEl.getBoundingClientRect();
+        const rectB = portToEl.getBoundingClientRect();
+
+        const x1 = rectA.left + rectA.width / 2 - svgRect.left;
+        const y1 = rectA.top + rectA.height / 2 - svgRect.top;
+        const x2 = rectB.left + rectB.width / 2 - svgRect.left;
+        const y2 = rectB.top + rectB.height / 2 - svgRect.top;
+
+        const dy = Math.abs(y2 - y1);
+        const dx = Math.abs(x2 - x1);
+        
+        const baseSag = Math.min(180, Math.max(35, dy * 0.45 + (dx > 80 ? 25 : 0)));
+
+        const cp1x = x1;
+        const cp1y = y1 + baseSag;
+        const cp2x = x2;
+        const cp2y = y2 + baseSag;
+
+        const pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathD);
+        path.setAttribute('stroke', cable.color);
+        path.setAttribute('stroke-width', '2.6');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('class', `cable-path ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''}`);
+        path.setAttribute('id', `svg-cable-${cable.id}`);
+        path.setAttribute('filter', 'url(#cable-shadow)');
+
+        path.addEventListener('click', (e) => {
+          e.stopPropagation();
+          highlightCable(cable.id);
+        });
+
+        path.addEventListener('mouseenter', (e) => {
+          const devA = STATE.devices.find(d => d.instanceId === cable.from.instanceId);
+          const devB = STATE.devices.find(d => d.instanceId === cable.to.instanceId);
+          const catA = HARDWARE_CATALOG[devA.catalogKey];
+          const catB = HARDWARE_CATALOG[devB.catalogKey];
+          const pA = catA.ports.find(p => p.id === cable.from.portId);
+          const pB = catB.ports.find(p => p.id === cable.to.portId);
+
+          dom.tooltip.style.display = 'block';
+          dom.tooltip.style.left = `${e.clientX + 10}px`;
+          dom.tooltip.style.top = `${e.clientY - 10}px`;
+          dom.tooltip.innerHTML = `
+            <b>${cable.id}</b> (${cable.lengthMeters}m)<br>
+            <span style="color:${cable.color};">&#9632;</span> ${catA.modelTag} [${pA.name}] &harr; ${catB.modelTag} [${pB.name}]
+          `;
+        });
+
+        path.addEventListener('mouseleave', () => {
+          dom.tooltip.style.display = 'none';
+        });
+
+        dom.cablesGroup.appendChild(path);
+      });
+    }
+
+    function highlightCable(cableId) {
+      STATE.highlightedCableId = (STATE.highlightedCableId === cableId) ? null : cableId;
+
+      document.querySelectorAll('.cable-path').forEach(p => {
+        p.classList.remove('highlighted');
+      });
+      if (STATE.highlightedCableId) {
+        const p = document.getElementById(`svg-cable-${STATE.highlightedCableId}`);
+        if (p) p.classList.add('highlighted');
+      }
+
+      document.querySelectorAll('#schedule-tbody tr').forEach(row => {
+        row.classList.toggle('active', row.dataset.cableId === STATE.highlightedCableId);
+      });
+    }
+
+    function renderScheduleTable() {
+      dom.scheduleTbody.innerHTML = '';
+      dom.cableCountLabel.textContent = `${STATE.cables.length} Bağlantı Yapıldı`;
+
+      if (STATE.cables.length === 0) {
+        dom.scheduleTbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center; color:#64748b; padding:20px;">
+              Henüz kablo bağlantısı yapılmadı.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      STATE.cables.forEach(c => {
+        const devA = STATE.devices.find(d => d.instanceId === c.from.instanceId);
+        const devB = STATE.devices.find(d => d.instanceId === c.to.instanceId);
+        if (!devA || !devB) return;
+
+        const catA = HARDWARE_CATALOG[devA.catalogKey];
+        const catB = HARDWARE_CATALOG[devB.catalogKey];
+        const portA = catA.ports.find(p => p.id === c.from.portId);
+        const portB = catB.ports.find(p => p.id === c.to.portId);
+
+        const tr = document.createElement('tr');
+        tr.dataset.cableId = c.id;
+        if (c.id === STATE.highlightedCableId) tr.className = 'active';
+
+        tr.innerHTML = `
+          <td>
+            <span class="cable-color-dot" style="background:${c.color};"></span>
+            <b>${c.id}</b>
+          </td>
+          <td>U${devA.topU} - ${portA.name}</td>
+          <td>U${devB.topU} - ${portB.name}</td>
+          <td>${c.lengthMeters}m</td>
+          <td>
+            <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sil">&#10005;</button>
+          </td>
+        `;
+
+        tr.addEventListener('click', (e) => {
+          if (e.target.closest('.del-cable-btn')) return;
+          highlightCable(c.id);
+        });
+
+        const delBtn = tr.querySelector('.del-cable-btn');
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          STATE.cables = STATE.cables.filter(item => item.id !== c.id);
+          if (STATE.highlightedCableId === c.id) STATE.highlightedCableId = null;
+          renderMountedDevices();
+          renderScheduleTable();
+          renderAllCables();
+        });
+
+        dom.scheduleTbody.appendChild(tr);
+      });
+    }
+
+    function bindGlobalEvents() {
+      window.addEventListener('click', (e) => {
+        if (!e.target.closest('.port')) {
+          cancelPendingConnection();
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        renderAllCables();
+      });
+
+      dom.rackSpace.parentElement.addEventListener('scroll', () => {
+        renderAllCables();
+      });
+    }
+
+    function bindHeaderActionEvents() {
+      dom.btnClearAll.addEventListener('click', () => {
+        if (confirm("Kabin içindeki tüm cihazlar ve kablolar silinecektir. Onaylıyor musunuz?")) {
+          STATE.rackUnits = Array(43).fill(null);
+          STATE.devices = [];
+          STATE.cables = [];
+          STATE.highlightedCableId = null;
+          cancelPendingConnection();
+          renderMountedDevices();
+          renderScheduleTable();
+          renderAllCables();
+        }
+      });
+
+      dom.btnClearCables.addEventListener('click', () => {
+        if (confirm("Yalnızca çekilmiş tüm kabloları silmek istiyor musunuz?")) {
+          STATE.cables = [];
+          STATE.highlightedCableId = null;
+          cancelPendingConnection();
+          renderMountedDevices();
+          renderScheduleTable();
+          renderAllCables();
+        }
+      });
+
+      dom.btnExportJson.addEventListener('click', () => {
+        const exportData = {
+          version: '2.0-enterprise',
+          timestamp: new Date().toISOString(),
+          devices: STATE.devices,
+          cables: STATE.cables
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `cisco-rack-topology-${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+      });
+
+      dom.btnImportJson.addEventListener('click', () => {
+        dom.fileImport.click();
+      });
+
+      dom.fileImport.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const parsed = JSON.parse(event.target.result);
+            if (!parsed.devices || !parsed.cables) throw new Error("Geçersiz topoloji JSON yapısı!");
+            loadCustomTopology(parsed);
+          } catch (err) {
+            alert("JSON dosyası okunurken hata oluştu: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+        dom.fileImport.value = '';
+      });
+
+      dom.btnExportVisio.addEventListener('click', () => {
+        exportVisioSvg();
+      });
+
+      dom.btnLoadPreset.addEventListener('click', () => {
+        loadEnterprisePreset();
+      });
+    }
+
+    function loadEnterprisePreset() {
+      STATE.rackUnits = Array(43).fill(null);
+      STATE.devices = [];
+      STATE.cables = [];
+      STATE.highlightedCableId = null;
+
+      mountDeviceAt('fiber-odf-24', 42);
+      mountDeviceAt('organizer-1u', 41);
+      mountDeviceAt('cisco-nexus-93180yc', 40);
+      mountDeviceAt('organizer-2u', 38);
+      mountDeviceAt('cisco-9300-48u', 36);
+      mountDeviceAt('patch-cat6-24', 35);
+      mountDeviceAt('organizer-1u', 34);
+      mountDeviceAt('cisco-3850-48p', 33);
+      mountDeviceAt('patch-cat6-48', 32);
+      mountDeviceAt('cisco-2960x-24', 20);
+      mountDeviceAt('patch-cat6-24', 19);
+
+      renderMountedDevices();
+
+      const devODF = STATE.devices.find(d => d.topU === 42);
+      const devNexus = STATE.devices.find(d => d.topU === 40);
+      const devCat9300 = STATE.devices.find(d => d.topU === 36);
+      const devPatch35 = STATE.devices.find(d => d.topU === 35);
+      const devCat3850 = STATE.devices.find(d => d.topU === 33);
+      const devPatch32 = STATE.devices.find(d => d.topU === 32);
+
+      if (devODF && devNexus) {
+        addDirectCable(devODF.instanceId, 'lc1', devNexus.instanceId, 'eth1/49', '#06b6d4');
+        addDirectCable(devODF.instanceId, 'lc2', devNexus.instanceId, 'eth1/50', '#06b6d4');
+      }
+
+      if (devNexus && devCat9300) {
+        addDirectCable(devNexus.instanceId, 'eth1/1', devCat9300.instanceId, 'up1', '#ef4444');
+        addDirectCable(devNexus.instanceId, 'eth1/2', devCat9300.instanceId, 'up2', '#ef4444');
+      }
+
+      if (devPatch35 && devCat9300) {
+        addDirectCable(devPatch35.instanceId, 'pt1', devCat9300.instanceId, 'p1', '#2563eb');
+        addDirectCable(devPatch35.instanceId, 'pt2', devCat9300.instanceId, 'p2', '#2563eb');
+        addDirectCable(devPatch35.instanceId, 'pt3', devCat9300.instanceId, 'p3', '#eab308');
+        addDirectCable(devPatch35.instanceId, 'pt4', devCat9300.instanceId, 'p4', '#22c55e');
+      }
+
+      if (devPatch32 && devCat3850) {
+        addDirectCable(devPatch32.instanceId, 'pt1', devCat3850.instanceId, 'p1', '#2563eb');
+        addDirectCable(devPatch32.instanceId, 'pt2', devCat3850.instanceId, 'p2', '#2563eb');
+        addDirectCable(devPatch32.instanceId, 'pt3', devCat3850.instanceId, 'p3', '#eab308');
+      }
+
+      renderScheduleTable();
+      setTimeout(renderAllCables, 50);
+    }
+
+    function mountDeviceAt(catalogKey, topU) {
+      const cat = HARDWARE_CATALOG[catalogKey];
+      const endU = topU - cat.u + 1;
+      const instanceId = 'dev-' + Math.random().toString(36).substring(2, 9);
+      for (let u = endU; u <= topU; u++) {
+        STATE.rackUnits[u] = instanceId;
+      }
+      STATE.devices.push({
+        instanceId,
+        catalogKey,
+        topU,
+        uHeight: cat.u
+      });
+    }
+
+    function addDirectCable(instA, portA, instB, portB, color) {
+      STATE.cables.push({
+        id: 'CBL-' + String(STATE.cables.length + 1).padStart(3, '0'),
+        from: { instanceId: instA, portId: portA },
+        to: { instanceId: instB, portId: portB },
+        color: color || '#2563eb',
+        lengthMeters: calculateCableLengthMeters(instA, instB)
+      });
+    }
+
+    function loadCustomTopology(data) {
+      STATE.rackUnits = Array(43).fill(null);
+      STATE.devices = data.devices;
+      STATE.cables = data.cables;
+
+      STATE.devices.forEach(dev => {
+        const cat = HARDWARE_CATALOG[dev.catalogKey];
+        if (cat) {
+          const endU = dev.topU - dev.uHeight + 1;
+          for (let u = endU; u <= dev.topU; u++) {
+            STATE.rackUnits[u] = dev.instanceId;
+          }
+        }
+      });
+
+      renderMountedDevices();
+      renderScheduleTable();
+      setTimeout(renderAllCables, 50);
+    }
+
+    function exportVisioSvg() {
+      const totalWidth = 700;
+      const totalHeight = 42 * 32 + 80;
+
+      let svgContent = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" 
+     width="${totalWidth}" height="${totalHeight}" viewBox="0 0 ${totalWidth} ${totalHeight}">
+  
+  <style>
+    .v-rack-post { fill: #1c202a; stroke: #333a47; stroke-width: 1; }
+    .v-u-label { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10px; fill: #64748b; font-weight: bold; }
+    .v-hole { fill: #0d1117; stroke: #3b4252; stroke-width: 0.5; }
+    .v-device-body { fill: #1e2430; stroke: #475569; stroke-width: 1; }
+    .v-device-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9px; fill: #38bdf8; font-weight: bold; }
+    .v-cable { fill: none; stroke-linecap: round; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5)); }
+  </style>
+
+  <!-- LAYER 1: 42U RACK CABINET FRAME & RAILS -->
+  <g v:groupContext="layer" v:layerMember="Rack_Cabinet">
+    <rect x="40" y="20" width="620" height="${42 * 32}" fill="#11141b" stroke="#2d3340" stroke-width="4"/>
+    <rect x="40" y="20" width="44" height="${42 * 32}" class="v-rack-post"/>
+    <rect x="616" y="20" width="44" height="${42 * 32}" class="v-rack-post"/>
+`;
+
+      for (let u = 42; u >= 1; u--) {
+        const y = 20 + (42 - u) * 32;
+        svgContent += `
+          <line x1="40" y1="${y}" x2="660" y2="${y}" stroke="#1f2430" stroke-width="0.5" stroke-dasharray="2,2"/>
+          <text x="62" y="${y + 20}" text-anchor="middle" class="v-u-label">${u}</text>
+          <text x="638" y="${y + 20}" text-anchor="middle" class="v-u-label">${u}</text>
+          <rect x="48" y="${y + 6}" width="4" height="4" class="v-hole"/>
+          <rect x="48" y="${y + 14}" width="4" height="4" class="v-hole"/>
+          <rect x="48" y="${y + 22}" width="4" height="4" class="v-hole"/>
+          <rect x="648" y="${y + 6}" width="4" height="4" class="v-hole"/>
+          <rect x="648" y="${y + 14}" width="4" height="4" class="v-hole"/>
+          <rect x="648" y="${y + 22}" width="4" height="4" class="v-hole"/>
+        `;
+      }
+      svgContent += `  </g>\n`;
+
+      svgContent += `  <!-- LAYER 2: CISCO & NETWORK HARDWARE -->\n  <g v:groupContext="layer" v:layerMember="Network_Devices">\n`;
+      STATE.devices.forEach(dev => {
+        const cat = HARDWARE_CATALOG[dev.catalogKey];
+        const y = 20 + (42 - dev.topU) * 32;
+        const height = dev.uHeight * 32;
+
+        svgContent += `
+          <g v:groupContext="shape" v:mID="${dev.instanceId}">
+            <rect x="84" y="${y}" width="532" height="${height}" class="v-device-body"/>
+            <text x="96" y="${y + 18}" class="v-device-text">${cat.name} (U${dev.topU})</text>
+            <rect x="96" y="${y + 22}" width="6" height="4" fill="#22c55e"/>
+            <rect x="104" y="${y + 22}" width="6" height="4" fill="#38bdf8"/>
+          </g>
+        `;
+      });
+      svgContent += `  </g>\n`;
+
+      svgContent += `  <!-- LAYER 3: CABLING RUN SCHEDULE & CONNECTIONS -->\n  <g v:groupContext="layer" v:layerMember="Patch_Cables">\n`;
+      const svgLayer = document.getElementById('cables-svg');
+      const paths = svgLayer.querySelectorAll('.cable-path');
+      paths.forEach((p, idx) => {
+        const d = p.getAttribute('d');
+        const stroke = p.getAttribute('stroke');
+        const cable = STATE.cables[idx] || { id: 'CBL' };
+        svgContent += `
+          <path d="${d}" stroke="${stroke}" stroke-width="2.8" class="v-cable" v:groupContext="shape">
+            <title>${cable.id} (${cable.lengthMeters}m)</title>
+          </path>
+        `;
+      });
+      svgContent += `  </g>\n</svg>`;
+
+      const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const dlLink = document.createElement('a');
+      dlLink.href = url;
+      dlLink.download = `cisco-enterprise-42u-visio-${new Date().toISOString().slice(0,10)}.svg`;
+      document.body.appendChild(dlLink);
+      dlLink.click();
+      dlLink.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function showTemporaryTooltip(x, y, msg) {
+      dom.tooltip.style.display = 'block';
+      dom.tooltip.style.left = `${x + 10}px`;
+      dom.tooltip.style.top = `${y + 10}px`;
+      dom.tooltip.innerHTML = `<span style="color:#f59e0b;">&#9888; ${msg}</span>`;
+      setTimeout(() => { dom.tooltip.style.display = 'none'; }, 2500);
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
