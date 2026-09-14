@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-09-14T19:02:00.163Z",
+  "method": "Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.",
+  "rackCount": 100,
+  "deviceCount": 3000,
+  "cableCount": 20000,
+  "activeRackCableCount": 200,
+  "baselineFrameIntervalP50Ms": 5.599999999999909,
+  "baselineFrameIntervalP95Ms": 5.7000000000000455,
+  "validationMs": 17,
+  "importMs": 57.599999997764826,
+  "panFrames": 179,
+  "frameIntervalP50Ms": 5.599999999999909,
+  "frameIntervalP95Ms": 5.699999999999818,
+  "maxFrameIntervalMs": 13.200000000000273,
+  "intervalsAbove20Ms": 0,
+  "heapBytes": 18200000,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36 Edg/153.0.0.0",
+  "renderedDevices": 30,
+  "renderedCables": 200,
+  "errors": []
+}

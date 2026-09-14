@@ -6,14 +6,8 @@
   <title>Rack & Cabling Studio</title>
   
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/viewport.css">
-  <link rel="stylesheet" href="css/rack.css">
-  <link rel="stylesheet" href="css/cabling.css">
-  <link rel="stylesheet" href="css/schedule.css">
-  <link rel="stylesheet" href="css/editor.css">
-  <link rel="stylesheet" href="css/catalog-ui.css">
+  <script type="module" crossorigin src="/assets/main-CEp2Ayuj.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-CypYf76l.css">
 </head>
 <body>
   <!-- Modern React 19 Mount Target -->
@@ -592,15 +586,5 @@
   <script src="js/catalog-ui.js"></script>
 
   <!-- Modern Module Bootloader -->
-  <script type="module">
-    if (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('tauri')) {
-      import('/src/main.tsx').then(() => {
-        const legacy = document.getElementById('legacy-root');
-        if (legacy && !window.__FORCE_LEGACY__) {
-          legacy.style.display = 'none';
-        }
-      }).catch(console.error);
-    }
-  </script>
 </body>
 </html>

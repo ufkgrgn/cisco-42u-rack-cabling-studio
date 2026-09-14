@@ -1,0 +1,853 @@
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Kullan\037\035l\037, geni\035 i\347 hacim
+ 
+ 
+ 
+ 
+ 
+ 
+A\347\037k Gri
+ 
+ 
+ 
+Giri\037
+ServerMax
+24
+ServerMax kabinler, teknolojik 
+yat\037r\037mlar\037n\037z\037n performans\037n\037 
+maksimum seviyeye y\374kseltir. 
+Sistem odan\037z\037n ihtiya\347lar\037n\037 tamamlar.
+G\374venli ve sa\036lam
+M\374kemmel pasif havaland\037rma
+26U, 36U, 42U ve 47U y\374kseklik se\347enekleri
+1000 mm. ve 1200 mm. derinlik se\347enekleri
+600 mm. ve 780 mm. geni\035lik \366l\347\374leri
+1000 kg. ta\035\037ma kapsitesi
+Standart denge baras\037 ile y\374ksek stabilite
+Standart tekerlek ve pinyon ayak
+Baza, semin sabitleme kiti ve ba\036lant\037 kiti 
+opsiyonlar\037
+115\034 a\347\037labilir \366n kap\037 ve 215\034 a\347\037labilir arka kap\037 
+Standart renkler, RAL 9005 Siyah & RAL 7035 
+IP 20 koruma seviyesi
+Kabin tamamen y\374kl\374 oldu\036unda dahi derinli\036i 
+ayarlanabilir 19\224 montaj dikmeleri
+Kabin \374st\374 ve alt\037nda \347oklu kablo giri\035leri
+GENEL \326ZELL\036KLER
+19\222\222 D\037K\037L\037 T\037P KAB\037NLER
+ServerMax
+www.estap.com.tr
+2
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Kolay ula\035\037m i\347in \347ift a\347\037l\037m arka kap\037
+ 
+ 
+ 
+\326RNEK
+RENDER
+25
+L pro\033l montaj dikmeleri g\374\347l\374 ve ayarlanabilir 
+yap\037ya sahiptir, dikme boyunca kare delikler bulunur.
+Numaraland\037r\037lm\037\035 U delikleri, kabine monte 
+edilen ekipman\037n kurulumunu kolayla\035t\037r\037r.
+3 noktadan kilitlemeli,  yar\037 silindirik kap\037 
+kilitleme mekanizmas\037: yetkisiz eri\035im i\347in y\374ksek 
+g\374venlik sa\036lar.
+Fiziksel darbelere kar\035\037 etkili koruma
+%63 ve %80 perfore  yap\037da, de\036i\035tirilebilir kap\037
+Kablolama esnekli\036i ve estetik g\366r\374n\374m i\347in 
+bombeli tek a\347\037l\037m \366n kap\037
+Kilitlenebilir ve s\366k\374lebilir yan paneller
+S\366k\374lebilir alt panel
+Kullan\037\035l\037 ve sa\036lam fan \374nitesi: 6 fanl\037 dizayn, 
+a\347ma/kapama butonu, sigorta, dijital veya analog 
+termostat se\347enekleri mevcuttur.
+EIA-310 standard\037na uygun olan t\374m 
+  
+19\222\222 ekipmanlar\037n yan\037 s\037ra, her tipte ve 
+markada sunucular ServerMAX kabinetlerin 
+i\347ine yerle\035tirilebilir.
+EIA-310 STANDARTLARINA 
+UYGUN T\334M AKT\036F 
+EK\036PMANLARI KORUMA 
+ServerMax
+\326L\307\334LER
+\334R\334N 
+REFERANSI*
+\(mm\)
+\221\222U\222\222
+DER\036NL\036K
+D\036KMELER
+ARASI MAKS.
+DER\036NL\036K
+D\036KME
+Y\334KSEKL\036\035\036
+Y\334KSEKL\036K
+Y\334KSEKL\036K
+M\036N.
+Y\334KSEKL\036K
+TEKERL\036K
+GRUBUYLA
+SRV26U60...
+26U 600x1000
+26
+600
+1000
+740
+1175
+1309
+1389
+SRV36U60...
+36U 600x1000
+36
+600
+1000
+740
+1620
+1754
+1834
+SRV42U60...
+42U 600x1000
+42
+600
+1000
+740
+1890
+2002
+2049
+SRV47U60
+...
+47U 600x1000
+47
+600
+1000
+740
+2112
+2224
+2271
+SRV26U80
+...
+26U 780x1000
+26
+780
+1000
+740
+1175
+1309
+1389
+SRV36U80
+...
+36U 780x1000
+36
+780
+1000
+740
+1620
+1754
+1834
+SRV42U80
+...
+42U 780x1000
+42
+780
+1000
+740
+1890
+2002
+2049
+SRV47U80
+...
+47U 780x1000
+47
+780
+1000
+740
+2112
+2224
+2271
+26
+\334R\334N TANIMI
+BOYU
+P\036NYON
+AYAKSIZ
+P\036NYON AYAKLI
+* Bir sonraki sayfadaki \223Referans Kod Olu\037turma\224 \037emas\036 ile referans kodunu olu\037turabilirsiniz.
+* 1200 mm opsiyonu mevcuttur. Farkl\036 \366l\347\374ler i\347in sat\036\037 o\035simiz ile ileti\037ime ge\347ebilirsiniz. 
+G=600/800 MM
+\326N
+PG
+SVF
+SVF80
+DVF80
+Opsiyonel
+ARKA
+DVR
+Standart
+SVR80
+Opsiyonel
+DVR80
+Opsiyonel
+\326rnek:
+SRV42U80
+gri i\347in M2
+kap\036 matrisinden
+kap\036 matrisinden
+_03
+_
+_
+Renk
+\326n kap\036
+Arka kap\036
+27
+KAPI SE\307\036M TABLOSU
+Varsay\037lan kon\034g\374rasyon 
+i\035aretlenmi\035tir.
+KAPI KODU
+TANIM
+Opsiyonel
+Tek a\347\037l\037ml\037, %63 perfore \366n kap\037, tek noktadan kilitlemeli
+Standart
+Tek a\347\037l\037ml\037, %80 perfore \366n kap\037, tek noktadan kilitlemeli
+Opsiyonel
+REFERANS KODU OLU\034TURMA
+SRV42U80_03M2_PNY_DVF80DVR80
+Siyah i\347in M50, 
+L: Pinyon ayak 
+C: Tekerlek seti 
+SVF, DVF, SG\205 
+Se\347enekleri
+kontrol edip 
+se\347ebilirsiniz
+SVR, DVR, SG\205
+Se\347enekleri
+kontrol edip 
+se\347ebilirsiniz
+\334r\374n kodu
+Tekerlek veya pinyon ayak
+ServerMax
+mm
+ KAB\036NLER
+H=Kabin y\374ksekli\034i
+565
+180
+200
+140
+140
+906
+200
+200
+30
+1000
+Alt g\366r\374n\374m
+\326n g\366r\374n\374m
+H
+600
+200
+600
+\(Min 158\)
+184
+\(Min 795\)
+740
+\(Min 25\)
+56
+\033zometrik g\366r\374n\374m
+Arka g\366r\374n\374m
+1000
+\326n g\366r\374n\374m
+\326n g\366r\374n\374m
+\326n g\366r\374n\374m
+12
+47
+600
+H
+600
+H
+600
+H
+28
+TEKN\036K \307\036Z\036MLER
+G=600 
+\334st g\366r\374n\374m 
+Montaj pro\035li
+Yan g\366r\374n\374m
+mm
+ KAB\036NLER
+745
+300
+280
+906
+140
+140
+200
+200
+29
+1000
+Alt g\366r\374n\374m
+780
+\326n g\366r\374n\374m
+780
+300
+H
+12
+47
+19\224
+\(Min 190\)
+195
+\(Min 762\)
+740
+\(Min 27\)
+44
+Arka g\366r\374n\374m
+1000
+\326n g\366r\374n\374m
+\326n g\366r\374n\374m
+\326n g\366r\374n\374m
+ 
+780
+H
+780
+H
+780
+H
+H=Kabin y\374ksekli\034i
+\033zometrik g\366r\374n\374m
+29
+TEKN\036K \307\036Z\036MLER
+G=800 
+\334st g\366r\374n\374m 
+Montaj pro\035li
+Yan g\366r\374n\374m
+30
+TEKERLEK VE P\036NYON AYAK
+D\366ner tip, \366n iki tekerlek 
+kilitlenebilir. Pinyon ayak: 
+Y\374kseklik ayarl\037, her tekerlek  
+pinyon ayak i\347in 250 kg. 
+ta\035\037ma kapasitesi.
+LED LAMBA
+Efektif ve g\374\347l\374 ayd\037nlatma
+Farkl\037 \366l\347\374 se\347enekleri, 19\222\222, 1U, 
+a\347ma/kapama butonu, otomatik 
+kap\037 ile kullan\037labilir \347\366z\374mler. 
+TOPRAKLAMA S\334REKL\036L\036\033\036
+T\374m metal bile\035enler i\347in 
+topraklama kablolar\037. T\374m 
+kap\037lar i\347in c\037vata ve somunlu 
+kablo ba\036lant\037lar\037.
+DENGE BARI
+Standart olarak, kabineti a\036\037rl\037k merkezinde 
+dengede tutmak i\347in ServerMAX iki adet 
+devrilme \366nleyici \347ubuk tipi pinyon ayakl\037 
+destek par\347as\037na sahiptir. Devrilme \366nleyici 
+\347ubuk tipi pinyon ayakl\037 destek par\347as\037 
+kabinetin a\036\037rl\037k merkezindeki dengeyi 
+sa\036lamak i\347in d\037\035ar\037ya \347\037kart\037l\037r.
+FAN MOD\334L\334
+2\222li ve 4\222l\374 fan mod\374l\374, 
+a\347ma/kapama mod\374l\374, 
+analog termostat ve dijital 
+termostat se\347enekleri. 
+Komple i\347ten kablolama.
+ServerMax Aksesuarlar
+31
+D\036KEY KABLO Y\326NET\036C\036S\036
+16U\222dan 47U\222ya kadar se\347enekler 
+mevcuttur. T\374m elektrik, veri 
+kablolar\037 ve patch cordlar\037 
+korumak i\347in tasarlanm\037\035 geni\035 
+i\347 hacim. 19\222\222 dikmeler boyunca 
+yanlara sabitlenir ve kablo giri\035 
+delikleri mevcuttur.
+KAYAR T\036P KABLO G\036R\036\032LER\036
+\334st ve alt panellerde kablo giri\035 
+delikleri bulunur. Birer adet alt 
+ve \374st panelde ESTAP Stili \366zel 
+kau\347uk kenarl\037 kayar tip kablo 
+giri\035leri mevuttur.
+SAB\036T VE HAREKETL\036 RAF
+\326n ve arkadan 19\222\222 dikmelere 4 noktadan 
+montaj. Hava sirk\374lasyonu i\347in delikli yap\037, 
+derinlik ayarl\037 ve galvaniz sac malzeme. 
+600 mm, 800 mm. ve  1000 mm. t\374m 
+kabinlere uygundur
+KABLO TAVASI
+26U\222dan 47U\222ya kadar se\347enekler 
+mevcuttur. Galvaniz sac malzeme, 
+kabinet boyunca kablolaman\037n 
+sa\036lanmas\037 i\347in perfore olarak 
+tasarlanm\037\035t\037r.
+G\366rsel 800 mm. 
+kabine aittir. 
+\334R\334N REFERANSI
+TANIM
+M11PNT610SRV_01M50
+M11PNT810SRV_01M50
+\334R\334N REFERANSI
+TANIM
+CST
+TKRPNYM10X70
+ 80,50 
+ 
+105 
+ 45 
+ 19,70 
+ M10 
+ 
+155 
+ \307AP 45,5 
+ 80,50 
+ 
+105 
+ 45 
+ 19,70 
+ M10 
+ 
+155 
+ \307AP 45,5 
+BAZA
+ServerMax Aksesuarlar
+\037\036\035\034\036\034\033\032\033\031\030\027\026\025\035\036
+\033\024\023\022\033
+\033\021\020\017\033
+\033\016\022\033
+\037\036\035\034\037
+\037\033\032\031\037
+\037\036\036\035\037
+\037\030\031\037
+\037\034\027\026\037
+\037\025\032\032\037
+\024\035
+\023\022
+\021\020\017\016\037\r\f\013
+\024\034
+\024\035
+\023\022\024\034\030
+\n\021\t\016\b
+\023\022
+\007\006\021\037\b\020\n\005\016\t
+\024\035
+\004
+\334R\334N REFERANSI
+TANIM
+GxYxD \(mm\)
+M55SR720_01M50
+50x483x720
+M55HR720_01M50
+50x483x720
+60
+100
+380
+420
+600
+780
+1000
+60
+100
+941
+80,32
+44,50
+291
+600
+80,82
+44,50
+691
+1000
+380
+420
+300
+200
+60
+100
+137
+542
+D
+E
+F
+C
+1
+2
+3
+4
+B
+A
+3
+2
+1
+5
+C
+D
+4
+6
+7
+8
+A
+B
+M11PNT610
+KONTROL
+-
+\326L\307EK
+1:10
+ONAY
+20.07.2009
+20.07.2009
+DWG.NO
+ESTAP ELK.SAN.TIC.LTD.STI
+.
+MALZEME
+A\307IKLAMA
+CRS 6112 \(A1\)
+W=600-D=1000 UNIVERSALLINE BAZA
+\334R\334N REFERANSI
+TANIM
+\(mm\)
+M44CEK2U_01M50
+483x88
+x400
+M44CEK3U_01M50
+483x133
+x400
+32
+Baza g=600 mm. derinlik=1000 mm., denge 
+ayakl\036 kullan\036ma uygun
+Baza g=800 mm. derinlik=1000 mm., denge 
+ayakl\036 kullan\036ma uygun
+Tekerlekler, \366n 2 tekerlek kilitlenebilir
+Pinyon ayaklar, M10X70
+P\036NYON AYAKLAR VE TEKERLEKLER
+A\035IR H\036ZMET T\036P\036 SAB\036T RAF
+Derinlik ayarl\036 19\222\222 a\034\036r hizmet
+tipi sabit raf
+Derinlik ayarl\036 19 \223 a\034\036r hizmet 
+tipi havaland\036rmal\036 ve hareketli 
+raf, arka kablo yonetimli
+Not: \223M50\224 renk kodlu RAL 9005 siyah, \223M2\224 renk kodlu RAL 7035 a\347\036k gri se\347ene\034i mevcuttur.
+KABLO G\036R\036\034L\036
+GxYxD 
+2U 19\224 \347ekmece, 800 mm derinli\034e 
+kadar, kilitlenebilir. 1000 mm.  
+derinli\034indeki kabinetlerde kullan\036m\036nda 
+ekstra braketler mevcuttur, \347elik sac 
+malzemeden \374retilmi\037tir ve y\374k ta\037\036ma 
+kapasitesi 25 kg\222d\036r.
+3U 19\224 \347ekmece, 800 mm derinli\034e kadar, 
+kilitlenebilir. 1000 mm. derinli\034indeki 
+kabinetlerde kullan\036m\036nda ekstra 
+braketler mevcuttur, \347elik sac
+malzemeden \374retilmi\037tir ve y\374k
+ta\037\036ma kapasitesi 25 kg\222d\036r
+19\222\222 KLAVYE \307EKMECES\036
+\334R\334N REFERANSI
+TANIM
+SHLFIX100M50
+SHLSLD100M50
+\037\036\037
+\037\036\037
+\037\035\037
+\037\035\037
+\037\034\033\032\037
+\037\031\037
+\030
+\334R\334N REFERANSI
+TANIM
+E44BPN01_0150M
+1U 19\224 kapama paneli
+483x44x12
+E44BPN02_0150M
+2U 19\224 kapama paneli
+483x88x12
+E44BPN03_0150M
+3U 19\224 kapama paneli
+483x133x12
+E44BPN04_0150M
+4U 19\224 kapama paneli
+483x177x12
+E44BPN05_0150M
+5U 19\224 kapama paneli
+483x222x12
+E44BPN06_0150M
+6U 19\224 kapama paneli
+483x266x12
+P44BPN06_01M50
+kapama paneli \(ABS\)
+483x266x12
+33
+SAB\036T VE HAREKETL\036 RAFLAR
+Not: \223M50\224 renk kodlu RAL 9005 siyah, \223M2\224 renk kodlu RAL 7035 a\347\036k gri se\347ene\034i mevcuttur.
+D= 1000 mm slotlu sabit raf mod\374l\374, y\374k 
+kapasitesi 50 kg., RAL 9005, raf derinli\034
+ 696 mm, 4 noktadan ba\034lant\036l\036, derinli\034i 
+1000 mm. olan kabinler i\347in uygundur.
+D= 1000 mm slotlu hareketli raf mod\374l\374, ta\037\036ma
+kapasitesi 30 kg., Ral 9005, raf derinli\034i
+D= 696 mm, 4 sabitleme noktas\036. Sadece
+1000 mm derinlikteki kabinler i\347in uygundur
+FAN4DT4F01_M50
+Fan mod\374l\374, 4 fan + dijital termostat, 2P+T \035\037, 
+Alman std.
+FAN4DT4F02_M50
+Fan mod\374l\374, 4 fan + dijital termostat, 2P+T \035\037, 
+\033ngiliz std.
+FAN4OO4F01_M50
+Fan mod\374l\374, 4 fan + a\347ma/kapama, 2P+T \035\037, 
+Alman std.
+FAN4OO4F02_M50
+Fan mod\374l\374, 4 fan + a\347ma/kapama, 2P+T \035\037, 
+\033ngiliz std.
+FAN4AT4F01_M50
+Fan mod\374l\374, 4 fan + analog termostat, 2P+T 
+\035\037, Alman std.
+FAN4AT4F02_M50
+Fan mod\374l\374, 4 fan + analog termostat, 2P+T 
+\035\037, \033ngiliz std.
+FAN6DT6F01_M50
+Fan mod\374l\374, 6 fan + dijital termostat, 2P+T \035\037, 
+Alman std.
+FAN6DT6F02_M50
+Fan mod\374l\374, 6 fan + dijital termostat, 2P+T \035\037, 
+\033ngiliz std
+FAN6OO6F01_M50
+Fan mod\374l\374, 6 fan + a\347ma/kapama, 2P+T \035\037, 
+Alman std.
+FAN6OO6F02_M50
+Fan mod\374l\374, 6 fan + a\347ma/kapama, 2P+T \035\037, 
+\033ngiliz std.
+FAN6AT6F01_M50
+Fan mod\374l\374, 6 fan + analog termostat, 2P+T 
+\035\037, Alman std.
+FAN6AT6F02_M50
+Fan mod\374l\374, 6 fan + analog termostat, 2P+T \035\037 
+\033ngiliz std.
+FAN MOD\334L\334
+KAPAMA PANELLER\036
+6U 19\222\222 mod\374ler plastik 
+ServerMax Aksesuarlar
+\334R\334N REFERANSI
+TANIM
+\326L\307\334LER
+GxYxD \(mm\)
+E44ORG1U_01M50
+483x44x80
+E44ORG1UPLST_01M50
+483x44x80
+E44ORG1UN_01M50
+kapakl\036
+483x44x71
+E44ORG2F_01M50
+uygun 1U 19\222\222 parmak tipi
+483x44x124
+E44ORG2F_01M50BN
+paneli \037eklinde
+483x44x10
+E44ORG2U_01M50
+5 halkal\036
+483x88x76
+E44ORG1F_01M50
+483x22x100
+E44ORG2UFT_01M50
+tip
+483x88x166
+\334R\334N REFERANSI
+TANIM
+M44ORG26_03M50
+M44ORG36_03M50
+M44ORG42_03M50
+M44ORG47_03M50
+\334R\334N REFERANSI
+TANIM
+GxYxD \(mm\)
+Led lamba
+10X300X30
+\334R\334N REFERANSI
+TANIM
+M44PEB01
+M44PEB19_01
+34
+1U 19\224 kablo y\366netim paneli
+5 metal halkal\036
+1U 19\222\222 kablo y\366netim paneli
+4 plastik halkal\036
+1U 19\222\222 kablo y\366netim paneli,
+kanal tipi ve \347\036kar\036labilir
+\326nde patch cord giri\037ine
+kablo y\366netim paneli, L
+\037eklinde, arka kablo taval\036
+1U 19\222\222 \366n patch cord
+ba\034lant\036 delikli kablo
+y\366netim paneli, kapama
+2U 19\222\222 kablo y\366netim paneli,
+1/2U 19\222\222 \366n patch cord
+ba\034lant\036 delikli kablo
+y\366netim paneli
+2U 19\222\222 kablo y\366netim paneli,
+5 adet metal halkal\036, parmak
+26U dikey kablo y\366neticisi
+36U dikey kablo y\366neticisi
+42U dikey kablo y\366neticisi
+47U dikey kablo y\366neticisi
+YATAY KABLO Y\326NET\036C\036S\036
+D\036KEY KABLO Y\326NET\036C\036S\036
+TOPRAKLAMA K\036T\036
+LED LAMBA
+MAYDNLED-IRM
+Topraklama kiti, 6 adet topraklama terminali 
++bak\036r bara
+Topraklama kiti, 6 adet topraklama terminali 
++bak\036r bara
+Not: \223M50\224 renk kodlu RAL 9005 siyah, \223M2\224 renk kodlu RAL 7035 a\347\036k gri se\347ene\034i mevcuttur.
+\334R\334N REFERANSI
+TANIM
+ 42U, w= 100 mm
+ 47U, w= 100 mm
+\334R\334N REFERANSI
+TANIM
+M44DPR03X
+M44DPR04X
+\334R\334N REFERANSI
+TANIM
+Kabin ba\034lant\036 kiti
+35
+CT2610
+Kablo tavas\036, 26U, w= 100 mm
+CT3610
+Kablo tavas\036, 36U, w= 100 mm
+CT4210
+Kablo tavas\036,
+CT4710
+Kablo tavas\036,
+KABLO TAVALARI
+Zemin sabitleme kiti w=600 mm.
+Zemin sabitleme kiti w=800 mm.
+ZEM\036N SAB\036TLEME K\036T\036
+M44BLG01
+KAB\036N BA\035LANTI K\036T\036
+KFS6X15_20
+Kafes somun, vida, pul \(1 set= 20 adet\
+KFS6X15_50
+Kafes somun, vida, pul \(1 set= 50 adet\
+Not: \223M50\224 renk kodlu RAL 9005 siyah, \223M2\224 renk kodlu RAL 7035 a\347\036k gri se\347ene\034i mevcuttur.
+ServerMax
+ISO6860, ISO2409, ISO1520, ISO2815, ISO6272, ISO7253 
+ 
+ISO6270-1, ISO2812, ISO 9001, RoHS
+CAM
+TS EN 12150-1 , TS EN 1863-1
+K\036L\036T
+TEKERLEK
+ISO 9001, TS EN 12532 ,RoHS
+FAN
+IEC 60335-2-80:2002 , IEC 60335-1:2010
+2 adet arkada, 2 adet \366nde
+YAPI
+K\036L\036T
+3 b\374k\374ml\374d\374r 3 x 2 = 6 b\374k\374m
+4 b\374k\374ml\374d\374r x 2 = 8 b\374k\374m
+36
+\307EL\036K LEVHA
+EN 10346: 20015 DX51D+Z, EN 10130: 2006 DC01
+ELEKTROSTAT\036K TOZ BOYA
+IEC 62474 , REACH ,RoHS
+TECHNICAL CHARACTERICS
+\036\307 PAR\307ALAR
+                  
+19\222\222 MONTAJ D\036KMELER\036                         
+Solid metal, 2 mm
+L pro\035l \374zerinde 1 defa b\374k\374lm\374\037t\374r.
+U serigra\035si
+\326nceden yap\036land\036r\036lm\036\037 19\222\222
+Ayarlanabilir derinlik
+OMEGA TYPE DESTEK RAYI DER\036NL\036KLER\036
+                                  
+Solid metal, 1,5 mm
+W=600 mm kabinetler i\347in 3 b\374k\374ml\374
+W=780 mm kabinetler i\347in omega tip b\374k\374ml\374
+26U-36U aras\036 sa\034, sol 3\222er adet
+42U-47U aras\036 sa\034, sol 4\222er adet
+\326N KAPI
+Tek a\347\036l\036ml\036, tek par\347a, kaynakl\036
+\326N KAPI YAPISI
+Tek par\347a, bombeli, kaynakl\036 yap\036
+\326N KAPI K\036L\036D\036
+Manuel, 3 noktadan kilitlemeli
+MENTE\034E S\036STEM\036
+Yayl\036 tip
+KAPI A\307ILMA A\307ISI
+215 derece
+YAN PANEL
+Solid metal, 1 mm. sol ve sa\034 2 adet
+Kilitlenebilir, \347\036kar\036l\036p tak\036labilir
+Silindirik tip kilit, tek noktadan kilitlemeli
+ARKA KAPI
+Solid metal, 1 mm
+ARKA KAPI YAPISI
+\307ift a\347\036l\036ml\036, %63 perfore, kilitli, \347\036kar\036l\036p tak\036labilir
+ARKA KAPI K\036L\036D\036
+Manuel kilit, 3 noktadan kilitlemelit
+MENTE\034E S\036STEM\036
+Yayl\036 tip
+KAPI A\307ILMA A\307ISI
+215 derece
+\307ER\307EVE YAPISI
+               
+Alt \374st panel
+Solid Metal 2 mm
+Alt \374st panel yap\036s\036
+Komple kaynakl\036 
+MONTAJ D\036KMELER\036
+Solid metal, 2 mm 
+D\036KME YAPILARI
+\334st ve alt taban \374nitelerine sabitlenmi\037tir
+YAN PANEL B\326LMEL\036 PROF\036L
+Solid metal 2 mm
+YAN PANEL YAPISI
+Alt ve \374st panele sabitlenmi\037tir.
+SATIN ALINAN \334R\334N SERT\036F\036KALARI
+IEC 60917, IEC 60297, IEC 60068-1, IEC 60068-2, IEC 60695-11-10,
+al\036nan
+003788-TSE-08/02
+0443637, 0776963, 0345864, 0401678, 0776653
+KOROZYON
+LOJ\036ST\036K
+ETS 300 019-1-2 S\036n\036f 2.3
+Y\334ZEY
+kal\036nl\036\034\036
+DEPOLAMA
+ETS 300 019-1-1 S\036n\036f 1.2
+37
+TESTLER VE UYUMLU STANDARTLAR
+1\e Y\366netim Sistemi
+2\vre Y\366netim Sistemi
+3\enli\034i Y\366netim Sistemi
+4\e G\374venli\034i Y\366netim Sistemi
+5\aj dikmeleri IEC 297-1
+6\ektronik cihazlar i\347in mekanik yap\036lar.
+7\\374m kabinet \366l\347\374leri IEC 297-2.
+\307EVRE KO\034ULLARINA VE KOROZYONA KAR\034I D\036REN\307;
+STAB\036L\036TE, MEKAN\036K G\334VENL\036K, STAT\036K, D\036NAMIK VE 
+MEKAN\036K Y\334KLERE KAR\034I DIREN\307; TITRE\034IME, MEKANIK 
+\034OKA VE DARBELERE KAR\034I D\036REN\307; IP KORUMA DERECES\036 
+\033IP20\032; ELEKTR\036K TOPRAKLAMA S\334REKL\036L\036\035\036;
+YANGIN VE ALEV DAYANIMI;
+\223EN 61587-1\224 standard\036na g\366re normatif standartlar ile test 
+edilmi\037tir:
+IEC 60950-1 standartlar\036 i\347in onaylanm\036\037 kurulu\037lar taraf\036ndan 
+TSE SERT\036F\036KASI NUMARASI
+EAC SERT\036F\036KA NUMARASI
+METALTEK AB-0547-T / 0157-1 test raporuna uygun ISO 9227
+standard\036
+Elektrostatik toz boya kapl\036 y\374zey i\037lem, 80 +/ - 5 mikron boya 
+TESTLER VE UYUMLU STANDARTLAR
+www.estap.com.tr
+ServerMax

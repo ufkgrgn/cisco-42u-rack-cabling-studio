@@ -1,0 +1,78 @@
+/* Right Sidebar: Run Schedule & Details */
+.sidebar-right {
+  background-color: var(--bg-panel);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.schedule-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.schedule-table th {
+  background: rgba(11, 15, 25, 0.9);
+  color: var(--text-muted);
+  padding: 8px 10px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.schedule-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.schedule-table tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.schedule-table tr:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.schedule-table tr.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-left: 3px solid var(--accent-blue);
+}
+
+.cable-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.del-cable-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.del-cable-btn:hover {
+  color: #ef4444;
+}
