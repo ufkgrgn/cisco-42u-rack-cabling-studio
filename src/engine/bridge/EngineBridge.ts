@@ -22,7 +22,7 @@ export interface EngineBridgeEventMap {
   'camera:pan-to': { worldX: number; worldY: number; durationMs?: number };
   'camera:zoom-to': { factor: number; screenX: number; screenY: number };
   'camera:fit-all': void;
-  'view:toggle-face': { rackId: string; face: 'front' | 'rear' };
+  'view:toggle-face': { rackId?: string; face: 'front' | 'rear' };
 }
 
 type EventCallback<T> = (data: T) => void;

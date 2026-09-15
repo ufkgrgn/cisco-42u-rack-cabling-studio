@@ -267,7 +267,39 @@ export class PixiCanvas {
       this.fitAllRacks();
     });
 
-    this._unsubEvents.push(unsubFit);
+    // 3. View face toggling event
+    const unsubToggleFace = engineBridge.on('view:toggle-face', ({ rackId, face }) => {
+      if (this.sceneGraph) {
+        if (rackId) {
+          const rackContainer = this.sceneGraph.rackContainers.get(rackId);
+          if (rackContainer) {
+            rackContainer.setActiveFace(face);
+          }
+        } else {
+          this.sceneGraph.setActiveFace(face);
+        }
+        this.markDirty();
+      }
+    });
+
+    // 4. App -> Engine device drag events
+    const unsubDragMove = engineBridge.on('device:drag-move', (data) => {
+      if (this.dragManager && this.camera && data.screenX !== undefined && data.screenY !== undefined) {
+        const world = this.camera.screenToWorld(data.screenX, data.screenY);
+        this.dragManager.handlePointerMove(world.x, world.y);
+        this.markDirty();
+      }
+    });
+
+    const unsubDragEnd = engineBridge.on('device:drag-end', (data) => {
+      if (this.dragManager && this.camera && data.screenX !== undefined && data.screenY !== undefined) {
+        const world = this.camera.screenToWorld(data.screenX, data.screenY);
+        this.dragManager.handlePointerUp(world.x, world.y);
+        this.markDirty();
+      }
+    });
+
+    this._unsubEvents.push(unsubFit, unsubToggleFace, unsubDragMove, unsubDragEnd);
   }
 
   private syncRacks(racks: RackModel[]): void {

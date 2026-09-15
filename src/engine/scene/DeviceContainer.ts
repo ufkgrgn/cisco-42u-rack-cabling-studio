@@ -18,6 +18,7 @@ export class DeviceContainer extends Container {
   public standardView: Container;
   public detailedView: Container;
 
+  public activeFace: 'front' | 'rear' = 'front';
   private _isSelected = false;
   private _selectionBorder: Graphics;
 
@@ -44,6 +45,43 @@ export class DeviceContainer extends Container {
 
     // Default to standard view
     this.setLOD(LODTier.STANDARD);
+  }
+
+  public setActiveFace(face: 'front' | 'rear'): void {
+    if (this.activeFace === face) return;
+    this.activeFace = face;
+    this.rebuildAllViews();
+  }
+
+  public setViewFace(face: 'front' | 'rear'): void {
+    this.setActiveFace(face);
+  }
+
+  private rebuildAllViews(): void {
+    for (let i = this.overviewView.children.length - 1; i >= 0; i--) {
+      const c = this.overviewView.children[i];
+      if (c) {
+        this.overviewView.removeChild(c);
+        c.destroy({ children: true });
+      }
+    }
+    for (let i = this.standardView.children.length - 1; i >= 0; i--) {
+      const c = this.standardView.children[i];
+      if (c) {
+        this.standardView.removeChild(c);
+        c.destroy({ children: true });
+      }
+    }
+    for (let i = this.detailedView.children.length - 1; i >= 0; i--) {
+      const c = this.detailedView.children[i];
+      if (c) {
+        this.detailedView.removeChild(c);
+        c.destroy({ children: true });
+      }
+    }
+    this.buildOverview();
+    this.buildStandard();
+    this.buildDetailed();
   }
 
   public setLOD(tier: LODTier): void {
@@ -92,6 +130,53 @@ export class DeviceContainer extends Container {
 
   private buildStandard(): void {
     const g = new Graphics();
+    const isViewingRearOfFrontDevice = this.activeFace === 'rear' && this.instance.face === 'front';
+
+    if (isViewingRearOfFrontDevice) {
+      // Rear metallic chassis facia with fan exhaust and PSU outlines
+      g.roundRect(24, 0, 480, this.heightPx, 2)
+        .fill({ color: 0x111622 })
+        .stroke({ color: 0x2b394f, width: 1 });
+
+      // Left and right mounting ears
+      g.rect(0, 0, 24, this.heightPx).fill({ color: 0x1f293d });
+      g.rect(504, 0, 24, this.heightPx).fill({ color: 0x1f293d });
+
+      // Screw holes in ears
+      for (let u = 0; u < this.uHeight; u++) {
+        const cy = u * 32 + 16;
+        g.circle(12, cy, 3).fill({ color: 0x475569 });
+        g.circle(516, cy, 3).fill({ color: 0x475569 });
+      }
+
+      // PSU bay outline
+      g.rect(380, 4, 100, Math.max(16, this.heightPx - 8))
+        .fill({ color: 0x090d14 })
+        .stroke({ color: 0x1e293b, width: 1 });
+
+      // Fan exhaust grilles
+      const fanRadius = Math.min(11, Math.max(6, (this.heightPx - 8) / 2));
+      g.circle(280, this.heightPx / 2, fanRadius)
+        .fill({ color: 0x090d14 })
+        .stroke({ color: 0x334155, width: 1 });
+      if (this.heightPx >= 64) {
+        g.circle(320, this.heightPx / 2, fanRadius)
+          .fill({ color: 0x090d14 })
+          .stroke({ color: 0x334155, width: 1 });
+      }
+
+      this.standardView.addChild(g);
+
+      // Rear label
+      const label = new Text({
+        text: `${this.catalogItem.id} [REAR]`,
+        style: { fill: 0x94a3b8, fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' },
+      });
+      label.position.set(34, Math.max(0, (this.heightPx - 12) / 2));
+      this.standardView.addChild(label);
+      return;
+    }
+
     // Chassis body
     g.roundRect(24, 0, 480, this.heightPx, 2)
       .fill({ color: 0x151c28 })
@@ -134,21 +219,45 @@ export class DeviceContainer extends Container {
 
   private buildDetailed(): void {
     const g = new Graphics();
-    const ports = this.catalogItem.ports || [];
+    let ports = this.catalogItem.ports || [];
 
-    // Detailed connector pins and status LEDs
+    if (this.activeFace === 'rear') {
+      if (this.instance.face === 'front') {
+        ports = this.catalogItem.rearPorts || [];
+      } else {
+        ports = this.catalogItem.ports || [];
+      }
+    } else {
+      if (this.instance.face === 'rear') {
+        ports = [];
+      }
+    }
+
+    // Detailed connector pins and status LEDs with normalized coordinate support
     ports.forEach((port, idx) => {
-      const px = 160 + (idx % 24) * 12;
-      const py = 6 + Math.floor(idx / 24) * 14;
+      let px: number;
+      let py: number;
+
+      if (port.xPct !== undefined && port.yPct !== undefined) {
+        px = 24 + port.xPct * 480;
+        py = port.yPct * this.heightPx;
+      } else {
+        px = 160 + (idx % 24) * 12;
+        py = 6 + Math.floor(idx / 24) * 14;
+      }
 
       if (port.type === 'rj45') {
         // RJ45 port with gold pins
         g.rect(px, py, 10, 10).fill({ color: 0x0f172a }).stroke({ color: 0x38bdf8, width: 0.5 });
         g.circle(px + 5, py + 2, 1).fill({ color: 0x22c55e }); // Link LED
-      } else if (port.type === 'sfp' || port.type === 'sfp+') {
+      } else if (port.type === 'sfp' || port.type === 'sfp+' || port.type === 'qsfp28') {
         // SFP cage with metal latch
         g.rect(px, py, 10, 12).fill({ color: 0x334155 }).stroke({ color: 0x94a3b8, width: 0.5 });
         g.circle(px + 5, py + 1, 1).fill({ color: 0x38bdf8 }); // Optical LED
+      } else if (port.type === 'c13' || port.type === 'c14') {
+        g.rect(px, py, 12, 10).fill({ color: 0x1e293b }).stroke({ color: 0xf59e0b, width: 0.5 });
+      } else {
+        g.rect(px, py, 10, 10).fill({ color: 0x1e293b }).stroke({ color: 0x64748b, width: 0.5 });
       }
     });
 

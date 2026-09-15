@@ -1,0 +1,27 @@
+--- a/tests/unit/placement-adversarial.test.ts
++++ b/tests/unit/placement-adversarial.test.ts
+@@ -262,2 +262,4 @@
+         { startU: NaN, uHeight: 1 },
++        { startU: 1, uHeight: 0 },
++        { startU: 1, uHeight: NaN },
+       ];
+@@ -272,13 +274,10 @@
+-    it('documents empirical defect: uHeight: 0 and uHeight: NaN bypass validation due to line 52 (device.uHeight || 1)', () => {
++    it('strictly rejects uHeight: 0 and uHeight: NaN without falsy coercion', () => {
+       const rack = createRack('r', 42);
+-      // In src/core/placement/collision.ts:
+-      // Line 52: `const uHeight = device.uHeight || 1;`
+-      // Because `0` and `NaN` are falsy in JS, `0 || 1` evaluates to 1!
+-      // This bypasses line 57's check `|| uHeight < 1` and `!Number.isInteger(uHeight)`.
+       const resZero = validatePlacement(rack, { uHeight: 0, face: 'front' }, 1);
+-      // Demonstrating that uHeight: 0 is coerced to 1 and succeeds instead of being rejected
+-      expect(resZero.valid).toBe(true);
++      expect(resZero.valid).toBe(false);
++      expect(resZero.reason).toBe('OUT_OF_BOUNDS');
+ 
+       const resNaN = validatePlacement(rack, { uHeight: NaN, face: 'front' }, 1);
+-      // Demonstrating that uHeight: NaN is coerced to 1 and succeeds instead of being rejected
+-      expect(resNaN.valid).toBe(true);
++      expect(resNaN.valid).toBe(false);
++      expect(resNaN.reason).toBe('OUT_OF_BOUNDS');
+     });

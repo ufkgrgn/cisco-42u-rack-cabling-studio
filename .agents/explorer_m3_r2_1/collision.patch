@@ -1,0 +1,21 @@
+--- a/src/core/placement/collision.ts
++++ b/src/core/placement/collision.ts
+@@ -51,2 +51,2 @@
+-  const startU = targetU !== undefined ? targetU : (device.startU ?? 1);
+-  const uHeight = device.uHeight || 1;
++  const startU = targetU !== undefined ? targetU : (device.startU !== undefined ? device.startU : 1);
++  const uHeight = device.uHeight !== undefined ? device.uHeight : 1;
+@@ -109,3 +109,10 @@
++  if (
++    !Number.isInteger(candidate.startU) ||
++    !Number.isInteger(candidate.uHeight) ||
++    candidate.startU < 1 ||
++    candidate.uHeight < 1
++  ) {
++    return { hasCollision: true, reason: 'OUT OF BOUNDS' };
++  }
++
+   const candidateEnd = candidate.startU + candidate.uHeight - 1;
+ 
+-  if (candidate.startU < 1 || candidateEnd > totalU) {
++  if (candidateEnd > totalU) {

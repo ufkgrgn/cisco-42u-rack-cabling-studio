@@ -1,5 +1,6 @@
 import { ICommand, CommandContext, CommandExecutionResult } from '../types';
 import { DeviceInstance, RackModel, CableRun } from '../../types';
+import { validatePlacement } from '../../placement';
 
 export interface MoveDevicePayload {
   instanceId: string;
@@ -56,25 +57,29 @@ export class MoveDeviceCommand implements ICommand {
     const targetRack = project.racks.find((r: RackModel) => r.id === this._targetRackId);
     if (!targetRack) return { success: false, error: `Target rack '${this._targetRackId}' not found.` };
 
-    const endU = this._targetStartU + this._uHeight - 1;
-    if (this._targetStartU < 1 || endU > targetRack.totalU) {
+    // 3. Centralized placement validation (bounds, collision with self-exemption and face isolation)
+    const validation = validatePlacement(
+      targetRack,
+      {
+        instanceId: this._instanceId,
+        catalogId: device.catalogId,
+        startU: this._targetStartU,
+        uHeight: this._uHeight,
+        face: finalFace,
+      },
+      this._targetStartU,
+      finalFace
+    );
+
+    if (!validation.valid) {
+      if (validation.reason === 'COLLISION') {
+        return { success: false, error: `Collision at U${this._targetStartU} with '${validation.conflictingInstanceId}'.` };
+      }
+      const endU = this._targetStartU + this._uHeight - 1;
       return { success: false, error: `Target position U${this._targetStartU}-U${endU} out of bounds for rack ${targetRack.id} (total U: ${targetRack.totalU}).` };
     }
 
-    // 3. Collision check (ignoring the device itself if moving in same rack)
-    const collision = targetRack.devices.find((d: DeviceInstance) => {
-      if (d.instanceId === this._instanceId) return false;
-      if (d.face !== finalFace) return false;
-      const dEndU = d.startU + d.uHeight - 1;
-      return Math.max(this._targetStartU, d.startU) <= Math.min(endU, dEndU);
-    });
-
-    if (collision) {
-      return { success: false, error: `Collision at U${this._targetStartU} with '${collision.instanceId}'.` };
-    }
-
-    // 4. Forward Delta: Update device and attached cable endpoints
-    const interRackMove = this._sourceRackId !== this._targetRackId;
+    // 4. Forward Delta: Update device and attached cable endpoints (both intra-rack and inter-rack)
     this._affectedCableIds = [];
 
     context.projectStore.setState((state: any) => {
@@ -89,8 +94,8 @@ export class MoveDeviceCommand implements ICommand {
       devObj.face = finalFace;
       tgtR.devices.push(devObj);
 
-      // Preserve cabling topology across racks
-      if (interRackMove && state.cables) {
+      // Preserve cabling topology across racks and slot moves
+      if (state.cables) {
         state.cables.forEach((c: CableRun) => {
           let touched = false;
           if (c.from.deviceInstanceId === this._instanceId) {
@@ -105,6 +110,7 @@ export class MoveDeviceCommand implements ICommand {
           }
           if (touched) this._affectedCableIds.push(c.id);
         });
+        this._affectedCableIds = Array.from(new Set(this._affectedCableIds));
       }
     });
 
@@ -128,8 +134,6 @@ export class MoveDeviceCommand implements ICommand {
   undo(context: CommandContext): CommandExecutionResult {
     if (!this._executed) return { success: false, error: 'Command not executed.' };
 
-    const interRackMove = this._sourceRackId !== this._targetRackId;
-
     context.projectStore.setState((state: any) => {
       const tgtR = state.racks.find((r: RackModel) => r.id === this._targetRackId)!;
       const srcR = state.racks.find((r: RackModel) => r.id === this._sourceRackId)!;
@@ -142,7 +146,8 @@ export class MoveDeviceCommand implements ICommand {
       devObj.face = this._sourceFace;
       srcR.devices.push(devObj);
 
-      if (interRackMove && state.cables) {
+      // Invert cable endpoints cleanly for all attached cables
+      if (state.cables) {
         state.cables.forEach((c: CableRun) => {
           if (c.from.deviceInstanceId === this._instanceId) {
             c.from.rackId = this._sourceRackId;

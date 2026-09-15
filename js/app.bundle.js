@@ -502,6 +502,15 @@
       desc: 'Hava sızdırmaz fırçalı tip, patch kabloları gizleyen 1U yatay kablo tavası.',
       ports: []
     },
+    'organizer-dring-1u': {
+      name: '1U D-Ring Yatay Kablo Düzenleyici',
+      u: 1,
+      category: 'organizer',
+      logo: 'ORGANIZER',
+      modelTag: '1U 5x D-RING ORGANIZER',
+      desc: '5 Adet Metal D-Ring kancalı 19" 1U yatay kablo düzenleyici organizer.',
+      ports: []
+    },
     'organizer-2u': {
       name: '2U Kapaklı Parmak Tipi Düzenleyici',
       u: 2,
@@ -790,11 +799,22 @@
       const fromInActive = cable.from.rackId === activeRack.id;
       const toInActive = cable.to.rackId === activeRack.id;
 
-      // Draw SVG cable only if BOTH endpoints are in this active rack
-      if (!fromInActive || !toInActive) return;
+      const instA = cable.from.instanceId || cable.from.deviceId;
+      const instB = cable.to.instanceId || cable.to.deviceId;
+      const portIdA = cable.from.portId || ('p' + cable.from.portIdx);
+      const portIdB = cable.to.portId || ('p' + cable.to.portIdx);
 
-      const portFromEl = document.getElementById(`port-${cable.from.instanceId}-${cable.from.portId}`);
-      const portToEl = document.getElementById(`port-${cable.to.instanceId}-${cable.to.portId}`);
+      let portFromEl = document.getElementById(`port-${instA}-${portIdA}`);
+      let portToEl = document.getElementById(`port-${instB}-${portIdB}`);
+
+      if (!portFromEl) {
+        portFromEl = document.querySelector(`.port[data-instance-id="${instA}"][data-port-id="${portIdA}"]`) ||
+                     document.querySelector(`.port[data-instance-id="${instA}"]`);
+      }
+      if (!portToEl) {
+        portToEl = document.querySelector(`.port[data-instance-id="${instB}"][data-port-id="${portIdB}"]`) ||
+                   document.querySelector(`.port[data-instance-id="${instB}"]`);
+      }
 
       if (!portFromEl || !portToEl) return;
 
@@ -1465,6 +1485,7 @@
     ZOOM_STATE.isFit = false;
 
     updateStageTransform(smooth);
+    requestAnimationFrame(renderAllCables);
   }
 
   function jumpToSection(section) {

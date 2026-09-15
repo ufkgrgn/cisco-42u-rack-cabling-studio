@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { ProjectV3, ProjectSchemaV3 } from '../persistence/schemas';
+import { ProjectV3, ProjectSchemaV3, DeviceCatalogItem } from '../persistence/schemas';
 import { migrateToV3 } from '../persistence/migration';
 import { RackModel } from '../types';
+import { syncCustomCatalog } from '../catalog/catalogRegistry';
 
 export interface ProjectState {
   project: ProjectV3;
@@ -17,6 +18,12 @@ export interface ProjectState {
   mutate: (updater: (draft: ProjectV3) => void) => void;
   markSaved: () => void;
   reset: () => void;
+
+  // Custom Device Catalog Actions
+  addCustomDevice: (device: DeviceCatalogItem) => void;
+  updateCustomDevice: (id: string, updates: Partial<DeviceCatalogItem>) => void;
+  removeCustomDevice: (id: string) => void;
+  importCustomDevices: (devices: DeviceCatalogItem[]) => void;
 }
 
 export const DEFAULT_INITIAL_PROJECT: ProjectV3 = {
@@ -46,21 +53,37 @@ export const DEFAULT_INITIAL_PROJECT: ProjectV3 = {
   customCatalog: {}
 };
 
+function normalizeCustomItem(device: Partial<DeviceCatalogItem> & { id: string; name: string; category: any; u: number }): DeviceCatalogItem {
+  return {
+    ...device,
+    manufacturer: device.manufacturer || 'Custom',
+    depthMm: device.depthMm ?? 400,
+    powerWatts: device.powerWatts ?? 0,
+    ports: Array.isArray(device.ports) ? device.ports : [],
+    rearPorts: Array.isArray(device.rearPorts) ? device.rearPorts : [],
+    isCustom: true
+  };
+}
+
 export const useProjectStore = create<ProjectState>()(
   subscribeWithSelector((set) => ({
     project: DEFAULT_INITIAL_PROJECT,
     isDirty: false,
     revision: 0,
 
-    setProject: (project) =>
+    setProject: (project) => {
+      const parsed = ProjectSchemaV3.parse(project);
+      syncCustomCatalog(parsed.customCatalog);
       set((state) => ({
-        project: ProjectSchemaV3.parse(project),
+        project: parsed,
         isDirty: false,
         revision: state.revision + 1
-      })),
+      }));
+    },
 
     loadProjectFromData: (data) => {
       const migrated = migrateToV3(data);
+      syncCustomCatalog(migrated.customCatalog);
       set((state) => ({
         project: migrated,
         isDirty: false,
@@ -107,6 +130,9 @@ export const useProjectStore = create<ProjectState>()(
         const draft: ProjectV3 = JSON.parse(JSON.stringify(state.project));
         updater(draft);
         draft.metadata.updatedAt = new Date().toISOString();
+        if (draft.customCatalog) {
+          syncCustomCatalog(draft.customCatalog);
+        }
         return {
           project: draft,
           isDirty: true,
@@ -116,7 +142,8 @@ export const useProjectStore = create<ProjectState>()(
 
     markSaved: () => set({ isDirty: false }),
 
-    reset: () =>
+    reset: () => {
+      syncCustomCatalog({});
       set((state) => ({
         project: {
           ...DEFAULT_INITIAL_PROJECT,
@@ -129,6 +156,97 @@ export const useProjectStore = create<ProjectState>()(
         },
         isDirty: false,
         revision: state.revision + 1
-      }))
+      }));
+    },
+
+    addCustomDevice: (device) =>
+      set((state) => {
+        const customItem = normalizeCustomItem(device);
+        const updatedCustom: Record<string, DeviceCatalogItem> = {
+          ...state.project.customCatalog,
+          [device.id]: customItem
+        };
+        syncCustomCatalog(updatedCustom);
+        return {
+          project: {
+            ...state.project,
+            customCatalog: updatedCustom,
+            metadata: {
+              ...state.project.metadata,
+              updatedAt: new Date().toISOString()
+            }
+          },
+          isDirty: true,
+          revision: state.revision + 1
+        };
+      }),
+
+    updateCustomDevice: (id, updates) =>
+      set((state) => {
+        const existing = state.project.customCatalog[id];
+        if (!existing) return state;
+        const updatedItem = normalizeCustomItem({
+          ...existing,
+          ...updates,
+          id
+        });
+        const updatedCustom: Record<string, DeviceCatalogItem> = {
+          ...state.project.customCatalog,
+          [id]: updatedItem
+        };
+        syncCustomCatalog(updatedCustom);
+        return {
+          project: {
+            ...state.project,
+            customCatalog: updatedCustom,
+            metadata: {
+              ...state.project.metadata,
+              updatedAt: new Date().toISOString()
+            }
+          },
+          isDirty: true,
+          revision: state.revision + 1
+        };
+      }),
+
+    removeCustomDevice: (id) =>
+      set((state) => {
+        const updatedCustom: Record<string, DeviceCatalogItem> = { ...state.project.customCatalog };
+        delete updatedCustom[id];
+        syncCustomCatalog(updatedCustom);
+        return {
+          project: {
+            ...state.project,
+            customCatalog: updatedCustom,
+            metadata: {
+              ...state.project.metadata,
+              updatedAt: new Date().toISOString()
+            }
+          },
+          isDirty: true,
+          revision: state.revision + 1
+        };
+      }),
+
+    importCustomDevices: (devices) =>
+      set((state) => {
+        const updatedCustom: Record<string, DeviceCatalogItem> = { ...state.project.customCatalog };
+        for (const d of devices) {
+          updatedCustom[d.id] = normalizeCustomItem(d);
+        }
+        syncCustomCatalog(updatedCustom);
+        return {
+          project: {
+            ...state.project,
+            customCatalog: updatedCustom,
+            metadata: {
+              ...state.project.metadata,
+              updatedAt: new Date().toISOString()
+            }
+          },
+          isDirty: true,
+          revision: state.revision + 1
+        };
+      })
   }))
 );

@@ -10,12 +10,17 @@ export type PortType =
   | 'rj45' 
   | 'sfp' 
   | 'sfp+' 
+  | 'sfp28'
+  | 'qsfp+'
   | 'qsfp28' 
   | 'lc' 
   | 'sc' 
+  | 'mpo'
   | 'dac' 
   | 'c13' 
   | 'c14' 
+  | 'c19'
+  | 'c20'
   | 'terminal';
 
 export interface PortDefinition {
@@ -28,6 +33,10 @@ export interface PortDefinition {
   poe?: boolean;
   xPct?: number; // Normalized 0..1 coordinate on facia
   yPct?: number;
+  facing?: 'front' | 'rear';
+  connectorGender?: 'female' | 'male';
+  isCombo?: boolean;
+  comboPeerPortId?: string;
 }
 
 export type DeviceCategory = 
@@ -38,7 +47,15 @@ export type DeviceCategory =
   | 'pdu' 
   | 'organizer' 
   | 'accessory' 
-  | 'blank';
+  | 'blank'
+  | 'fiber-switch'
+  | 'patch'
+  | 'fiber'
+  | 'compact'
+  | 'custom'
+  | 'shelf'
+  | 'drawer'
+  | 'fan';
 
 export interface DeviceCatalogItem {
   id: string;
@@ -47,13 +64,21 @@ export interface DeviceCatalogItem {
   u: number;
   manufacturer: string;
   depthMm?: number;
+  weightKg?: number;
   powerWatts?: number;
+  dualPsu?: boolean;
+  heatBtu?: number;
+  heatBtuPerHour?: number;
   ports: PortDefinition[];
   rearPorts?: PortDefinition[];
   isCustom?: boolean;
   logo?: string;
   modelTag?: string;
   desc?: string;
+  slots?: any[];
+  power?: any;
+  facia?: any;
+  compatibleTransceivers?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +198,8 @@ export interface EngineBridgeEvents {
   'selection:change': { selectedId?: string | null; type?: 'rack' | 'device' | 'cable' | 'port' | null };
   'port:hover': { endpoint: CableEndpoint | null };
   'viewport:change': { zoom: number; panX: number; panY: number };
+  'camera:fit-all': void;
+  'view:toggle-face': { rackId?: string; face: 'front' | 'rear' };
 }
 
 export interface WorldCoordinate {

@@ -8,12 +8,17 @@ export const PortTypeSchema = z.enum([
   'rj45',
   'sfp',
   'sfp+',
+  'sfp28',
+  'qsfp+',
   'qsfp28',
   'lc',
   'sc',
+  'mpo',
   'dac',
   'c13',
   'c14',
+  'c19',
+  'c20',
   'terminal'
 ]);
 export type PortType = z.infer<typeof PortTypeSchema>;
@@ -30,7 +35,11 @@ export const PortDefinitionSchema = z.object({
   speed: z.string().optional(),
   poe: z.boolean().optional(),
   xPct: z.number().min(0).max(1).optional(), // 0..1 normalized horizontal coordinate
-  yPct: z.number().min(0).max(1).optional()  // 0..1 normalized vertical coordinate
+  yPct: z.number().min(0).max(1).optional(),  // 0..1 normalized vertical coordinate
+  facing: z.enum(['front', 'rear']).optional(),
+  connectorGender: z.enum(['female', 'male']).optional(),
+  isCombo: z.boolean().optional(),
+  comboPeerPortId: z.string().optional()
 });
 export type PortDefinition = z.infer<typeof PortDefinitionSchema>;
 
@@ -45,7 +54,15 @@ export const DeviceCategorySchema = z.enum([
   'pdu',
   'organizer',
   'accessory',
-  'blank'
+  'blank',
+  'fiber-switch',
+  'patch',
+  'fiber',
+  'compact',
+  'custom',
+  'shelf',
+  'drawer',
+  'fan'
 ]);
 export type DeviceCategory = z.infer<typeof DeviceCategorySchema>;
 
@@ -53,21 +70,41 @@ export type DeviceCategory = z.infer<typeof DeviceCategorySchema>;
  * Hardware catalog item definition (Built-in or Custom).
  */
 export const DeviceCatalogItemSchema = z.object({
-  id: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/),
+  id: z.string().min(1).regex(/^[a-zA-Z0-9_.-]+$/, 'ID must contain only letters, numbers, hyphens, dots, and underscores'),
   name: z.string().min(1).max(150),
   category: DeviceCategorySchema,
   u: z.number().int().min(1).max(60),
   manufacturer: z.string().min(1).default('Cisco'),
   depthMm: z.number().positive().optional().default(400),
+  weightKg: z.number().positive().optional(),
   powerWatts: z.number().nonnegative().optional().default(0),
+  dualPsu: z.boolean().optional(),
+  heatBtu: z.number().nonnegative().optional(),
+  heatBtuPerHour: z.number().nonnegative().optional(),
   ports: z.array(PortDefinitionSchema).default([]),
   rearPorts: z.array(PortDefinitionSchema).optional().default([]),
   isCustom: z.boolean().optional().default(false),
   logo: z.string().optional(),
   modelTag: z.string().optional(),
-  desc: z.string().optional()
+  desc: z.string().optional(),
+  slots: z.array(z.any()).optional(),
+  power: z.any().optional(),
+  facia: z.any().optional(),
+  compatibleTransceivers: z.array(z.string()).optional()
 });
 export type DeviceCatalogItem = z.infer<typeof DeviceCatalogItemSchema>;
+
+/**
+ * Cabinet Model catalog item schema.
+ */
+export const CabinetModelSchema = DeviceCatalogItemSchema.extend({
+  heightMm: z.number().positive(),
+  widthMm: z.number().positive(),
+  depthMm: z.number().positive(),
+  maxLoadKg: z.number().positive(),
+  doorPerforationPct: z.number().min(0).max(100)
+});
+export type CabinetModel = z.infer<typeof CabinetModelSchema>;
 
 /**
  * Device instance placed within a rack cabinet.

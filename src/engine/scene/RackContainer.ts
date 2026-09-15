@@ -9,9 +9,10 @@ import { LODTier } from './types';
 
 export class RackContainer extends Container {
   public readonly rackId: string;
-  public readonly totalU: number;
+  public totalU: number;
   public readonly rackWidth = 634; // EIA-310-D: 53 + 24 + 480 + 24 + 53
-  public readonly rackHeight: number; // totalU * 32 + 64px
+  public rackHeight: number; // totalU * 32 + 64px
+  public activeFace: 'front' | 'rear' = 'front';
 
   // Sub-containers
   public frameGraphics: Graphics;
@@ -24,6 +25,9 @@ export class RackContainer extends Container {
   public deviceMap = new Map<string, DeviceContainer>();
   public currentLOD = LODTier.STANDARD;
 
+  private _rackName: string;
+  private _headerTitle: Text | null = null;
+
   constructor(rack: RackModel) {
     super({
       isRenderGroup: true, // Crucial: isolates GPU batch & transforms!
@@ -32,6 +36,7 @@ export class RackContainer extends Container {
     });
 
     this.rackId = rack.id;
+    this._rackName = rack.name;
     this.totalU = rack.totalU;
     this.rackHeight = this.totalU * 32 + 64;
     this.position.set(rack.positionX ?? 0, 0);
@@ -50,7 +55,7 @@ export class RackContainer extends Container {
     this.addChild(this.badgeContainer);
     this.addChild(this.highlightGraphics);
 
-    this.renderRackFrame(rack.name);
+    this.renderRackFrame(this._rackName);
     this.renderEIAMountingRails();
     this.renderUSlots();
     this.renderOverviewBadge(rack);
@@ -76,6 +81,48 @@ export class RackContainer extends Container {
     for (const dev of this.deviceMap.values()) {
       dev.setLOD(tier);
     }
+  }
+
+  public setTotalU(newTotalU: number, name?: string): void {
+    if (name) this._rackName = name;
+    this.totalU = newTotalU;
+    this.rackHeight = newTotalU * 32 + 64;
+    this.cullArea = new Rectangle(0, 0, this.rackWidth, this.rackHeight);
+
+    this.renderRackFrame(this._rackName);
+    this.renderEIAMountingRails();
+    this.renderUSlots();
+    this.renderOverviewBadge({
+      id: this.rackId,
+      name: this._rackName,
+      totalU: this.totalU,
+      widthMm: 600,
+      depthMm: 1000,
+      maxLoadKg: 1000,
+      positionX: this.x,
+      devices: [],
+    });
+
+    // Re-align mounted device containers according to the new totalU
+    for (const dev of this.deviceMap.values()) {
+      const topUnit = dev.instance.startU + dev.instance.uHeight - 1;
+      const localY = 32 + (this.totalU - topUnit) * 32;
+      dev.position.set(53, localY);
+    }
+  }
+
+  public setActiveFace(face: 'front' | 'rear'): void {
+    this.activeFace = face;
+    if (this._headerTitle) {
+      this._headerTitle.text = `${this._rackName.toUpperCase()} (${this.totalU}U EIA-310-D) [${face.toUpperCase()}]`;
+    }
+    for (const dev of this.deviceMap.values()) {
+      dev.setActiveFace(face);
+    }
+  }
+
+  public setViewFace(face: 'front' | 'rear'): void {
+    this.setActiveFace(face);
   }
 
   public syncDevices(
@@ -107,6 +154,7 @@ export class RackContainer extends Container {
       let devContainer = this.deviceMap.get(d.instanceId);
       if (!devContainer) {
         devContainer = new DeviceContainer(d, catalogItem);
+        devContainer.setActiveFace(this.activeFace);
         this.deviceMap.set(d.instanceId, devContainer);
         this.devicesContainer.addChild(devContainer);
       }
@@ -148,12 +196,17 @@ export class RackContainer extends Container {
     g.rect(0, this.rackHeight - 32, this.rackWidth, 32).fill({ color: 0x161f2f });
 
     // Header Title
-    const title = new Text({
-      text: `${name.toUpperCase()} (${this.totalU}U EIA-310-D)`,
-      style: { fill: 0x38bdf8, fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold' },
-    });
-    title.position.set(16, 9);
-    this.addChild(title);
+    const titleText = `${name.toUpperCase()} (${this.totalU}U EIA-310-D) [${this.activeFace.toUpperCase()}]`;
+    if (!this._headerTitle) {
+      this._headerTitle = new Text({
+        text: titleText,
+        style: { fill: 0x38bdf8, fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold' },
+      });
+      this._headerTitle.position.set(16, 9);
+      this.addChild(this._headerTitle);
+    } else {
+      this._headerTitle.text = titleText;
+    }
   }
 
   private renderEIAMountingRails(): void {
@@ -164,11 +217,12 @@ export class RackContainer extends Container {
     g.rect(53, 32, 24, this.totalU * 32).fill({ color: 0x111722 });
     g.rect(557, 32, 24, this.totalU * 32).fill({ color: 0x111722 });
 
-    // EIA 3-hole pattern per 1U
+    // EIA-310-D standard 3-hole pattern per 1U
+    // Centers at 0.25", 0.875", 1.50" relative to U top (offsets: [4.57, 16.0, 27.43] px)
+    const holeOffsets = [4.57, 16.0, 27.43];
     for (let u = 0; u < this.totalU; u++) {
       const yBase = 32 + u * 32;
-      // 3 holes per U at 7px, 16px, 25px
-      [7, 16, 25].forEach((offset) => {
+      holeOffsets.forEach((offset) => {
         g.rect(62, yBase + offset - 1.5, 4, 3).fill({ color: 0x1e293b });
         g.rect(566, yBase + offset - 1.5, 4, 3).fill({ color: 0x1e293b });
       });
@@ -205,6 +259,14 @@ export class RackContainer extends Container {
   }
 
   private renderOverviewBadge(rack: RackModel): void {
+    for (let i = this.badgeContainer.children.length - 1; i >= 0; i--) {
+      const child = this.badgeContainer.children[i];
+      if (child) {
+        this.badgeContainer.removeChild(child);
+        child.destroy({ children: true });
+      }
+    }
+
     const g = new Graphics();
     g.roundRect(100, Math.max(0, this.rackHeight / 2 - 80), 434, 160, 8)
       .fill({ color: 0x0f172a, alpha: 0.95 })
@@ -213,7 +275,7 @@ export class RackContainer extends Container {
     this.badgeContainer.addChild(g);
 
     const text = new Text({
-      text: `${rack.name}\n${this.totalU}U Cabinet\nDevices: ${rack.devices.length}\nMax Load: ${rack.maxLoadKg} kg`,
+      text: `${rack.name}\n${this.totalU}U Cabinet [${this.activeFace.toUpperCase()}]\nDevices: ${rack.devices?.length || 0}\nMax Load: ${rack.maxLoadKg || 1000} kg`,
       style: {
         fill: 0xffffff,
         fontSize: 16,

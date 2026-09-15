@@ -1,5 +1,6 @@
 import { ICommand, CommandContext, CommandExecutionResult } from '../types';
-import { RackModel, DeviceInstance } from '../../types';
+import { RackModel } from '../../types';
+import { canResizeRack } from '../../placement';
 
 export class ResizeRackCommand implements ICommand {
   readonly id: string;
@@ -25,17 +26,12 @@ export class ResizeRackCommand implements ICommand {
     const rack = project.racks.find((r: RackModel) => r.id === this._rackId);
     if (!rack) return { success: false, error: `Rack '${this._rackId}' not found.` };
 
-    // 1. Boundary check (1U - 60U)
-    if (!Number.isInteger(this._newTotalU) || this._newTotalU < 1 || this._newTotalU > 60) {
-      return { success: false, error: `Invalid rack height ${this._newTotalU}U. Must be an integer between 1 and 60.` };
-    }
-
-    // 2. Shrinkage Prohibition Guard (AC4)
-    const maxOccupiedU = rack.devices.reduce((max: number, d: DeviceInstance) => Math.max(max, d.startU + d.uHeight - 1), 0);
-    if (this._newTotalU < maxOccupiedU) {
+    // Delegate validation to centralized placement domain
+    const resizeCheck = canResizeRack(rack, this._newTotalU);
+    if (!resizeCheck.allowed) {
       return {
         success: false,
-        error: `Cannot shrink rack to ${this._newTotalU}U: devices are mounted up to U${maxOccupiedU}. Move or remove them first.`
+        error: resizeCheck.message || resizeCheck.reason || `Cannot resize rack to ${this._newTotalU}U.`
       };
     }
 

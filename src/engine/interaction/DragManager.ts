@@ -10,6 +10,7 @@ import { EngineBridge } from '../bridge/EngineBridge';
 import { PlaceDeviceCommand } from '../../core/history/commands/PlaceDeviceCommand';
 import { MoveDeviceCommand } from '../../core/history/commands/MoveDeviceCommand';
 import { catalogRegistry } from '../../core/catalog/catalogRegistry';
+import { checkAABBOverlap } from '../../core/placement';
 
 export interface DragState {
   isActive: boolean;
@@ -214,10 +215,10 @@ export class DragManager {
       if (dev.instance.face !== face) continue;
 
       const dStart = dev.instance.startU;
-      const dEnd = dev.instance.startU + dev.instance.uHeight - 1;
+      const dHeight = dev.instance.uHeight;
 
-      // Interval overlap test: max(startA, startB) <= min(endA, endB)
-      if (Math.max(startU, dStart) <= Math.min(candidateEndU, dEnd)) {
+      // Interval overlap test using placement domain checkAABBOverlap
+      if (checkAABBOverlap(startU, uHeight, dStart, dHeight)) {
         return {
           hasCollision: true,
           reason: `COLLISION WITH ${dev.catalogItem.id} AT U${dStart}`,

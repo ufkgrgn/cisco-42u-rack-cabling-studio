@@ -1,5 +1,6 @@
 import { ICommand, CommandContext, CommandExecutionResult } from '../types';
 import { DeviceInstance, RackModel } from '../../types';
+import { validatePlacement } from '../../placement';
 
 export interface PlaceDevicePayload {
   rackId: string;
@@ -51,27 +52,12 @@ export class PlaceDeviceCommand implements ICommand {
       this._device.uHeight = catItem.u;
     }
 
-    const endU = this._device.startU + this._device.uHeight - 1;
-
-    // Validation: Rack boundaries
-    if (this._device.startU < 1 || endU > rack.totalU) {
+    // Delegate validation to centralized placement domain
+    const validation = validatePlacement(rack, this._device, this._device.startU, this._device.face);
+    if (!validation.valid) {
       return {
         success: false,
-        error: `Placement out of bounds: U${this._device.startU}-U${endU} exceeds rack 1-U${rack.totalU}.`
-      };
-    }
-
-    // Validation: AABB Interval Collision on same face
-    const collision = rack.devices.find((d: DeviceInstance) => {
-      if (d.face !== this._device.face) return false;
-      const dEndU = d.startU + d.uHeight - 1;
-      return Math.max(this._device.startU, d.startU) <= Math.min(endU, dEndU);
-    });
-
-    if (collision) {
-      return {
-        success: false,
-        error: `Collision at U${this._device.startU} with existing device '${collision.instanceId}' (${collision.catalogId}).`
+        error: validation.message || `Placement failed: ${validation.reason}`
       };
     }
 

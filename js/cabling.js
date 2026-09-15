@@ -24,8 +24,22 @@ export function renderAllCables() {
   let rightChannelUsage = 0;
 
   STATE.cables.forEach((cable) => {
-    const portFromEl = document.getElementById(`port-${cable.from.instanceId}-${cable.from.portId}`);
-    const portToEl = document.getElementById(`port-${cable.to.instanceId}-${cable.to.portId}`);
+    const instA = cable.from.instanceId || cable.from.deviceId;
+    const instB = cable.to.instanceId || cable.to.deviceId;
+    const portIdA = cable.from.portId || ('p' + cable.from.portIdx);
+    const portIdB = cable.to.portId || ('p' + cable.to.portIdx);
+
+    let portFromEl = document.getElementById(`port-${instA}-${portIdA}`);
+    let portToEl = document.getElementById(`port-${instB}-${portIdB}`);
+
+    if (!portFromEl) {
+      portFromEl = document.querySelector(`.port[data-instance-id="${instA}"][data-port-id="${portIdA}"]`) ||
+                   document.querySelector(`.port[data-instance-id="${instA}"]`);
+    }
+    if (!portToEl) {
+      portToEl = document.querySelector(`.port[data-instance-id="${instB}"][data-port-id="${portIdB}"]`) ||
+                 document.querySelector(`.port[data-instance-id="${instB}"]`);
+    }
 
     if (!portFromEl || !portToEl) return;
 

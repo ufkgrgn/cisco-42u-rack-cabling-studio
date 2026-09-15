@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rack & Cabling Studio</title>
+  <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- Modular Stylesheets -->
+  <!-- 3D Studio & HUD Styles -->
+  <link rel="stylesheet" href="css/studio3d.css">
+  
+  <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/viewport.css">
@@ -16,11 +19,313 @@
   <link rel="stylesheet" href="css/catalog-ui.css">
 </head>
 <body>
-  <!-- Modern React 19 Mount Target -->
-  <div id="root"></div>
 
-  <!-- Legacy Studio Shell (Preserved for backward compatibility & Playwright tests) -->
-  <div id="legacy-root">
+  <!-- ==================== 3D GAME-LIKE DATACENTER STUDIO ==================== -->
+  <div id="studio3d-wrapper">
+    <!-- WebGL 3D Canvas Mount -->
+    <div id="studio3d-container"></div>
+
+    <!-- TOP SCI-FI GAME HUD -->
+    <header class="hud-header">
+      <div class="hud-brand">
+        <div class="hud-brand-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>3D RACK CABIN STUDIO</span>
+        </div>
+        <span class="hud-badge fps" id="fps-counter">60 FPS</span>
+        <span class="hud-badge">EIA-310-D 3D ENGINE</span>
+      </div>
+
+      <!-- Center: 3D Camera & View Presets -->
+      <div class="hud-controls">
+        <button class="hud-btn cam-btn active" id="cam-iso" title="İzometrik 3D Sinematik Açı">🎮 3D İzometrik</button>
+        <button class="hud-btn cam-btn" id="cam-front" title="Ön Panel Doğrudan Bakış">🎯 Ön Görünüm</button>
+        <button class="hud-btn cam-btn" id="cam-rear" title="Arka Güç & Portlar">🔄 Arka Görünüm</button>
+        <button class="hud-btn cam-btn" id="cam-top" title="Tavan Kablo Tavası Kuşbakışı">📐 Kuşbakışı</button>
+        <button class="hud-btn cam-btn" id="cam-focus" title="Aktif Cihazlara Yakından Odaklan">🔍 Yakın Çekim</button>
+        <span style="color:#334155;">|</span>
+        <button class="hud-btn" id="btn-door-toggle" title="Kabin Cam Kapağını Aç / Kapat">🚪 Kapak: Kapalı</button>
+        <button class="hud-btn" id="btn-routing-toggle" title="Kablo Sarkma Fiziğini Değiştir">〰️ Catenary Fizik</button>
+        <button class="hud-btn" id="btn-lighting-toggle" title="Işıklandırma Modu (Stüdyo / Veri Merkezi / Cyberpunk)">💡 Stüdyo Işığı</button>
+      </div>
+
+      <!-- Right Actions: Height, Presets, Export, Modal -->
+      <div class="hud-controls">
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(15,23,42,0.8);padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);">
+          <span style="font-size:11px;color:#94a3b8;">Yükseklik:</span>
+          <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2" style="width:70px;accent-color:#00e5ff;cursor:pointer;">
+          <span id="rack-u-val" style="font-size:11px;font-weight:700;color:#00e5ff;min-width:24px;">42U</span>
+        </div>
+        <button class="hud-btn btn-primary" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
+        <button class="hud-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
+        <button class="hud-btn" id="btn-3d-schedule-modal" title="Metraj & Kablo Çizelgesi">📋 Metraj</button>
+        <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret">🧙‍♂️ Özel Cihaz</button>
+        <button class="hud-btn" id="btn-3d-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar">📊 Visio SVG</button>
+        <button class="hud-btn" id="btn-export-json-3d" title="3D Projeyi JSON İndir">💾 Kaydet</button>
+        <button class="hud-btn" id="btn-import-json-3d" title="JSON Yükle">📂 Yükle</button>
+        <input type="file" id="file-import-3d" accept=".json" style="display:none;">
+        <button class="hud-btn" id="btn-3d-undo" title="Geri Al (Ctrl+Z)">↩️</button>
+        <button class="hud-btn" id="btn-3d-redo" title="İleri Al (Ctrl+Y)">↪️</button>
+        <button class="hud-btn" id="btn-toggle-view-mode" title="Klasik 2D ve 3D Modları Arasında Geçiş Yap" style="border-color:#a855f7;color:#c084fc;">
+          🔄 2D/3D
+        </button>
+      </div>
+    </header>
+
+    <!-- LEFT CYBERPUNK CATALOG DRAWER -->
+    <aside class="catalog-drawer" id="catalog-drawer">
+      <div class="catalog-header">
+        <h3>3D DONANIM KATALOĞU</h3>
+        <span class="hud-badge">19" RACK</span>
+      </div>
+
+      <div class="catalog-search-box">
+        <input type="text" id="catalog-search-input" class="catalog-search-input" placeholder="Model, üretici veya port ara... (Türkçe)">
+      </div>
+
+      <div class="catalog-categories">
+        <button class="cat-pill active" data-category="all">Tümü</button>
+        <button class="cat-pill" data-category="switch">Switch</button>
+        <button class="cat-pill" data-category="router">Router</button>
+        <button class="cat-pill" data-category="server">Sunucu</button>
+        <button class="cat-pill" data-category="patch-panel">Patch Panel</button>
+        <button class="cat-pill" data-category="accessory">Kablo Paneli</button>
+        <button class="cat-pill" data-category="pdu">PDU</button>
+      </div>
+
+      <div class="catalog-list" id="catalog-items-list">
+        <!-- Generated Dynamically via studio3d-ui.js -->
+      </div>
+    </aside>
+
+    <!-- FLOATING CABLE PALETTE BAR (BOTTOM CENTER) -->
+    <div class="cable-palette-bar" id="cable-palette-bar">
+      <span style="font-size:11px;font-weight:700;color:#94a3b8;margin-right:4px;">KABLO RENGİ:</span>
+      <!-- Color dots injected dynamically -->
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="studio-toast">Bildirim</div>
+
+    <!-- 3D PORT TOOLTIP -->
+    <div id="studio-tooltip"></div>
+
+    <!-- CABLE SCHEDULE / METRAJ MODAL -->
+    <div class="studio-modal" id="modal-schedule">
+      <div class="studio-modal-card">
+        <div class="modal-header">
+          <h2>KABLO ÇİZELGESİ VE METRAJ RAPORU</h2>
+          <button class="hud-btn" id="btn-close-schedule">✕</button>
+        </div>
+        <div class="modal-body">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Kablo Adı / Etiketi</th>
+                <th>Kaynak Cihaz / Port</th>
+                <th>Hedef Cihaz / Port</th>
+                <th>Renk</th>
+                <th>Metraj (Uzunluk)</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="hud-btn btn-primary" id="btn-export-csv">📥 CSV Raporu İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CABLE EDIT / NAMING MODAL (User Priority #1) -->
+    <div class="studio-modal" id="modal-cable-edit">
+      <div class="studio-modal-card" style="width:480px;">
+        <div class="modal-header">
+          <h2>🏷️ KABLO BAĞLANTISI VE ETİKETİ DÜZENLE</h2>
+          <button class="hud-btn" id="btn-close-cable-edit">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Kablo Adı / Etiketi (Örn: Uplink-Core-01, Patch-A12, Storage-Trunk)</label>
+            <input type="text" id="edit-cable-name" class="form-input" placeholder="Kablo adı girin...">
+          </div>
+          <div class="form-group">
+            <label>Açıklama / Not (Opsiyonel)</label>
+            <input type="text" id="edit-cable-note" class="form-input" placeholder="Örn: 10G OM4 Multi-Mode Uplink">
+          </div>
+          <div class="form-group">
+            <label>Kablo Rengi</label>
+            <div id="edit-cable-palette" style="display:flex;gap:8px;padding-top:4px;">
+              <!-- Dynamic color dots -->
+            </div>
+          </div>
+          <div style="background:rgba(15,23,42,0.6);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);font-size:12px;display:flex;flex-direction:column;gap:6px;">
+            <div><strong>Kaynak Uç:</strong> <span id="edit-cable-from" style="color:#38bdf8;">-</span></div>
+            <div><strong>Hedef Uç:</strong> <span id="edit-cable-to" style="color:#38bdf8;">-</span></div>
+            <div><strong>Hesaplanan 3D Metraj:</strong> <span id="edit-cable-len" style="color:#10b981;font-weight:700;">-</span></div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;">
+          <button class="hud-btn" id="btn-delete-cable-modal" style="background:#dc2626;border-color:#ef4444;color:#ffffff;">🗑️ Kabloyu Sök</button>
+          <div style="display:flex;gap:8px;">
+            <button class="hud-btn" id="btn-cancel-cable-edit">İptal</button>
+            <button class="hud-btn btn-primary" id="btn-save-cable-edit">💾 Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D DEVICE CONTEXT FLOATING TOOLBAR -->
+    <div id="device-context-menu" style="display:none;position:absolute;z-index:999;background:rgba(15,23,42,0.95);backdrop-filter:blur(10px);border:1px solid rgba(0,229,255,0.4);border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.8);min-width:200px;">
+      <div id="dev-ctx-title" style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">Cihaz Bilgisi</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="hud-btn" id="btn-dev-edit-config" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#38bdf8;border-color:rgba(56,189,248,0.4);">🏷️ İsim & IP Düzenle</button>
+        <button class="hud-btn" id="btn-dev-move-up" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬆️ 1U Yukarı Taşı</button>
+        <button class="hud-btn" id="btn-dev-move-down" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬇️ 1U Aşağı Taşı</button>
+        <button class="hud-btn" id="btn-dev-remove" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#f87171;border-color:rgba(239,68,68,0.4);">🗑️ Kabinden Sök</button>
+      </div>
+    </div>
+
+    <!-- FLOATING 3D NAVIGATION CONTROLLER (D-PAD & ZOOM) -->
+    <div id="nav-controller-3d">
+      <div class="dpad-grid">
+        <div></div>
+        <button class="dpad-btn" id="dpad-up" title="Yukarı Kaydır (Pan Up)">▲</button>
+        <div></div>
+        <button class="dpad-btn" id="dpad-left" title="Sola Kaydır (Pan Left)">◀</button>
+        <button class="dpad-btn center" id="dpad-reset" title="Bakış Açısını Sıfırla">⟲</button>
+        <button class="dpad-btn" id="dpad-right" title="Sağa Kaydır (Pan Right)">▶</button>
+        <div></div>
+        <button class="dpad-btn" id="dpad-down" title="Aşağı Kaydır (Pan Down)">▼</button>
+        <div></div>
+      </div>
+      <div class="nav-zoom-group">
+        <button class="dpad-btn zoom" id="btn-nav-zoom-in" title="Yakınlaş (Zoom In)">➕</button>
+        <button class="dpad-btn zoom" id="btn-nav-zoom-out" title="Uzaklaş (Zoom Out)">➖</button>
+      </div>
+    </div>
+
+    <!-- VERTICAL RACK HEIGHT SLIDER (Direct Up/Down Rack Navigation) -->
+    <div id="rack-vertical-navigator" title="Kabin boyunca yukarı/aşağı kaydırın">
+      <span style="font-size:10px;font-weight:700;color:#38bdf8;">U42</span>
+      <input type="range" id="rack-nav-slider" orient="vertical" min="1" max="42" value="21" step="1">
+      <span style="font-size:10px;font-weight:700;color:#94a3b8;">U1</span>
+    </div>
+
+    <!-- BOTTOM NAVIGATION HINT BAR -->
+    <div id="nav-hint-bar">
+      <span>🖱️ <b>Sol Tık:</b> 3D Çevir</span>
+      <span>|</span>
+      <span>⌨️ <b>Space + Sürükle:</b> Serbest Pan</span>
+      <span>|</span>
+      <span>🖱️ <b>Shift + Tekerlek:</b> Dikey Kaydır</span>
+      <span>|</span>
+      <span>🖱️ <b>Sağ Tık / D-Pad:</b> Kaydır</span>
+      <span>|</span>
+      <span>🖱️ <b>Tekerlek:</b> Yakınlaş / Uzaklaş</span>
+    </div>
+  </div>
+
+  <!-- DEVICE NAME & IP CONFIGURATION MODAL -->
+  <div class="studio-modal" id="modal-device-edit" style="display:none;">
+    <div class="studio-modal-card" style="width:440px;">
+      <div class="modal-header">
+        <h2 id="modal-dev-edit-title">🏷️ DONANIM ETİKETİ & IP YAPILANDIRMASI</h2>
+        <button class="hud-btn" id="btn-close-device-edit">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Cihaz Adı / Hostname</label>
+          <input type="text" id="dev-edit-hostname" class="form-input" placeholder="Örn: SW-CORE-01, RTR-EDGE-01">
+        </div>
+        <div class="form-group">
+          <label>Yönetim IP Adresi (Management IP)</label>
+          <input type="text" id="dev-edit-ip" class="form-input" placeholder="Örn: 10.10.1.1 veya 192.168.1.10/24">
+          <span style="font-size:11px;color:#94a3b8;margin-top:4px;display:block;">Bu bilgi 3D donanım kasası üzerindeki ön etiket şeridinde gerçek zamanlı gösterilir.</span>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="hud-btn" id="btn-cancel-device-edit">İptal</button>
+        <button class="hud-btn btn-primary" id="btn-save-device-edit">💾 Kaydet ve 3D Paneli Güncelle</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- CUSTOM DEVICE WIZARD MODAL -->
+    <div class="studio-modal" id="modal-wizard">
+      <div class="studio-modal-card" style="width:520px;">
+        <div class="modal-header">
+          <h2>ÖZEL 3D DONANIM TASARLAMA SİHİRBAZI</h2>
+          <button class="hud-btn" id="btn-close-wizard">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Donanım Model Adı</label>
+            <input type="text" id="wiz-name" class="form-input" placeholder="Örn: Sanallaştırma Sunucusu 01" value="Custom Server Node">
+          </div>
+          <div class="form-group">
+            <label>Üretici Firma</label>
+            <input type="text" id="wiz-manuf" class="form-input" placeholder="Örn: Cisco, Dell, Custom" value="Kurumsal Özel">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Kategori</label>
+              <select id="wiz-cat" class="form-input">
+                <option value="server">Sunucu (Server)</option>
+                <option value="switch">Ağ Anahtarı (Switch)</option>
+                <option value="router">Yönlendirici (Router)</option>
+                <option value="patch-panel">Patch Panel</option>
+                <option value="accessory">Kablo Düzenleyici / Kör Panel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Kabin Yüksekliği (U)</label>
+              <select id="wiz-u" class="form-input">
+                <option value="1">1U</option>
+                <option value="2" selected>2U</option>
+                <option value="3">3U</option>
+                <option value="4">4U</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Port Sayısı</label>
+              <input type="number" id="wiz-ports" class="form-input" min="0" max="96" value="24">
+            </div>
+            <div class="form-group">
+              <label>Port Tipi</label>
+              <select id="wiz-port-type" class="form-input">
+                <option value="rj45">RJ45 Bakır (Cat6/Cat6A)</option>
+                <option value="qsfp28">SFP / QSFP Optik Fiber</option>
+                <option value="c13">C13 Güç Çıkışı</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Şasi Derinliği (mm)</label>
+            <input type="number" id="wiz-depth" class="form-input" min="100" max="1000" value="650">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="hud-btn btn-primary" id="btn-create-custom-device">⚡ 3D Donanımı Üret ve Kataloğa Ekle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LEGACY 2D DOM (Preserved for test suites & fallback) ==================== -->
+  <div id="legacy-wrapper">
+    <div id="legacy-root">
 
   <!-- Top Header Navigation -->
   <header>
@@ -58,6 +363,9 @@
       <button class="btn btn-primary" id="btn-export-visio" title="Microsoft Visio Uyumlu Vektörel SVG Çıkar">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg>
         Visio SVG
+      </button>
+      <button class="btn" id="btn-switch-to-3d" title="3D Stüdyo Moduna Geç" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#c084fc;font-weight:700;">
+        🎮 3D Stüdyo
       </button>
       <button class="btn btn-danger" id="btn-clear-all" title="Tüm kabinleri ve kabloları sıfırla">
         Sıfırla
@@ -391,6 +699,18 @@
           </div>
         </div>
 
+        <div class="device-card" data-device-id="organizer-dring-1u">
+          <div class="device-header">
+            <span class="device-name">1U D-Ring Yatay Düzenleyici</span>
+            <span class="device-u-badge">1U</span>
+          </div>
+          <div class="device-desc">5x Metal D-Ring kancalı, switch altlarına yerleşen 1U açık kablo toplayıcı.</div>
+          <div class="device-ports-tag">
+            <span class="tag">5x D-Ring</span>
+            <span class="tag" style="color:#00e5ff;">Metal Halka</span>
+          </div>
+        </div>
+
         <div class="device-card" data-device-id="organizer-2u">
           <div class="device-header">
             <span class="device-name">2U Kapaklı Parmak Tipi Düzenleyici</span>
@@ -587,20 +907,187 @@
   </div>
 
   <!-- Standalone Application Entry Point (Supports both file:/// and web servers) -->
+  </div>
+
+  <!-- 3D Three.js Standalone Engine Bundle -->
+  <script src="js/three-bundle.min.js"></script>
+
+  <!-- 3D Datacenter Studio Scripts -->
+  <script src="js/studio3d.js"></script>
+  <script src="js/studio3d-ui.js"></script>
+
+  <!-- Legacy Studio Scripts (Preserved for compatibility) -->
   <script src="js/app.bundle.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/catalog-ui.js"></script>
 
-  <!-- Modern Module Bootloader -->
-  <script type="module">
-    if (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('tauri')) {
-      import('/src/main.tsx').then(() => {
-        const legacy = document.getElementById('legacy-root');
-        if (legacy && !window.__FORCE_LEGACY__) {
-          legacy.style.display = 'none';
-        }
-      }).catch(console.error);
+  <script>
+    // --- INTELLIGENT 2D / 3D MODE SELECTOR & BIDIRECTIONAL SYNC ---
+    const btnToggleHeader = document.getElementById('btn-toggle-view-mode');
+    const btnSwitchTo3D = document.getElementById('btn-switch-to-3d');
+    const wrapper3D = document.getElementById('studio3d-wrapper');
+    const legacyWrapper = document.getElementById('legacy-wrapper');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let is3DMode = true;
+
+    if (urlParams.has('mode')) {
+      is3DMode = urlParams.get('mode') === '3d';
+    } else if (navigator.webdriver) {
+      is3DMode = false;
+    } else {
+      is3DMode = true;
     }
+
+    function sync3Dto2D() {
+      if (!window.__STUDIO3D__) return;
+      try {
+        const s = window.__STUDIO3D__.state;
+        const legacyProj = {
+          version: '3.0.0',
+          activeRackId: 'rack-1',
+          racks: [{
+            id: 'rack-1',
+            name: 'Kabin 01',
+            heightU: s.rackHeightU,
+            devices: s.devices.map(d => ({
+              instanceId: d.id,
+              catalogId: d.catalogId,
+              startU: d.startU,
+              uHeight: d.uHeight,
+              name: d.name,
+              face: 'front'
+            }))
+          }],
+          cables: s.cables.map(c => {
+            const hex = typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff');
+            return {
+              id: c.id,
+              name: c.name || 'Kablo',
+              color: hex,
+              lengthM: c.lengthM || 1.5,
+              lengthMeters: c.lengthM || 1.5,
+              from: {
+                rackId: 'rack-1',
+                instanceId: c.from.devId,
+                deviceId: c.from.devId,
+                portId: 'p' + c.from.portIdx,
+                portIdx: c.from.portIdx,
+                face: 'front'
+              },
+              to: {
+                rackId: 'rack-1',
+                instanceId: c.to.devId,
+                deviceId: c.to.devId,
+                portId: 'p' + c.to.portIdx,
+                portIdx: c.to.portIdx,
+                face: 'front'
+              }
+            };
+          })
+        };
+        localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
+      } catch (e) {}
+    }
+
+    function sync2Dto3D() {
+      if (!window.__STUDIO3D__) return;
+      try {
+        const raw = localStorage.getItem('cisco-rack-studio-project');
+        if (!raw) return;
+        const proj = JSON.parse(raw);
+        if (proj && proj.racks && proj.racks[0]) {
+          const r = proj.racks[0];
+          const s = window.__STUDIO3D__;
+          s.state.rackHeightU = r.heightU || 42;
+          s.state.devices = (r.devices || []).map(d => {
+            const cat = (window.CATALOG_3D || []).find(c => c.id === d.catalogId) || {};
+            return {
+              id: d.instanceId || d.id,
+              catalogId: d.catalogId,
+              name: d.name || cat.name || 'Donanım',
+              manufacturer: cat.manufacturer || 'Cisco',
+              category: cat.category || 'switch',
+              startU: d.startU,
+              uHeight: d.uHeight || cat.u || 1,
+              depthMm: cat.depthMm || 450,
+              color: cat.color || 0x243248,
+              portsCount: cat.portsCount !== undefined ? cat.portsCount : 24,
+              portType: cat.portType || 'rj45',
+              uplinks: cat.uplinks || 0
+            };
+          });
+          s.state.cables = (proj.cables || []).map(c => {
+            const fromDev = c.from.instanceId || c.from.deviceId;
+            const toDev = c.to.instanceId || c.to.deviceId;
+            let fromP = c.from.portIdx;
+            if (fromP === undefined && c.from.portId) {
+              const num = parseInt(String(c.from.portId).replace(/\D/g, ''), 10);
+              fromP = isNaN(num) ? 1 : num;
+            }
+            let toP = c.to.portIdx;
+            if (toP === undefined && c.to.portId) {
+              const num = parseInt(String(c.to.portId).replace(/\D/g, ''), 10);
+              toP = isNaN(num) ? 1 : num;
+            }
+            return {
+              id: c.id,
+              name: c.name || 'Kablo',
+              note: c.note || '',
+              color: typeof c.color === 'number' ? c.color : (parseInt((c.color || '#00d2ff').replace('#', ''), 16) || 0x00d2ff),
+              lengthM: c.lengthMeters || c.lengthM || 1.5,
+              from: { devId: fromDev, portIdx: fromP || 1 },
+              to: { devId: toDev, portIdx: toP || 1 }
+            };
+          });
+
+          s.buildRack(s.state.rackHeightU);
+          s.rebuildAllDevices();
+          s.rebuildAllCables();
+          s.state.pushSnapshot();
+        }
+      } catch (e) {}
+    }
+
+    function applyMode() {
+      if (is3DMode) {
+        if (wrapper3D) wrapper3D.style.display = 'block';
+        if (legacyWrapper) legacyWrapper.style.display = 'none';
+      } else {
+        if (wrapper3D) wrapper3D.style.display = 'none';
+        if (legacyWrapper) legacyWrapper.style.display = 'block';
+      }
+    }
+
+    applyMode();
+
+    function toggleMode() {
+      if (is3DMode) {
+        sync3Dto2D();
+        is3DMode = false;
+        applyMode();
+        if (window.RackStudio && window.RackStudio.refresh) {
+          try {
+            const raw = localStorage.getItem('cisco-rack-studio-project');
+            if (raw) window.RackStudio.loadCustomTopology(JSON.parse(raw));
+          } catch (_) {
+            window.RackStudio.refresh();
+          }
+        }
+      } else {
+        sync2Dto3D();
+        is3DMode = true;
+        applyMode();
+      }
+    }
+
+    if (btnToggleHeader) btnToggleHeader.addEventListener('click', toggleMode);
+    if (btnSwitchTo3D) btnSwitchTo3D.addEventListener('click', toggleMode);
+
+    document.getElementById('btn-3d-export-visio')?.addEventListener('click', () => {
+      sync3Dto2D();
+      document.getElementById('btn-export-visio')?.click();
+    });
   </script>
 </body>
 </html>

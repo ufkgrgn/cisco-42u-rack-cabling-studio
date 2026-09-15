@@ -496,6 +496,15 @@ export const HARDWARE_CATALOG = {
     desc: 'Hava sızdırmaz fırçalı tip, patch kabloları gizleyen 1U yatay kablo tavası.',
     ports: []
   },
+  'organizer-dring-1u': {
+    name: '1U D-Ring Yatay Kablo Düzenleyici',
+    u: 1,
+    category: 'organizer',
+    logo: 'ORGANIZER',
+    modelTag: '1U 5x D-RING ORGANIZER',
+    desc: '5 Adet Metal D-Ring kancalı 19" 1U yatay kablo düzenleyici organizer.',
+    ports: []
+  },
   'organizer-2u': {
     name: '2U Kapaklı Parmak Tipi Düzenleyici',
     u: 2,

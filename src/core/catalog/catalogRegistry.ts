@@ -1,90 +1,143 @@
 import { DeviceCatalogItem } from '../types';
+import { CISCO_DEVICES } from './data/ciscoDevices';
+import { SERVER_DEVICES } from './data/serverDevices';
+import { CABINET_MODELS } from './data/cabinetModels';
+import { ACCESSORIES } from './data/accessories';
+import { PDU_DEVICES } from './data/pduDevices';
+import { PATCH_PANELS } from './data/patchPanels';
+import { TRANSCEIVERS } from './data/transceivers';
+import { CatalogSearchEngine } from './search/CatalogSearchEngine';
 
+export { TRANSCEIVERS };
+
+// Master built-in catalog list containing all authoritative hardware definitions
 export const BUILT_IN_CATALOG: DeviceCatalogItem[] = [
-  {
-    id: 'cisco-isr-4431',
-    name: 'Cisco ISR 4431/K9 Router',
-    category: 'router',
-    u: 1,
-    manufacturer: 'Cisco',
-    depthMm: 470,
-    powerWatts: 250,
-    ports: [
-      { id: 'ge0_0_0', name: 'GE 0/0/0', type: 'rj45' },
-      { id: 'ge0_0_1', name: 'GE 0/0/1', type: 'rj45' },
-      { id: 'sfp0_0_2', name: 'SFP 0/0/2', type: 'sfp' },
-      { id: 'sfp0_0_3', name: 'SFP 0/0/3', type: 'sfp' }
-    ]
-  },
-  {
-    id: 'cisco-catalyst-3850-24s',
-    name: 'Cisco Catalyst 3850-24S-S',
-    category: 'switch',
-    u: 1,
-    manufacturer: 'Cisco',
-    depthMm: 450,
-    powerWatts: 350,
-    ports: Array.from({ length: 24 }, (_, i) => ({
-      id: `sfp_${i + 1}`,
-      name: `SFP ${i + 1}`,
-      type: 'sfp' as const
-    }))
-  },
-  {
-    id: 'cisco-catalyst-9300',
-    name: 'Cisco Catalyst 9300-48P',
-    category: 'switch',
-    u: 1,
-    manufacturer: 'Cisco',
-    depthMm: 445,
-    powerWatts: 715,
-    ports: Array.from({ length: 48 }, (_, i) => ({
-      id: `port_${i + 1}`,
-      name: `GE ${i + 1}`,
-      type: 'rj45' as const,
-      poe: true
-    }))
-  },
-  {
-    id: 'patch-panel-24',
-    name: 'Cat6 24-Port Patch Panel',
-    category: 'patch-panel',
-    u: 1,
-    manufacturer: 'Generic',
-    depthMm: 150,
-    ports: Array.from({ length: 24 }, (_, i) => ({
-      id: `pt_${i + 1}`,
-      name: `P ${i + 1}`,
-      type: 'rj45' as const
-    }))
-  },
-  {
-    id: 'cable-organizer-1u',
-    name: '1U Horizontal Cable Organizer',
-    category: 'organizer',
-    u: 1,
-    manufacturer: 'Estap',
-    depthMm: 80,
-    ports: []
-  },
-  {
-    id: 'server-dell-r740',
-    name: 'Dell PowerEdge R740 2U',
-    category: 'server',
-    u: 2,
-    manufacturer: 'Dell',
-    depthMm: 700,
-    powerWatts: 750,
-    ports: [
-      { id: 'nic_1', name: 'NIC 1', type: 'rj45' },
-      { id: 'nic_2', name: 'NIC 2', type: 'rj45' },
-      { id: 'sfp_1', name: 'SFP+ 1', type: 'sfp+' },
-      { id: 'sfp_2', name: 'SFP+ 2', type: 'sfp+' }
-    ]
-  }
+  ...CISCO_DEVICES,
+  ...SERVER_DEVICES,
+  ...CABINET_MODELS,
+  ...ACCESSORIES,
+  ...PDU_DEVICES,
+  ...PATCH_PANELS
 ];
 
+// Legacy alias map to guarantee 100% backward compatibility
+export const CATALOG_ALIASES: Record<string, string> = {
+  'cisco-3850-24s': 'cisco-catalyst-3850-24s',
+  'cisco-c9300-48p': 'cisco-catalyst-9300-48p',
+  'cisco-9300-48p': 'cisco-catalyst-9300-48p',
+  'cisco-catalyst-9300': 'cisco-catalyst-9300-48p',
+  'cisco-9300-48u': 'cisco-catalyst-9300-48p',
+  'cisco-asr-1001-x': 'cisco-asr-1001x',
+  'nexus-93180yc': 'cisco-nexus-93180yc',
+  'cisco-9500-24y4c': 'cisco-catalyst-9500-24y4c',
+  'cisco-9300x-48hx': 'cisco-catalyst-9300x-48hx',
+  'cisco-9300l-24p': 'cisco-catalyst-9300l-24p',
+  'cisco-9200l-24p': 'cisco-catalyst-9200l-24p',
+  'cisco-9200-48p': 'cisco-catalyst-9200-48p',
+  'cisco-1000-24p': 'cisco-catalyst-1000-24p',
+  'cisco-1000-48p': 'cisco-catalyst-1000-48p',
+  'cisco-2960x-24ps': 'cisco-catalyst-2960x-24ps',
+  'cisco-2960xr-24ps': 'cisco-catalyst-2960xr-24ps',
+  'cisco-2960x-24ts': 'cisco-catalyst-2960x-24ts',
+  'cisco-2960-24pc': 'cisco-catalyst-2960-24pc',
+  'cisco-2960-24tc': 'cisco-catalyst-2960-24tc',
+  'cisco-2960-48tc': 'cisco-catalyst-2960-48tc',
+  'cisco-3560x-24t': 'cisco-catalyst-3560x-24t',
+  'cisco-3560-8pc': 'cisco-catalyst-3560-8pc',
+  'cisco-2960cx-8pc': 'cisco-catalyst-2960cx-8pc',
+  'cisco-2960g-8tc': 'cisco-catalyst-2960g-8tc',
+  'patch-panel-24': 'patch-cat6a-24-stp',
+  'patch-cat6-24': 'patch-cat6a-24-stp',
+  'cable-organizer-1u': 'brush-panel-1u',
+  'organizer-1u': 'brush-panel-1u',
+  'organizer-2u': 'organizer-2u-5ring',
+  'server-dell-r740': 'server-dell-r750',
+  'fiber-odf-24': 'fiber-odf-24-om4',
+  'fiber-odf-48': 'fiber-odf-48-om4'
+};
+
+// Singleton master registry map
 export const catalogRegistry = new Map<string, DeviceCatalogItem>();
-for (const item of BUILT_IN_CATALOG) {
-  catalogRegistry.set(item.id, item);
+
+function initBuiltInRegistry(): void {
+  // Register canonical items
+  for (const item of BUILT_IN_CATALOG) {
+    catalogRegistry.set(item.id, item);
+  }
+
+  // Register legacy aliases pointing to target items
+  for (const [aliasId, canonicalId] of Object.entries(CATALOG_ALIASES)) {
+    const canonicalItem = catalogRegistry.get(canonicalId);
+    if (canonicalItem && !catalogRegistry.has(aliasId)) {
+      catalogRegistry.set(aliasId, {
+        ...canonicalItem,
+        id: aliasId // Keep alias ID so tests checking dev.catalogId get exact match
+      });
+    }
+  }
 }
+
+initBuiltInRegistry();
+
+// Search Engine Singleton
+export const catalogSearchEngine = new CatalogSearchEngine(BUILT_IN_CATALOG);
+
+/**
+ * Resolves a catalog item by ID or alias.
+ */
+export function getCatalogItem(id: string): DeviceCatalogItem | undefined {
+  if (!id) return undefined;
+  if (catalogRegistry.has(id)) {
+    return catalogRegistry.get(id);
+  }
+  const canonicalId = CATALOG_ALIASES[id];
+  if (canonicalId && catalogRegistry.has(canonicalId)) {
+    return catalogRegistry.get(canonicalId);
+  }
+  return undefined;
+}
+
+/**
+ * Returns all active catalog items (built-in and custom).
+ */
+export function getAllCatalogItems(): DeviceCatalogItem[] {
+  return Array.from(catalogRegistry.values());
+}
+
+/**
+ * Registers a user-defined custom device definition into the active registry.
+ */
+export function registerCustomDevice(device: DeviceCatalogItem): void {
+  const customItem: DeviceCatalogItem = {
+    ...device,
+    isCustom: true
+  };
+  catalogRegistry.set(customItem.id, customItem);
+  catalogSearchEngine.addCustomItem(customItem);
+}
+
+/**
+ * Synchronizes runtime custom devices from project state into catalog registry.
+ */
+export function syncCustomCatalog(customCatalog?: Record<string, DeviceCatalogItem> | DeviceCatalogItem[]): void {
+  // Clear any existing custom devices
+  for (const [key, item] of catalogRegistry.entries()) {
+    if (item.isCustom) {
+      catalogRegistry.delete(key);
+    }
+  }
+
+  // Re-register active custom items
+  if (customCatalog) {
+    const items = Array.isArray(customCatalog) ? customCatalog : Object.values(customCatalog);
+    for (const item of items) {
+      const customItem: DeviceCatalogItem = {
+        ...item,
+        isCustom: true
+      };
+      catalogRegistry.set(customItem.id, customItem);
+      catalogSearchEngine.addCustomItem(customItem);
+    }
+  }
+}
+

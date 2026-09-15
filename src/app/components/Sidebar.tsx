@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { BUILT_IN_CATALOG } from '../../core/catalog/catalogRegistry';
+import React from 'react';
 import { useProjectStore } from '../../core/state/projectStore';
 import { useHistoryStore } from '../../core/state/historyStore';
 import { PlaceDeviceCommand } from '../../core/history/commands/PlaceDeviceCommand';
-import { Box, Cable, Settings, Search, PlusCircle } from 'lucide-react';
+import { CatalogBrowser } from './catalog/CatalogBrowser';
+import { CustomDeviceWizard } from './wizard/CustomDeviceWizard';
+import { Box, Cable, Settings } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: 'catalog' | 'wizard' | 'schedule' | 'inspector';
@@ -11,17 +12,10 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const { project } = useProjectStore();
   const { executeCommand } = useHistoryStore();
 
   const activeRack = project.racks.find(r => r.id === project.activeRackId) || project.racks[0];
-
-  const filteredCatalog = BUILT_IN_CATALOG.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const handleQuickMount = (catalogId: string, uHeight: number) => {
     if (!activeRack) return;
@@ -96,49 +90,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
 
       {/* Tab Contents */}
       {activeTab === 'catalog' && (
-        <div className="flex-1 flex flex-col p-3 overflow-hidden">
-          {/* Search box */}
-          <div className="relative mb-3">
-            <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search hardware, category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#1f2937] border border-[#374151] rounded text-gray-200 placeholder-gray-400 focus:outline-none focus:border-[#049fd9]"
-            />
-          </div>
+        <CatalogBrowser onQuickMount={handleQuickMount} />
+      )}
 
-          {/* Device list */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {filteredCatalog.map((item) => (
-              <div
-                key={item.id}
-                className="p-2.5 rounded bg-[#161f30] border border-[#232f45] hover:border-[#38bdf8] transition group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs font-medium text-gray-200 group-hover:text-[#38bdf8] transition">
-                    {item.name}
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1f2937] text-gray-300 font-mono font-bold">
-                    {item.u}U
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[11px] text-gray-400">
-                  <span className="capitalize">{item.category} • {item.manufacturer}</span>
-                  <button
-                    onClick={() => handleQuickMount(item.id, item.u)}
-                    className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[#049fd9]/20 text-[#38bdf8] hover:bg-[#049fd9] hover:text-white transition"
-                    title={`Mount into next free slot in ${activeRack?.name || 'rack'}`}
-                  >
-                    <PlusCircle className="w-3 h-3" />
-                    Mount
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {activeTab === 'wizard' && (
+        <>
+          <CustomDeviceWizard
+            isOpen={true}
+            onClose={() => onSelectTab('catalog')}
+          />
+          <CatalogBrowser onQuickMount={handleQuickMount} />
+        </>
       )}
 
       {activeTab === 'schedule' && (

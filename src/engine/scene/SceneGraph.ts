@@ -37,6 +37,19 @@ export class SceneGraph {
     this.lodManager = new LODManager();
   }
 
+  public activeFace: 'front' | 'rear' = 'front';
+
+  public setActiveFace(face: 'front' | 'rear'): void {
+    this.activeFace = face;
+    for (const container of this.rackContainers.values()) {
+      container.setActiveFace(face);
+    }
+  }
+
+  public setViewFace(face: 'front' | 'rear'): void {
+    this.setActiveFace(face);
+  }
+
   public syncRacks(racks: RackModel[], catalog: Map<string, DeviceCatalogItem>): void {
     const activeRackIds = new Set(racks.map((r) => r.id));
 
@@ -60,10 +73,17 @@ export class SceneGraph {
       if (!container) {
         container = new RackContainer(rackModel);
         container.x = targetX;
+        container.setActiveFace(this.activeFace);
         this.rackContainers.set(rackModel.id, container);
         this.rackLayer.addChild(container);
       } else {
         container.x = targetX;
+        if (container.totalU !== rackModel.totalU) {
+          container.setTotalU(rackModel.totalU, rackModel.name);
+        }
+        if (container.activeFace !== this.activeFace) {
+          container.setActiveFace(this.activeFace);
+        }
       }
       container.syncDevices(rackModel.devices, catalog);
     });
