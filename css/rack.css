@@ -151,13 +151,29 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 66px;
-  max-width: 74px;
-  flex-shrink: 0;
+  flex: 0 1 118px;
+  min-width: 82px;
+  max-width: 118px;
+  height: 100%;
+  gap: 1px;
   user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bezel-primary-row,
+.bezel-secondary-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 10px;
+  gap: 3px;
+  overflow: hidden;
 }
 
 .bezel-logo {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.62rem;
   font-weight: 800;
   color: #38bdf8;
@@ -169,6 +185,8 @@
 }
 
 .bezel-model {
+  flex: 1 1 54%;
+  min-width: 0;
   font-size: 0.50rem;
   color: #94a3b8;
   font-family: monospace;
@@ -179,14 +197,43 @@
 }
 
 .device-kind-badge {
-  width: max-content;
-  margin-top: 2px;
-  padding: 1px 4px;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0;
+  padding: 0 3px;
   border-radius: 2px;
-  font: 800 0.42rem/1.2 Consolas, monospace;
+  font: 800 0.39rem/1.25 Consolas, monospace;
   letter-spacing: 0.45px;
   color: #071018;
   background: #22d3ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-config-label {
+  display: block;
+  flex: 1 1 46%;
+  min-width: 0;
+  margin-top: 0;
+  padding: 0 2px;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 2px;
+  color: #e0f2fe;
+  background: rgba(2, 132, 199, 0.16);
+  font: 700 0.36rem/1.25 Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.faceplate-patch-panel .device-config-label,
+.faceplate-fiber-panel .device-config-label {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fde68a;
+  background: rgba(146, 64, 14, 0.18);
 }
 
 .faceplate-switch {
@@ -249,6 +296,7 @@
 
 .ports-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -278,6 +326,8 @@
   border-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .port-row {

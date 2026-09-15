@@ -261,7 +261,7 @@
           <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${dev.category || 'Donanım'}</div>
           ${metaHtml}
           <div class="installed-card-actions">
-            <button class="btn-inst-action btn-inst-edit" title="İsim, IP ve MAC Düzenle">✏️ Düzenle</button>
+            <button class="btn-inst-action btn-inst-edit" title="Donanım bilgilerini yapılandır">✏️ Düzenle</button>
             <button class="btn-inst-action btn-inst-focus" title="Cihaza Odaklan">🔍 Odaklan</button>
             <button class="btn-inst-action btn-inst-up" title="1U Yukarı Taşı">▲</button>
             <button class="btn-inst-action btn-inst-down" title="1U Aşağı Taşı">▼</button>
@@ -272,15 +272,7 @@
         card.querySelector('.btn-inst-edit')?.addEventListener('click', (e) => {
           e.stopPropagation();
           activeContextDevId = dev.id;
-          if (modalDeviceEdit) {
-            modalDeviceEdit.dataset.source = '3d';
-            modalDeviceEdit.dataset.deviceId = dev.id;
-            if (modalDevEditTitle) modalDevEditTitle.textContent = `🏷️ ${dev.name} (U${dev.startU}) - ETİKET, IP & MAC`;
-            if (devEditHostname) devEditHostname.value = dev.hostname || dev.name || '';
-            if (devEditIp) devEditIp.value = dev.ipAddress || '';
-            if (devEditMac) devEditMac.value = dev.macAddress || '';
-            modalDeviceEdit.style.display = 'flex';
-          }
+          window.DeviceMetadataEditor?.open3D(dev.id);
         });
 
         card.querySelector('.btn-inst-focus').addEventListener('click', (e) => {
@@ -345,7 +337,7 @@
     });
     document.getElementById('btn-hud-config')?.addEventListener('click', () => {
       if (studio.selectedDeviceId) {
-        window.openDeviceContext?.(studio.selectedDeviceId, window.innerWidth / 2, 200);
+        window.DeviceMetadataEditor?.open3D(studio.selectedDeviceId);
       }
     });
     document.getElementById('btn-hud-dismount')?.addEventListener('click', () => {
@@ -534,6 +526,8 @@
     const devEditHostname = document.getElementById('dev-edit-hostname');
     const devEditIp = document.getElementById('dev-edit-ip');
     const devEditMac = document.getElementById('dev-edit-mac');
+    const devEditSerial = document.getElementById('dev-edit-serial');
+    const devEditPanelLabel = document.getElementById('dev-edit-panel-label');
     const modalDevEditTitle = document.getElementById('modal-dev-edit-title');
 
     if (btnDevEditConfig && modalDeviceEdit) {
@@ -543,13 +537,7 @@
         if (!dev) return;
 
         devContext.style.display = 'none';
-        modalDeviceEdit.dataset.source = '3d';
-        modalDeviceEdit.dataset.deviceId = dev.id;
-        if (modalDevEditTitle) modalDevEditTitle.textContent = `🏷️ ${dev.name} (U${dev.startU}) - ETİKET & IP`;
-        if (devEditHostname) devEditHostname.value = dev.hostname || dev.name || '';
-        if (devEditIp) devEditIp.value = dev.ipAddress || '';
-        if (devEditMac) devEditMac.value = dev.macAddress || '';
-        modalDeviceEdit.style.display = 'flex';
+        window.DeviceMetadataEditor?.open3D(dev.id);
       });
 
       const closeDevEdit = () => { modalDeviceEdit.style.display = 'none'; modalDeviceEdit.dataset.source = ''; };
@@ -562,10 +550,14 @@
           const newHostname = devEditHostname ? devEditHostname.value.trim() : '';
           const newIp = devEditIp ? devEditIp.value.trim() : '';
           const newMac = devEditMac ? devEditMac.value.trim() : '';
+          const newSerial = devEditSerial ? devEditSerial.value.trim() : '';
+          const newPanelLabel = devEditPanelLabel ? devEditPanelLabel.value.trim() : '';
           studio.updateDeviceMetadata(activeContextDevId, {
             name: newHostname,
             ipAddress: newIp,
-            macAddress: newMac
+            macAddress: newMac,
+            serialNumber: newSerial,
+            panelLabel: newPanelLabel
           });
           renderInstalledDevicesList();
           if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();

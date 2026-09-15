@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-CXQJl0IO.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-lcskbRcQ.css">
 </head>
 <body>
 
@@ -276,7 +276,7 @@
     <div id="device-context-menu" style="display:none;position:absolute;z-index:999;background:rgba(15,23,42,0.95);backdrop-filter:blur(10px);border:1px solid rgba(0,229,255,0.4);border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.8);min-width:200px;">
       <div id="dev-ctx-title" style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">Cihaz Bilgisi</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="hud-btn" id="btn-dev-edit-config" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#38bdf8;border-color:rgba(56,189,248,0.4);">🏷️ İsim / IP / MAC Düzenle</button>
+        <button class="hud-btn" id="btn-dev-edit-config" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#38bdf8;border-color:rgba(56,189,248,0.4);">⚙️ Donanımı Yapılandır</button>
         <button class="hud-btn" id="btn-dev-move-up" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬆️ 1U Yukarı Taşı</button>
         <button class="hud-btn" id="btn-dev-move-down" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬇️ 1U Aşağı Taşı</button>
         <button class="hud-btn" id="btn-dev-remove" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#f87171;border-color:rgba(239,68,68,0.4);">🗑️ Kabinden Sök</button>
@@ -331,18 +331,26 @@
         <button class="hud-btn" id="btn-close-device-edit">✕</button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label>Cihaz Adı / Hostname</label>
+        <div class="form-group" id="dev-edit-name-group">
+          <label id="dev-edit-name-label">Cihaz Adı / Hostname</label>
           <input type="text" id="dev-edit-hostname" class="form-input" placeholder="Örn: SW-CORE-01, RTR-EDGE-01">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="dev-edit-panel-label-group" style="display:none;">
+          <label>Panel Etiketi</label>
+          <input type="text" id="dev-edit-panel-label" class="form-input" placeholder="Örn: PP-A-KAT1 veya FIBER-OMURGA-A">
+        </div>
+        <div class="form-group" id="dev-edit-ip-group">
           <label>Yönetim IP Adresi (Management IP)</label>
           <input type="text" id="dev-edit-ip" class="form-input" placeholder="Örn: 10.10.1.1 veya 192.168.1.10/24">
           <span style="font-size:11px;color:#94a3b8;margin-top:4px;display:block;">Bu bilgi 3D donanım kasası üzerindeki ön etiket şeridinde gerçek zamanlı gösterilir.</span>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="dev-edit-mac-group">
           <label>MAC Adresi</label>
           <input type="text" id="dev-edit-mac" class="form-input" placeholder="Örn: 00:1A:2B:3C:4D:5E">
+        </div>
+        <div class="form-group" id="dev-edit-serial-group">
+          <label>Seri Numarası</label>
+          <input type="text" id="dev-edit-serial" class="form-input" placeholder="Örn: FOC1234ABCD">
         </div>
       </div>
       <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
@@ -1159,6 +1167,8 @@
               name: d.name,
               ipAddress: d.ipAddress || '',
               macAddress: d.macAddress || '',
+              serialNumber: d.serialNumber || '',
+              panelLabel: d.panelLabel || '',
               face: 'front'
             }))
           }],
@@ -1225,30 +1235,41 @@
     }
 
     window.DeviceMetadataEditor = {
+      prepare(modal, dev, category, source, instanceId) {
+        const isPanel = ['patch', 'patch-panel', 'fiber'].includes(category);
+        document.getElementById('modal-dev-edit-title').textContent = isPanel
+          ? `🏷️ ${dev.name || 'Patch Panel'} - PANEL YAPILANDIRMASI`
+          : `⚙️ ${dev.name || 'Switch'} - CİHAZ YAPILANDIRMASI`;
+        document.getElementById('dev-edit-name-label').textContent = isPanel ? 'Panel Adı' : 'Hostname / Cihaz Adı';
+        document.getElementById('dev-edit-panel-label-group').style.display = isPanel ? 'block' : 'none';
+        document.getElementById('dev-edit-ip-group').style.display = isPanel ? 'none' : 'block';
+        document.getElementById('dev-edit-mac-group').style.display = isPanel ? 'none' : 'block';
+        document.getElementById('dev-edit-serial-group').style.display = isPanel ? 'none' : 'block';
+        document.getElementById('dev-edit-hostname').value = dev.hostname || dev.name || '';
+        document.getElementById('dev-edit-panel-label').value = dev.panelLabel || '';
+        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
+        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
+        document.getElementById('dev-edit-serial').value = dev.serialNumber || '';
+        modal.dataset.source = source;
+        modal.dataset.deviceId = instanceId;
+        modal.dataset.deviceCategory = category || '';
+        modal.style.display = 'flex';
+      },
       open2D(instanceId) {
         const racks = window.RackStudio && window.RackStudio.STATE.racks || [];
         const rack = racks.find(item => item.devices.some(dev => dev.instanceId === instanceId));
         const dev = rack && rack.devices.find(item => item.instanceId === instanceId);
         if (!dev) return;
         const modal = document.getElementById('modal-device-edit');
-        document.getElementById('dev-edit-hostname').value = dev.name || window.RackStudio.catalog[dev.catalogKey]?.name || '';
-        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
-        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
-        modal.dataset.source = '2d';
-        modal.dataset.deviceId = instanceId;
-        modal.style.display = 'flex';
+        const cat = window.RackStudio.catalog[dev.catalogKey] || {};
+        this.prepare(modal, { ...dev, name: dev.name || cat.name }, cat.category, '2d', instanceId);
       },
       open3D(instanceId) {
         if (!window.__STUDIO3D__) return;
         const dev = window.__STUDIO3D__.state.devices.find(d => d.id === instanceId);
         if (!dev) return;
         const modal = document.getElementById('modal-device-edit');
-        document.getElementById('dev-edit-hostname').value = dev.name || '';
-        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
-        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
-        modal.dataset.source = '3d';
-        modal.dataset.deviceId = instanceId;
-        modal.style.display = 'flex';
+        this.prepare(modal, dev, dev.category, '3d', instanceId);
       }
     };
 
@@ -1258,7 +1279,9 @@
       const meta = {
         name: document.getElementById('dev-edit-hostname').value.trim(),
         ipAddress: document.getElementById('dev-edit-ip').value.trim(),
-        macAddress: document.getElementById('dev-edit-mac').value.trim()
+        macAddress: document.getElementById('dev-edit-mac').value.trim(),
+        serialNumber: document.getElementById('dev-edit-serial').value.trim(),
+        panelLabel: document.getElementById('dev-edit-panel-label').value.trim()
       };
       if (modal.dataset.source === '2d') {
         event.stopImmediatePropagation();
@@ -1275,6 +1298,16 @@
       modal.style.display = 'none';
       updateTelemetry();
     }, true);
+
+    const closeDevEditModal = () => {
+      const modal = document.getElementById('modal-device-edit');
+      if (modal) {
+        modal.dataset.source = '';
+        modal.style.display = 'none';
+      }
+    };
+    document.getElementById('btn-close-device-edit')?.addEventListener('click', closeDevEditModal);
+    document.getElementById('btn-cancel-device-edit')?.addEventListener('click', closeDevEditModal);
 
     function updateTelemetry() {
       let totalWatts = 0;

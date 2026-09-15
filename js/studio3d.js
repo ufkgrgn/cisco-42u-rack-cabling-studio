@@ -769,7 +769,7 @@
       ctx.fillText('19” FIBER OPTIC PATCH PANEL (24x LC/SC)', 24, 58);
 
       // Selective Label Strip (Hostname / IP / MAC)
-      const hostname = dev.name || dev.hostname || '';
+      const hostname = dev.panelLabel || dev.hostname || dev.name || '';
       const ip = dev.ipAddress || dev.ip || '';
       const mac = dev.macAddress || dev.mac || '';
       const labelMode = window.deviceLabelMode || localStorage.getItem('rack-studio-device-label-mode') || 'name';
@@ -911,7 +911,9 @@
     }
 
     // SWITCH HOSTNAME & IP ADDRESS LABEL STRIP (P-Touch Style Bezel Label)
-    const hostname = dev.name || dev.hostname || '';
+    const hostname = ['patch-panel', 'fiber-panel'].includes(visualKind)
+      ? (dev.panelLabel || dev.name || '')
+      : (dev.hostname || dev.name || '');
     const ip = dev.ipAddress || dev.ip || '';
     const mac = dev.macAddress || dev.mac || '';
     const labelMode = window.deviceLabelMode || localStorage.getItem('rack-studio-device-label-mode') || 'name';
@@ -1051,7 +1053,9 @@
               uHeight: d.uHeight || 1,
               name: d.name,
               ipAddress: d.ipAddress || '',
-              macAddress: d.macAddress || ''
+              macAddress: d.macAddress || '',
+              serialNumber: d.serialNumber || '',
+              panelLabel: d.panelLabel || ''
             }))
           }],
           cables: this.cables.map(c => ({
@@ -1593,8 +1597,11 @@
         id: instanceId,
         catalogId: item.id,
         name: item.name,
+        hostname: item.name,
         ipAddress: '',
         macAddress: '',
+        serialNumber: '',
+        panelLabel: '',
         manufacturer: item.manufacturer,
         category: item.category,
         startU: targetU,
@@ -1742,8 +1749,11 @@
           id: d.instanceId || d.id || ('dev-' + Math.random().toString(36).substr(2, 9)),
           catalogId: catId,
           name: d.name || cat.name || 'Donanım',
+          hostname: d.hostname || d.name || cat.name || 'Donanım',
           ipAddress: d.ipAddress || '',
           macAddress: d.macAddress || '',
+          serialNumber: d.serialNumber || '',
+          panelLabel: d.panelLabel || '',
           manufacturer: cat.manufacturer || cat.logo || (cat.category === 'patch' || cat.category === 'fiber' ? 'Panel' : 'Cisco'),
           category: cat.category || 'switch',
           startU: Math.max(1, startU),
@@ -2167,7 +2177,9 @@
         name: String(metadata.name || '').trim(),
         hostname: String(metadata.name || '').trim(),
         ipAddress: String(metadata.ipAddress || '').trim(),
-        macAddress: String(metadata.macAddress || '').trim()
+        macAddress: String(metadata.macAddress || '').trim(),
+        serialNumber: String(metadata.serialNumber || '').trim(),
+        panelLabel: String(metadata.panelLabel || '').trim()
       });
     }
 

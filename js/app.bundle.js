@@ -1234,6 +1234,23 @@
     renderAllCables();
   }
 
+  function updateDeviceMetadata(instanceId, metadata) {
+    const rack = STATE.racks.find(item => item.devices.some(dev => dev.instanceId === instanceId));
+    const dev = rack && rack.devices.find(item => item.instanceId === instanceId);
+    if (!dev) return false;
+    dev.name = String(metadata.name || '').trim();
+    dev.hostname = dev.name;
+    dev.ipAddress = String(metadata.ipAddress || '').trim();
+    dev.macAddress = String(metadata.macAddress || '').trim();
+    dev.serialNumber = String(metadata.serialNumber || '').trim();
+    dev.panelLabel = String(metadata.panelLabel || '').trim();
+    renderMountedDevices();
+    renderScheduleTable();
+    renderAllCables();
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    return true;
+  }
+
   function renderMountedDevices() {
     if (dom.rackSpace && dom.rackSpace.querySelectorAll('.rack-slot').length !== (getActiveRack()?.heightU || 42)) renderRackRailsAndSlots(handleSlotClick);
     document.querySelectorAll('.mounted-device').forEach(el => el.remove());
@@ -1264,6 +1281,17 @@
       }
 
       slotEl.appendChild(devEl);
+
+      if (!['organizer', 'blank'].includes(cat.category)) {
+        devEl.addEventListener('dblclick', (e) => {
+          if (e.target.closest('.port, .del-device-btn')) return;
+          window.DeviceMetadataEditor?.open2D(dev.instanceId);
+        });
+        devEl.querySelector('.bezel-badge')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.DeviceMetadataEditor?.open2D(dev.instanceId);
+        });
+      }
 
       const delBtn = devEl.querySelector('.del-device-btn');
       if (delBtn) {
@@ -1357,6 +1385,9 @@
     const isPatchPanel = cat.category === 'patch' || isFiberPanel;
     const typeLabel = isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : 'PATCH PANEL';
     const typeClass = isSwitch ? 'faceplate-switch' : isFiberPanel ? 'faceplate-fiber-panel' : 'faceplate-patch-panel';
+    const configuredLabel = isPatchPanel
+      ? (dev.panelLabel || dev.name || '')
+      : (dev.hostname || dev.name || '');
     const groups = {};
     cat.ports.forEach(p => {
       if (!groups[p.group]) groups[p.group] = [];
@@ -1398,10 +1429,15 @@
         <div class="device-controls">
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
-        <div class="bezel-badge">
-          <span class="bezel-logo">${escapeHtml(cat.logo)}</span>
-          <span class="bezel-model">${escapeHtml(cat.modelTag)}</span>
-          <span class="device-kind-badge">${typeLabel}</span>
+        <div class="bezel-badge" title="${escapeHtml([cat.logo, cat.modelTag, typeLabel, configuredLabel].filter(Boolean).join(' · '))}">
+          <div class="bezel-primary-row">
+            <span class="bezel-logo">${escapeHtml(cat.logo)}</span>
+            <span class="device-kind-badge">${typeLabel}</span>
+          </div>
+          <div class="bezel-secondary-row">
+            <span class="bezel-model">${escapeHtml(cat.modelTag)}</span>
+            ${configuredLabel ? `<span class="device-config-label">${escapeHtml(configuredLabel)}</span>` : ''}
+          </div>
         </div>
         ${isPatchPanel ? '<div class="passive-panel-mark" title="Pasif sonlandırma paneli">PASSIVE</div>' : `<div class="device-status-leds">
           <div class="status-led" title="Power: OK"></div>
@@ -2527,7 +2563,7 @@
     setTimeout(() => { if (dom.tooltip) dom.tooltip.style.display = 'none'; }, 2500);
   }
 
-  window.RackStudio = { STATE, catalog:HARDWARE_CATALOG, getActiveRack, refresh, renderAllCables, fit:fitRackToScreen, mountDeviceAt, loadCustomTopology, validateTopology, exportJson, exportVisioSvg, switchActiveRack, addNewRack, removeDevice };
+  window.RackStudio = { STATE, catalog:HARDWARE_CATALOG, getActiveRack, refresh, renderAllCables, fit:fitRackToScreen, mountDeviceAt, loadCustomTopology, validateTopology, exportJson, exportVisioSvg, switchActiveRack, addNewRack, removeDevice, updateDeviceMetadata };
 
   // Automatic init on DOM ready or immediate if already loaded
   if (document.readyState === 'loading') {
