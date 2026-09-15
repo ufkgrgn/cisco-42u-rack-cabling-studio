@@ -18,9 +18,6 @@ export function getMaxOccupiedU(rack: RackModel): number {
   );
 }
 
-// Alias for naming flexibility
-export const getMaxOccupiedUnit = getMaxOccupiedU;
-
 /**
  * Enforces the Rack Height Shrinkage Guard (F2.4 / AC4).
  * Prohibits shrinking rack height below the highest occupied unit on either face.

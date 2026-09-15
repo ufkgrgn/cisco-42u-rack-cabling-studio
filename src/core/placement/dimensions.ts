@@ -22,9 +22,6 @@ export const EIA_RACK_DIMENSIONS = {
   RAIL_HOLE_HEIGHT_PX: 3,
 } as const;
 
-// Alias for convenience
-export const EIA_DIMENSIONS = EIA_RACK_DIMENSIONS;
-
 /**
  * Total pixel height of cabinet including top header and bottom plinth.
  */

@@ -90,6 +90,30 @@
   background: rgba(56, 189, 248, 0.06);
 }
 
+.rack-slot.drag-valid {
+  background: rgba(16, 185, 129, 0.28) !important;
+  outline: 2px dashed #10b981 !important;
+  outline-offset: -2px;
+  z-index: 5;
+}
+
+.rack-slot.drag-invalid {
+  background: rgba(239, 68, 68, 0.28) !important;
+  outline: 2px dashed #ef4444 !important;
+  outline-offset: -2px;
+  z-index: 5;
+}
+
+.device-card[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+.device-card.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
 /* Mounted Device */
 .mounted-device {
   position: absolute;
@@ -152,6 +176,59 @@
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.1;
+}
+
+.device-kind-badge {
+  width: max-content;
+  margin-top: 2px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font: 800 0.42rem/1.2 Consolas, monospace;
+  letter-spacing: 0.45px;
+  color: #071018;
+  background: #22d3ee;
+}
+
+.faceplate-switch {
+  background: linear-gradient(180deg, #334a64, #202f43 55%, #172235);
+  border-left: 3px solid #22d3ee;
+}
+
+.faceplate-patch-panel {
+  background: linear-gradient(180deg, #241d13, #12100d 60%, #21190d);
+  border-left: 3px solid #f59e0b;
+}
+
+.faceplate-patch-panel .device-kind-badge {
+  background: #f59e0b;
+}
+
+.faceplate-fiber-panel {
+  background: linear-gradient(180deg, #10243a, #09131f 60%, #0b1e31);
+  border-left: 3px solid #38bdf8;
+}
+
+.faceplate-fiber-panel .device-kind-badge {
+  background: #38bdf8;
+}
+
+.passive-panel-mark {
+  flex-shrink: 0;
+  padding: 1px 3px;
+  border: 1px solid #64748b;
+  border-radius: 2px;
+  color: #94a3b8;
+  font: 700 0.38rem/1 Consolas, monospace;
+  letter-spacing: 0.35px;
+}
+
+.faceplate-switch .port-group {
+  border-color: rgba(34, 211, 238, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.65);
+}
+
+.faceplate-patch-panel .port-group {
+  border-color: rgba(245, 158, 11, 0.32);
 }
 
 .device-status-leds {
@@ -320,14 +397,6 @@
   justify-content: center;
   gap: 12px;
   padding: 0 10px;
-}
-
-.organizer-slot {
-  width: 18px;
-  height: 14px;
-  background: #090c12;
-  border-radius: 2px;
-  border: 1px solid #1e293b;
 }
 
 .organizer-brush {

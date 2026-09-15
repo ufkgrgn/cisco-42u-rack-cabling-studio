@@ -7,9 +7,101 @@
   overflow-y: auto;
 }
 
+.sidebar-left::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-left::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.5);
+}
+.sidebar-left::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+}
+.sidebar-left::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+.sidebar-collapse-tools {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(11, 15, 25, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-tool-btn {
+  flex: 1;
+  background: rgba(36, 48, 72, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.sidebar-tool-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent-blue);
+  color: #fff;
+}
+
 .panel-section {
   padding: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+details.panel-section.collapsible-section {
+  padding: 0;
+  transition: background 0.15s ease;
+}
+
+details.collapsible-section summary.section-title {
+  padding: 11px 14px;
+  margin-bottom: 0;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+details.collapsible-section summary.section-title::-webkit-details-marker {
+  display: none;
+}
+details.collapsible-section summary.section-title:hover {
+  background: rgba(56, 189, 248, 0.08);
+  color: #fff;
+}
+
+details.collapsible-section summary.section-title::after {
+  content: '▾';
+  font-size: 0.85rem;
+  transition: transform 0.2s ease;
+  color: var(--accent-blue);
+  margin-left: 6px;
+}
+details.collapsible-section:not([open]) summary.section-title::after {
+  transform: rotate(-90deg);
+}
+
+.section-count-badge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--accent-blue);
+  font-weight: 700;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.section-content {
+  padding: 4px 14px 12px 14px;
 }
 
 .section-title {

@@ -3,21 +3,424 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rack & Cabling Studio</title>
+  <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- Modular Stylesheets -->
-  <script type="module" crossorigin src="/assets/main-P457AdRK.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/main-CypYf76l.css">
+  <!-- 3D Studio & HUD Styles -->
+  
+  <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
+  <link rel="stylesheet" crossorigin href="/assets/main-CXQJl0IO.css">
 </head>
 <body>
-  <!-- Modern React 19 Mount Target -->
-  <div id="root"></div>
 
-  <!-- Legacy Studio Shell (Preserved for backward compatibility & Playwright tests) -->
-  <div id="legacy-root">
+  <!-- ==================== FIXED UNIFIED TOP CONTROL BAR ==================== -->
+  <header class="unified-header" id="unified-header">
+    <!-- Left: Brand & Telemetry -->
+    <div class="hud-brand">
+      <div class="hud-brand-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+        <span>CISCO RACK STUDIO</span>
+      </div>
+      <span class="hud-badge">EIA-310-D</span>
 
-  <!-- Top Header Navigation -->
-  <header>
+      <!-- Live Power & Thermal Telemetry Badges -->
+      <div class="telemetry-group">
+        <span class="telemetry-badge power" title="Toplam Aktif Güç Tüketimi">⚡ <span id="telemetry-power-val">0</span> W</span>
+        <span class="telemetry-badge heat" title="Toplam Termal Isı Yayılımı">♨️ <span id="telemetry-heat-val">0</span> BTU/h</span>
+      </div>
+    </div>
+
+    <!-- Center: Segmented View Switcher & Contextual Controls -->
+    <div class="hud-center-cluster">
+      <div class="view-switch-segmented">
+        <button type="button" class="segmented-btn" id="btn-view-2d">📐 2D Görünüm</button>
+        <button type="button" class="segmented-btn active" id="btn-view-3d">🎮 3D Stüdyo</button>
+      </div>
+
+      <label class="device-label-control" for="device-label-mode">
+        <span>Etiket:</span>
+        <select id="device-label-mode" title="Cihazlarda gösterilecek bilgi">
+          <option value="name">İsim</option>
+          <option value="ip">IP Adresi</option>
+          <option value="mac">MAC Adresi</option>
+          <option value="all">Tümü</option>
+          <option value="none">Kapalı</option>
+        </select>
+      </label>
+
+      <!-- 3D Camera & Scene Controls Group -->
+      <div id="controls-3d-group" class="context-toolbar">
+        <div class="hud-btn-group" title="3D Kamera Bakış Açıları">
+          <button class="hud-btn cam-btn active" id="cam-iso" title="İzometrik 3D Sinematik Açı (1)">🎮 İzo</button>
+          <button class="hud-btn cam-btn" id="cam-front" title="Ön Panel Doğrudan Bakış (2)">🎯 Ön</button>
+          <button class="hud-btn cam-btn" id="cam-rear" title="Arka Güç & Portlar (3)">🔄 Arka</button>
+          <button class="hud-btn cam-btn" id="cam-top" title="Tavan Kablo Tavası Kuşbakışı (4)">📐 Üst</button>
+          <button class="hud-btn cam-btn" id="cam-focus" title="Aktif Cihazlara Yakından Odaklan (5)">🔍 Odak</button>
+        </div>
+        <div class="hud-btn-group">
+          <button class="hud-btn" id="btn-door-toggle" title="Kabin Cam Kapağını Aç / Kapat (D tuşu)">🚪 Kapak</button>
+          <button class="hud-btn" id="btn-routing-toggle" title="Kablo Sarkma Fiziğini Değiştir">〰️ Catenary</button>
+          <button class="hud-btn" id="btn-lighting-toggle" title="Işıklandırma Modu">💡 Işık</button>
+        </div>
+      </div>
+
+      <!-- 2D Controls Group -->
+      <div id="controls-2d-group" class="context-toolbar" style="display:none;">
+        <div class="hud-btn-group">
+          <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin Ön/Arka Yüzü Değiştir">🔄 Ön / Arka</button>
+          <button class="hud-btn" id="btn-2d-routing-mode" title="Kablo Düzen Modu (Düzenli / Serbest)">〰️ Düzenli</button>
+        </div>
+        <div class="hud-btn-group">
+          <button class="hud-btn" id="btn-2d-zoom-out" title="Uzaklaş">➖</button>
+          <button class="hud-btn" id="btn-2d-zoom-fit" title="Ekrana Sığdır">⛶ Sığdır</button>
+          <button class="hud-btn" id="btn-2d-zoom-in" title="Yakınlaş">➕</button>
+        </div>
+        <button class="hud-btn btn-danger-subtle" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">🧹 Sıfırla</button>
+      </div>
+    </div>
+
+    <!-- Right: Height, Presets, Actions, Project File, History & FPS -->
+    <div class="hud-right-cluster">
+      <div class="hud-u-selector" title="Kabin Yüksekliği (U)">
+        <span class="u-tag">U:</span>
+        <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2">
+        <span id="rack-u-val">42U</span>
+      </div>
+
+      <label class="device-label-control" for="performance-mode">
+        <span>3D Kalite:</span>
+        <select id="performance-mode" title="3D performans ve görüntü kalitesi dengesi">
+          <option value="eco">Ekonomi</option>
+          <option value="balanced">Dengeli</option>
+          <option value="quality">Yüksek</option>
+        </select>
+      </label>
+
+      <!-- Presets Group -->
+      <div class="hud-btn-group">
+        <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
+        <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
+      </div>
+
+      <!-- Tools Group -->
+      <div class="hud-btn-group">
+        <button class="hud-btn" id="btn-3d-schedule-modal" title="Metraj & Kablo Çizelgesi">📋 Metraj</button>
+        <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret">🧙‍♂️ Donanım</button>
+        <button class="hud-btn" id="btn-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">📊 Visio</button>
+      </div>
+
+      <!-- Storage Group -->
+      <div class="hud-btn-group">
+        <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON İndir">💾 Kaydet</button>
+        <button class="hud-btn" id="btn-import-json-3d" title="JSON Yükle">📂 Yükle</button>
+        <input type="file" id="file-import-3d" accept=".json" style="display:none;">
+      </div>
+
+      <!-- History Group -->
+      <div class="hud-btn-group">
+        <button class="hud-btn icon-only" id="btn-3d-undo" title="Geri Al (Ctrl+Z)">↩️</button>
+        <button class="hud-btn icon-only" id="btn-3d-redo" title="İleri Al (Ctrl+Y)">↪️</button>
+      </div>
+
+      <!-- Performance FPS Counter -->
+      <span class="hud-badge fps" id="fps-counter">60 FPS</span>
+    </div>
+  </header>
+
+  <!-- ==================== 3D GAME-LIKE DATACENTER STUDIO ==================== -->
+  <div id="studio3d-wrapper">
+    <!-- WebGL 3D Canvas Mount -->
+    <div id="studio3d-container"></div>
+
+    <!-- LEFT CYBERPUNK CATALOG DRAWER -->
+    <aside class="catalog-drawer" id="catalog-drawer">
+      <!-- Tab Switcher: Hardware Catalog vs Installed Rack Devices -->
+      <div class="drawer-tab-switcher">
+        <button class="drawer-tab-btn active" id="tab-btn-catalog">📦 Donanım Kataloğu</button>
+        <button class="drawer-tab-btn" id="tab-btn-installed">🗄️ Kabindeki Cihazlar (<span id="installed-count">0</span>)</button>
+      </div>
+
+      <!-- VIEW 1: HARDWARE CATALOG -->
+      <div id="drawer-view-catalog" class="drawer-view active">
+        <div class="catalog-search-box">
+          <input type="text" id="catalog-search-input" class="catalog-search-input" placeholder="Model, üretici veya port ara... (Türkçe)">
+        </div>
+
+        <div class="catalog-categories">
+          <button class="cat-pill active" data-category="all">Tümü</button>
+          <button class="cat-pill" data-category="switch">Switch</button>
+          <button class="cat-pill" data-category="router">Router</button>
+          <button class="cat-pill" data-category="server">Sunucu</button>
+          <button class="cat-pill" data-category="patch-panel">Patch Panel</button>
+          <button class="cat-pill" data-category="accessory">Kablo Paneli</button>
+          <button class="cat-pill" data-category="pdu">PDU</button>
+        </div>
+
+        <div class="catalog-list" id="catalog-items-list">
+          <!-- Generated Dynamically via studio3d-ui.js -->
+        </div>
+      </div>
+
+      <!-- VIEW 2: INSTALLED DEVICES (Innovative 1-Click Dismount & Focus) -->
+      <div id="drawer-view-installed" class="drawer-view" style="display: none;">
+        <div class="installed-header-bar">
+          <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:0.5px;">MONTE EDİLMİŞ CİHAZLAR</span>
+          <button class="installed-clear-btn" id="btn-dismount-all" title="Kabindeki tüm cihazları sök">Tümünü Sök</button>
+        </div>
+        <div class="catalog-list" id="installed-devices-list">
+          <!-- Dynamically populated via studio3d-ui.js -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- FLOATING 3D DEVICE HUD (Quick Dismount / Focus / Action Bar) -->
+    <div id="floating-device-hud" class="floating-device-hud" style="display:none;">
+      <div class="hud-dev-info">
+        <span class="hud-dev-badge" id="floating-dev-pos">U42</span>
+        <span class="hud-dev-title" id="floating-dev-name">Cihaz Adı</span>
+      </div>
+      <div class="hud-dev-actions">
+        <button class="hud-action-btn" id="btn-hud-focus" title="Cihaza Odaklan">🔍 Odaklan</button>
+        <button class="hud-action-btn" id="btn-hud-config" title="Cihaz Ayarları">⚙️ Yapılandır</button>
+        <button class="hud-action-btn btn-danger" id="btn-hud-dismount" title="Kabinden Sök (Del)">🗑️ Sök</button>
+        <button class="hud-action-btn btn-close-hud" id="btn-hud-close" title="Kapat">✕</button>
+      </div>
+    </div>
+
+    <!-- FLOATING CABLE PALETTE BAR (BOTTOM CENTER) -->
+    <div class="cable-palette-bar" id="cable-palette-bar">
+      <span style="font-size:11px;font-weight:700;color:#94a3b8;margin-right:4px;">KABLO RENGİ:</span>
+      <!-- Color dots injected dynamically -->
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="studio-toast">Bildirim</div>
+
+    <!-- 3D PORT TOOLTIP -->
+    <div id="studio-tooltip"></div>
+
+    <!-- CABLE SCHEDULE / METRAJ MODAL -->
+    <div class="studio-modal" id="modal-schedule">
+      <div class="studio-modal-card">
+        <div class="modal-header">
+          <h2>KABLO ÇİZELGESİ VE METRAJ RAPORU</h2>
+          <button class="hud-btn" id="btn-close-schedule">✕</button>
+        </div>
+        <div class="modal-body">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Kablo Adı / Etiketi</th>
+                <th>Kaynak Cihaz / Port</th>
+                <th>Hedef Cihaz / Port</th>
+                <th>Renk</th>
+                <th>Metraj (Uzunluk)</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-footer">
+          <button class="hud-btn btn-primary" id="btn-export-csv">📥 CSV Raporu İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CABLE EDIT / NAMING MODAL (User Priority #1) -->
+    <div class="studio-modal" id="modal-cable-edit">
+      <div class="studio-modal-card" style="width:480px;">
+        <div class="modal-header">
+          <h2>🏷️ KABLO BAĞLANTISI VE ETİKETİ DÜZENLE</h2>
+          <button class="hud-btn" id="btn-close-cable-edit">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Kablo Adı / Etiketi (Örn: Uplink-Core-01, Patch-A12, Storage-Trunk)</label>
+            <input type="text" id="edit-cable-name" class="form-input" placeholder="Kablo adı girin...">
+          </div>
+          <div class="form-group">
+            <label>Açıklama / Not (Opsiyonel)</label>
+            <input type="text" id="edit-cable-note" class="form-input" placeholder="Örn: 10G OM4 Multi-Mode Uplink">
+          </div>
+          <div class="form-group">
+            <label>Kablo Rengi</label>
+            <div id="edit-cable-palette" style="display:flex;gap:8px;padding-top:4px;">
+              <!-- Dynamic color dots -->
+            </div>
+          </div>
+          <div style="background:rgba(15,23,42,0.6);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);font-size:12px;display:flex;flex-direction:column;gap:6px;">
+            <div><strong>Kaynak Uç:</strong> <span id="edit-cable-from" style="color:#38bdf8;">-</span></div>
+            <div><strong>Hedef Uç:</strong> <span id="edit-cable-to" style="color:#38bdf8;">-</span></div>
+            <div><strong>Hesaplanan 3D Metraj:</strong> <span id="edit-cable-len" style="color:#10b981;font-weight:700;">-</span></div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex;justify-content:space-between;">
+          <button class="hud-btn" id="btn-delete-cable-modal" style="background:#dc2626;border-color:#ef4444;color:#ffffff;">🗑️ Kabloyu Sök</button>
+          <div style="display:flex;gap:8px;">
+            <button class="hud-btn" id="btn-cancel-cable-edit">İptal</button>
+            <button class="hud-btn btn-primary" id="btn-save-cable-edit">💾 Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D DEVICE CONTEXT FLOATING TOOLBAR -->
+    <div id="device-context-menu" style="display:none;position:absolute;z-index:999;background:rgba(15,23,42,0.95);backdrop-filter:blur(10px);border:1px solid rgba(0,229,255,0.4);border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.8);min-width:200px;">
+      <div id="dev-ctx-title" style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">Cihaz Bilgisi</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="hud-btn" id="btn-dev-edit-config" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#38bdf8;border-color:rgba(56,189,248,0.4);">🏷️ İsim / IP / MAC Düzenle</button>
+        <button class="hud-btn" id="btn-dev-move-up" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬆️ 1U Yukarı Taşı</button>
+        <button class="hud-btn" id="btn-dev-move-down" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬇️ 1U Aşağı Taşı</button>
+        <button class="hud-btn" id="btn-dev-remove" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#f87171;border-color:rgba(239,68,68,0.4);">🗑️ Kabinden Sök</button>
+      </div>
+    </div>
+
+    <!-- FLOATING 3D NAVIGATION CONTROLLER (D-PAD & ZOOM) -->
+    <div id="nav-controller-3d">
+      <div class="dpad-grid">
+        <div></div>
+        <button class="dpad-btn" id="dpad-up" title="Yukarı Kaydır (Pan Up)">▲</button>
+        <div></div>
+        <button class="dpad-btn" id="dpad-left" title="Sola Kaydır (Pan Left)">◀</button>
+        <button class="dpad-btn center" id="dpad-reset" title="Bakış Açısını Sıfırla">⟲</button>
+        <button class="dpad-btn" id="dpad-right" title="Sağa Kaydır (Pan Right)">▶</button>
+        <div></div>
+        <button class="dpad-btn" id="dpad-down" title="Aşağı Kaydır (Pan Down)">▼</button>
+        <div></div>
+      </div>
+      <div class="nav-zoom-group">
+        <button class="dpad-btn zoom" id="btn-nav-zoom-in" title="Yakınlaş (Zoom In)">➕</button>
+        <button class="dpad-btn zoom" id="btn-nav-zoom-out" title="Uzaklaş (Zoom Out)">➖</button>
+      </div>
+    </div>
+
+    <!-- VERTICAL RACK HEIGHT SLIDER (Direct Up/Down Rack Navigation) -->
+    <div id="rack-vertical-navigator" title="Kabin boyunca yukarı/aşağı kaydırın">
+      <span style="font-size:10px;font-weight:700;color:#38bdf8;">U42</span>
+      <input type="range" id="rack-nav-slider" orient="vertical" min="1" max="42" value="21" step="1">
+      <span style="font-size:10px;font-weight:700;color:#94a3b8;">U1</span>
+    </div>
+
+    <!-- BOTTOM NAVIGATION HINT BAR -->
+    <div id="nav-hint-bar">
+      <span>🖱️ <b>Sol Tık:</b> 3D Çevir</span>
+      <span>|</span>
+      <span>⌨️ <b>Space + Sürükle:</b> Serbest Pan</span>
+      <span>|</span>
+      <span>🖱️ <b>Shift + Tekerlek:</b> Dikey Kaydır</span>
+      <span>|</span>
+      <span>🖱️ <b>Sağ Tık / D-Pad:</b> Kaydır</span>
+      <span>|</span>
+      <span>🖱️ <b>Tekerlek:</b> Yakınlaş / Uzaklaş</span>
+    </div>
+  </div>
+
+  <!-- DEVICE NAME & IP CONFIGURATION MODAL -->
+  <div class="studio-modal" id="modal-device-edit" style="display:none;">
+    <div class="studio-modal-card" style="width:440px;">
+      <div class="modal-header">
+        <h2 id="modal-dev-edit-title">🏷️ DONANIM ETİKETİ & IP YAPILANDIRMASI</h2>
+        <button class="hud-btn" id="btn-close-device-edit">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Cihaz Adı / Hostname</label>
+          <input type="text" id="dev-edit-hostname" class="form-input" placeholder="Örn: SW-CORE-01, RTR-EDGE-01">
+        </div>
+        <div class="form-group">
+          <label>Yönetim IP Adresi (Management IP)</label>
+          <input type="text" id="dev-edit-ip" class="form-input" placeholder="Örn: 10.10.1.1 veya 192.168.1.10/24">
+          <span style="font-size:11px;color:#94a3b8;margin-top:4px;display:block;">Bu bilgi 3D donanım kasası üzerindeki ön etiket şeridinde gerçek zamanlı gösterilir.</span>
+        </div>
+        <div class="form-group">
+          <label>MAC Adresi</label>
+          <input type="text" id="dev-edit-mac" class="form-input" placeholder="Örn: 00:1A:2B:3C:4D:5E">
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="hud-btn" id="btn-cancel-device-edit">İptal</button>
+        <button class="hud-btn btn-primary" id="btn-save-device-edit">💾 Kaydet ve 3D Paneli Güncelle</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- CUSTOM DEVICE WIZARD MODAL -->
+    <div class="studio-modal" id="modal-wizard">
+      <div class="studio-modal-card" style="width:520px;">
+        <div class="modal-header">
+          <h2>ÖZEL 3D DONANIM TASARLAMA SİHİRBAZI</h2>
+          <button class="hud-btn" id="btn-close-wizard">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Donanım Model Adı</label>
+            <input type="text" id="wiz-name" class="form-input" placeholder="Örn: Sanallaştırma Sunucusu 01" value="Custom Server Node">
+          </div>
+          <div class="form-group">
+            <label>Üretici Firma</label>
+            <input type="text" id="wiz-manuf" class="form-input" placeholder="Örn: Cisco, Dell, Custom" value="Kurumsal Özel">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Kategori</label>
+              <select id="wiz-cat" class="form-input">
+                <option value="server">Sunucu (Server)</option>
+                <option value="switch">Ağ Anahtarı (Switch)</option>
+                <option value="router">Yönlendirici (Router)</option>
+                <option value="patch-panel">Patch Panel</option>
+                <option value="accessory">Kablo Düzenleyici / Kör Panel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Kabin Yüksekliği (U)</label>
+              <select id="wiz-u" class="form-input">
+                <option value="1">1U</option>
+                <option value="2" selected>2U</option>
+                <option value="3">3U</option>
+                <option value="4">4U</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Port Sayısı</label>
+              <input type="number" id="wiz-ports" class="form-input" min="0" max="96" value="24">
+            </div>
+            <div class="form-group">
+              <label>Port Tipi</label>
+              <select id="wiz-port-type" class="form-input">
+                <option value="rj45">RJ45 Bakır (Cat6/Cat6A)</option>
+                <option value="qsfp28">SFP / QSFP Optik Fiber</option>
+                <option value="c13">C13 Güç Çıkışı</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Şasi Derinliği (mm)</label>
+            <input type="number" id="wiz-depth" class="form-input" min="100" max="1000" value="650">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="hud-btn btn-primary" id="btn-create-custom-device">⚡ 3D Donanımı Üret ve Kataloğa Ekle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LEGACY 2D DOM (Preserved for test suites & fallback) ==================== -->
+  <div id="legacy-wrapper">
+    <div id="legacy-root">
+
+  <!-- Top Header Navigation (Hidden to maintain single Unified Top Bar) -->
+  <header id="legacy-header" style="display: none !important;">
     <div class="brand">
       <svg viewBox="0 0 24 24">
         <path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v3h16V5H4zm0 5v4h16v-4H4zm0 6v3h16v-3H4z"/>
@@ -49,9 +452,12 @@
         JSON Yükle
       </button>
       <input type="file" id="file-import" accept=".json">
-      <button class="btn btn-primary" id="btn-export-visio" title="Microsoft Visio Uyumlu Vektörel SVG Çıkar">
+      <button class="btn btn-primary" id="btn-legacy-export-visio" title="Microsoft Visio Uyumlu Vektörel SVG Çıkar">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/></svg>
         Visio SVG
+      </button>
+      <button class="btn" id="btn-switch-to-3d" title="3D Stüdyo Moduna Geç" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#c084fc;font-weight:700;">
+        🎮 3D Stüdyo
       </button>
       <button class="btn btn-danger" id="btn-clear-all" title="Tüm kabinleri ve kabloları sıfırla">
         Sıfırla
@@ -74,337 +480,395 @@
         </p>
       </div>
 
-      <!-- 1. WAN & ROUTER -->
-      <div class="panel-section">
-        <div class="section-title">WAN & Yönlendirici (Router)</div>
+      <!-- Quick Expand / Collapse Controls -->
+      <div class="sidebar-collapse-tools">
+        <button class="sidebar-tool-btn" id="btn-collapse-all" title="Tüm kategorileri daralt">🔽 Hepsini Daralt</button>
+        <button class="sidebar-tool-btn" id="btn-expand-all" title="Tüm kategorileri aç">🔼 Hepsini Aç</button>
+      </div>
 
-        <div class="device-card" data-device-id="cisco-isr-4431">
-          <div class="device-header">
-            <span class="device-name">Cisco ISR 4431/K9 Router</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Kurumsal WAN & İnternet Router, 4x Dahili GE/SFP Portu, 3x NIM Yuvası, Çift Güç Kaynağı.</div>
-          <div class="device-ports-tag">
-            <span class="tag">2x GE RJ45</span>
-            <span class="tag">2x SFP Fiber</span>
-            <span class="tag">3x NIM Yuva</span>
-            <span class="tag" style="color:#38bdf8;">WAN Edge</span>
+      <!-- 1. WAN & ROUTER -->
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>WAN & Yönlendirici (Router)</span>
+          <span class="section-count-badge">1 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="cisco-isr-4431">
+            <div class="device-header">
+              <span class="device-name">Cisco ISR 4431/K9 Router</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Kurumsal WAN & İnternet Router, 4x Dahili GE/SFP Portu, 3x NIM Yuvası, Çift Güç Kaynağı.</div>
+            <div class="device-ports-tag">
+              <span class="tag">2x GE RJ45</span>
+              <span class="tag">2x SFP Fiber</span>
+              <span class="tag">3x NIM Yuva</span>
+              <span class="tag" style="color:#38bdf8;">WAN Edge</span>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
 
       <!-- 2. FIBER DISTRIBUTION & OMURGA -->
-      <div class="panel-section">
-        <div class="section-title">Fiber Dağıtım & Omurga</div>
-
-        <div class="device-card" data-device-id="cisco-3850-24s">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 3850-24S-S</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Fiber Dağıtım & Omurga</span>
+          <span class="section-count-badge">3 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="cisco-3850-24s">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 3850-24S-S</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24 Port 1G SFP Fiber Dağıtım Switchi (IDF Toplama Omurgası), 4x 10G SFP+ Modüler Uplink.</div>
+            <div class="device-ports-tag">
+              <span class="tag" style="color:#38bdf8;">24x SFP Fiber</span>
+              <span class="tag">4x 10G Uplink</span>
+              <span class="tag">StackWise</span>
+            </div>
           </div>
-          <div class="device-desc">24 Port 1G SFP Fiber Dağıtım Switchi (IDF Toplama Omurgası), 4x 10G SFP+ Modüler Uplink.</div>
-          <div class="device-ports-tag">
-            <span class="tag" style="color:#38bdf8;">24x SFP Fiber</span>
-            <span class="tag">4x 10G Uplink</span>
-            <span class="tag">StackWise</span>
+
+          <div class="device-card" data-device-id="cisco-nexus-93180yc">
+            <div class="device-header">
+              <span class="device-name">Cisco Nexus 93180YC-FX</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Veri merkezi ToR switch, 48x 10/25G SFP28 ve 6x 100G QSFP28 omurga portu.</div>
+            <div class="device-ports-tag">
+              <span class="tag">48x 25G SFP28</span>
+              <span class="tag">6x 100G QSFP28</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-9500-24y4c">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 9500-24Y4C</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Kampüs çekirdek omurga, 24x 25G SFP28 ve 4x 100G QSFP28 uplink portu.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x 25G SFP28</span>
+              <span class="tag">4x 100G QSFP28</span>
+            </div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="cisco-nexus-93180yc">
-          <div class="device-header">
-            <span class="device-name">Cisco Nexus 93180YC-FX</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Veri merkezi ToR switch, 48x 10/25G SFP28 ve 6x 100G QSFP28 omurga portu.</div>
-          <div class="device-ports-tag">
-            <span class="tag">48x 25G SFP28</span>
-            <span class="tag">6x 100G QSFP28</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-9500-24y4c">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 9500-24Y4C</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Kampüs çekirdek omurga, 24x 25G SFP28 ve 4x 100G QSFP28 uplink portu.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x 25G SFP28</span>
-            <span class="tag">4x 100G QSFP28</span>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- 3. GIGABIT POE+ ACCESS SWITCHES -->
-      <div class="panel-section">
-        <div class="section-title">Gigabit PoE+ Kenar Switchler</div>
-
-        <div class="device-card" data-device-id="cisco-2960x-24ps">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960X-24PS-L</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Gigabit PoE+ Kenar Switchler</span>
+          <span class="section-count-badge">6 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="cisco-2960x-24ps">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960X-24PS-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24x Gigabit PoE+ (370W) ve 4x 1G SFP Uplink yuvası. Sahada 55 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
+              <span class="tag">4x 1G SFP</span>
+            </div>
           </div>
-          <div class="device-desc">24x Gigabit PoE+ (370W) ve 4x 1G SFP Uplink yuvası. Sahada 55 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
-            <span class="tag">4x 1G SFP</span>
+
+          <div class="device-card" data-device-id="cisco-2960xr-24ps">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960XR-24PS-I</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">L3 Kurumsal Kenar, 24x 1G PoE+ (370W), 2x 10G SFP+ Uplink, Çift PSU. Sahada 40 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
+              <span class="tag">2x 10G SFP+</span>
+              <span class="tag">Dual PSU</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-9200l-24p">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 9200L-24P-4X</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Yeni Nesil Kenar, 24x 1G PoE+ (370W), 4x 10G SFP+ Sabit Uplink. Sahada 8 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
+              <span class="tag">4x 10G SFP+</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-9300l-24p">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 9300L-24P-4X</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Kurumsal Kenar, 24x 1G PoE+ (505W UPOE), 4x 10G SFP+ Uplink, StackWise-320.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag" style="color:#22c55e;">PoE+ 505W</span>
+              <span class="tag">4x 10G SFP+</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-1000-24p">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 1000-24P-4G-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24x 1G RJ45 PoE+ (195W), 4x 1G SFP sabit uplink. Sahada 7 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag" style="color:#22c55e;">PoE+ 195W</span>
+              <span class="tag">4x 1G SFP</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-9300-48u">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 9300X-48HX</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">48x Multigigabit PoE+, modüler 4x 25G SFP28 Uplink.</div>
+            <div class="device-ports-tag">
+              <span class="tag">48x RJ45 mGig</span>
+              <span class="tag">4x SFP28 (25G)</span>
+              <span class="tag">UPOE+</span>
+            </div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="cisco-2960xr-24ps">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960XR-24PS-I</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">L3 Kurumsal Kenar, 24x 1G PoE+ (370W), 2x 10G SFP+ Uplink, Çift PSU. Sahada 40 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
-            <span class="tag">2x 10G SFP+</span>
-            <span class="tag">Dual PSU</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-9200l-24p">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 9200L-24P-4X</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Yeni Nesil Kenar, 24x 1G PoE+ (370W), 4x 10G SFP+ Sabit Uplink. Sahada 8 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag" style="color:#22c55e;">PoE+ 370W</span>
-            <span class="tag">4x 10G SFP+</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-9300l-24p">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 9300L-24P-4X</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Kurumsal Kenar, 24x 1G PoE+ (505W UPOE), 4x 10G SFP+ Uplink, StackWise-320.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag" style="color:#22c55e;">PoE+ 505W</span>
-            <span class="tag">4x 10G SFP+</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-1000-24p">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 1000-24P-4G-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">24x 1G RJ45 PoE+ (195W), 4x 1G SFP sabit uplink. Sahada 7 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag" style="color:#22c55e;">PoE+ 195W</span>
-            <span class="tag">4x 1G SFP</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-9300-48u">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 9300X-48HX</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">48x Multigigabit PoE+, modüler 4x 25G SFP28 Uplink.</div>
-          <div class="device-ports-tag">
-            <span class="tag">48x RJ45 mGig</span>
-            <span class="tag">4x SFP28 (25G)</span>
-            <span class="tag">UPOE+</span>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- 4. FAST ETHERNET & SAHA ERİŞİM SWITCHLERİ -->
-      <div class="panel-section">
-        <div class="section-title">Klasik Kenar Switchler (Saha Omurgası)</div>
-
-        <div class="device-card" data-device-id="cisco-2960-24pc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960-24PC-L</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Klasik Kenar Switchler (Saha Omurgası)</span>
+          <span class="section-count-badge">4 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="cisco-2960-24pc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960-24PC-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Sahada en çok bulunan model (133 Adet!). 24x 10/100 PoE (370W), 2x Dual-Purpose 1G Gigabit/SFP.</div>
+            <div class="device-ports-tag">
+              <span class="tag" style="color:#38bdf8; font-weight:700;">133 Adet Sahada</span>
+              <span class="tag">24x FastE PoE</span>
+              <span class="tag">2x Dual-Purpose</span>
+            </div>
           </div>
-          <div class="device-desc">Sahada en çok bulunan model (133 Adet!). 24x 10/100 PoE (370W), 2x Dual-Purpose 1G Gigabit/SFP.</div>
-          <div class="device-ports-tag">
-            <span class="tag" style="color:#38bdf8; font-weight:700;">133 Adet Sahada</span>
-            <span class="tag">24x FastE PoE</span>
-            <span class="tag">2x Dual-Purpose</span>
+
+          <div class="device-card" data-device-id="cisco-2960-24tc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960-24TC-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24x 10/100 Mbps RJ45 (PoE Yok), 2x Dual-Purpose 1G Gigabit/SFP uplink. Sahada 22 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x FastE RJ45</span>
+              <span class="tag">2x Dual-Purpose</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-2960x-24ts">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960-X 24TS-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24x Gigabit RJ45 (PoE Yok), 4x 1G SFP uplink. Sahada 17 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 1G</span>
+              <span class="tag">4x SFP 1G</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-2960-48tc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960-48TC-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">48x 10/100 Mbps RJ45, 2x 1G RJ45 ve 2x 1G SFP uplink. Sahada 7 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">48x FastE RJ45</span>
+              <span class="tag">2x GigE</span>
+              <span class="tag">2x SFP</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-3560x-24t">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 3560X-24T-S</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">24x 1G Gigabit RJ45, modüler ağ modülü (4x 1G / 2x 10G SFP+). Sahada 5 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x GigE RJ45</span>
+              <span class="tag">Modüler Uplink</span>
+            </div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="cisco-2960-24tc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960-24TC-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">24x 10/100 Mbps RJ45 (PoE Yok), 2x Dual-Purpose 1G Gigabit/SFP uplink. Sahada 22 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x FastE RJ45</span>
-            <span class="tag">2x Dual-Purpose</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-2960x-24ts">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960-X 24TS-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">24x Gigabit RJ45 (PoE Yok), 4x 1G SFP uplink. Sahada 17 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 1G</span>
-            <span class="tag">4x SFP 1G</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-2960-48tc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960-48TC-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">48x 10/100 Mbps RJ45, 2x 1G RJ45 ve 2x 1G SFP uplink. Sahada 7 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">48x FastE RJ45</span>
-            <span class="tag">2x GigE</span>
-            <span class="tag">2x SFP</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-3560x-24t">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 3560X-24T-S</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">24x 1G Gigabit RJ45, modüler ağ modülü (4x 1G / 2x 10G SFP+). Sahada 5 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x GigE RJ45</span>
-            <span class="tag">Modüler Uplink</span>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- 5. COMPACT & FIELD SWITCHES -->
-      <div class="panel-section">
-        <div class="section-title">Kompakt & Saha Switchleri</div>
-
-        <div class="device-card" data-device-id="cisco-3560-8pc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 3560-8PC-S</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Kompakt & Saha Switchleri</span>
+          <span class="section-count-badge">3 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="cisco-3560-8pc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 3560-8PC-S</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">8x 10/100 PoE (123W), 1x Dual-Purpose 1G Gigabit/SFP uplink. Sahada 23 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">8x FastE PoE</span>
+              <span class="tag">1x Dual-Purpose</span>
+            </div>
           </div>
-          <div class="device-desc">8x 10/100 PoE (123W), 1x Dual-Purpose 1G Gigabit/SFP uplink. Sahada 23 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">8x FastE PoE</span>
-            <span class="tag">1x Dual-Purpose</span>
+
+          <div class="device-card" data-device-id="cisco-2960cx-8pc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960CX-8PC-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">8x 1G Gigabit PoE+ (240W), 2x 1G Bakır Uplink + 2x 1G SFP. Sahada 7 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">8x GigE PoE+</span>
+              <span class="tag">2x Copper</span>
+              <span class="tag">2x SFP</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="cisco-2960g-8tc">
+            <div class="device-header">
+              <span class="device-name">Cisco Catalyst 2960G-8TC-L</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">7x 10/100/1000 Gigabit RJ45 + 1x Dual-Purpose 1G uplink. Sahada 4 adet.</div>
+            <div class="device-ports-tag">
+              <span class="tag">7x GigE RJ45</span>
+              <span class="tag">1x Dual-Purpose</span>
+            </div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="cisco-2960cx-8pc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960CX-8PC-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">8x 1G Gigabit PoE+ (240W), 2x 1G Bakır Uplink + 2x 1G SFP. Sahada 7 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">8x GigE PoE+</span>
-            <span class="tag">2x Copper</span>
-            <span class="tag">2x SFP</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="cisco-2960g-8tc">
-          <div class="device-header">
-            <span class="device-name">Cisco Catalyst 2960G-8TC-L</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">7x 10/100/1000 Gigabit RJ45 + 1x Dual-Purpose 1G uplink. Sahada 4 adet.</div>
-          <div class="device-ports-tag">
-            <span class="tag">7x GigE RJ45</span>
-            <span class="tag">1x Dual-Purpose</span>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- 6. PATCH PANELS & FIBER DISTRIBUTION -->
-      <div class="panel-section">
-        <div class="section-title">Yapısal Kablolama & Panel</div>
-
-        <div class="device-card" data-device-id="patch-cat6-24">
-          <div class="device-header">
-            <span class="device-name">Cat6A 24-Port Patch Panel</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Yapısal Kablolama & Panel</span>
+          <span class="section-count-badge">4 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="patch-cat6-24">
+            <div class="device-header">
+              <span class="device-name">Cat6A 24-Port Patch Panel</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">19" Rack montajlı 24 Port 10Gbps Cat6A UTP bakır sonlandırma paneli.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x RJ45 Cat6A</span>
+              <span class="tag">10G Ready</span>
+            </div>
           </div>
-          <div class="device-desc">19" Rack montajlı 24 Port 10Gbps Cat6A UTP bakır sonlandırma paneli.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x RJ45 Cat6A</span>
-            <span class="tag">10G Ready</span>
+
+          <div class="device-card" data-device-id="patch-cat6-48">
+            <div class="device-header">
+              <span class="device-name">Cat6 48-Port Yüksek Yoğunluk</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">1U alanında 48 port çift sıralı yüksek yoğunluklu RJ45 patch panel.</div>
+            <div class="device-ports-tag">
+              <span class="tag">48x RJ45 Cat6</span>
+              <span class="tag">Çift Sıra</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="fiber-odf-24">
+            <div class="device-header">
+              <span class="device-name">24-Port OM4 Fiber Panel (ODF)</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Veri merkezi OM4 LC Duplex çok modlu fiber optik sonlandırma çekmecesi.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x LC Duplex</span>
+              <span class="tag">OM4 Aqua</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="hcs-datalight-24">
+            <div class="device-header">
+              <span class="device-name">HCS DataLight Fiber Patch Panel</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">19” teleskopik kasa ve çapraz dizilimli mavi modüler fiber adaptör yuvaları.</div>
+            <div class="device-ports-tag">
+              <span class="tag">24x Fiber Adaptör</span>
+              <span class="tag">Modüler</span>
+            </div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="patch-cat6-48">
-          <div class="device-header">
-            <span class="device-name">Cat6 48-Port Yüksek Yoğunluk</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">1U alanında 48 port çift sıralı yüksek yoğunluklu RJ45 patch panel.</div>
-          <div class="device-ports-tag">
-            <span class="tag">48x RJ45 Cat6</span>
-            <span class="tag">Çift Sıra</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="fiber-odf-24">
-          <div class="device-header">
-            <span class="device-name">24-Port OM4 Fiber Panel (ODF)</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Veri merkezi OM4 LC Duplex çok modlu fiber optik sonlandırma çekmecesi.</div>
-          <div class="device-ports-tag">
-            <span class="tag">24x LC Duplex</span>
-            <span class="tag">OM4 Aqua</span>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <!-- 7. CABLE MANAGEMENT & BLANKING -->
-      <div class="panel-section">
-        <div class="section-title">Kablo Düzenleme & Kör Panel</div>
-
-        <div class="device-card" data-device-id="organizer-1u">
-          <div class="device-header">
-            <span class="device-name">1U Fırçalı Yatay Düzenleyici</span>
-            <span class="device-u-badge">1U</span>
+      <details class="panel-section collapsible-section" open>
+        <summary class="section-title">
+          <span>Kablo Düzenleme & Kör Panel</span>
+          <span class="section-count-badge">4 Model</span>
+        </summary>
+        <div class="section-content">
+          <div class="device-card" data-device-id="organizer-1u">
+            <div class="device-header">
+              <span class="device-name">1U Fırçalı Yatay Düzenleyici</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Hava sızdırmaz fırçalı tip, patch kabloları gizleyen 1U yatay kablo tavası.</div>
+            <div class="device-ports-tag">
+              <span class="tag">1U Fırçalı</span>
+              <span class="tag">Ön Geçişli</span>
+            </div>
           </div>
-          <div class="device-desc">Hava sızdırmaz fırçalı tip, patch kabloları gizleyen 1U yatay kablo tavası.</div>
-          <div class="device-ports-tag">
-            <span class="tag">1U Fırçalı</span>
-            <span class="tag">Ön Geçişli</span>
+
+          <div class="device-card" data-device-id="organizer-dring-1u">
+            <div class="device-header">
+              <span class="device-name">1U D-Ring Yatay Düzenleyici</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">5x Metal D-Ring kancalı, switch altlarına yerleşen 1U açık kablo toplayıcı.</div>
+            <div class="device-ports-tag">
+              <span class="tag">5x D-Ring</span>
+              <span class="tag" style="color:#00e5ff;">Metal Halka</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="organizer-2u">
+            <div class="device-header">
+              <span class="device-name">2U Kapaklı Parmak Tipi Düzenleyici</span>
+              <span class="device-u-badge">2U</span>
+            </div>
+            <div class="device-desc">Yüksek kapasiteli, ön kapaklı parmak tipi (finger duct) 2U organizer.</div>
+            <div class="device-ports-tag">
+              <span class="tag">2U Finger Duct</span>
+              <span class="tag">Ön Kapaklı</span>
+            </div>
+          </div>
+
+          <div class="device-card" data-device-id="blank-panel-1u">
+            <div class="device-header">
+              <span class="device-name">1U Boşluk Kapatma Paneli (Blanking)</span>
+              <span class="device-u-badge">1U</span>
+            </div>
+            <div class="device-desc">Hava akışını yönlendirmek ve boş U'ları kapatmak için kör panel.</div>
           </div>
         </div>
-
-        <div class="device-card" data-device-id="organizer-2u">
-          <div class="device-header">
-            <span class="device-name">2U Kapaklı Parmak Tipi Düzenleyici</span>
-            <span class="device-u-badge">2U</span>
-          </div>
-          <div class="device-desc">Yüksek kapasiteli, ön kapaklı parmak tipi (finger duct) 2U organizer.</div>
-          <div class="device-ports-tag">
-            <span class="tag">2U Finger Duct</span>
-            <span class="tag">Ön Kapaklı</span>
-          </div>
-        </div>
-
-        <div class="device-card" data-device-id="blank-panel-1u">
-          <div class="device-header">
-            <span class="device-name">1U Boşluk Kapatma Paneli (Blanking)</span>
-            <span class="device-u-badge">1U</span>
-          </div>
-          <div class="device-desc">Hava akışını yönlendirmek ve boş U'ları kapatmak için kör panel.</div>
-        </div>
-      </div>
+      </details>
     </aside>
 
     <!-- 2. CENTER AREA: 42U Rack Viewport (Scroll-Free Zoom & Pan Studio) -->
@@ -581,10 +1045,415 @@
   </div>
 
   <!-- Standalone Application Entry Point (Supports both file:/// and web servers) -->
+  </div>
+
+  <!-- 3D Three.js Standalone Engine Bundle -->
+  <script src="js/three-bundle.min.js"></script>
+
+  <!-- 3D Datacenter Studio Scripts -->
+  <script src="js/studio3d.js"></script>
+  <script src="js/studio3d-ui.js"></script>
+
+  <!-- Legacy Studio Scripts (Preserved for compatibility) -->
   <script src="js/app.bundle.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/catalog-ui.js"></script>
 
-  <!-- Modern Module Bootloader -->
+  <script>
+    // --- INTELLIGENT 2D / 3D MODE SELECTOR & BIDIRECTIONAL SYNC ---
+    const btnToggleHeader = document.getElementById('btn-toggle-view-mode');
+    const btnSwitchTo3D = document.getElementById('btn-switch-to-3d');
+    const wrapper3D = document.getElementById('studio3d-wrapper');
+    const legacyWrapper = document.getElementById('legacy-wrapper');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    // Every fresh load starts in the lightweight 2D workspace.
+    // The explicit view buttons remain the only way to activate 3D rendering.
+    let is3DMode = false;
+
+    function sync3Dto2D() {
+      if (!window.__STUDIO3D__) return;
+      try {
+        const s = window.__STUDIO3D__.state;
+        const catalog = (window.RackStudio && window.RackStudio.catalog) || {};
+        const devMap = new Map();
+        (s.devices || []).forEach(d => devMap.set(d.id, d));
+        const usedPorts = new Set();
+
+        function resolvePortId(devId, portIdx, savedPortId) {
+          const d = devMap.get(devId);
+          if (!d) return savedPortId || ('p' + (portIdx || 1));
+          const catKey = d.catalogId;
+          let cat = catalog[catKey];
+          if (!cat && window.CATALOG_3D) {
+            cat = window.CATALOG_3D.find(c => c.id === catKey);
+          }
+          const ports = (cat && cat.ports) || [];
+          if (!ports.length) {
+            const pid = savedPortId || ('p' + (portIdx || 1));
+            usedPorts.add(`${devId}:${pid}`);
+            return pid;
+          }
+          // 1. If savedPortId is valid on this device and not already used
+          if (savedPortId && ports.some(p => p.id === savedPortId) && !usedPorts.has(`${devId}:${savedPortId}`)) {
+            usedPorts.add(`${devId}:${savedPortId}`);
+            return savedPortId;
+          }
+          // 2. Map 1-based portIdx to port
+          const targetIdx = (typeof portIdx === 'number' && portIdx >= 1 && portIdx <= ports.length) ? portIdx - 1 : 0;
+          const candidate = ports[targetIdx];
+          if (candidate && !usedPorts.has(`${devId}:${candidate.id}`)) {
+            usedPorts.add(`${devId}:${candidate.id}`);
+            return candidate.id;
+          }
+          // 3. Find any unused port
+          const available = ports.find(p => !usedPorts.has(`${devId}:${p.id}`));
+          if (available) {
+            usedPorts.add(`${devId}:${available.id}`);
+            return available.id;
+          }
+          // 4. Fallback to candidate or first port
+          return candidate ? candidate.id : ports[0].id;
+        }
+
+        const validCables = [];
+        (s.cables || []).forEach(c => {
+          if (!c.from || !c.to) return;
+          const pFrom = resolvePortId(c.from.devId, c.from.portIdx, c.from.portId);
+          const pTo = resolvePortId(c.to.devId, c.to.portIdx, c.to.portId);
+          if (!pFrom || !pTo) return;
+          const hex = typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff');
+          validCables.push({
+            id: c.id,
+            name: c.name || 'Kablo',
+            color: hex,
+            lengthMeters: c.lengthM || 1.5,
+            from: {
+              rackId: 'rack-1',
+              instanceId: c.from.devId,
+              portId: pFrom,
+              face: 'front'
+            },
+            to: {
+              rackId: 'rack-1',
+              instanceId: c.to.devId,
+              portId: pTo,
+              face: 'front'
+            }
+          });
+        });
+
+        const legacyProj = {
+          version: '3.0.0',
+          doorOpen: s.doorOpen === true,
+          activeRackId: 'rack-1',
+          racks: [{
+            id: 'rack-1',
+            name: 'MDF - Dağıtım Kabini',
+            heightU: s.rackHeightU || 42,
+            devices: s.devices.map(d => ({
+              instanceId: d.id,
+              catalogKey: d.catalogId,
+              topU: d.startU + (d.uHeight || 1) - 1,
+              uHeight: d.uHeight || 1,
+              name: d.name,
+              ipAddress: d.ipAddress || '',
+              macAddress: d.macAddress || '',
+              face: 'front'
+            }))
+          }],
+          cables: validCables
+        };
+        localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
+        if (window.RackStudio && window.RackStudio.loadCustomTopology) {
+          window.RackStudio.loadCustomTopology(legacyProj);
+        }
+      } catch (e) {
+        console.error('sync3Dto2D error:', e);
+      }
+    }
+
+    function sync2Dto3D() {
+      if (!window.__STUDIO3D__) return;
+      try {
+        let proj = null;
+        if (window.RackStudio && window.RackStudio.STATE && window.RackStudio.STATE.racks) {
+          proj = {
+            racks: window.RackStudio.STATE.racks,
+            cables: window.RackStudio.STATE.cables || []
+          };
+        } else {
+          const raw = localStorage.getItem('cisco-rack-studio-project') || localStorage.getItem('rack-studio-project-v2');
+          if (raw) proj = JSON.parse(raw);
+        }
+        if (proj) {
+          window.__STUDIO3D__.loadTopologyFromProject(proj);
+        }
+      } catch (e) {
+        console.error('sync2Dto3D error:', e);
+      }
+    }
+
+    const btnView2D = document.getElementById('btn-view-2d');
+    const btnView3D = document.getElementById('btn-view-3d');
+    const controls3D = document.getElementById('controls-3d-group');
+    const controls2D = document.getElementById('controls-2d-group');
+    const powerValEl = document.getElementById('telemetry-power-val');
+    const heatValEl = document.getElementById('telemetry-heat-val');
+    const deviceLabelModeEl = document.getElementById('device-label-mode');
+    const performanceModeEl = document.getElementById('performance-mode');
+
+    if (deviceLabelModeEl) {
+      deviceLabelModeEl.value = localStorage.getItem('rack-studio-device-label-mode') || 'name';
+      deviceLabelModeEl.addEventListener('change', () => {
+        const mode = deviceLabelModeEl.value;
+        if (window.__STUDIO3D__) window.__STUDIO3D__.setDeviceLabelMode(mode);
+        if (window.RackStudio) window.RackStudio.setDeviceLabelMode(mode);
+      });
+    }
+
+    window.handleUnifiedVisioExport = () => {
+      if (is3DMode) sync3Dto2D();
+      window.RackStudio?.exportVisioSvg();
+    };
+
+    if (performanceModeEl) {
+      performanceModeEl.value = localStorage.getItem('rack-studio-3d-performance-mode') || 'balanced';
+      performanceModeEl.addEventListener('change', () => {
+        if (window.__STUDIO3D__) window.__STUDIO3D__.setPerformanceMode(performanceModeEl.value);
+      });
+    }
+
+    window.DeviceMetadataEditor = {
+      open2D(instanceId) {
+        const racks = window.RackStudio && window.RackStudio.STATE.racks || [];
+        const rack = racks.find(item => item.devices.some(dev => dev.instanceId === instanceId));
+        const dev = rack && rack.devices.find(item => item.instanceId === instanceId);
+        if (!dev) return;
+        const modal = document.getElementById('modal-device-edit');
+        document.getElementById('dev-edit-hostname').value = dev.name || window.RackStudio.catalog[dev.catalogKey]?.name || '';
+        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
+        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
+        modal.dataset.source = '2d';
+        modal.dataset.deviceId = instanceId;
+        modal.style.display = 'flex';
+      },
+      open3D(instanceId) {
+        if (!window.__STUDIO3D__) return;
+        const dev = window.__STUDIO3D__.state.devices.find(d => d.id === instanceId);
+        if (!dev) return;
+        const modal = document.getElementById('modal-device-edit');
+        document.getElementById('dev-edit-hostname').value = dev.name || '';
+        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
+        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
+        modal.dataset.source = '3d';
+        modal.dataset.deviceId = instanceId;
+        modal.style.display = 'flex';
+      }
+    };
+
+    document.getElementById('btn-save-device-edit')?.addEventListener('click', event => {
+      const modal = document.getElementById('modal-device-edit');
+      const devId = modal.dataset.deviceId;
+      const meta = {
+        name: document.getElementById('dev-edit-hostname').value.trim(),
+        ipAddress: document.getElementById('dev-edit-ip').value.trim(),
+        macAddress: document.getElementById('dev-edit-mac').value.trim()
+      };
+      if (modal.dataset.source === '2d') {
+        event.stopImmediatePropagation();
+        if (window.RackStudio && window.RackStudio.updateDeviceMetadata) {
+          window.RackStudio.updateDeviceMetadata(devId, meta);
+        }
+      } else if (modal.dataset.source === '3d') {
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updateDeviceMetadata) {
+          window.__STUDIO3D__.updateDeviceMetadata(devId, meta);
+          if (typeof window.renderInstalledDevicesList === 'function') window.renderInstalledDevicesList();
+        }
+      }
+      modal.dataset.source = '';
+      modal.style.display = 'none';
+      updateTelemetry();
+    }, true);
+
+    function updateTelemetry() {
+      let totalWatts = 0;
+      if (is3DMode && window.__STUDIO3D__) {
+        const devs = window.__STUDIO3D__.state.devices || [];
+        devs.forEach(d => {
+          const cat = (window.CATALOG_3D || []).find(c => c.id === d.catalogId) || {};
+          totalWatts += d.powerWatts || cat.powerWatts || 150;
+        });
+      } else if (window.RackStudio && window.RackStudio.STATE) {
+        const rack = window.RackStudio.STATE.racks && window.RackStudio.STATE.racks[0];
+        if (rack && rack.devices) {
+          rack.devices.forEach(d => {
+            const cat = window.RackStudio.catalog && window.RackStudio.catalog[d.catalogId || d.catalogKey];
+            totalWatts += (cat && cat.powerWatts) || 150;
+          });
+        }
+      }
+      const totalBtu = Math.round(totalWatts * 3.412142);
+      if (powerValEl) powerValEl.textContent = String(totalWatts);
+      if (heatValEl) heatValEl.textContent = String(totalBtu);
+    }
+
+    function applyMode() {
+      if (is3DMode) {
+        if (wrapper3D) wrapper3D.style.display = 'block';
+        if (legacyWrapper) legacyWrapper.style.display = 'none';
+        if (btnView2D) btnView2D.classList.remove('active');
+        if (btnView3D) btnView3D.classList.add('active');
+        if (controls3D) controls3D.style.display = 'flex';
+        if (controls2D) controls2D.style.display = 'none';
+        if (window.__STUDIO3D__) {
+          window.__STUDIO3D__.resume();
+          // Adjust canvas on view switch
+          const container = document.getElementById('studio3d-container');
+          if (container && window.__STUDIO3D__.camera && window.__STUDIO3D__.renderer) {
+            const w = container.clientWidth || window.innerWidth;
+            const h = container.clientHeight || (window.innerHeight - 56);
+            window.__STUDIO3D__.camera.aspect = w / h;
+            window.__STUDIO3D__.camera.updateProjectionMatrix();
+            window.__STUDIO3D__.renderer.setSize(w, h);
+          }
+        }
+      } else {
+        if (wrapper3D) wrapper3D.style.display = 'none';
+        if (legacyWrapper) legacyWrapper.style.display = 'flex';
+        if (btnView2D) btnView2D.classList.add('active');
+        if (btnView3D) btnView3D.classList.remove('active');
+        if (controls3D) controls3D.style.display = 'none';
+        if (controls2D) controls2D.style.display = 'flex';
+        if (window.__STUDIO3D__) window.__STUDIO3D__.pause();
+      }
+      updateTelemetry();
+    }
+
+    applyMode();
+
+    function setMode(to3D) {
+      if (is3DMode === to3D) return;
+      if (to3D) {
+        sync2Dto3D();
+        is3DMode = true;
+        applyMode();
+      } else {
+        is3DMode = false;
+        applyMode();
+        sync3Dto2D();
+        // Give browser DOM layout a tick to paint and calculate port bounding rects
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (window.RackStudio && typeof window.RackStudio.refresh === 'function') {
+              window.RackStudio.refresh();
+            }
+          }, 60);
+        });
+      }
+      updateTelemetry();
+    }
+
+    if (btnView2D) btnView2D.addEventListener('click', () => setMode(false));
+    if (btnView3D) btnView3D.addEventListener('click', () => setMode(true));
+    if (btnToggleHeader) btnToggleHeader.addEventListener('click', () => setMode(!is3DMode));
+    if (btnSwitchTo3D) btnSwitchTo3D.addEventListener('click', () => setMode(true));
+
+    document.getElementById('btn-2d-clear-action')?.addEventListener('click', () => {
+      document.getElementById('btn-clear-all')?.click();
+      updateTelemetry();
+    });
+
+    document.getElementById('btn-2d-face-toggle')?.addEventListener('click', () => {
+      if (window.RackStudio && window.RackStudio.toggleActiveFace) {
+        window.RackStudio.toggleActiveFace();
+      } else {
+        // Find face toggle button in 2D tabs
+        const toggleBtn = document.querySelector('[data-action="toggle-face"]') || document.getElementById('btn-toggle-face');
+        if (toggleBtn) toggleBtn.click();
+      }
+    });
+
+    // 2D Zoom Controls
+    document.getElementById('btn-2d-zoom-in')?.addEventListener('click', () => {
+      document.getElementById('btn-zoom-in')?.click();
+    });
+    document.getElementById('btn-2d-zoom-out')?.addEventListener('click', () => {
+      document.getElementById('btn-zoom-out')?.click();
+    });
+    document.getElementById('btn-2d-zoom-fit')?.addEventListener('click', () => {
+      document.getElementById('btn-zoom-fit')?.click();
+    });
+
+    // 2D Cable Routing Mode Toggle
+    const btnRouting2D = document.getElementById('btn-2d-routing-mode');
+    btnRouting2D?.addEventListener('click', () => {
+      if (window.RackStudio && window.RackStudio.STATE) {
+        const cur = window.RackStudio.STATE.cableRoutingMode || 'structured';
+        const next = cur === 'structured' ? 'direct' : 'structured';
+        window.RackStudio.STATE.cableRoutingMode = next;
+        btnRouting2D.textContent = next === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
+        if (window.RackStudio.renderAllCables) window.RackStudio.renderAllCables();
+      }
+    });
+
+    // Unified Presets in 2D Mode
+    document.getElementById('btn-3d-preset-mdf')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-preset-mdf')?.click();
+        updateTelemetry();
+      }
+    }, true);
+
+    document.getElementById('btn-3d-preset-idf')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-preset-idf')?.click();
+        updateTelemetry();
+      }
+    }, true);
+
+    // Unified Storage Actions in 2D Mode
+    document.getElementById('btn-export-json-3d')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-export-json')?.click();
+      }
+    }, true);
+
+    document.getElementById('btn-import-json-3d')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('file-import')?.click();
+      }
+    }, true);
+
+    // Unified History (Undo/Redo) in 2D Mode
+    document.getElementById('btn-3d-undo')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.querySelector('[data-command="undo"]')?.click();
+      }
+    }, true);
+
+    document.getElementById('btn-3d-redo')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.querySelector('[data-command="redo"]')?.click();
+      }
+    }, true);
+
+    // 2D Sidebar Collapse / Expand All
+    document.getElementById('btn-collapse-all')?.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-left details.collapsible-section').forEach(d => { d.open = false; });
+    });
+    document.getElementById('btn-expand-all')?.addEventListener('click', () => {
+      document.querySelectorAll('.sidebar-left details.collapsible-section').forEach(d => { d.open = true; });
+    });
+
+    // Update telemetry periodically and on mutation
+    setInterval(updateTelemetry, 1500);
+  </script>
 </body>
 </html>

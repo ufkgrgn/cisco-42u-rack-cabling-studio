@@ -4,3 +4,17 @@ test-results/
 *.exe
 *.zip
 
+# Local build caches and generated metadata
+*.tsbuildinfo
+.vite/
+src-tauri/target/
+src-tauri/gen/
+
+# Temporary working files
+tmp/
+*.log
+
+# OS/editor metadata
+.DS_Store
+Thumbs.db
+

@@ -36,3 +36,45 @@
   from { filter: drop-shadow(0 0 4px #fff); }
   to { filter: drop-shadow(0 0 12px #fff); }
 }
+
+/* 2D Cable Mid-Span Labels */
+.cable-label-group {
+  cursor: pointer;
+  pointer-events: all;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.cable-label-group:hover {
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.8));
+}
+
+.cable-label-bg {
+  fill: #090e1a;
+  fill-opacity: 0.94;
+  stroke-width: 1.4px;
+  transition: all 0.15s ease;
+}
+
+.cable-label-text {
+  fill: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  user-select: none;
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+.cable-label-group.highlighted .cable-label-bg {
+  stroke: #ffffff !important;
+  stroke-width: 2px !important;
+  fill: #0284c7 !important;
+}
+
+.cable-label-group.highlighted .cable-label-text {
+  fill: #ffffff !important;
+  font-weight: 800;
+}

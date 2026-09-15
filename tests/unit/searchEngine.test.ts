@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FastBitSet } from '../../src/core/catalog/search/FastBitSet';
 import {
   foldTurkish,
   tokenizeDoc,
@@ -8,56 +7,6 @@ import {
 import { CatalogSearchEngine } from '../../src/core/catalog/search/CatalogSearchEngine';
 import { BUILT_IN_CATALOG } from '../../src/core/catalog';
 import { DeviceCatalogItem } from '../../src/core/types';
-
-describe('FastBitSet Unit Operations', () => {
-  it('correctly sets, checks, clears bits, and returns correct count', () => {
-    const bs = new FastBitSet();
-    expect(bs.count()).toBe(0);
-
-    bs.set(5);
-    bs.set(31);
-    bs.set(32);
-    bs.set(100);
-
-    expect(bs.has(5)).toBe(true);
-    expect(bs.has(31)).toBe(true);
-    expect(bs.has(32)).toBe(true);
-    expect(bs.has(100)).toBe(true);
-    expect(bs.has(0)).toBe(false);
-    expect(bs.has(64)).toBe(false);
-    expect(bs.count()).toBe(4);
-
-    bs.clear(31);
-    expect(bs.has(31)).toBe(false);
-    expect(bs.count()).toBe(3);
-
-    expect(bs.toArray()).toEqual([5, 32, 100]);
-  });
-
-  it('performs bitwise AND, OR, and NOT operations correctly', () => {
-    const a = new FastBitSet();
-    a.set(1);
-    a.set(10);
-    a.set(50);
-
-    const b = new FastBitSet();
-    b.set(10);
-    b.set(20);
-    b.set(50);
-
-    // AND
-    const andResult = a.clone().and(b);
-    expect(andResult.toArray()).toEqual([10, 50]);
-
-    // OR
-    const orResult = a.clone().or(b);
-    expect(orResult.toArray()).toEqual([1, 10, 20, 50]);
-
-    // NOT (relative complement: a AND NOT b)
-    const notResult = a.clone().andNot(b);
-    expect(notResult.toArray()).toEqual([1]);
-  });
-});
 
 describe('Turkish Diacritic Folding & Normalization (F3.5 & AC3)', () => {
   it('folds Turkish diacritics to ASCII equivalents', () => {

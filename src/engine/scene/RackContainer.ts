@@ -166,8 +166,12 @@ export class RackContainer extends Container {
       const topUnit = d.startU + d.uHeight - 1;
       const localY = 32 + (this.totalU - topUnit) * 32;
 
-      devContainer.position.set(localX, localY);
-      devContainer.setLOD(this.currentLOD);
+      if (devContainer.x !== localX || devContainer.y !== localY) {
+        devContainer.position.set(localX, localY);
+      }
+      if (devContainer.currentLOD !== this.currentLOD) {
+        devContainer.setLOD(this.currentLOD);
+      }
     }
   }
 

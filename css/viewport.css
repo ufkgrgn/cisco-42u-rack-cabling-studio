@@ -194,15 +194,16 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-font-smoothing: subpixel-antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
+  image-rendering: -webkit-optimize-contrast;
 }
 
-.device-label, .u-marker, .u-number, .port-label, .device-title, .rack-rail, .device-chassis {
+.device-label, .u-marker, .u-number, .port-label, .device-title, .rack-rail, .device-chassis, .u-label, .bezel-logo, .bezel-model {
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 /* Floating Status & Instruction Hint */

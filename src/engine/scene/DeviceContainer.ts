@@ -19,6 +19,7 @@ export class DeviceContainer extends Container {
   public detailedView: Container;
 
   public activeFace: 'front' | 'rear' = 'front';
+  public currentLOD: LODTier | null = null;
   private _isSelected = false;
   private _selectionBorder: Graphics;
 
@@ -44,7 +45,7 @@ export class DeviceContainer extends Container {
     this.buildDetailed();
 
     // Default to standard view
-    this.setLOD(LODTier.STANDARD);
+    this.setLOD(LODTier.STANDARD, true);
   }
 
   public setActiveFace(face: 'front' | 'rear'): void {
@@ -82,9 +83,14 @@ export class DeviceContainer extends Container {
     this.buildOverview();
     this.buildStandard();
     this.buildDetailed();
+    this.setLOD(this.currentLOD ?? LODTier.STANDARD, true);
   }
 
-  public setLOD(tier: LODTier): void {
+  public setLOD(tier: LODTier, force = false): void {
+    if (!force && this.currentLOD === tier) {
+      return;
+    }
+    this.currentLOD = tier;
     switch (tier) {
       case LODTier.OVERVIEW:
         this.overviewView.visible = true;
@@ -171,6 +177,7 @@ export class DeviceContainer extends Container {
       const label = new Text({
         text: `${this.catalogItem.id} [REAR]`,
         style: { fill: 0x94a3b8, fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' },
+        resolution: 2,
       });
       label.position.set(34, Math.max(0, (this.heightPx - 12) / 2));
       this.standardView.addChild(label);
@@ -212,6 +219,7 @@ export class DeviceContainer extends Container {
     const label = new Text({
       text: `${this.catalogItem.id} [${this.uHeight}U]`,
       style: { fill: 0xe2e8f0, fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' },
+      resolution: 2,
     });
     label.position.set(34, Math.max(0, (this.heightPx - 12) / 2));
     this.standardView.addChild(label);
