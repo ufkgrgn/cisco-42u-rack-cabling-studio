@@ -2253,9 +2253,9 @@
       const sideSignA = getPortSideSign(portIdxA, pCountA);
       const sideSignB = getPortSideSign(portIdxB, pCountB);
 
-      // 5-Zone D-Ring Alignment: [-1.6, -0.8, 0, 0.8, 1.6]
+      // Dedicated Left/Right D-Ring Alignment (Excludes center X=0 so no cables drop vertically down the middle)
       const getNearestRingX = (px, sideSign) => {
-        const candidates = sideSign < 0 ? [-1.6, -0.8, 0] : [0, 0.8, 1.6];
+        const candidates = sideSign < 0 ? [-1.6, -0.8] : [0.8, 1.6];
         let best = candidates[0];
         let minD = Math.abs(px - best);
         for (let i = 1; i < candidates.length; i++) {
@@ -2327,33 +2327,36 @@
         const entryY = organizerYs[0] + ringLaneY;
         const exitY = organizerYs[organizerYs.length - 1] + ringLaneY;
 
-        const sideXA = sideSignA * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.025);
-        const sideXB = sideSignB * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.025);
+        // Side channels are strictly outside the 19" equipment rail width
+        const sideXA = sideSignA * (RAIL_WIDTH / 2 + 0.24 + ((portIdxHash % 6) - 2.5) * 0.025);
         const ringChannelZ = Math.max(pA.z, pB.z) + 0.26 + ringLaneZ;
         const frontTransitionZ = Math.max(pA.z, pB.z) + 0.16;
 
-        // A side: Waterfall drop straight into closest D-Ring opening
-        rawPoints.push(new THREE.Vector3(pA.x, entryY + (pA.y >= entryY ? 0.08 : -0.08), frontTransitionZ));
+        // 1. Straight vertical waterfall drop from Port A at column X = pA.x into tray
+        const dropSignA = pA.y >= entryY ? 1 : -1;
+        rawPoints.push(new THREE.Vector3(pA.x, entryY + dropSignA * 0.08, frontTransitionZ));
+        rawPoints.push(new THREE.Vector3(pA.x, entryY, ringChannelZ));
+
+        // 2. Horizontal sweep inside D-Ring tray A to assigned ring bracket
         rawPoints.push(new THREE.Vector3(ringXA, entryY, ringChannelZ));
 
-        // Lateral traverse:
-        if (sideSignA === sideSignB) {
-          // Both endpoints on same side: route through vertical side wire manager
-          rawPoints.push(new THREE.Vector3(sideXA, entryY, ringChannelZ));
-          if (Math.abs(entryY - exitY) > 0.05) {
-            rawPoints.push(new THREE.Vector3(sideXA, exitY, ringChannelZ));
-          }
-          rawPoints.push(new THREE.Vector3(ringXB, exitY, ringChannelZ));
-        } else {
-          // Cross-connection (Left <-> Right): traverse smoothly through D-ring bracket loops
-          rawPoints.push(new THREE.Vector3(ringXB, entryY, ringChannelZ));
-          if (Math.abs(entryY - exitY) > 0.05) {
-            rawPoints.push(new THREE.Vector3(ringXB, exitY, ringChannelZ));
-          }
+        // 3. Horizontal sweep to the side vertical wire manager (outside the rack rails)
+        rawPoints.push(new THREE.Vector3(sideXA, entryY, ringChannelZ));
+
+        // 4. Pure vertical drop/rise in the side vertical wire manager (ONLY if different U heights)
+        if (Math.abs(entryY - exitY) > 0.05) {
+          rawPoints.push(new THREE.Vector3(sideXA, exitY, ringChannelZ));
         }
 
-        // B side: Vertical rise/drop into target port
-        rawPoints.push(new THREE.Vector3(pB.x, exitY + (pB.y >= exitY ? 0.08 : -0.08), frontTransitionZ));
+        // 5. At destination tray (exitY): horizontal sweep from sideXA to target ringXB
+        rawPoints.push(new THREE.Vector3(ringXB, exitY, ringChannelZ));
+
+        // 6. Horizontal sweep to target port column X = pB.x
+        rawPoints.push(new THREE.Vector3(pB.x, exitY, ringChannelZ));
+
+        // 7. Straight vertical rise/drop from tray into Port B at column X = pB.x
+        const dropSignB = pB.y >= exitY ? 1 : -1;
+        rawPoints.push(new THREE.Vector3(pB.x, exitY + dropSignB * 0.08, frontTransitionZ));
       } else if (isNearU) {
         // Natural drape between adjacent units (graceful catenary loop)
         const midX = (pA.x + pB.x) / 2;
