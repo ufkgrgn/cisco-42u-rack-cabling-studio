@@ -1,21 +1,22 @@
-/* 42U Rack Container */
+/* 42U Rack Container (Heavy Duty Industrial Metal Frame) */
 .rack-container {
   position: relative;
   width: 634px;
-  background: #11141c;
-  border: 8px solid #262c3a;
+  background: #0b0f17;
+  border: 9px solid #1a2230;
   border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0,0,0,0.95);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 50px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   display: flex;
 }
 
 .rack-rail {
   width: 44px;
-  background: #1a202c;
+  background: linear-gradient(90deg, #111622 0%, #1e2636 35%, #253043 50%, #1a2230 75%, #0f141e 100%);
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #333d4e;
-  border-right: 1px solid #333d4e;
+  border-left: 1px solid #2d3a4e;
+  border-right: 1px solid #0d121a;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08), inset -1px 0 3px rgba(0, 0, 0, 0.7);
 }
 
 .rack-rail.left {
@@ -31,11 +32,12 @@
   position: relative;
   background: repeating-linear-gradient(
     0deg,
-    #11141c,
-    #11141c 31px,
-    #151923 31px,
-    #151923 32px
+    #080b11,
+    #080b11 31px,
+    #0f141e 31px,
+    #0f141e 32px
   );
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
 }
 
 /* U Slots */
@@ -51,12 +53,14 @@
 
 .u-label {
   font-size: 0.68rem;
-  font-weight: 700;
-  color: #64748b;
+  font-weight: 800;
+  color: #7888a0;
   width: 100%;
   text-align: center;
   line-height: 32px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-shadow: 0 1px 2px #000;
+  letter-spacing: 0.4px;
 }
 
 .rack-holes {
@@ -69,11 +73,12 @@
 }
 
 .hole {
-  width: 5px;
-  height: 5px;
-  background: #090c12;
-  border: 1px solid #3b4252;
-  border-radius: 1px;
+  width: 6px;
+  height: 6px;
+  background: #04060a;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .rack-slot {
@@ -120,19 +125,20 @@
   left: 0;
   width: 100%;
   background: #181e2b;
-  border-top: 1px solid #4a5568;
-  border-bottom: 1px solid #0f131a;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 3px 8px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1.5px solid #06090e;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
   z-index: 2;
-  transition: outline 0.15s;
-  overflow: hidden;
+  transition: outline 0.15s, box-shadow 0.15s;
+  overflow: visible;
   box-sizing: border-box;
 }
 
 .mounted-device:hover {
-  outline: 1px solid #38bdf8;
+  outline: 1.5px solid #38bdf8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.9), 0 0 12px rgba(56, 189, 248, 0.25);
 }
 
 .device-faceplate {
@@ -140,11 +146,34 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 6px;
+  padding: 0 14px 0 14px;
   gap: 5px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+/* Realistic Skeuomorphic Torx Rack Screws on Left & Right Ears */
+.device-faceplate::before,
+.device-faceplate::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 35%, #64748b 70%, #334155 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), inset 0 0 1px #fff;
+  border: 1px solid #1e293b;
+  z-index: 6;
+  pointer-events: none;
+}
+.device-faceplate::before {
+  left: 3px;
+}
+.device-faceplate::after {
+  right: 3px;
 }
 
 .bezel-badge {
@@ -175,13 +204,14 @@
   flex: 1 1 auto;
   min-width: 0;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 900;
   color: #38bdf8;
   letter-spacing: 0.5px;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .bezel-model {
@@ -236,23 +266,36 @@
   background: rgba(146, 64, 14, 0.18);
 }
 
+/* High-Tech Industrial Switch Faceplate */
 .faceplate-switch {
-  background: linear-gradient(180deg, #334a64, #202f43 55%, #172235);
+  background: linear-gradient(180deg, #2b374a 0%, #1c2534 45%, #121924 100%);
   border-left: 3px solid #22d3ee;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 2px solid #05080e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.75);
 }
 
+/* High-Contrast Skeuomorphic Orange Patch Panel */
 .faceplate-patch-panel {
-  background: linear-gradient(180deg, #241d13, #12100d 60%, #21190d);
-  border-left: 3px solid #f59e0b;
+  background: linear-gradient(180deg, #1e2430 0%, #131722 55%, #0a0d14 100%);
+  border-left: 3px solid #ff7a00;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid #000;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 3px 8px rgba(0, 0, 0, 0.85);
 }
 
 .faceplate-patch-panel .device-kind-badge {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #ff7a00, #ea580c);
+  color: #fff;
+  font-weight: 900;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
 }
 
 .faceplate-fiber-panel {
   background: linear-gradient(180deg, #10243a, #09131f 60%, #0b1e31);
   border-left: 3px solid #38bdf8;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid #04080e;
 }
 
 .faceplate-fiber-panel .device-kind-badge {
@@ -261,21 +304,42 @@
 
 .passive-panel-mark {
   flex-shrink: 0;
-  padding: 1px 3px;
-  border: 1px solid #64748b;
+  padding: 1px 4px;
+  border: 1px solid #ff7a0066;
+  background: #ff7a001a;
   border-radius: 2px;
-  color: #94a3b8;
-  font: 700 0.38rem/1 Consolas, monospace;
-  letter-spacing: 0.35px;
+  color: #ff9a3c;
+  font: 800 0.38rem/1 Consolas, monospace;
+  letter-spacing: 0.4px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
 }
 
 .faceplate-switch .port-group {
-  border-color: rgba(34, 211, 238, 0.3);
-  box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.65);
+  background: linear-gradient(180deg, #0a0f18 0%, #121a28 100%);
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-radius: 2.5px;
+  padding: 1.5px 2.5px;
 }
 
+/* The Concept Showstopper: Vivid Industrial Amber/Orange Patch Panel Inserts */
 .faceplate-patch-panel .port-group {
-  border-color: rgba(245, 158, 11, 0.32);
+  background: linear-gradient(180deg, #ff7a00 0%, #ea580c 45%, #c2410c 100%);
+  border: 1px solid #fb923c;
+  border-radius: 3px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 1.5px 3px;
+  gap: 2px;
+}
+
+.faceplate-patch-panel .port-group::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  border-radius: 1px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
 .device-status-leds {
@@ -286,11 +350,11 @@
 }
 
 .status-led {
-  width: 3.5px;
-  height: 3.5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 3px #22c55e;
+  box-shadow: 0 0 5px #22c55e, 0 0 2px #86efac;
   flex-shrink: 0;
 }
 
@@ -300,7 +364,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 2.5px;
+  gap: 3px;
   height: 100%;
   overflow: hidden !important;
   padding: 0;
@@ -348,40 +412,44 @@
   box-sizing: border-box;
 }
 
-/* RJ45 Port */
+/* RJ45 Port with Metal Shielding & Gold Contact Pins */
 .port-rj45 {
   width: 10px;
   height: 9.5px;
-  background: #0f131a;
-  border: 1px solid #4a5568;
+  background: #090d14;
+  border: 1px solid #64748b;
   border-radius: 1px;
+  box-shadow: inset 0 1px 2px #000, 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .port-rj45::after {
   content: "";
-  width: 4.5px;
+  width: 5px;
   height: 2.5px;
-  background: #d97706;
+  background: linear-gradient(180deg, #fef08a 0%, #eab308 60%, #ca8a04 100%);
   position: absolute;
   bottom: 1px;
   border-radius: 0.5px;
+  box-shadow: 0 0 1px #ca8a04;
 }
 
-/* SFP / SFP+ Port */
+/* SFP / SFP+ Optical Cage Port */
 .port-sfp {
-  width: 10.5px;
+  width: 11px;
   height: 10px;
-  background: #1a202c;
-  border: 1px solid #718096;
-  border-radius: 1px;
+  background: #141b27;
+  border: 1px solid #94a3b8;
+  border-radius: 1.5px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .port-sfp::after {
   content: "";
-  width: 5.5px;
-  height: 3px;
-  background: #cbd5e1;
-  opacity: 0.4;
+  width: 6px;
+  height: 3.5px;
+  background: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 50%, #64748b 100%);
+  opacity: 0.85;
+  border-radius: 1px;
 }
 
 /* Fiber LC Duplex Port */
@@ -394,6 +462,7 @@
   display: flex;
   gap: 1px;
   padding: 1px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .port-lc-inner {
@@ -409,8 +478,8 @@
 }
 
 .port.selected {
-  outline: 2px solid #38bdf8 !important;
-  box-shadow: 0 0 8px #38bdf8;
+  outline: 2px solid #00e5ff !important;
+  box-shadow: 0 0 8px #00e5ff;
   animation: pulse-border 1s infinite alternate;
 }
 
@@ -421,13 +490,14 @@
 .port.connected::before {
   content: "";
   position: absolute;
-  width: 3.5px;
-  height: 3.5px;
+  width: 4px;
+  height: 4px;
   background: currentColor;
   border-radius: 50%;
   top: -2px;
   right: -2px;
   z-index: 5;
+  box-shadow: 0 0 4px currentColor;
 }
 
 @keyframes pulse-border {
@@ -465,26 +535,173 @@
   background: var(--trunk-color, #a855f7) !important;
 }
 
-/* Organizer Design */
+/* 3D Skeuomorphic Cable Management Panel (Panduit Finger Duct System) */
 .organizer-faceplate {
-  background: #10141e;
+  background: linear-gradient(180deg, #151a24 0%, #0d111a 100%);
   border-top: 1px solid #334155;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 2px solid #05080e;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 0 10px;
+  padding: 0 14px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
 }
 
 .organizer-brush {
-  height: 8px;
-  flex: 0.9;
-  background: repeating-linear-gradient(90deg, #1e293b, #1e293b 2px, #0f172a 2px, #0f172a 4px);
-  border-radius: 2px;
-  border: 1px solid #334155;
+  height: 14px;
+  flex: 1;
+  background: repeating-linear-gradient(
+    90deg,
+    #05080e 0px,
+    #05080e 8px,
+    #1e293b 8px,
+    #334155 10px,
+    #1e293b 12px,
+    #05080e 12px,
+    #05080e 20px
+  );
+  border-radius: 3px;
+  border: 1px solid #1e293b;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* --- SKEUOMORPHIC 3D D-RING CABLE ORGANIZER (Matching Hardware Reference Photo) --- */
+.dring-faceplate {
+  background: linear-gradient(180deg, #18202d 0%, #101520 45%, #080b12 100%) !important;
+  border-top: 1px solid #3b4759 !important;
+  border-bottom: 2px solid #04060a !important;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 2px 6px rgba(0, 0, 0, 0.9);
+  overflow: visible !important;
+}
+
+.dring-ring-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 18px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Individual 3D D-Ring Bracket */
+.dring-bracket {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.dring-bracket:hover {
+  transform: translateY(-1px) scale(1.04);
+  filter: brightness(1.2);
+}
+
+/* Heavy-duty steel mounting base plate bolted to panel */
+.dring-mount-base {
+  position: absolute;
+  width: 46px;
+  height: 24px;
+  background: linear-gradient(180deg, #141a26 0%, #090d14 100%);
+  border: 1px solid #1e293b;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Silver Torx/rivet dots on mounting base */
+.dring-mount-base::before,
+.dring-mount-base::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e2e8f0 0%, #64748b 60%, #1e293b 100%);
+  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.9), inset 0 0.5px 0.5px #fff;
+}
+.dring-mount-base::before { left: 2px; }
+.dring-mount-base::after { right: 2px; }
+
+/* The 3D Protruding Heavy-Duty D-Ring Loop (C-Bracket / Hoop) */
+.dring-loop {
+  position: relative;
+  width: 38px;
+  height: 27px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #64748b 0%, #334155 25%, #1e293b 65%, #0f172a 100%);
+  border: 1.5px solid #334155;
+  border-top-color: #94a3b8;
+  border-bottom-color: #070b12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 6px 10px rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.85),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1.5px 0 rgba(0, 0, 0, 0.9);
+  z-index: 3;
+}
+
+/* Deep Inner Aperture (Hollow Pass-Through Opening for Cables) */
+.dring-aperture {
+  position: absolute;
+  width: 25px;
+  height: 16px;
+  border-radius: 3px;
+  background: radial-gradient(ellipse at 50% 30%, #0d121c 0%, #04060a 100%);
+  border: 1px solid #080c14;
+  box-shadow:
+    inset 0 3px 7px rgba(0, 0, 0, 0.98),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Front Vertical Cylindrical Face Bar with metallic reflection */
+.dring-front-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0) 25%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(255, 255, 255, 0) 75%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
+}
+
+/* Top cable insertion notch / flexible retention clip */
+.dring-front-face::before {
+  content: '';
+  position: absolute;
+  top: -1.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 2px;
+  background: linear-gradient(90deg, #94a3b8 0%, #ffffff 50%, #94a3b8 100%);
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
 }
 
 /* Device Controls Overlay */

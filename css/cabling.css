@@ -13,28 +13,36 @@
   fill: none;
   cursor: pointer;
   pointer-events: stroke;
+  stroke-width: 3.4px !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2.5px 3.5px rgba(0, 0, 0, 0.82)) !important;
   transition: stroke-width 0.18s, filter 0.18s, stroke 0.18s;
 }
 
 .cable-path:hover {
-  stroke-width: 4.5px !important;
-  filter: drop-shadow(0 0 7px currentColor);
+  stroke-width: 4.8px !important;
+  filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.9)) !important;
 }
 
 .cable-path.highlighted {
-  stroke-width: 5px !important;
-  filter: drop-shadow(0 0 10px #ffffff);
+  stroke-width: 5.2px !important;
+  filter: drop-shadow(0 0 12px #ffffff) drop-shadow(0 0 6px currentColor) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.9)) !important;
   animation: cable-glow 1s infinite alternate;
 }
 
 .cable-boot {
   pointer-events: none;
+  r: 4.5px !important;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8));
   transition: r 0.15s, filter 0.15s;
 }
 
 @keyframes cable-glow {
-  from { filter: drop-shadow(0 0 4px #fff); }
-  to { filter: drop-shadow(0 0 12px #fff); }
+  from { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8)); }
+  to { filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 8px currentColor); }
 }
 
 /* 2D Cable Mid-Span Labels */

@@ -122,13 +122,41 @@ export function renderMountedDevices() {
 
 function renderOrganizerFaceplate(cat, dev) {
   const is2U = dev.uHeight === 2;
+  const isDring = (cat && (cat.id === 'organizer-dring-1u' ||
+                  (cat.modelTag && cat.modelTag.includes('D-RING')) ||
+                  (cat.name && cat.name.toLowerCase().includes('d-ring')))) ||
+                  (dev && dev.catalogKey && dev.catalogKey.includes('dring'));
+
+  if (isDring) {
+    const rings = [1, 2, 3, 4, 5].map(idx => `
+      <div class="dring-bracket" data-ring="${idx}">
+        <div class="dring-mount-base"></div>
+        <div class="dring-loop">
+          <div class="dring-aperture"></div>
+          <div class="dring-front-face"></div>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="organizer-faceplate dring-faceplate">
+        <div class="device-controls">
+          <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+        </div>
+        <div class="dring-ring-container">
+          ${rings}
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="organizer-faceplate" style="${is2U ? 'background: #0d121c;' : ''}">
       <div class="device-controls">
         <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
       </div>
       <div style="font-size:0.6rem; color:#64748b; font-family:monospace; font-weight:700; padding:0 8px;">
-        ${cat.modelTag}
+        ${cat.modelTag || 'ORGANIZER'}
       </div>
       <div class="organizer-brush" style="${is2U ? 'height:24px;' : ''}"></div>
     </div>
