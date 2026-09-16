@@ -793,9 +793,13 @@
       });
     }
 
-    // 15. Keyboard Shortcuts
+    // 15. Keyboard Shortcuts (Only active when in 3D Mode to avoid duplicate events with 2D editor)
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const wrapper3D = document.getElementById('studio3d-wrapper');
+      const is3DActive = wrapper3D && wrapper3D.style.display !== 'none';
+      if (!is3DActive) return;
+
       if (e.ctrlKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (e.shiftKey) btnRedo && btnRedo.click();

@@ -328,11 +328,8 @@ body, html {
   flex-direction: column;
 }
 
-#legacy-wrapper header,
-#legacy-root header,
-#legacy-root > header,
-#legacy-header {
-  display: none !important;
+#legacy-header .brand {
+  display: none;
 }
 
 /* LEFT CATALOG DRAWER */

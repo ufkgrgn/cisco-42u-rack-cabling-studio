@@ -485,6 +485,22 @@ export const HARDWARE_CATALOG = {
       speed: '100G MultiMode OM4'
     }))
   },
+  'hcs-datalight-24': {
+    name: 'HCS DataLight Fiber Patch Panel',
+    u: 1,
+    category: 'fiber',
+    logo: 'HCS',
+    modelTag: 'HCS-DATALIGHT-24',
+    desc: '19” teleskopik kasa ve çapraz dizilimli mavi modüler fiber adaptör yuvaları.',
+    ports: Array.from({ length: 24 }, (_, i) => ({
+      id: `f${i + 1}`,
+      name: `F-${String(i + 1).padStart(2, '0')}`,
+      type: 'lc',
+      group: Math.floor(i / 6),
+      row: (i % 2 === 0) ? 0 : 1,
+      speed: '10G OM4 LC Duplex'
+    }))
+  },
 
   // --- CABLE MANAGEMENT & ACCESSORIES ---
   'organizer-1u': {

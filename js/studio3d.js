@@ -2232,94 +2232,179 @@
         ? [organizerYA, organizerYB]
         : [];
 
-      const points = [];
-      // 1. Port A exit (straight out of boot before bending)
-      points.push(pA.clone());
-      const pAOut = pA.clone().add(new THREE.Vector3(0, 0, 0.14));
-      points.push(pAOut);
+      const getDevicePortCount = dev => {
+        if (!dev) return 24;
+        if (Array.isArray(dev.portDefinitions) && dev.portDefinitions.length) return dev.portDefinitions.length;
+        if (Number.isFinite(Number(dev.portsCount)) && Number(dev.portsCount) > 0) return Number(dev.portsCount);
+        return 24;
+      };
+      const pCountA = getDevicePortCount(devA);
+      const pCountB = getDevicePortCount(devB);
+      const portIdxA = cable.from.portIdx || 1;
+      const portIdxB = cable.to.portIdx || 1;
+
+      // Bilateral Dressing Rule (Enterprise standard):
+      // 24-Port Switch / Panel: 1-12 Left (-1), 13-24 Right (+1)
+      // 48-Port Switch: 1-24 Left (-1), 25-48 Right (+1)
+      const getPortSideSign = (portIdx, totalPorts) => {
+        const mid = Math.ceil(totalPorts / 2);
+        return portIdx <= mid ? -1 : 1;
+      };
+      const sideSignA = getPortSideSign(portIdxA, pCountA);
+      const sideSignB = getPortSideSign(portIdxB, pCountB);
+
+      // 5-Zone D-Ring Alignment: [-1.6, -0.8, 0, 0.8, 1.6]
+      const getNearestRingX = (px, sideSign) => {
+        const candidates = sideSign < 0 ? [-1.6, -0.8, 0] : [0, 0.8, 1.6];
+        let best = candidates[0];
+        let minD = Math.abs(px - best);
+        for (let i = 1; i < candidates.length; i++) {
+          const d = Math.abs(px - candidates[i]);
+          if (d < minD) {
+            minD = d;
+            best = candidates[i];
+          }
+        }
+        return best;
+      };
+      const ringXA = getNearestRingX(pA.x, sideSignA);
+      const ringXB = getNearestRingX(pB.x, sideSignB);
+
+      // Converts sharp 90-degree corner waypoints into smooth circular fillets (prevents Catmull-Rom kinks)
+      const filletPath = (rawPts, radius = 0.075) => {
+        if (rawPts.length <= 2) return rawPts;
+        const smoothed = [rawPts[0]];
+        for (let i = 1; i < rawPts.length - 1; i++) {
+          const pPrev = rawPts[i - 1];
+          const pCur = rawPts[i];
+          const pNext = rawPts[i + 1];
+
+          const vIn = new THREE.Vector3().subVectors(pPrev, pCur);
+          const vOut = new THREE.Vector3().subVectors(pNext, pCur);
+          const lenIn = vIn.length();
+          const lenOut = vOut.length();
+
+          if (lenIn < 0.005 || lenOut < 0.005) {
+            smoothed.push(pCur);
+            continue;
+          }
+          vIn.normalize();
+          vOut.normalize();
+          const dot = vIn.dot(vOut);
+
+          // If collinear or 180 reverse, preserve without bevel
+          if (dot < -0.98 || dot > 0.98) {
+            smoothed.push(pCur);
+            continue;
+          }
+
+          const effectiveRadius = Math.min(radius, lenIn * 0.44, lenOut * 0.44);
+          const pEntry = new THREE.Vector3().copy(pCur).addScaledVector(vIn, effectiveRadius);
+          const pExit = new THREE.Vector3().copy(pCur).addScaledVector(vOut, effectiveRadius);
+
+          const bisector = new THREE.Vector3().addVectors(vIn, vOut).normalize();
+          const halfAngle = Math.acos(Math.max(-1, Math.min(1, dot))) / 2;
+          const arcMidDist = effectiveRadius * (1 / Math.sin(halfAngle) - 1);
+          const pArcMid = new THREE.Vector3().copy(pCur).addScaledVector(bisector, Math.max(0, Math.min(effectiveRadius * 0.42, arcMidDist)));
+
+          smoothed.push(pEntry);
+          smoothed.push(pArcMid);
+          smoothed.push(pExit);
+        }
+        smoothed.push(rawPts[rawPts.length - 1]);
+        return smoothed;
+      };
+
+      const rawPoints = [];
+      // 1. Port A exit (straight out of boot with strain relief)
+      rawPoints.push(pA.clone());
+      const pAOut = pA.clone().add(new THREE.Vector3(0, 0, 0.12));
+      rawPoints.push(pAOut);
 
       if (this.state.cableRoutingMode === 'structured' && organizerYs.length) {
-        const orderedOrganizerYs = organizerYs;
-        // Keep parallel cables separated inside the usable center of each D-ring.
-        // The ring is ~0.55 deep and ~0.32 high; these lanes stay clear of its
-        // rear plate, front retaining bar and upper/lower support arms.
-        const ringLaneY = ((portIdxHash % 7) - 3) * 0.018;
-        const ringLaneZ = ((portIdxHash % 5) - 2) * 0.022;
-        const entryY = orderedOrganizerYs[0] + ringLaneY;
-        const exitY = orderedOrganizerYs[orderedOrganizerYs.length - 1] + ringLaneY;
-        const sideSign = ((pA.x + pB.x) / 2) >= 0 ? 1 : -1;
-        const sideX = sideSign * (RAIL_WIDTH / 2 + 0.20 + ((portIdxHash % 6) - 2.5) * 0.025);
-        const ringChannelZ = Math.max(pA.z, pB.z) + 0.28 + ringLaneZ;
-        const frontTransitionZ = Math.max(pA.z, pB.z) + 0.18;
+        const ringLaneY = ((portIdxHash % 7) - 3) * 0.016;
+        const ringLaneZ = ((portIdxHash % 5) - 2) * 0.018;
+        const entryY = organizerYs[0] + ringLaneY;
+        const exitY = organizerYs[organizerYs.length - 1] + ringLaneY;
 
-        // Enter through the open upper gap, settle behind the front retaining bars,
-        // traverse horizontally inside the source ring, then repeat at destination.
-        points.push(new THREE.Vector3(pA.x, entryY + U_HEIGHT * 0.22, frontTransitionZ));
-        points.push(new THREE.Vector3(pA.x, entryY, ringChannelZ));
-        points.push(new THREE.Vector3(sideX, entryY, ringChannelZ));
-        if (entryY !== exitY) points.push(new THREE.Vector3(sideX, exitY, ringChannelZ));
-        else if (exitY !== pB.y) points.push(new THREE.Vector3(sideX, pB.y, ringChannelZ));
-        const targetRingY = entryY === exitY && exitY !== pB.y ? pB.y : exitY;
-        points.push(new THREE.Vector3(pB.x, targetRingY, ringChannelZ));
-        points.push(new THREE.Vector3(pB.x, targetRingY + U_HEIGHT * 0.22, frontTransitionZ));
+        const sideXA = sideSignA * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.025);
+        const sideXB = sideSignB * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.025);
+        const ringChannelZ = Math.max(pA.z, pB.z) + 0.26 + ringLaneZ;
+        const frontTransitionZ = Math.max(pA.z, pB.z) + 0.16;
+
+        // A side: Waterfall drop straight into closest D-Ring opening
+        rawPoints.push(new THREE.Vector3(pA.x, entryY + (pA.y >= entryY ? 0.08 : -0.08), frontTransitionZ));
+        rawPoints.push(new THREE.Vector3(ringXA, entryY, ringChannelZ));
+
+        // Lateral traverse:
+        if (sideSignA === sideSignB) {
+          // Both endpoints on same side: route through vertical side wire manager
+          rawPoints.push(new THREE.Vector3(sideXA, entryY, ringChannelZ));
+          if (Math.abs(entryY - exitY) > 0.05) {
+            rawPoints.push(new THREE.Vector3(sideXA, exitY, ringChannelZ));
+          }
+          rawPoints.push(new THREE.Vector3(ringXB, exitY, ringChannelZ));
+        } else {
+          // Cross-connection (Left <-> Right): traverse smoothly through D-ring bracket loops
+          rawPoints.push(new THREE.Vector3(ringXB, entryY, ringChannelZ));
+          if (Math.abs(entryY - exitY) > 0.05) {
+            rawPoints.push(new THREE.Vector3(ringXB, exitY, ringChannelZ));
+          }
+        }
+
+        // B side: Vertical rise/drop into target port
+        rawPoints.push(new THREE.Vector3(pB.x, exitY + (pB.y >= exitY ? 0.08 : -0.08), frontTransitionZ));
       } else if (isNearU) {
-        // NATURAL DRAPE BETWEEN ADJACENT UNITS (No artificial 90-deg kinks, no right-rail detour!)
+        // Natural drape between adjacent units (graceful catenary loop)
         const midX = (pA.x + pB.x) / 2;
         const midY = Math.min(pA.y, pB.y);
         const naturalSag = Math.min(0.24, 0.08 + dy * 0.15) + sagStagger;
         const forwardClearance = Math.max(pA.z, pB.z) + 0.16 + zStagger;
 
-        // Graceful catenary loop down and curve into target
-        points.push(new THREE.Vector3(
-          pA.x + (midX - pA.x) * 0.3,
-          pA.y - naturalSag * 0.6,
-          forwardClearance
-        ));
-        points.push(new THREE.Vector3(
-          midX,
-          midY - naturalSag,
-          forwardClearance + 0.02
-        ));
-        points.push(new THREE.Vector3(
-          pB.x + (midX - pB.x) * 0.3,
-          pB.y - naturalSag * 0.6,
-          forwardClearance
-        ));
+        rawPoints.push(new THREE.Vector3(pA.x + (midX - pA.x) * 0.3, pA.y - naturalSag * 0.6, forwardClearance));
+        rawPoints.push(new THREE.Vector3(midX, midY - naturalSag, forwardClearance + 0.02));
+        rawPoints.push(new THREE.Vector3(pB.x + (midX - pB.x) * 0.3, pB.y - naturalSag * 0.6, forwardClearance));
       } else if (this.state.cableRoutingMode === 'structured') {
-        // STRUCTURED CABLING THROUGH VERTICAL CHANNEL
-        const sideX = RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.03;
+        // Structured cabling through vertical channel without D-rings
+        const chosenSide = sideSignA;
+        const sideX = chosenSide * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.03);
         const zChannel = Math.max(pA.z, pB.z) + 0.20 + zStagger;
         const midY = (pA.y + pB.y) / 2;
 
-        points.push(new THREE.Vector3(sideX - 0.2, pA.y - 0.08, zChannel));
-        points.push(new THREE.Vector3(sideX, pA.y - 0.15, zChannel));
-        points.push(new THREE.Vector3(sideX, midY, zChannel + 0.02));
-        points.push(new THREE.Vector3(sideX, pB.y - 0.15, zChannel));
-        points.push(new THREE.Vector3(sideX - 0.2, pB.y - 0.08, zChannel));
+        rawPoints.push(new THREE.Vector3(sideX - chosenSide * 0.2, pA.y - 0.08, zChannel));
+        rawPoints.push(new THREE.Vector3(sideX, pA.y - 0.15, zChannel));
+        rawPoints.push(new THREE.Vector3(sideX, midY, zChannel + 0.02));
+        rawPoints.push(new THREE.Vector3(sideX, pB.y - 0.15, zChannel));
+        rawPoints.push(new THREE.Vector3(sideX - chosenSide * 0.2, pB.y - 0.08, zChannel));
       } else {
-        // DIRECT CATENARY RUN WITH DEPTH OFFSET
+        // Direct catenary run
         const mid = new THREE.Vector3().addVectors(pA, pB).multiplyScalar(0.5);
         const sag = Math.min(1.2, dy * 0.22 + 0.2) + sagStagger;
         const forwardClearance = Math.max(pA.z, pB.z) + 0.22 + zStagger;
-        points.push(new THREE.Vector3(mid.x, mid.y - sag, forwardClearance));
+        rawPoints.push(new THREE.Vector3(mid.x, mid.y - sag, forwardClearance));
       }
 
       // Target port entry (straight into boot)
-      const pBOut = pB.clone().add(new THREE.Vector3(0, 0, 0.14));
-      points.push(pBOut);
-      points.push(pB.clone());
+      const pBOut = pB.clone().add(new THREE.Vector3(0, 0, 0.12));
+      rawPoints.push(pBOut);
+      rawPoints.push(pB.clone());
+
+      // Convert sharp angles into filleted circular bevels
+      const points = filletPath(rawPoints, 0.075);
 
       // Centripetal catmull-rom curve guarantees zero self-intersecting loops and smooth curvature
       const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
+      const curveLen = curve.getLength();
       
-      // Slender realistic patch cord thickness with optimized geometry (24x6 segments)
-      const tubeGeo = new THREE.TubeGeometry(curve, 24, 0.024, 6, false);
+      // Slender realistic patch cord with 12 radial segments for a silky-smooth cylindrical profile
+      const tubularSegments = Math.max(48, Math.min(128, Math.round(curveLen * 32)));
+      const tubeGeo = new THREE.TubeGeometry(curve, tubularSegments, 0.024, 12, false);
       const tubeMat = new THREE.MeshStandardMaterial({
         color: cable.color,
-        roughness: 0.72,
-        metalness: 0.08,
+        roughness: 0.58,
+        metalness: 0.12,
         emissive: cable.color,
-        emissiveIntensity: 0.04
+        emissiveIntensity: 0.05
       });
 
       const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
