@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-DfwNLZGI.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-D6_Zz_Yx.css">
 </head>
 <body>
 
@@ -981,18 +981,14 @@
             <!-- Dynamically generated rack tabs -->
           </div>
           <div class="rack-tabs-actions">
-            <button class="btn-rack-action" id="btn-add-rack" title="Yeni Kabin Ekle">
+            <button class="btn-rack-action icon-btn" id="btn-add-rack" title="Yeni Kabin Ekle">
               <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
-              Yeni Kabin
             </button>
-            <button class="btn-rack-action" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">
-              ✏️ İsim Değiştir
-            </button>
-            <button class="btn-rack-action btn-collapse-toggle" id="btn-toggle-rack-left" title="Kabin Panelini Sola Gizle / Genişlet">
-              <span id="rack-left-toggle-icon">◀</span>
+            <button class="btn-rack-action icon-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">
+              ✏️
             </button>
             <button class="btn-rack-action btn-collapse-toggle" id="btn-toggle-rack-topbar" title="Kabin Düzenleme Araçlarını Gizle / Göster">
-              <span id="rack-toggle-icon">▲</span>
+              <span id="rack-toggle-icon">◀</span>
             </button>
           </div>
         </div>
@@ -1756,19 +1752,8 @@
       btnToggleTopdeck.addEventListener('click', () => {
         topdeck.classList.toggle('collapsed');
         const isCollapsed = topdeck.classList.contains('collapsed');
-        if (toggleIcon) toggleIcon.textContent = isCollapsed ? '▼' : '▲';
-        btnToggleTopdeck.title = isCollapsed ? 'Kabin Düzenleme Panelini Göster' : 'Kabin Düzenleme Panelini Gizle (Dikey Alan Aç)';
-      });
-    }
-
-    const btnToggleRackLeft = document.getElementById('btn-toggle-rack-left');
-    const leftToggleIcon = document.getElementById('rack-left-toggle-icon');
-    if (btnToggleRackLeft && topdeck) {
-      btnToggleRackLeft.addEventListener('click', () => {
-        topdeck.classList.toggle('side-collapsed');
-        const isSideCollapsed = topdeck.classList.contains('side-collapsed');
-        if (leftToggleIcon) leftToggleIcon.textContent = isSideCollapsed ? '▶' : '◀';
-        btnToggleRackLeft.title = isSideCollapsed ? 'Kabin Panelini Aç' : 'Kabin Panelini Sola Gizle';
+        if (toggleIcon) toggleIcon.textContent = isCollapsed ? '▶' : '◀';
+        btnToggleTopdeck.title = isCollapsed ? 'Kabin Düzenleme Araçlarını Göster' : 'Kabin Düzenleme Araçlarını Gizle (Dikey Alan Aç)';
       });
     }
 
