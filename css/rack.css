@@ -435,6 +435,36 @@
   to { transform: scale(1.2); }
 }
 
+/* 802.1Q TRUNK & SPECIAL PORT STYLES */
+.port.port-trunk {
+  border-color: var(--trunk-color, #a855f7) !important;
+  box-shadow: 0 0 6px var(--trunk-color, #a855f7), inset 0 0 3px var(--trunk-color, #a855f7) !important;
+  z-index: 4;
+}
+
+.port.port-trunk::before {
+  content: "T" !important;
+  position: absolute !important;
+  font-size: 7px !important;
+  font-weight: 900 !important;
+  font-family: Consolas, monospace !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  background: var(--trunk-color, #a855f7) !important;
+  border-radius: 2px !important;
+  padding: 0 1.5px !important;
+  top: -4px !important;
+  left: -2px !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 6 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8) !important;
+}
+
+.port.port-trunk.connected::after {
+  background: var(--trunk-color, #a855f7) !important;
+}
+
 /* Organizer Design */
 .organizer-faceplate {
   background: #10141e;

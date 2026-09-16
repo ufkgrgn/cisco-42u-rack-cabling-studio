@@ -1055,7 +1055,8 @@
               ipAddress: d.ipAddress || '',
               macAddress: d.macAddress || '',
               serialNumber: d.serialNumber || '',
-              panelLabel: d.panelLabel || ''
+              panelLabel: d.panelLabel || '',
+              portsConfig: d.portsConfig || {}
             }))
           }],
           cables: this.cables.map(c => ({
@@ -1979,25 +1980,33 @@
           const isFiber = effectivePortType === 'fiber-adapter' || effectivePortType === 'lc' || effectivePortType === 'sc' ||
                           dev.catalogId === 'hcs-datalight-24' || dev.catalogId === 'fiber-odf-24';
           const portGeo = new THREE.BoxGeometry(pWidth, pHeight, 0.045);
+
+          // Port role & custom trunk configuration
+          const portCfg = (dev.portsConfig && (dev.portsConfig[p + 1] || dev.portsConfig['p' + (p + 1)])) || null;
+          const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
+          const customColor = portCfg && portCfg.color;
+          const trunkColorNum = customColor ? parseInt(customColor.replace('#', '0x'), 16) : (isTrunk ? 0xa855f7 : null);
+
           const portMat = new THREE.MeshStandardMaterial({
-            color: isFiber ? 0x0284c7 : isUplink ? 0x94a3b8 : visualKind === 'patch-panel' ? 0x111827 : effectivePortType === 'qsfp28' ? 0x0ea5e9 : effectivePortType === 'c13' ? 0xef4444 : 0x374151,
-            metalness: 0.85,
-            roughness: 0.25,
-            emissive: 0x000000,
-            emissiveIntensity: 0
+            color: isTrunk ? (trunkColorNum || 0xa855f7) : isFiber ? 0x0284c7 : isUplink ? 0x94a3b8 : visualKind === 'patch-panel' ? 0x111827 : effectivePortType === 'qsfp28' ? 0x0ea5e9 : effectivePortType === 'c13' ? 0xef4444 : 0x374151,
+            metalness: isTrunk ? 0.65 : 0.85,
+            roughness: isTrunk ? 0.25 : 0.25,
+            emissive: isTrunk ? (trunkColorNum || 0xa855f7) : 0x000000,
+            emissiveIntensity: isTrunk ? 0.45 : 0
           });
           const portMesh = new THREE.Mesh(portGeo, portMat);
           portMesh.position.set(px, py, pz);
 
           const cavityGeo = new THREE.BoxGeometry(pWidth * 0.75, pHeight * 0.7, 0.02);
-          const cavityMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+          const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 0x150d24 : 0x090d16 });
           const cavity = new THREE.Mesh(cavityGeo, cavityMat);
           cavity.position.set(0, 0, 0.02);
           portMesh.add(cavity);
 
           if (visualKind === 'switch' && !isFiber) {
             const ledGeo = new THREE.BoxGeometry(pWidth * 0.22, 0.012, 0.012);
-            const ledMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+            const ledColor = isTrunk ? (trunkColorNum || 0xa855f7) : 0xf59e0b;
+            const ledMat = new THREE.MeshBasicMaterial({ color: ledColor });
             const portLed = new THREE.Mesh(ledGeo, ledMat);
             portLed.position.set(0, -pHeight * 0.38, 0.032);
             portMesh.add(portLed);
@@ -2010,6 +2019,8 @@
             portIdx: p + 1,
             portType: effectivePortType,
             isUplink,
+            isTrunk: !!isTrunk,
+            trunkConfig: portCfg,
             worldPos: new THREE.Vector3()
           };
 
@@ -2083,16 +2094,26 @@
       const nameFrom = devFrom ? devFrom.name.split(' ')[1] || 'Cihaz' : 'D1';
       const nameTo = devTo ? devTo.name.split(' ')[1] || 'Cihaz' : 'D2';
 
+      const portCfgFrom = (devFrom && devFrom.portsConfig && (devFrom.portsConfig[from.portIdx] || devFrom.portsConfig['p' + from.portIdx])) || null;
+      const portCfgTo = (devTo && devTo.portsConfig && (devTo.portsConfig[to.portIdx] || devTo.portsConfig['p' + to.portIdx])) || null;
+      const trunkPortCfg = (portCfgFrom && portCfgFrom.isTrunk && portCfgFrom) || (portCfgTo && portCfgTo.isTrunk && portCfgTo);
+      const isTrunk = !!trunkPortCfg;
+
       const cableId = 'cbl-' + Math.random().toString(36).substr(2, 9);
-      const defaultName = `${nameFrom}:P${from.portIdx} ➔ ${nameTo}:P${to.portIdx}`;
+      const fromLabel = (portCfgFrom && portCfgFrom.ciscoName) || `${nameFrom}:P${from.portIdx}`;
+      const toLabel = (portCfgTo && portCfgTo.ciscoName) || `${nameTo}:P${to.portIdx}`;
+      const defaultName = isTrunk ? `[TRUNK] ${fromLabel} ➔ ${toLabel}` : `${fromLabel} ➔ ${toLabel}`;
+      const defaultNote = (trunkPortCfg && (trunkPortCfg.description || trunkPortCfg.note)) || '';
+
+      const cableColor = colorHex || ((isTrunk && trunkPortCfg.autoCableColor !== false) ? trunkPortCfg.color : CABLE_COLORS[this.state.cableColorIdx].hex);
 
       const cableData = {
         id: cableId,
         name: customName || defaultName,
-        note: customNote || '',
+        note: customNote !== undefined ? customNote : defaultNote,
         from: from,
         to: to,
-        color: colorHex || CABLE_COLORS[this.state.cableColorIdx].hex,
+        color: cableColor,
         lengthM: lengthM
       };
 
@@ -2101,6 +2122,31 @@
       this.state.pushSnapshot();
       sfx.plug();
       return cableData;
+    }
+
+    updatePortConfig(devId, portIdx, config) {
+      const dev = this.state.devices.find(d => d.id === devId);
+      if (!dev) return false;
+      if (!dev.portsConfig) dev.portsConfig = {};
+      const numIdx = typeof portIdx === 'number' ? portIdx : (parseInt(portIdx, 10) || 1);
+      if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description)) {
+        delete dev.portsConfig[numIdx];
+        delete dev.portsConfig['p' + numIdx];
+      } else {
+        dev.portsConfig[numIdx] = {
+          role: config.role || 'trunk',
+          isTrunk: config.role === 'trunk' || config.isTrunk === true,
+          color: config.color || '#a855f7',
+          ciscoName: config.ciscoName || '',
+          vlan: config.vlan || '',
+          description: config.description || config.note || '',
+          autoCableColor: config.autoCableColor !== false
+        };
+      }
+      this.rebuildAllDevices();
+      this.state.pushSnapshot();
+      this.showToast(`Port #${numIdx} Yapılandırması Kaydedildi`);
+      return true;
     }
 
     updateCable(cableId, data) {
@@ -2479,6 +2525,9 @@
       window.addEventListener('resize', () => {
         const w = this.container.clientWidth;
         const h = this.container.clientHeight;
+        if (!w || !h || (w === this._lastW && h === this._lastH)) return;
+        this._lastW = w;
+        this._lastH = h;
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
@@ -2564,6 +2613,26 @@
           this.panCamera(0, delta);
         }
       }, { passive: false });
+
+      // Right-click (Context Menu) on port opens Port Configuration Modal
+      dom.addEventListener('contextmenu', (e) => {
+        const rect = dom.getBoundingClientRect();
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+        for (const hit of intersects) {
+          if (hit.object.userData && hit.object.userData.isPort) {
+            e.preventDefault();
+            e.stopPropagation();
+            sfx.click();
+            if (window.PortConfigEditor) {
+              window.PortConfigEditor.open(hit.object.userData.devId, hit.object.userData.portIdx, '3d');
+            }
+            return;
+          }
+        }
+      });
     }
 
     handleHover(e) {
@@ -2590,8 +2659,11 @@
           this.hoveredPortMesh.userData.portIdx === this.state.activePort.portIdx;
 
         if (!isFirstSelected) {
-          this.hoveredPortMesh.material.emissive.setHex(0x000000);
-          this.hoveredPortMesh.material.emissiveIntensity = 0;
+          const isTrunk = this.hoveredPortMesh.userData.isTrunk;
+          const cfgColor = this.hoveredPortMesh.userData.trunkConfig && this.hoveredPortMesh.userData.trunkConfig.color;
+          const normalEmissive = isTrunk ? (cfgColor ? parseInt(cfgColor.replace('#', '0x'), 16) : 0xa855f7) : 0x000000;
+          this.hoveredPortMesh.material.emissive.setHex(normalEmissive);
+          this.hoveredPortMesh.material.emissiveIntensity = isTrunk ? 0.45 : 0;
         }
         this.hoveredPortMesh = null;
       }
@@ -2606,11 +2678,30 @@
         const dName = foundPort.userData.devName;
         const pIdx = foundPort.userData.portIdx;
         const pType = (foundPort.userData.portType || 'rj45').toUpperCase();
+        const isTrunk = foundPort.userData.isTrunk;
+        const pCfg = foundPort.userData.trunkConfig;
+
         if (tooltip) {
           tooltip.style.display = 'block';
           tooltip.style.left = (e.clientX + 16) + 'px';
           tooltip.style.top = (e.clientY + 16) + 'px';
-          tooltip.innerHTML = `<strong>${dName}</strong><br>Port #${pIdx} (${pType})<br><span style="color:#00e5ff;font-size:11px;">Bağlamak için tıklayın</span>`;
+
+          let trunkBanner = '';
+          if (isTrunk && pCfg) {
+            const tColor = pCfg.color || '#a855f7';
+            const ciscoLabel = pCfg.ciscoName ? ` · <span style="font-family:monospace; color:#ffffff;">${escapeTooltipHtml(pCfg.ciscoName)}</span>` : '';
+            const vlanLabel = pCfg.vlan ? `<div style="font-size:11px; color:#e2e8f0; margin-top:2px;"><b>VLAN:</b> ${escapeTooltipHtml(pCfg.vlan)}</div>` : '';
+            const descLabel = pCfg.description ? `<div style="font-size:11px; color:#94a3b8; font-style:italic;">"${escapeTooltipHtml(pCfg.description)}"</div>` : '';
+            trunkBanner = `
+              <div style="background:rgba(168,85,247,0.15); border-left:3px solid ${tColor}; padding:3px 6px; margin:4px 0; border-radius:2px;">
+                <span style="color:${tColor}; font-weight:bold; font-size:11px;">⚡ 802.1Q TRUNK${ciscoLabel}</span>
+                ${vlanLabel}
+                ${descLabel}
+              </div>
+            `;
+          }
+
+          tooltip.innerHTML = `<strong>${escapeTooltipHtml(dName)}</strong><br>Port #${pIdx} (${pType})${trunkBanner}<span style="color:#00e5ff;font-size:11px;">Bağla: Sol Tık · Yapılandır: <b>Sağ Tık / Shift+Tık</b></span>`;
         }
       } else if (foundCable) {
         document.body.style.cursor = 'pointer';
@@ -2637,6 +2728,18 @@
         // 1. Port Click
         if (hit.object.userData && hit.object.userData.isPort) {
           const portData = hit.object.userData;
+
+          // Shift + Click opens Port Configuration Modal
+          if (e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            sfx.click();
+            if (window.PortConfigEditor) {
+              window.PortConfigEditor.open(portData.devId, portData.portIdx, '3d');
+            }
+            return;
+          }
+
           if (!this.state.activePort) {
             this.state.activePort = { devId: portData.devId, portIdx: portData.portIdx };
             hit.object.material.emissive.setHex(0xf59e0b);

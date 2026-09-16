@@ -858,4 +858,95 @@ describe('Tier 4 — Real-World Application Scenarios (12 Scenarios)', () => {
     assert.ok(result.cablePathsCount >= 1, 'Should contain path for cable');
     assert.deepEqual(harness.getErrors(), []);
   });
+
+  // ---------------------------------------------------------------------------
+  // Scenario 13: 802.1Q TRUNK Port Configuration & Custom Color Inheritance
+  // ---------------------------------------------------------------------------
+  it('R4.13: Switch 802.1Q TRUNK port configuration with custom color, metadata, and cable inheritance', async () => {
+    const result = await page.evaluate(() => {
+      const api = window.RackStudio;
+      api.STATE.devices = [];
+      api.STATE.cables = [];
+      api.getActiveRack().devices = [];
+
+      // 1. Mount Cisco switch & Patch panel
+      const switchKey = 'cisco-2960x-24ts';
+      const panelKey = 'patch-cat6-24';
+      const sw = api.mountDeviceAt(switchKey, 40);
+      const pp = api.mountDeviceAt(panelKey, 38);
+
+      // 2. Configure Port #5 on switch as TRUNK with custom color #a855f7
+      const swPort = api.catalog[switchKey].ports[4];
+      const ppPort = api.catalog[panelKey].ports[0];
+
+      api.updatePortConfig(sw.instanceId, swPort.id, {
+        role: 'trunk',
+        color: '#a855f7',
+        ciscoName: 'Gig0/5',
+        vlan: '10,20,30,99',
+        description: 'Oda Switch Omurga Trunk',
+        autoCableColor: true
+      });
+
+      const updatedSw = api.getActiveRack().devices.find(d => d.instanceId === sw.instanceId);
+      const cfg = updatedSw.portsConfig && (updatedSw.portsConfig[swPort.id] || updatedSw.portsConfig['5']);
+
+      // 3. Connect trunk port to patch panel port
+      const swPortEl = document.getElementById(`port-${sw.instanceId}-${swPort.id}`);
+      const ppPortEl = document.getElementById(`port-${pp.instanceId}-${ppPort.id}`);
+
+      let cable = null;
+      if (swPortEl && ppPortEl) {
+        swPortEl.click();
+        ppPortEl.click();
+        cable = api.STATE.cables[api.STATE.cables.length - 1];
+      }
+
+      // 4. Test 3D engine updatePortConfig if 3D engine initialized
+      let studio3dSuccess = false;
+      if (window.__STUDIO3D__) {
+        const s3d = window.__STUDIO3D__;
+        const dev3d = {
+          id: 'dev-test-3d',
+          catalogId: switchKey,
+          name: 'Cisco 2960X Test',
+          startU: 30,
+          uHeight: 1,
+          portsCount: 24,
+          portType: 'rj45',
+          category: 'switch'
+        };
+        s3d.state.devices.push(dev3d);
+        s3d.updatePortConfig('dev-test-3d', 5, {
+          role: 'trunk',
+          color: '#00e5ff',
+          ciscoName: 'Gi1/0/5',
+          vlan: '100,200',
+          description: '3D Test Trunk'
+        });
+        const savedDev = s3d.state.devices.find(d => d.id === 'dev-test-3d');
+        studio3dSuccess = Boolean(savedDev && savedDev.portsConfig && savedDev.portsConfig[5] && savedDev.portsConfig[5].color === '#00e5ff');
+      }
+
+      return {
+        hasTrunkConfig: Boolean(cfg && cfg.isTrunk && cfg.color === '#a855f7'),
+        ciscoName: cfg ? cfg.ciscoName : null,
+        vlan: cfg ? cfg.vlan : null,
+        cableCreated: Boolean(cable),
+        cableColor: cable ? cable.color : null,
+        cableName: cable ? cable.name : null,
+        studio3dSuccess,
+        hasPortConfigEditor: typeof window.PortConfigEditor === 'object'
+      };
+    });
+
+    assert.ok(result.hasTrunkConfig, 'Switch port should have valid trunk configuration');
+    assert.equal(result.ciscoName, 'Gig0/5', 'Trunk port should preserve Cisco interface name');
+    assert.equal(result.vlan, '10,20,30,99', 'Trunk port should preserve VLAN tag list');
+    assert.ok(result.cableCreated, 'Cable should be created between trunk port and patch panel');
+    assert.equal(result.cableColor, '#a855f7', 'Cable should auto-inherit trunk custom color #a855f7');
+    assert.ok(result.cableName.includes('[TRUNK]'), 'Cable name should reflect [TRUNK] role');
+    assert.ok(result.hasPortConfigEditor, 'PortConfigEditor global controller should be available');
+    assert.deepEqual(harness.getErrors(), []);
+  });
 });

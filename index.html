@@ -321,11 +321,11 @@
     <div id="nav-hint-bar">
       <span>🖱️ <b>Sol Tık:</b> 3D Çevir</span>
       <span>|</span>
+      <span>🔌 <b>Porta Sağ Tık:</b> Trunk & Port Ayarları</span>
+      <span>|</span>
       <span>⌨️ <b>Space + Sürükle:</b> Serbest Pan</span>
       <span>|</span>
       <span>🖱️ <b>Shift + Tekerlek:</b> Dikey Kaydır</span>
-      <span>|</span>
-      <span>🖱️ <b>Sağ Tık / D-Pad:</b> Kaydır</span>
       <span>|</span>
       <span>🖱️ <b>Tekerlek:</b> Yakınlaş / Uzaklaş</span>
     </div>
@@ -360,10 +360,96 @@
           <label>Seri Numarası</label>
           <input type="text" id="dev-edit-serial" class="form-input" placeholder="Örn: FOC1234ABCD">
         </div>
+        <div class="form-group" id="dev-edit-trunk-section" style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.1); padding-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="margin:0; font-weight:700; color:#38bdf8;">⚡ Yapılandırılmış Portlar / Trunk Hatları</label>
+          </div>
+          <div id="dev-edit-ports-summary" style="font-size:11px; color:#94a3b8; line-height:1.5;">
+            Özel port veya 802.1Q TRUNK yapılandırmak için donanım üzerindeki herhangi bir porta <b>sağ tıklayabilir</b> veya <b>Shift + Sol Tık</b> yapabilirsiniz.
+          </div>
+          <div id="dev-edit-trunk-list" style="margin-top:6px; display:flex; flex-direction:column; gap:4px; max-height:110px; overflow-y:auto;">
+          </div>
+        </div>
       </div>
       <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
         <button class="hud-btn" id="btn-cancel-device-edit">İptal</button>
         <button class="hud-btn btn-primary" id="btn-save-device-edit">💾 Kaydet ve 3D Paneli Güncelle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORT ROLE & TRUNK CONFIGURATION MODAL -->
+  <div class="studio-modal" id="modal-port-edit" style="display:none; z-index:220;">
+    <div class="studio-modal-card" style="width:460px;">
+      <div class="modal-header">
+        <h2 id="modal-port-edit-title">🔌 PORT YAPILANDIRMASI & TRUNK AYARLARI</h2>
+        <button class="hud-btn" id="btn-close-port-edit">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background:rgba(15,23,42,0.85); border:1px solid #334155; border-radius:6px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div id="port-edit-dev-name" style="font-weight:700; color:#f8fafc; font-size:13px;">Cisco Catalyst Switch</div>
+            <div id="port-edit-port-label" style="font-size:12px; color:#38bdf8; font-family:monospace; margin-top:2px;">Port #1</div>
+          </div>
+          <div id="port-edit-badge" style="font-size:10px; font-weight:bold; padding:4px 10px; border-radius:4px; background:#334155; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">ACCESS</div>
+        </div>
+
+        <div class="form-group">
+          <label>Port Rolü / Çalışma Modu</label>
+          <select id="port-edit-role" class="form-input">
+            <option value="access">Standart Access Port (PC / Uç Birim)</option>
+            <option value="trunk">⚡ 802.1Q TRUNK (Switch / Omurga / Oda Dağıtım)</option>
+            <option value="uplink">🚀 Uplink / WAN (Router / Dış Hat)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="port-edit-color-group">
+          <label>Özel Port & Trunk Görsel Rengi</label>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <input type="color" id="port-edit-color" class="form-input" style="width:44px; height:32px; padding:2px; cursor:pointer; border-radius:4px;" value="#a855f7">
+            <input type="text" id="port-edit-color-hex" class="form-input" style="width:90px; font-family:monospace; text-transform:uppercase;" value="#A855F7">
+            <span style="font-size:11px; color:#94a3b8;">(3D/2D port ve kablo rengi)</span>
+          </div>
+          <div class="port-color-chips" style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="color-chip-btn" data-color="#a855f7" style="background:#a855f7; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Neon Mor (Önerilen Trunk)"></button>
+            <button type="button" class="color-chip-btn" data-color="#f59e0b" style="background:#f59e0b; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Kehribar / Turuncu"></button>
+            <button type="button" class="color-chip-btn" data-color="#00e5ff" style="background:#00e5ff; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Camgöbeği / Cyan"></button>
+            <button type="button" class="color-chip-btn" data-color="#10b981" style="background:#10b981; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Zümrüt Yeşili"></button>
+            <button type="button" class="color-chip-btn" data-color="#ef4444" style="background:#ef4444; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Kırmızı"></button>
+            <button type="button" class="color-chip-btn" data-color="#ec4899" style="background:#ec4899; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Fuşya"></button>
+            <button type="button" class="color-chip-btn" data-color="#3b82f6" style="background:#3b82f6; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Mavi"></button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Cisco Port İsmi / Arayüz Kısaltması (Opsiyonel)</label>
+          <input type="text" id="port-edit-cisco-name" class="form-input" placeholder="Örn: Fa0/1, Gig0/5, Te1/1/1">
+          <span style="font-size:11px;color:#94a3b8;margin-top:2px;display:block;">Cisco CLI arayüz tanımı (etiketlerde ve kablo çizelgesinde yer alır).</span>
+        </div>
+
+        <div class="form-group">
+          <label>VLAN Bilgisi / Tagged VLANs</label>
+          <input type="text" id="port-edit-vlan" class="form-input" placeholder="Örn: 10,20,30,99 veya Tüm VLAN'lar (Trunk All)">
+        </div>
+
+        <div class="form-group">
+          <label>Hat Tanımı / Hedef Notu (Description)</label>
+          <input type="text" id="port-edit-desc" class="form-input" placeholder="Örn: Oda Dağıtım Switchi Omurga Hattı">
+        </div>
+
+        <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+          <input type="checkbox" id="port-edit-auto-cable-color" checked style="cursor:pointer; width:16px; height:16px;">
+          <label for="port-edit-auto-cable-color" style="margin:0; cursor:pointer; font-size:12px; color:#e2e8f0;">
+            Bu porta bağlanan kablolar otomatik bu portun rengini alsın
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <button class="hud-btn btn-danger" id="btn-reset-port-edit" style="color:#ef4444;border-color:#ef4444;">🔄 Sıfırla (Access)</button>
+        <div style="display:flex;gap:10px;">
+          <button class="hud-btn" id="btn-cancel-port-edit">İptal</button>
+          <button class="hud-btn btn-primary" id="btn-save-port-edit">💾 Kaydet ve Uygula</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1177,6 +1263,7 @@
               macAddress: d.macAddress || '',
               serialNumber: d.serialNumber || '',
               panelLabel: d.panelLabel || '',
+              portsConfig: d.portsConfig || {},
               face: 'front'
             }))
           }],
@@ -1258,6 +1345,39 @@
         document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
         document.getElementById('dev-edit-mac').value = dev.macAddress || '';
         document.getElementById('dev-edit-serial').value = dev.serialNumber || '';
+
+        // Populate configured trunk ports list
+        const trunkListEl = document.getElementById('dev-edit-trunk-list');
+        if (trunkListEl) {
+          trunkListEl.innerHTML = '';
+          const portsConfig = dev.portsConfig || {};
+          const configuredKeys = Object.keys(portsConfig);
+          if (configuredKeys.length === 0) {
+            trunkListEl.innerHTML = '<div style="color:#64748b; font-style:italic;">Henüz özel/trunk port yapılandırılmadı.</div>';
+          } else {
+            configuredKeys.forEach(pKey => {
+              const cfg = portsConfig[pKey];
+              if (!cfg) return;
+              const row = document.createElement('div');
+              row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(30,41,59,0.85); border-radius:4px; padding:4px 8px; border-left:3px solid ' + (cfg.color || '#a855f7');
+              const ciscoNamePart = cfg.ciscoName ? ` (${cfg.ciscoName})` : '';
+              const vlanPart = cfg.vlan ? ` · VLAN: ${cfg.vlan}` : '';
+              row.innerHTML = `
+                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">
+                  <span style="font-weight:700; color:${cfg.color || '#a855f7'};">Port #${pKey}${ciscoNamePart}</span>
+                  <span style="color:#94a3b8; font-size:11px;">[${(cfg.role || 'trunk').toUpperCase()}]${vlanPart}</span>
+                </div>
+                <button type="button" class="hud-btn" style="padding:2px 8px; font-size:10px; white-space:nowrap;" data-port="${pKey}">Düzenle</button>
+              `;
+              row.querySelector('button').addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.PortConfigEditor.open(instanceId, pKey, source);
+              });
+              trunkListEl.appendChild(row);
+            });
+          }
+        }
+
         modal.dataset.source = source;
         modal.dataset.deviceId = instanceId;
         modal.dataset.deviceCategory = category || '';
@@ -1280,6 +1400,200 @@
         this.prepare(modal, dev, dev.category, '3d', instanceId);
       }
     };
+
+    // --- 802.1Q TRUNK & PORT CONFIGURATION EDITOR ---
+    window.PortConfigEditor = {
+      activeDevId: null,
+      activePortIdx: 1,
+      activePortId: null,
+      activeSource: '3d',
+
+      open(devId, portIdxOrId, source = '3d') {
+        const modal = document.getElementById('modal-port-edit');
+        if (!modal) return;
+        this.activeDevId = devId;
+        this.activeSource = source;
+
+        let dev = null;
+        let portIdx = 1;
+        let portName = '';
+        let portType = 'rj45';
+        let portCfg = null;
+
+        if (source === '3d' && window.__STUDIO3D__) {
+          dev = window.__STUDIO3D__.state.devices.find(d => d.id === devId);
+          portIdx = typeof portIdxOrId === 'number' ? portIdxOrId : (parseInt(portIdxOrId, 10) || 1);
+          this.activePortIdx = portIdx;
+          this.activePortId = 'p' + portIdx;
+          if (dev) {
+            portCfg = (dev.portsConfig && dev.portsConfig[portIdx]) || null;
+            portName = `Port #${portIdx}`;
+            if (dev.portDefinitions && dev.portDefinitions[portIdx - 1]) {
+              portType = dev.portDefinitions[portIdx - 1].type || dev.portType || 'rj45';
+            } else {
+              portType = dev.portType || 'rj45';
+            }
+          }
+        } else if (window.RackStudio && window.RackStudio.STATE) {
+          const racks = window.RackStudio.STATE.racks || [];
+          const rack = racks.find(item => item.devices.some(d => d.instanceId === devId));
+          dev = rack && rack.devices.find(d => d.instanceId === devId);
+          const cat = dev && (window.RackStudio.catalog[dev.catalogKey] || (window.CATALOG_3D || []).find(c => c.id === dev.catalogKey));
+          const pObj = (cat && cat.ports) ? cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId) : null;
+          portIdx = pObj ? (cat.ports.indexOf(pObj) + 1) : (parseInt(portIdxOrId, 10) || 1);
+          this.activePortIdx = portIdx;
+          this.activePortId = (pObj && pObj.id) || (typeof portIdxOrId === 'string' ? portIdxOrId : 'p' + portIdx);
+          if (dev) {
+            portCfg = (dev.portsConfig && (dev.portsConfig[this.activePortId] || dev.portsConfig[portIdx])) || null;
+            portName = pObj ? (pObj.name || `Port #${portIdx}`) : `Port #${portIdx}`;
+            portType = (pObj && pObj.type) || 'rj45';
+          }
+        }
+
+        if (!dev) return;
+
+        const devTitle = dev.hostname || dev.name || 'Donanım';
+        document.getElementById('port-edit-dev-name').textContent = devTitle;
+        document.getElementById('port-edit-port-label').textContent = `${portName} (${portType.toUpperCase()})`;
+
+        const role = (portCfg && portCfg.role) || 'access';
+        const color = (portCfg && portCfg.color) || '#a855f7';
+        const ciscoName = (portCfg && portCfg.ciscoName) || '';
+        const vlan = (portCfg && portCfg.vlan) || '';
+        const desc = (portCfg && (portCfg.description || portCfg.note)) || '';
+        const autoCable = portCfg ? (portCfg.autoCableColor !== false) : true;
+
+        document.getElementById('port-edit-role').value = role;
+        document.getElementById('port-edit-color').value = color;
+        document.getElementById('port-edit-color-hex').value = color.toUpperCase();
+        document.getElementById('port-edit-cisco-name').value = ciscoName;
+        document.getElementById('port-edit-vlan').value = vlan;
+        document.getElementById('port-edit-desc').value = desc;
+        document.getElementById('port-edit-auto-cable-color').checked = autoCable;
+
+        const badge = document.getElementById('port-edit-badge');
+        if (badge) {
+          badge.textContent = role.toUpperCase();
+          badge.style.background = role === 'trunk' ? color : (role === 'uplink' ? '#0284c7' : '#334155');
+          badge.style.color = '#ffffff';
+        }
+
+        modal.dataset.deviceId = devId;
+        modal.dataset.portIdx = String(portIdx);
+        modal.dataset.source = source;
+        modal.style.display = 'flex';
+      },
+
+      close() {
+        const modal = document.getElementById('modal-port-edit');
+        if (modal) modal.style.display = 'none';
+      },
+
+      save() {
+        if (!this.activeDevId) return;
+        const role = document.getElementById('port-edit-role').value;
+        const color = document.getElementById('port-edit-color').value;
+        const ciscoName = document.getElementById('port-edit-cisco-name').value.trim();
+        const vlan = document.getElementById('port-edit-vlan').value.trim();
+        const desc = document.getElementById('port-edit-desc').value.trim();
+        const autoCableColor = document.getElementById('port-edit-auto-cable-color').checked;
+
+        const config = {
+          role,
+          isTrunk: role === 'trunk',
+          color,
+          ciscoName,
+          vlan,
+          description: desc,
+          autoCableColor
+        };
+
+        // 3D Engine update
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, config);
+        }
+
+        // 2D Engine update
+        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, config);
+        }
+
+        this.close();
+        if (is3DMode) {
+          if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
+        } else {
+          if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+        }
+      },
+
+      reset() {
+        if (!this.activeDevId) return;
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, null);
+        }
+        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
+        }
+        this.close();
+        if (is3DMode) {
+          if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
+        } else {
+          if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+        }
+      }
+    };
+
+    // Color chips & inputs bindings
+    document.querySelectorAll('.port-color-chips .color-chip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const hex = btn.dataset.color;
+        const colorInput = document.getElementById('port-edit-color');
+        const hexInput = document.getElementById('port-edit-color-hex');
+        if (colorInput) colorInput.value = hex;
+        if (hexInput) hexInput.value = hex.toUpperCase();
+        const badge = document.getElementById('port-edit-badge');
+        if (badge && document.getElementById('port-edit-role').value === 'trunk') {
+          badge.style.background = hex;
+        }
+      });
+    });
+
+    document.getElementById('port-edit-color')?.addEventListener('input', (e) => {
+      const hexInput = document.getElementById('port-edit-color-hex');
+      if (hexInput) hexInput.value = e.target.value.toUpperCase();
+      const badge = document.getElementById('port-edit-badge');
+      if (badge && document.getElementById('port-edit-role').value === 'trunk') {
+        badge.style.background = e.target.value;
+      }
+    });
+
+    document.getElementById('port-edit-color-hex')?.addEventListener('change', (e) => {
+      let val = e.target.value.trim();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        const colorInput = document.getElementById('port-edit-color');
+        if (colorInput) colorInput.value = val;
+        const badge = document.getElementById('port-edit-badge');
+        if (badge && document.getElementById('port-edit-role').value === 'trunk') {
+          badge.style.background = val;
+        }
+      }
+    });
+
+    document.getElementById('port-edit-role')?.addEventListener('change', (e) => {
+      const role = e.target.value;
+      const color = document.getElementById('port-edit-color')?.value || '#a855f7';
+      const badge = document.getElementById('port-edit-badge');
+      if (badge) {
+        badge.textContent = role.toUpperCase();
+        badge.style.background = role === 'trunk' ? color : (role === 'uplink' ? '#0284c7' : '#334155');
+      }
+    });
+
+    document.getElementById('btn-close-port-edit')?.addEventListener('click', () => window.PortConfigEditor.close());
+    document.getElementById('btn-cancel-port-edit')?.addEventListener('click', () => window.PortConfigEditor.close());
+    document.getElementById('btn-save-port-edit')?.addEventListener('click', () => window.PortConfigEditor.save());
+    document.getElementById('btn-reset-port-edit')?.addEventListener('click', () => window.PortConfigEditor.reset());
 
     document.getElementById('btn-save-device-edit')?.addEventListener('click', event => {
       const modal = document.getElementById('modal-device-edit');

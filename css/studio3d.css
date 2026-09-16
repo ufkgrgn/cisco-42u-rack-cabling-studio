@@ -1053,3 +1053,16 @@ body, html {
   color: var(--neon-cyan);
 }
 
+/* PORT CONFIGURATION & TRUNK CHIPS */
+.color-chip-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.color-chip-btn:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 8px currentColor;
+}
+.color-chip-btn.active {
+  outline: 2px solid #ffffff;
+  box-shadow: 0 0 10px currentColor;
+}
+

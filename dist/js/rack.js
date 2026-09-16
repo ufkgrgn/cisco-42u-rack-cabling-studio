@@ -218,8 +218,16 @@ function renderPortIcon(instanceId, port) {
     (c.to.instanceId === instanceId && c.to.portId === port.id)
   );
 
+  const dev = STATE.devices.find(d => d.instanceId === instanceId);
+  const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
+  const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
+  const trunkColor = (portCfg && portCfg.color) || '#a855f7';
+  const trunkClass = isTrunk ? 'port-trunk' : '';
+  const trunkStyle = isTrunk ? `style="--trunk-color: ${trunkColor};"` : '';
+
   return `
-    <div class="port ${typeClass} ${isConnected ? 'connected' : ''}" 
+    <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${trunkClass}" 
+         ${trunkStyle}
          data-instance-id="${instanceId}" 
          data-port-id="${port.id}"
          data-port-name="${port.name}"
@@ -236,7 +244,28 @@ export function bindPortInteractions() {
   portElements.forEach(portEl => {
     portEl.addEventListener('mouseenter', handlePortHover);
     portEl.addEventListener('mouseleave', handlePortLeave);
-    portEl.addEventListener('click', handlePortClick);
+    portEl.addEventListener('click', (e) => {
+      if (e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        const devId = portEl.dataset.instanceId;
+        const portId = portEl.dataset.portId;
+        if (window.PortConfigEditor) {
+          window.PortConfigEditor.open(devId, portId, '2d');
+        }
+        return;
+      }
+      handlePortClick(e);
+    });
+    portEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const devId = portEl.dataset.instanceId;
+      const portId = portEl.dataset.portId;
+      if (window.PortConfigEditor) {
+        window.PortConfigEditor.open(devId, portId, '2d');
+      }
+    });
   });
 }
 

@@ -1479,9 +1479,17 @@
     }
 
     const isConnected = occupiedPortKeys.has(portKey(instanceId, port.id));
+    const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
+    const dev = activeRack && activeRack.devices.find(d => d.instanceId === instanceId);
+    const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
+    const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
+    const trunkColor = (portCfg && portCfg.color) || '#a855f7';
+    const trunkClass = isTrunk ? 'port-trunk' : '';
+    const trunkStyle = isTrunk ? `style="--trunk-color: ${trunkColor};"` : '';
 
     return `
-      <div class="port ${typeClass} ${isConnected ? 'connected' : ''}" 
+      <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${trunkClass}" 
+           ${trunkStyle}
            data-instance-id="${instanceId}" 
            data-port-id="${port.id}"
            data-port-name="${escapeHtml(port.name)}"
@@ -1498,7 +1506,28 @@
     portElements.forEach(portEl => {
       portEl.addEventListener('mouseenter', handlePortHover);
       portEl.addEventListener('mouseleave', handlePortLeave);
-      portEl.addEventListener('click', handlePortClick);
+      portEl.addEventListener('click', (e) => {
+        if (e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          const devId = portEl.dataset.instanceId;
+          const portId = portEl.dataset.portId;
+          if (window.PortConfigEditor) {
+            window.PortConfigEditor.open(devId, portId, '2d');
+          }
+          return;
+        }
+        handlePortClick(e);
+      });
+      portEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const devId = portEl.dataset.instanceId;
+        const portId = portEl.dataset.portId;
+        if (window.PortConfigEditor) {
+          window.PortConfigEditor.open(devId, portId, '2d');
+        }
+      });
     });
   }
 
@@ -1536,11 +1565,28 @@
       </span>`;
     }
 
+    const portCfg = dev.portsConfig && (dev.portsConfig[portId] || dev.portsConfig[portId.replace('p', '')] || dev.portsConfig[portName]);
+    const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
+    const trunkColor = (portCfg && portCfg.color) || '#a855f7';
+    let trunkDetail = '';
+    if (isTrunk && portCfg) {
+      const cName = portCfg.ciscoName ? ` · ${escapeHtml(portCfg.ciscoName)}` : '';
+      const vText = portCfg.vlan ? ` | VLAN: ${escapeHtml(portCfg.vlan)}` : '';
+      const dText = portCfg.description ? `<div style="color:#94a3b8; font-size:10px; font-style:italic;">"${escapeHtml(portCfg.description)}"</div>` : '';
+      trunkDetail = `
+        <div style="background:rgba(168,85,247,0.2); border-left:3px solid ${trunkColor}; padding:2px 6px; margin:4px 0; border-radius:2px;">
+          <span style="color:${trunkColor}; font-weight:700;">⚡ 802.1Q TRUNK${cName}${vText}</span>
+          ${dText}
+        </div>
+      `;
+    }
+
     if (dom.inspectorInfo) {
       dom.inspectorInfo.innerHTML = `
         <div style="font-weight:700; color:#fff; margin-bottom:3px;">${escapeHtml(cat.name)} (${escapeHtml(activeRack.name)} - U${dev.topU})</div>
         <div><b>Port:</b> ${escapeHtml(portName)} (${escapeHtml(portSpeed)})</div>
         <div><b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
+        ${trunkDetail}
         <div><b>Durum:</b> ${connectionInfo}</div>
       `;
     }
@@ -1550,7 +1596,8 @@
       dom.tooltip.style.display = 'block';
       dom.tooltip.style.left = `${rect.right + 10}px`;
       dom.tooltip.style.top = `${rect.top - 5}px`;
-      dom.tooltip.innerHTML = `<b>${escapeHtml(cat.modelTag)}</b> &bull; ${escapeHtml(portName)}<br><span style="color:#94a3b8; font-size:0.68rem;">${escapeHtml(portSpeed)}</span>`;
+      const trunkBadge = isTrunk ? `<div style="color:${trunkColor}; font-weight:bold; font-size:10px;">⚡ 802.1Q TRUNK</div>` : '';
+      dom.tooltip.innerHTML = `<b>${escapeHtml(cat.modelTag)}</b> &bull; ${escapeHtml(portName)}${trunkBadge}<br><span style="color:#94a3b8; font-size:0.68rem;">${escapeHtml(portSpeed)}</span><br><span style="color:#38bdf8; font-size:0.65rem;">Ayarlar: <b>Sağ Tık / Shift+Tık</b></span>`;
     }
   }
 
@@ -1620,12 +1667,23 @@
 
       const isInterRack = source.rackId !== activeRack.id;
       const cableId = getNextCableId();
+
+      // Check trunk role and color inheritance
+      const sourceDev = STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId);
+      const targetDev = activeRack.devices?.find(d => d.instanceId === instanceId);
+      const sourcePortCfg = sourceDev?.portsConfig && (sourceDev.portsConfig[source.portId] || sourceDev.portsConfig[source.portId.replace('p', '')]);
+      const targetPortCfg = targetDev?.portsConfig && (targetDev.portsConfig[portId] || targetDev.portsConfig[portId.replace('p', '')]);
+      const isTrunkLink = (sourcePortCfg && sourcePortCfg.isTrunk) || (targetPortCfg && targetPortCfg.isTrunk);
+      const trunkColor = (sourcePortCfg && sourcePortCfg.isTrunk && sourcePortCfg.color) || (targetPortCfg && targetPortCfg.isTrunk && targetPortCfg.color) || '#a855f7';
+      const effectiveCableColor = (isTrunkLink && ((sourcePortCfg && sourcePortCfg.autoCableColor !== false) || (targetPortCfg && targetPortCfg.autoCableColor !== false))) ? trunkColor : STATE.selectedCableColor;
+      const trunkPrefix = isTrunkLink ? '[TRUNK] ' : '';
+
       const newCable = {
         id: cableId,
-        name: cableId,
+        name: trunkPrefix + cableId,
         from: { rackId: source.rackId, instanceId: source.instanceId, portId: source.portId },
         to: { rackId: activeRack.id, instanceId, portId },
-        color: STATE.selectedCableColor,
+        color: effectiveCableColor,
         lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId, isInterRack)
       };
 
@@ -2579,7 +2637,33 @@
     setTimeout(() => { if (dom.tooltip) dom.tooltip.style.display = 'none'; }, 2500);
   }
 
-  window.RackStudio = { STATE, catalog:HARDWARE_CATALOG, getActiveRack, refresh, renderAllCables, fit:fitRackToScreen, mountDeviceAt, loadCustomTopology, validateTopology, exportJson, exportVisioSvg, switchActiveRack, addNewRack, removeDevice, updateDeviceMetadata };
+  function updatePortConfig(instanceId, portId, config) {
+    const activeRack = getActiveRack();
+    if (!activeRack) return false;
+    const dev = activeRack.devices.find(d => d.instanceId === instanceId);
+    if (!dev) return false;
+    if (!dev.portsConfig) dev.portsConfig = {};
+    if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description)) {
+      delete dev.portsConfig[portId];
+      delete dev.portsConfig[String(portId).replace('p', '')];
+    } else {
+      dev.portsConfig[portId] = {
+        role: config.role || 'trunk',
+        isTrunk: config.role === 'trunk' || config.isTrunk === true,
+        color: config.color || '#a855f7',
+        ciscoName: config.ciscoName || '',
+        vlan: config.vlan || '',
+        description: config.description || '',
+        autoCableColor: config.autoCableColor !== false
+      };
+    }
+    renderMountedDevices();
+    renderAllCables();
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    return true;
+  }
+
+  window.RackStudio = { STATE, catalog:HARDWARE_CATALOG, getActiveRack, refresh, renderAllCables, fit:fitRackToScreen, mountDeviceAt, loadCustomTopology, validateTopology, exportJson, exportVisioSvg, switchActiveRack, addNewRack, removeDevice, updateDeviceMetadata, updatePortConfig };
 
   // Automatic init on DOM ready or immediate if already loaded
   if (document.readyState === 'loading') {
