@@ -112,6 +112,7 @@
       <div class="hud-btn-group">
         <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
         <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
+        <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF Çoklu Kabin)">⚡ Saha</button>
       </div>
 
       <!-- Tools Group -->
@@ -1765,6 +1766,14 @@
       if (!is3DMode) {
         e.stopImmediatePropagation();
         document.getElementById('btn-preset-idf')?.click();
+        updateTelemetry();
+      }
+    }, true);
+
+    document.getElementById('btn-3d-preset-site')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-preset-site')?.click();
         updateTelemetry();
       }
     }, true);

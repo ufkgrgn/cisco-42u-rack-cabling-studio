@@ -30,15 +30,12 @@ body {
   overflow: hidden;
 }
 
-/* 2D Header Navigation Bar */
+/* 2D Header Navigation Bar (Hidden: Unified Header is used) */
+#legacy-wrapper header,
+#legacy-root header,
+#legacy-root > header,
 #legacy-header {
-  background: linear-gradient(90deg, #151d2f 0%, #0b0f19 100%);
-  border-bottom: 1px solid var(--border-color);
-  padding: 8px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 20;
+  display: none !important;
 }
 
 .brand {

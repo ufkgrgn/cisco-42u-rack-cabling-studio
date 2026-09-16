@@ -671,6 +671,17 @@
       });
     }
 
+    const btnPresetSite = document.getElementById('btn-3d-preset-site');
+    if (btnPresetSite) {
+      btnPresetSite.addEventListener('click', () => {
+        if (confirm('Tüm Saha Topolojisini yüklemek istiyor musunuz? (3D kabinde MDF şablonu yüklenecektir)')) {
+          studio.loadPresetMDF();
+          studio.showToast('Saha Topolojisi Yüklendi. Çoklu kabin için 2D moduna geçebilirsiniz.');
+          renderCatalog(searchInput ? searchInput.value : '');
+        }
+      });
+    }
+
     // 12. Custom Device Wizard Modal
     const btnWizard = document.getElementById('btn-3d-wizard-modal');
     const wizardModal = document.getElementById('modal-wizard');

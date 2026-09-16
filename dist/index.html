@@ -5,18 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- 3D Studio & HUD Styles -->
-  <link rel="stylesheet" href="css/studio3d.css">
+  <!-- 3D Studio & HUD Styles -->
   
-  <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/sidebar.css">
-  <link rel="stylesheet" href="css/viewport.css">
-  <link rel="stylesheet" href="css/rack.css">
-  <link rel="stylesheet" href="css/cabling.css">
-  <link rel="stylesheet" href="css/schedule.css">
-  <link rel="stylesheet" href="css/editor.css">
-  <link rel="stylesheet" href="css/catalog-ui.css">
+  <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
+  <link rel="stylesheet" crossorigin href="/assets/main-DE4LmYUb.css">
 </head>
 <body>
 
@@ -112,6 +104,7 @@
       <div class="hud-btn-group">
         <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
         <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
+        <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF Çoklu Kabin)">⚡ Saha</button>
       </div>
 
       <!-- Tools Group -->
@@ -1765,6 +1758,14 @@
       if (!is3DMode) {
         e.stopImmediatePropagation();
         document.getElementById('btn-preset-idf')?.click();
+        updateTelemetry();
+      }
+    }, true);
+
+    document.getElementById('btn-3d-preset-site')?.addEventListener('click', (e) => {
+      if (!is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-preset-site')?.click();
         updateTelemetry();
       }
     }, true);
