@@ -112,7 +112,8 @@ body {
 /* Main Three-Pane Workspace Container with Fluid/Collapsible Layout */
 .workspace {
   display: flex;
-  height: calc(100vh - 57px);
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }

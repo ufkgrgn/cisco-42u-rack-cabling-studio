@@ -28,6 +28,7 @@
 
 .schedule-header {
   padding: 10px 12px;
+  padding-top: 62px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
@@ -43,6 +44,7 @@
 
 .sidebar-right.collapsed .schedule-header {
   padding: 8px;
+  padding-top: 62px;
   justify-content: center;
 }
 
