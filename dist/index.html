@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-HM1uLJbB.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-BSgAkqB9.css">
 </head>
 <body>
 
@@ -72,12 +72,6 @@
       <div id="controls-2d-group" class="context-toolbar" style="display:none;">
         <div class="hud-btn-group">
           <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin Ön/Arka Yüzü Değiştir">🔄 Ön / Arka</button>
-          <button class="hud-btn" id="btn-2d-routing-mode" title="Kablo Düzen Modu (Düzenli / Serbest)">〰️ Düzenli</button>
-        </div>
-        <div class="hud-btn-group">
-          <button class="hud-btn" id="btn-2d-zoom-out" title="Uzaklaş">➖</button>
-          <button class="hud-btn" id="btn-2d-zoom-fit" title="Ekrana Sığdır">⛶ Sığdır</button>
-          <button class="hud-btn" id="btn-2d-zoom-in" title="Yakınlaş">➕</button>
         </div>
         <button class="hud-btn btn-danger-subtle" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">🧹 Sıfırla</button>
       </div>
@@ -1661,6 +1655,10 @@
     }
 
     function applyMode() {
+      const perfControl = document.querySelector('label[for="performance-mode"]');
+      const btnWizard = document.getElementById('btn-3d-wizard-modal');
+      const fpsCounter = document.getElementById('fps-counter');
+
       if (is3DMode) {
         if (wrapper3D) wrapper3D.style.display = 'block';
         if (legacyWrapper) legacyWrapper.style.display = 'none';
@@ -1668,6 +1666,9 @@
         if (btnView3D) btnView3D.classList.add('active');
         if (controls3D) controls3D.style.display = 'flex';
         if (controls2D) controls2D.style.display = 'none';
+        if (perfControl) perfControl.style.display = 'inline-flex';
+        if (btnWizard) btnWizard.style.display = 'inline-flex';
+        if (fpsCounter) fpsCounter.style.display = 'inline-block';
         if (window.__STUDIO3D__) {
           window.__STUDIO3D__.resume();
           // Adjust canvas on view switch
@@ -1687,6 +1688,9 @@
         if (btnView3D) btnView3D.classList.remove('active');
         if (controls3D) controls3D.style.display = 'none';
         if (controls2D) controls2D.style.display = 'flex';
+        if (perfControl) perfControl.style.display = 'none';
+        if (btnWizard) btnWizard.style.display = 'none';
+        if (fpsCounter) fpsCounter.style.display = 'none';
         if (window.__STUDIO3D__) window.__STUDIO3D__.pause();
       }
       updateTelemetry();
