@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-3Ap4Drcr.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-BJgzzM1f.css">
 </head>
 <body>
 
@@ -974,19 +974,27 @@
     <!-- 2. CENTER AREA: 42U Rack Viewport (Scroll-Free Zoom & Pan Studio) -->
     <main class="viewport" id="rack-viewport">
 
-      <!-- Multi-Rack Tabs & Cabinet Switcher Bar -->
-      <div class="rack-tabs-bar" id="rack-tabs-bar">
-        <div class="rack-tabs-list" id="rack-tabs-list">
-          <!-- Dynamically generated rack tabs -->
-        </div>
-        <div class="rack-tabs-actions">
-          <button class="btn-rack-action" id="btn-add-rack" title="Yeni Kabin Ekle">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
-            + Yeni Kabin
-          </button>
-          <button class="btn-rack-action" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir" style="border-style:solid;">
-            ✏️ İsim Değiştir
-          </button>
+      <!-- Multi-Rack Tabs & Cabinet Switcher Bar (Floating Deck) -->
+      <div class="rack-floating-topdeck" id="rack-floating-topdeck">
+        <div class="rack-tabs-bar" id="rack-tabs-bar">
+          <div class="rack-tabs-list" id="rack-tabs-list">
+            <!-- Dynamically generated rack tabs -->
+          </div>
+          <div class="rack-tabs-actions">
+            <button class="btn-rack-action" id="btn-add-rack" title="Yeni Kabin Ekle">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+              + Yeni Kabin
+            </button>
+            <button class="btn-rack-action" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir" style="border-style:solid;">
+              ✏️ İsim Değiştir
+            </button>
+            <button class="btn-rack-action btn-collapse-toggle" id="btn-toggle-rack-left" title="Kabin Panelini Sola Gizle / Genişlet">
+              <span id="rack-left-toggle-icon">◀</span>
+            </button>
+            <button class="btn-rack-action btn-collapse-toggle" id="btn-toggle-rack-topbar" title="Kabin Düzenleme Araçlarını Gizle / Göster">
+              <span id="rack-toggle-icon">▲</span>
+            </button>
+          </div>
         </div>
       </div>
       
@@ -1739,6 +1747,30 @@
         if (toggleBtn) toggleBtn.click();
       }
     });
+
+    // Floating Top Deck Collapse/Expand Toggle
+    const btnToggleTopdeck = document.getElementById('btn-toggle-rack-topbar');
+    const topdeck = document.getElementById('rack-floating-topdeck');
+    const toggleIcon = document.getElementById('rack-toggle-icon');
+    if (btnToggleTopdeck && topdeck) {
+      btnToggleTopdeck.addEventListener('click', () => {
+        topdeck.classList.toggle('collapsed');
+        const isCollapsed = topdeck.classList.contains('collapsed');
+        if (toggleIcon) toggleIcon.textContent = isCollapsed ? '▼' : '▲';
+        btnToggleTopdeck.title = isCollapsed ? 'Kabin Düzenleme Panelini Göster' : 'Kabin Düzenleme Panelini Gizle (Dikey Alan Aç)';
+      });
+    }
+
+    const btnToggleRackLeft = document.getElementById('btn-toggle-rack-left');
+    const leftToggleIcon = document.getElementById('rack-left-toggle-icon');
+    if (btnToggleRackLeft && topdeck) {
+      btnToggleRackLeft.addEventListener('click', () => {
+        topdeck.classList.toggle('side-collapsed');
+        const isSideCollapsed = topdeck.classList.contains('side-collapsed');
+        if (leftToggleIcon) leftToggleIcon.textContent = isSideCollapsed ? '▶' : '◀';
+        btnToggleRackLeft.title = isSideCollapsed ? 'Kabin Panelini Aç' : 'Kabin Panelini Sola Gizle';
+      });
+    }
 
     // 2D Zoom Controls
     document.getElementById('btn-2d-zoom-in')?.addEventListener('click', () => {

@@ -50,23 +50,33 @@
   flex-shrink: 0;
 }
 
-.ctrl-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.viewport-controls-bar .ctrl-label {
+  display: none;
+}
+
+.ctrl-group::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-left: 8px;
+  margin-right: 2px;
+}
+
+.ctrl-group:last-child::after {
+  display: none;
 }
 
 .color-swatch-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .color-swatch {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid transparent;
@@ -90,22 +100,22 @@
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
-  padding: 3px;
-  gap: 3px;
+  padding: 2px;
+  gap: 2px;
 }
 
 .routing-btn {
   background: transparent;
   border: none;
   color: #94a3b8;
-  padding: 4px 10px;
-  font-size: 0.72rem;
+  padding: 3px 8px;
+  font-size: 0.68rem;
   font-weight: 600;
-  border-radius: 16px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   transition: all 0.18s ease;
 }
 
@@ -120,6 +130,12 @@
   box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
 }
 
+#btn-tidy-cables {
+  padding: 2px 7px !important;
+  font-size: 0.68rem !important;
+  border-radius: 12px !important;
+}
+
 /* Zoom & Pan Toolbar */
 .zoom-toolbar {
   display: inline-flex;
@@ -127,22 +143,22 @@
   background: rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
-  padding: 3px;
-  gap: 3px;
+  padding: 2px;
+  gap: 2px;
 }
 
 .zoom-btn {
   background: transparent;
   border: none;
   color: #cbd5e1;
-  padding: 3px 8px;
-  font-size: 0.75rem;
+  padding: 2px 6px;
+  font-size: 0.72rem;
   font-weight: 700;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   transition: all 0.15s ease;
 }
 
@@ -156,12 +172,12 @@
 }
 
 .zoom-badge {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-family: monospace;
   font-weight: 700;
   color: var(--accent-blue);
-  padding: 2px 6px;
-  min-width: 44px;
+  padding: 1px 4px;
+  min-width: 36px;
   text-align: center;
   cursor: pointer;
   user-select: none;
@@ -174,17 +190,17 @@
 /* Quick Section Jump Pills */
 .quick-section-nav {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .section-nav-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
-  padding: 3px 9px;
-  font-size: 0.68rem;
+  padding: 2px 6px;
+  font-size: 0.65rem;
   font-weight: 600;
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -251,20 +267,92 @@
   opacity: 0.85;
 }
 
-/* Multi-Rack Tabs & Cabinet Switcher Bar (Compact) */
-.rack-tabs-bar {
+/* Multi-Rack Tabs & Cabinet Switcher Bar (Floating Top Deck) */
+.rack-floating-topdeck {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  z-index: 28;
+  display: flex;
+  flex-direction: column;
+  background: rgba(9, 14, 26, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 229, 255, 0.1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  width: fit-content;
+  max-width: 600px;
+}
+
+.rack-floating-topdeck:hover {
+  border-color: rgba(0, 229, 255, 0.45);
+}
+
+/* Sola Daraltılmış (Side-Collapsed) Durumu */
+.rack-floating-topdeck.side-collapsed {
+  transform: translateX(calc(-100% + 44px));
+  opacity: 0.82;
+}
+
+.rack-floating-topdeck.side-collapsed:hover {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.rack-floating-topdeck .rack-tabs-bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #090e18;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 3px 12px;
+  background: transparent;
+  padding: 3px 10px;
   min-height: 32px;
   overflow-x: auto;
   scrollbar-width: none;
-  z-index: 25;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.rack-tabs-bar::-webkit-scrollbar { display: none; }
+.rack-floating-topdeck .rack-tabs-bar::-webkit-scrollbar { display: none; }
+
+.rack-floating-topdeck .studio-editor {
+  background: rgba(0, 0, 0, 0.22);
+  border-bottom: none;
+  transition: max-height 0.22s ease, opacity 0.2s ease, padding 0.2s ease;
+  max-height: 44px;
+}
+
+/* Collapsed State: folds away the editor row to free maximum vertical canvas space */
+.rack-floating-topdeck.collapsed .studio-editor {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.rack-floating-topdeck.collapsed .rack-tabs-bar {
+  border-bottom: none;
+}
+
+.btn-collapse-toggle {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+  padding: 3px 8px !important;
+  border-radius: 5px !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  font-size: 0.7rem;
+}
+.btn-collapse-toggle:hover {
+  background: rgba(56, 189, 248, 0.2) !important;
+  border-color: #38bdf8 !important;
+  color: #fff !important;
+}
 
 .rack-tabs-list {
   display: flex;
