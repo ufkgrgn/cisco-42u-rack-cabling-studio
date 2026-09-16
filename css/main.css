@@ -109,12 +109,12 @@ body {
   background: #b91c1c;
 }
 
-/* Main Three-Pane Workspace Container */
+/* Main Three-Pane Workspace Container with Fluid/Collapsible Layout */
 .workspace {
-  display: grid;
-  grid-template-columns: 320px 1fr 370px;
+  display: flex;
   height: calc(100vh - 57px);
   overflow: hidden;
+  position: relative;
 }
 
 /* Floating Tooltip */

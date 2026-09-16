@@ -37,23 +37,33 @@ body, html {
   z-index: 1;
 }
 
-/* ==================== UNIFIED FIXED TOP CONTROL BAR ==================== */
+/* ==================== UNIFIED FLOATING DYNAMIC ISLAND TOP CONTROL BAR ==================== */
 .unified-header {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 52px;
-  background: rgba(11, 15, 25, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 229, 255, 0.22);
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 1720px;
+  height: 48px;
+  background: rgba(11, 17, 30, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 16px;
   z-index: 9999;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   gap: 10px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.unified-header:hover {
+  border-color: rgba(0, 229, 255, 0.45);
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 229, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .hud-brand {
@@ -197,19 +207,20 @@ body, html {
 .hud-btn-group {
   display: inline-flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
   padding: 2px;
-  gap: 1px;
+  gap: 2px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .hud-btn-group .hud-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: #94a3b8;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -222,8 +233,14 @@ body, html {
 }
 
 .hud-btn-group .hud-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
+  transform: translateY(-0.5px);
+}
+
+.hud-btn-group .hud-btn:active {
+  transform: translateY(0.5px);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .hud-btn-group .hud-btn.active {
@@ -314,16 +331,16 @@ body, html {
 
 #studio3d-wrapper {
   position: absolute;
-  top: 52px;
+  top: 0;
   left: 0;
   width: 100vw;
-  height: calc(100vh - 52px);
+  height: 100vh;
   overflow: hidden;
 }
 
 #legacy-wrapper {
-  margin-top: 52px;
-  height: calc(100vh - 52px);
+  margin-top: 62px;
+  height: calc(100vh - 62px);
   display: flex;
   flex-direction: column;
 }

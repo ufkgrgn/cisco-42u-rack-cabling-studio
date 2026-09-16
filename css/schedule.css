@@ -1,18 +1,49 @@
-/* Right Sidebar: Run Schedule & Details */
+/* Right Sidebar: Run Schedule & Details (Collapsible) */
 .sidebar-right {
+  width: 360px;
+  min-width: 360px;
+  flex-shrink: 0;
   background-color: var(--bg-panel);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-right.collapsed {
+  width: 44px;
+  min-width: 44px;
+  overflow: hidden;
+}
+
+.sidebar-right.collapsed .schedule-table-wrapper,
+.sidebar-right.collapsed .panel-section,
+.sidebar-right.collapsed #btn-clear-cables,
+.sidebar-right.collapsed .schedule-header-content {
+  display: none !important;
 }
 
 .schedule-header {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.schedule-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-right.collapsed .schedule-header {
+  padding: 8px;
+  justify-content: center;
 }
 
 .schedule-table-wrapper {

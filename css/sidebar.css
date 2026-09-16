@@ -1,10 +1,95 @@
-/* Left Sidebar: Hardware Library */
+/* Left Sidebar: Hardware Library (Collapsible Dock) */
 .sidebar-left {
+  width: 320px;
+  min-width: 320px;
+  flex-shrink: 0;
   background-color: var(--bg-panel);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-left.collapsed {
+  width: 52px;
+  min-width: 52px;
+  overflow: hidden;
+}
+
+.sidebar-left.collapsed .panel-section,
+.sidebar-left.collapsed .sidebar-collapse-tools,
+.sidebar-left.collapsed .catalog-tools {
+  display: none !important;
+}
+
+/* Sidebar Dock Header & Toggle Button */
+.sidebar-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(11, 15, 25, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.sidebar-dock-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-dock-brand .dock-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-dock-brand .dock-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sidebar-toggle-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--accent-blue);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: var(--accent-blue);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.sidebar-left.collapsed .sidebar-dock-header {
+  padding: 8px;
+  justify-content: center;
+}
+
+.sidebar-left.collapsed .sidebar-dock-brand {
+  display: none;
 }
 
 .sidebar-left::-webkit-scrollbar {
