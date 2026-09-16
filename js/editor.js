@@ -8,7 +8,7 @@
     const bar = document.createElement('section');
     bar.className = 'studio-editor';
     bar.setAttribute('aria-label', 'Kabin düzenleme araçları');
-    bar.innerHTML = `<label>Kabin U <input id="studio-height" type="number" min="1" max="60" value="42"></label><button data-command="resize">Uygula</button><span class="studio-divider"></span><span id="studio-selection">Cihaz seçin</span><label>Üst U <input id="studio-position" type="number" min="1" max="60"></label><select id="studio-target" aria-label="Hedef kabin"></select><button data-command="move">Taşı</button><button data-command="duplicate">Çoğalt</button><button data-command="delete">Sil</button><span class="studio-divider"></span><button data-command="undo" title="Ctrl+Z">Geri al</button><button data-command="redo" title="Ctrl+Shift+Z">Yinele</button><span id="studio-save" role="status" aria-live="polite"></span>`;
+    bar.innerHTML = `<label>Kabin U <input id="studio-height" type="number" min="1" max="60" value="42"></label><button data-command="resize">Uygula</button><span class="studio-divider"></span><span id="studio-selection">Cihaz seçin</span><label>Üst U <input id="studio-position" type="number" min="1" max="60"></label><select id="studio-target" aria-label="Hedef kabin"></select><button data-command="move">Taşı</button><button data-command="duplicate">Çoğalt</button><button data-command="delete">Sil</button><span class="studio-divider"></span><button data-command="undo" title="Ctrl+Z">↩️ Geri al</button><button data-command="redo" title="Ctrl+Shift+Z">↪️ Yinele</button><span id="studio-save" role="status" aria-live="polite"></span>`;
     const tabs = document.getElementById('rack-tabs-bar');
     if (!tabs) return;
     tabs.after(bar);
