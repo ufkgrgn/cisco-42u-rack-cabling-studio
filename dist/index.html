@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-BOiImEnF.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-ByuG_zqo.css">
 </head>
 <body>
 
@@ -1345,8 +1345,11 @@
 
     </main>
 
-    <!-- 3. RIGHT SIDEBAR: Run Schedule & Cable Tracing (Collapsible) -->
+    <!-- 3. RIGHT SIDEBAR: Run Schedule & Cable Tracing (Collapsible & Resizable) -->
     <aside class="sidebar-right" id="sidebar-right">
+      <!-- Draggable Split Resizer on Left Edge -->
+      <div class="sidebar-right-resizer" id="sidebar-right-resizer" title="Bağlantı Listesini genişletmek / daraltmak için sürükleyin"></div>
+
       <div class="schedule-header">
         <div class="schedule-header-content">
           <div style="font-weight:700; font-size:0.88rem; color:#fff;">Bağlantı Listesi</div>
@@ -1360,6 +1363,13 @@
 
       <div class="schedule-table-wrapper">
         <table class="schedule-table" id="schedule-table">
+          <colgroup>
+            <col style="width: 25%;">
+            <col style="width: 28%;">
+            <col style="width: 28%;">
+            <col style="width: 11%;">
+            <col style="width: 8%;">
+          </colgroup>
           <thead>
             <tr>
               <th>ID</th>
@@ -2165,6 +2175,51 @@
         setRightSidebarCollapsed(true);
       }
     } catch(e) {}
+
+    // Restore right sidebar custom width from localStorage
+    try {
+      const savedRightW = localStorage.getItem('rack_studio_right_sidebar_width');
+      if (savedRightW && Number(savedRightW) >= 360 && Number(savedRightW) <= 750 && sidebarRight) {
+        sidebarRight.style.width = savedRightW + 'px';
+      }
+    } catch(e) {}
+
+    // Right Sidebar Draggable Edge Resizer
+    const resizerRight = document.getElementById('sidebar-right-resizer');
+    if (resizerRight && sidebarRight) {
+      let isResizing = false;
+      let startX = 0;
+      let startW = 0;
+
+      resizerRight.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startW = sidebarRight.getBoundingClientRect().width;
+        resizerRight.classList.add('resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const dx = startX - e.clientX;
+        const newW = Math.max(360, Math.min(750, startW + dx));
+        sidebarRight.style.width = newW + 'px';
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isResizing) {
+          isResizing = false;
+          resizerRight.classList.remove('resizing');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          try {
+            localStorage.setItem('rack_studio_right_sidebar_width', String(Math.round(sidebarRight.getBoundingClientRect().width)));
+          } catch(e) {}
+          window.dispatchEvent(new Event('resize'));
+        }
+      });
+    }
 
     // Update telemetry periodically and on mutation
     setInterval(updateTelemetry, 1500);

@@ -1,22 +1,44 @@
-/* Right Sidebar: Run Schedule & Details (Collapsible) */
+/* Right Sidebar: Run Schedule & Details (Collapsible & Resizable) */
 .sidebar-right {
-  width: 400px;
-  min-width: 400px;
+  width: 450px;
+  min-width: 360px;
+  max-width: 750px;
   flex-shrink: 0;
   background-color: var(--bg-panel);
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   z-index: 10;
+}
+
+/* Draggable left edge resizer for sidebar-right */
+.sidebar-right-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 30;
+  transition: background 0.15s;
+}
+.sidebar-right-resizer:hover,
+.sidebar-right-resizer.resizing {
+  background: var(--accent-blue);
+  box-shadow: 0 0 8px var(--accent-blue);
 }
 
 .sidebar-right.collapsed {
   width: 44px;
   min-width: 44px;
   overflow: hidden;
+}
+
+.sidebar-right.collapsed .sidebar-right-resizer {
+  display: none !important;
 }
 
 .sidebar-right.collapsed .schedule-table-wrapper,
@@ -51,11 +73,28 @@
 .schedule-table-wrapper {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
+}
+
+/* Modern slim scrollbars */
+.schedule-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.schedule-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.5);
+}
+.schedule-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 4px;
+}
+.schedule-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
 }
 
 .schedule-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.74rem;
   text-align: left;
@@ -64,24 +103,28 @@
 .schedule-table th {
   background: rgba(11, 15, 25, 0.95);
   color: var(--text-muted);
-  padding: 8px 6px;
+  padding: 8px 4px;
   font-weight: 600;
   position: sticky;
   top: 0;
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .schedule-table th:last-child,
 .schedule-table td:last-child {
   text-align: center;
+  padding-right: 4px;
 }
 
 .schedule-table td {
-  padding: 5px 6px;
+  padding: 5px 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: #e2e8f0;
   vertical-align: middle;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .schedule-table tr {
@@ -101,7 +144,10 @@
 .cable-pill-cell {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .cable-color-dot {
@@ -117,6 +163,12 @@
   font-size: 11px;
   font-weight: 700;
   color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 78px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .endpoint-cell {

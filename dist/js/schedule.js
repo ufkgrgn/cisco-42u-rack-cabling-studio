@@ -54,6 +54,8 @@ export function renderScheduleTable() {
     const portTypeA = portA?.type === 'fiber' || portA?.type === 'lc' || portA?.type === 'sfp' ? 'fiber' : 'copper';
     const portTypeB = portB?.type === 'fiber' || portB?.type === 'lc' || portB?.type === 'sfp' ? 'fiber' : 'copper';
 
+    const displayName = (c.name && !c.name.includes('→')) ? c.name : (c.id || c.name || 'CBL');
+
     const tr = document.createElement('tr');
     tr.dataset.cableId = c.id;
     if (c.id === STATE.highlightedCableId) tr.className = 'active';
@@ -62,7 +64,7 @@ export function renderScheduleTable() {
       <td>
         <div class="cable-pill-cell">
           <span class="cable-color-dot" style="background:${c.color};box-shadow:0 0 6px ${c.color};"></span>
-          <span class="cable-id-badge">${escapeHtml(c.name || c.id)}</span>
+          <span class="cable-id-badge" title="${escapeHtml(c.name || c.id)}">${escapeHtml(displayName)}</span>
           ${roleBadge}
         </div>
       </td>
