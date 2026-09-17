@@ -5,8 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- Modular Stylesheets (2D Workspace) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-BuY39KFX.css">
+  <!-- Modular Stylesheets (2D Workspace) -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/viewport.css">
+  <link rel="stylesheet" href="css/rack.css">
+  <link rel="stylesheet" href="css/cabling.css">
+  <link rel="stylesheet" href="css/schedule.css">
+  <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/catalog-ui.css">
 </head>
 <body>
 
@@ -520,6 +527,106 @@
     </div>
   </div>
 
+  <!-- ==================== MODERN MODAL: YENİ KABİN EKLE (MULTI-RACK) ==================== -->
+  <div class="modal-backdrop" id="modal-add-rack" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,8,17,0.82); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:#0f172a; border:1px solid #38bdf8; border-radius:12px; width:460px; max-width:92vw; box-shadow:0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(56,189,248,0.2); overflow:hidden; animation:modalPop 0.2s cubic-bezier(0.16,1,0.3,1);">
+      <div class="modal-header" style="background:linear-gradient(90deg,#1e293b,#0f172a); padding:14px 18px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">🗄️</span>
+          <h3 style="margin:0; font-size:15px; font-weight:700; color:#f8fafc; letter-spacing:0.3px;">Yeni Kabin Ekle (Multi-Rack)</h3>
+        </div>
+        <button type="button" class="btn-icon" id="btn-close-add-rack" style="background:transparent; border:none; color:#94a3b8; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+      </div>
+      <div class="modal-body" style="padding:18px; display:flex; flex-direction:column; gap:14px;">
+        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Adı / Etiketi</label>
+          <input type="text" id="add-rack-name" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px;" placeholder="Örn: IDF-2 Kat 2 Dağıtım Kabini">
+        </div>
+        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Yüksekliği (U)</label>
+          <select id="add-rack-height" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px; cursor:pointer;">
+            <option value="42" selected>42U (Standart Tam Boy Datacenter Kabini)</option>
+            <option value="48">48U (Yüksek Kapasiteli Omurga Kabini)</option>
+            <option value="24">24U (Orta Boy Kat / Sistem Kabini)</option>
+            <option value="12">12U (Kompakt Duvar Tipi Saha Kabini)</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Rolü / Şablon</label>
+          <select id="add-rack-template" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px; cursor:pointer;">
+            <option value="empty" selected>Boş Kabin (Cihazları kendim yerleştireceğim)</option>
+            <option value="idf-edge">IDF Kenar Dağıtım (Patch Panel + 2x Switch + Organizer)</option>
+            <option value="server-rack">Sunucu / Depolama Kabini (Blade + Storage + PDU)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="background:#090d16; padding:12px 18px; border-top:1px solid #1e293b; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="hud-btn" id="btn-cancel-add-rack" style="background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:6px; padding:6px 14px; cursor:pointer;">İptal</button>
+        <button type="button" class="hud-btn btn-primary" id="btn-confirm-add-rack" style="background:#0284c7; border:1px solid #38bdf8; color:#fff; border-radius:6px; padding:6px 16px; font-weight:700; cursor:pointer;">➕ Kabini Oluştur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODERN MODAL: CISCO MASTER SWITCH KATALOĞU ==================== -->
+  <div class="modal-backdrop" id="modal-cisco-catalog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,8,17,0.88); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+    <div class="cisco-modal-container">
+      <!-- Modal Header -->
+      <div class="cisco-modal-header">
+        <div class="cisco-modal-brand">
+          <div class="cisco-brand-badge">CISCO MASTER</div>
+          <div class="cisco-brand-titles">
+            <h3>Cisco Donanım Kataloğu</h3>
+            <p>Güncel ve sahada yaygın kullanılan legacy Cisco switch modellerini arayın, inceleyin ve doğrudan projenize aktarın.</p>
+          </div>
+        </div>
+        <div class="cisco-modal-header-actions">
+          <span class="cisco-models-total-badge" id="cisco-modal-total-badge">46 Model</span>
+          <button type="button" class="btn-icon" id="btn-close-cisco-catalog" title="Kapat">✕</button>
+        </div>
+      </div>
+
+      <!-- Search & Category Filters Bar -->
+      <div class="cisco-modal-toolbar">
+        <div class="cisco-search-box">
+          <span class="cisco-search-icon">🔍</span>
+          <input type="search" id="cisco-catalog-search" class="form-input" placeholder="Model, seri, port sayısı veya özellik ara... (Örn: 9300, 2960-X, PoE, 48 port, SFP+)">
+          <button type="button" id="cisco-search-clear" class="cisco-search-clear-btn" style="display:none;">✕</button>
+        </div>
+
+        <div class="cisco-filter-pills" id="cisco-filter-pills">
+          <button type="button" class="cisco-pill active" data-filter="all">Tümü (<span class="pill-count" id="pill-count-all">0</span>)</button>
+          <button type="button" class="cisco-pill" data-filter="current">⚡ Güncel Satışta (Cat9K / 1K / Nexus)</button>
+          <button type="button" class="cisco-pill" data-filter="legacy">⏳ Yaygın Saha (2960 / 3850 / 3560)</button>
+          <button type="button" class="cisco-pill" data-filter="24p">24 Port Modeller</button>
+          <button type="button" class="cisco-pill" data-filter="48p">48 Port Modeller</button>
+          <button type="button" class="cisco-pill" data-filter="poe">⚡ PoE+ / UPOE</button>
+          <button type="button" class="cisco-pill" data-filter="fiber">💡 Fiber Omurga / SFP</button>
+          <button type="button" class="cisco-pill" data-filter="compact">📦 Kompakt (8-16 Port)</button>
+        </div>
+      </div>
+
+      <!-- Models Grid -->
+      <div class="cisco-modal-body">
+        <div class="cisco-cards-grid" id="cisco-cards-grid">
+          <!-- Dynamically populated by catalog-ui.js -->
+        </div>
+        <div class="cisco-empty-state" id="cisco-empty-state" style="display:none;">
+          <span style="font-size:32px;">🔍</span>
+          <p>Aramanızla eşleşen Cisco modeli bulunamadı.</p>
+          <button type="button" class="hud-btn" id="btn-cisco-reset-filters">Filtreleri Sıfırla</button>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="cisco-modal-footer">
+        <div class="cisco-footer-hint">
+          <span>💡 Donanımı kütüphanenize ekledikten sonra sol panelden sürükleyebilir veya <b>"Kabine Ekle"</b> ile ilk boş U yuvasına yerleştirebilirsiniz.</span>
+        </div>
+        <button type="button" class="hud-btn" id="btn-close-cisco-catalog-footer">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 2D WORKSPACE ==================== -->
   <div id="legacy-wrapper">
     <div id="legacy-root">
@@ -612,6 +719,10 @@
           <span class="rail-label">Favori</span>
         </button>
         <div class="rail-bottom-actions">
+          <button class="rail-btn rail-cisco-btn" id="rail-btn-cisco-catalog" title="Cisco Switch Kataloğu (Master Library)">
+            <span class="rail-icon">🏢</span>
+            <span class="rail-label">Cisco</span>
+          </button>
           <button class="rail-btn rail-add-btn" id="rail-btn-custom" data-action="custom" title="Özel Donanım Oluştur">
             <span class="rail-icon">➕</span>
             <span class="rail-label">Özel</span>
@@ -629,6 +740,16 @@
           </div>
           <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
             ◀
+          </button>
+        </div>
+
+        <!-- Cisco Master Catalog Launcher Bar -->
+        <div class="cisco-catalog-launcher-bar">
+          <button type="button" class="btn-cisco-master-catalog" id="btn-open-cisco-catalog" title="Cisco Switch Kataloğunu Aç (46 Model)">
+            <span class="cisco-launcher-badge">CISCO</span>
+            <span class="cisco-launcher-text">Cisco Switch Kataloğu</span>
+            <span class="cisco-launcher-count">46 Model</span>
+            <span class="cisco-launcher-arrow">➔</span>
           </button>
         </div>
 
@@ -1268,6 +1389,11 @@
             <!-- Dynamically generated rack tabs -->
           </div>
           <div class="rack-tabs-actions">
+            <!-- View Mode Switcher: Yan Yana (Side-by-Side) vs Tek Kabin (Single) -->
+            <div class="multi-rack-view-toggle" style="display:inline-flex; background:rgba(15,23,42,0.8); border:1px solid #334155; border-radius:6px; padding:2px; gap:2px; margin-right:4px;">
+              <button class="btn-rack-action" id="btn-view-mode-single" title="Tek Kabin Odak Modu" style="padding:2px 8px; font-size:11px; font-weight:700; border-radius:4px; height:20px; line-height:16px;">🎯 Tek</button>
+              <button class="btn-rack-action active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster (Multi-Rack Row)" style="padding:2px 8px; font-size:11px; font-weight:700; border-radius:4px; height:20px; line-height:16px;">🌐 Yan Yana</button>
+            </div>
             <button class="btn-rack-action icon-btn" id="btn-add-rack" title="Yeni Kabin Ekle">
               <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
             </button>
@@ -1466,6 +1592,7 @@
   <!-- 2D Workspace Modular Scripts (Direct Browser Execution, Zero Bundler) -->
   <script src="js/2d/utils.js"></script>
   <script src="js/2d/catalog.js"></script>
+  <script src="js/2d/cisco-master-catalog.js"></script>
   <script src="js/2d/state.js"></script>
   <script src="js/2d/zoom-manager.js"></script>
   <script src="js/2d/rack-manager.js"></script>
@@ -1478,919 +1605,11 @@
   <script src="js/editor.js"></script>
   <script src="js/catalog-ui.js"></script>
 
-  <script>
-    // --- ON-DEMAND LAZY LOADED 3D ENGINE & BIDIRECTIONAL SYNC ---
-    const btnToggleHeader = document.getElementById('btn-toggle-view-mode');
-    const btnSwitchTo3D = document.getElementById('btn-switch-to-3d');
-    const legacyWrapper = document.getElementById('legacy-wrapper');
-
-    function getWrapper3D() {
-      return document.getElementById('studio3d-wrapper');
-    }
-
-    let is3DLoading = false;
-    let is3DLoaded = false;
-
-    function loadScript(src) {
-      return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-          resolve();
-          return;
-        }
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = false;
-        s.onload = () => resolve();
-        s.onerror = (err) => reject(new Error(`Script yüklenemedi: ${src}`));
-        document.body.appendChild(s);
-      });
-    }
-
-    function loadStylesheet(href) {
-      return new Promise((resolve) => {
-        if (document.querySelector(`link[href="${href}"]`)) {
-          resolve();
-          return;
-        }
-        const l = document.createElement('link');
-        l.rel = 'stylesheet';
-        l.href = href;
-        l.onload = () => resolve();
-        l.onerror = () => resolve();
-        document.head.appendChild(l);
-      });
-    }
-
-    async function ensure3DStudioLoaded() {
-      if (is3DLoaded) return true;
-      if (is3DLoading) return false;
-      is3DLoading = true;
-
-      // Modern loading overlay
-      let loader = document.getElementById('studio3d-loader-overlay');
-      if (!loader) {
-        loader = document.createElement('div');
-        loader.id = 'studio3d-loader-overlay';
-        loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,17,0.92);backdrop-filter:blur(8px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#38bdf8;font-family:system-ui,-apple-system,sans-serif;';
-        loader.innerHTML = `
-          <div style="width:48px;height:48px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin3d 0.8s linear infinite;margin-bottom:16px;"></div>
-          <div style="font-size:1.1rem;font-weight:700;letter-spacing:0.5px;color:#f8fafc;margin-bottom:6px;">🎮 3D Datacenter Stüdyosu Yükleniyor...</div>
-          <div style="font-size:0.8rem;color:#94a3b8;">WebGL & Three.js motoru başlatılıyor</div>
-          <style>@keyframes spin3d { to { transform: rotate(360deg); } }</style>
-        `;
-        document.body.appendChild(loader);
-      } else {
-        loader.style.display = 'flex';
-      }
-
-      try {
-        // 1. Inject 3D stylesheet
-        await loadStylesheet('css/studio3d.css');
-
-        // 2. Clone & Mount 3D DOM template into document
-        if (!document.getElementById('studio3d-wrapper')) {
-          const template = document.getElementById('studio3d-template');
-          if (template) {
-            const clone = template.content.cloneNode(true);
-            const legacyWrap = document.getElementById('legacy-wrapper');
-            if (legacyWrap) {
-              document.body.insertBefore(clone, legacyWrap);
-            } else {
-              document.body.appendChild(clone);
-            }
-          }
-        }
-
-        // 3. Sequentially load Three.js and 3D Studio scripts
-        await loadScript('js/three-bundle.min.js');
-        await loadScript('js/studio3d.js');
-        await loadScript('js/studio3d-ui.js');
-
-        // Ensure Studio3D engine instance is bound
-        if (!window.__STUDIO3D__ && window.Studio3D) {
-          const container = document.getElementById('studio3d-container');
-          if (container) {
-            window.__STUDIO3D__ = new window.Studio3D(container);
-          }
-        }
-
-        is3DLoaded = true;
-        return true;
-      } catch (err) {
-        console.error('3D Stüdyo yüklenirken hata oluştu:', err);
-        alert('3D Stüdyo motoru yüklenemedi: ' + err.message);
-        return false;
-      } finally {
-        is3DLoading = false;
-        if (loader) loader.style.display = 'none';
-      }
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    // Every fresh load starts in the lightweight 2D workspace.
-    // The explicit view buttons remain the only way to activate 3D rendering.
-    let is3DMode = false;
-
-    function sync3Dto2D() {
-      if (!window.__STUDIO3D__) return;
-      try {
-        const s = window.__STUDIO3D__.state;
-        const catalog = (window.RackStudio && window.RackStudio.catalog) || {};
-        const devMap = new Map();
-        (s.devices || []).forEach(d => devMap.set(d.id, d));
-        const usedPorts = new Set();
-
-        function resolvePortId(devId, portIdx, savedPortId) {
-          const d = devMap.get(devId);
-          if (!d) return savedPortId || ('p' + (portIdx || 1));
-          const catKey = d.catalogId;
-          let cat = catalog[catKey];
-          if (!cat && window.CATALOG_3D) {
-            cat = window.CATALOG_3D.find(c => c.id === catKey);
-          }
-          const ports = (cat && cat.ports) || [];
-          if (!ports.length) {
-            const pid = savedPortId || ('p' + (portIdx || 1));
-            usedPorts.add(`${devId}:${pid}`);
-            return pid;
-          }
-          // 1. If savedPortId is valid on this device and not already used
-          if (savedPortId && ports.some(p => p.id === savedPortId) && !usedPorts.has(`${devId}:${savedPortId}`)) {
-            usedPorts.add(`${devId}:${savedPortId}`);
-            return savedPortId;
-          }
-          // 2. Map 1-based portIdx to port
-          const targetIdx = (typeof portIdx === 'number' && portIdx >= 1 && portIdx <= ports.length) ? portIdx - 1 : 0;
-          const candidate = ports[targetIdx];
-          if (candidate && !usedPorts.has(`${devId}:${candidate.id}`)) {
-            usedPorts.add(`${devId}:${candidate.id}`);
-            return candidate.id;
-          }
-          // 3. Find any unused port
-          const available = ports.find(p => !usedPorts.has(`${devId}:${p.id}`));
-          if (available) {
-            usedPorts.add(`${devId}:${available.id}`);
-            return available.id;
-          }
-          // 4. Fallback to candidate or first port
-          return candidate ? candidate.id : ports[0].id;
-        }
-
-        const validCables = [];
-        (s.cables || []).forEach(c => {
-          if (!c.from || !c.to) return;
-          const pFrom = resolvePortId(c.from.devId, c.from.portIdx, c.from.portId);
-          const pTo = resolvePortId(c.to.devId, c.to.portIdx, c.to.portId);
-          if (!pFrom || !pTo) return;
-          const hex = typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff');
-          validCables.push({
-            id: c.id,
-            name: c.name || 'Kablo',
-            color: hex,
-            lengthMeters: c.lengthM || 1.5,
-            from: {
-              rackId: 'rack-1',
-              instanceId: c.from.devId,
-              portId: pFrom,
-              face: 'front'
-            },
-            to: {
-              rackId: 'rack-1',
-              instanceId: c.to.devId,
-              portId: pTo,
-              face: 'front'
-            }
-          });
-        });
-
-        const legacyProj = {
-          version: '3.0.0',
-          doorOpen: s.doorOpen === true,
-          activeRackId: 'rack-1',
-          racks: [{
-            id: 'rack-1',
-            name: 'MDF - Dağıtım Kabini',
-            heightU: s.rackHeightU || 42,
-            devices: s.devices.map(d => ({
-              instanceId: d.id,
-              catalogKey: d.catalogId,
-              topU: d.startU + (d.uHeight || 1) - 1,
-              uHeight: d.uHeight || 1,
-              name: d.name,
-              ipAddress: d.ipAddress || '',
-              macAddress: d.macAddress || '',
-              serialNumber: d.serialNumber || '',
-              panelLabel: d.panelLabel || '',
-              portsConfig: d.portsConfig || {},
-              face: 'front'
-            }))
-          }],
-          cables: validCables
-        };
-        localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
-        if (window.RackStudio && window.RackStudio.loadCustomTopology) {
-          window.RackStudio.loadCustomTopology(legacyProj);
-        }
-      } catch (e) {
-        console.error('sync3Dto2D error:', e);
-      }
-    }
-
-    function sync2Dto3D() {
-      if (!window.__STUDIO3D__) return;
-      try {
-        let proj = null;
-        if (window.RackStudio && window.RackStudio.STATE && window.RackStudio.STATE.racks) {
-          proj = {
-            racks: window.RackStudio.STATE.racks,
-            cables: window.RackStudio.STATE.cables || []
-          };
-        } else {
-          const raw = localStorage.getItem('cisco-rack-studio-project') || localStorage.getItem('rack-studio-project-v2');
-          if (raw) proj = JSON.parse(raw);
-        }
-        if (proj) {
-          window.__STUDIO3D__.loadTopologyFromProject(proj);
-        }
-      } catch (e) {
-        console.error('sync2Dto3D error:', e);
-      }
-    }
-
-    const btnView2D = document.getElementById('btn-view-2d');
-    const btnView3D = document.getElementById('btn-view-3d');
-    const controls3D = document.getElementById('controls-3d-group');
-    const controls2D = document.getElementById('controls-2d-group');
-    const powerValEl = document.getElementById('telemetry-power-val');
-    const heatValEl = document.getElementById('telemetry-heat-val');
-    const deviceLabelModeEl = document.getElementById('device-label-mode');
-    const performanceModeEl = document.getElementById('performance-mode');
-
-    if (deviceLabelModeEl) {
-      deviceLabelModeEl.value = localStorage.getItem('rack-studio-device-label-mode') || 'name';
-      deviceLabelModeEl.addEventListener('change', () => {
-        const mode = deviceLabelModeEl.value;
-        if (window.__STUDIO3D__) window.__STUDIO3D__.setDeviceLabelMode(mode);
-        if (window.RackStudio) window.RackStudio.setDeviceLabelMode(mode);
-      });
-    }
-
-    window.handleUnifiedVisioExport = () => {
-      if (is3DMode) sync3Dto2D();
-      window.RackStudio?.exportVisioSvg();
-    };
-
-    if (performanceModeEl) {
-      performanceModeEl.value = localStorage.getItem('rack-studio-3d-performance-mode') || 'balanced';
-      performanceModeEl.addEventListener('change', () => {
-        if (window.__STUDIO3D__) window.__STUDIO3D__.setPerformanceMode(performanceModeEl.value);
-      });
-    }
-
-    window.DeviceMetadataEditor = {
-      prepare(modal, dev, category, source, instanceId) {
-        const isPanel = ['patch', 'patch-panel', 'fiber'].includes(category);
-        document.getElementById('modal-dev-edit-title').textContent = isPanel
-          ? `🏷️ ${dev.name || 'Patch Panel'} - PANEL YAPILANDIRMASI`
-          : `⚙️ ${dev.name || 'Switch'} - CİHAZ YAPILANDIRMASI`;
-        document.getElementById('dev-edit-name-label').textContent = isPanel ? 'Panel Adı' : 'Hostname / Cihaz Adı';
-        document.getElementById('dev-edit-panel-label-group').style.display = isPanel ? 'block' : 'none';
-        document.getElementById('dev-edit-ip-group').style.display = isPanel ? 'none' : 'block';
-        document.getElementById('dev-edit-mac-group').style.display = isPanel ? 'none' : 'block';
-        document.getElementById('dev-edit-serial-group').style.display = isPanel ? 'none' : 'block';
-        document.getElementById('dev-edit-hostname').value = dev.hostname || dev.name || '';
-        document.getElementById('dev-edit-panel-label').value = dev.panelLabel || '';
-        document.getElementById('dev-edit-ip').value = dev.ipAddress || '';
-        document.getElementById('dev-edit-mac').value = dev.macAddress || '';
-        document.getElementById('dev-edit-serial').value = dev.serialNumber || '';
-
-        // Populate configured trunk ports list
-        const trunkListEl = document.getElementById('dev-edit-trunk-list');
-        if (trunkListEl) {
-          trunkListEl.innerHTML = '';
-          const portsConfig = dev.portsConfig || {};
-          const configuredKeys = Object.keys(portsConfig);
-          if (configuredKeys.length === 0) {
-            trunkListEl.innerHTML = '<div style="color:#64748b; font-style:italic;">Henüz özel/trunk port yapılandırılmadı.</div>';
-          } else {
-            configuredKeys.forEach(pKey => {
-              const cfg = portsConfig[pKey];
-              if (!cfg) return;
-              const row = document.createElement('div');
-              row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(30,41,59,0.85); border-radius:4px; padding:4px 8px; border-left:3px solid ' + (cfg.color || '#a855f7');
-              const ciscoNamePart = cfg.ciscoName ? ` (${cfg.ciscoName})` : '';
-              const vlanPart = cfg.vlan ? ` · VLAN: ${cfg.vlan}` : '';
-              row.innerHTML = `
-                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">
-                  <span style="font-weight:700; color:${cfg.color || '#a855f7'};">Port #${pKey}${ciscoNamePart}</span>
-                  <span style="color:#94a3b8; font-size:11px;">[${(cfg.role || 'trunk').toUpperCase()}]${vlanPart}</span>
-                </div>
-                <button type="button" class="hud-btn" style="padding:2px 8px; font-size:10px; white-space:nowrap;" data-port="${pKey}">Düzenle</button>
-              `;
-              row.querySelector('button').addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.PortConfigEditor.open(instanceId, pKey, source);
-              });
-              trunkListEl.appendChild(row);
-            });
-          }
-        }
-
-        modal.dataset.source = source;
-        modal.dataset.deviceId = instanceId;
-        modal.dataset.deviceCategory = category || '';
-        modal.style.display = 'flex';
-      },
-      open2D(instanceId) {
-        const racks = window.RackStudio && window.RackStudio.STATE.racks || [];
-        const rack = racks.find(item => item.devices.some(dev => dev.instanceId === instanceId));
-        const dev = rack && rack.devices.find(item => item.instanceId === instanceId);
-        if (!dev) return;
-        const modal = document.getElementById('modal-device-edit');
-        const cat = window.RackStudio.catalog[dev.catalogKey] || {};
-        this.prepare(modal, { ...dev, name: dev.name || cat.name }, cat.category, '2d', instanceId);
-      },
-      open3D(instanceId) {
-        if (!window.__STUDIO3D__) return;
-        const dev = window.__STUDIO3D__.state.devices.find(d => d.id === instanceId);
-        if (!dev) return;
-        const modal = document.getElementById('modal-device-edit');
-        this.prepare(modal, dev, dev.category, '3d', instanceId);
-      }
-    };
-
-    // --- 802.1Q TRUNK & PORT CONFIGURATION EDITOR ---
-    window.PortConfigEditor = {
-      activeDevId: null,
-      activePortIdx: 1,
-      activePortId: null,
-      activeSource: '3d',
-
-      open(devId, portIdxOrId, source = '3d') {
-        const modal = document.getElementById('modal-port-edit');
-        if (!modal) return;
-        this.activeDevId = devId;
-        this.activeSource = source;
-
-        let dev = null;
-        let portIdx = 1;
-        let portName = '';
-        let portType = 'rj45';
-        let portCfg = null;
-
-        if (source === '3d' && window.__STUDIO3D__) {
-          dev = window.__STUDIO3D__.state.devices.find(d => d.id === devId);
-          portIdx = typeof portIdxOrId === 'number' ? portIdxOrId : (parseInt(portIdxOrId, 10) || 1);
-          this.activePortIdx = portIdx;
-          this.activePortId = 'p' + portIdx;
-          if (dev) {
-            portCfg = (dev.portsConfig && dev.portsConfig[portIdx]) || null;
-            portName = `Port #${portIdx}`;
-            if (dev.portDefinitions && dev.portDefinitions[portIdx - 1]) {
-              portType = dev.portDefinitions[portIdx - 1].type || dev.portType || 'rj45';
-            } else {
-              portType = dev.portType || 'rj45';
-            }
-          }
-        } else if (window.RackStudio && window.RackStudio.STATE) {
-          const racks = window.RackStudio.STATE.racks || [];
-          const rack = racks.find(item => item.devices.some(d => d.instanceId === devId));
-          dev = rack && rack.devices.find(d => d.instanceId === devId);
-          const cat = dev && (window.RackStudio.catalog[dev.catalogKey] || (window.CATALOG_3D || []).find(c => c.id === dev.catalogKey));
-          const pObj = (cat && cat.ports) ? cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId) : null;
-          portIdx = pObj ? (cat.ports.indexOf(pObj) + 1) : (parseInt(portIdxOrId, 10) || 1);
-          this.activePortIdx = portIdx;
-          this.activePortId = (pObj && pObj.id) || (typeof portIdxOrId === 'string' ? portIdxOrId : 'p' + portIdx);
-          if (dev) {
-            portCfg = (dev.portsConfig && (dev.portsConfig[this.activePortId] || dev.portsConfig[portIdx])) || null;
-            portName = pObj ? (pObj.name || `Port #${portIdx}`) : `Port #${portIdx}`;
-            portType = (pObj && pObj.type) || 'rj45';
-          }
-        }
-
-        if (!dev) return;
-
-        const devTitle = dev.hostname || dev.name || 'Donanım';
-        document.getElementById('port-edit-dev-name').textContent = devTitle;
-        document.getElementById('port-edit-port-label').textContent = `${portName} (${portType.toUpperCase()})`;
-
-        const role = (portCfg && portCfg.role) || 'access';
-        const color = (portCfg && portCfg.color) || '#a855f7';
-        const ciscoName = (portCfg && portCfg.ciscoName) || '';
-        const vlan = (portCfg && portCfg.vlan) || '';
-        const desc = (portCfg && (portCfg.description || portCfg.note)) || '';
-        const autoCable = portCfg ? (portCfg.autoCableColor !== false) : true;
-
-        document.getElementById('port-edit-role').value = role;
-        document.getElementById('port-edit-color').value = color;
-        document.getElementById('port-edit-color-hex').value = color.toUpperCase();
-        document.getElementById('port-edit-cisco-name').value = ciscoName;
-        document.getElementById('port-edit-vlan').value = vlan;
-        document.getElementById('port-edit-desc').value = desc;
-        document.getElementById('port-edit-auto-cable-color').checked = autoCable;
-
-        const badge = document.getElementById('port-edit-badge');
-        if (badge) {
-          badge.textContent = role.toUpperCase();
-          badge.style.background = role === 'trunk' ? color : (role === 'uplink' ? '#0284c7' : '#334155');
-          badge.style.color = '#ffffff';
-        }
-
-        modal.dataset.deviceId = devId;
-        modal.dataset.portIdx = String(portIdx);
-        modal.dataset.source = source;
-        modal.style.display = 'flex';
-      },
-
-      close() {
-        const modal = document.getElementById('modal-port-edit');
-        if (modal) modal.style.display = 'none';
-      },
-
-      save() {
-        if (!this.activeDevId) return;
-        const role = document.getElementById('port-edit-role').value;
-        const color = document.getElementById('port-edit-color').value;
-        const ciscoName = document.getElementById('port-edit-cisco-name').value.trim();
-        const vlan = document.getElementById('port-edit-vlan').value.trim();
-        const desc = document.getElementById('port-edit-desc').value.trim();
-        const autoCableColor = document.getElementById('port-edit-auto-cable-color').checked;
-
-        const config = {
-          role,
-          isTrunk: role === 'trunk',
-          color,
-          ciscoName,
-          vlan,
-          description: desc,
-          autoCableColor
-        };
-
-        // 3D Engine update
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-          window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, config);
-        }
-
-        // 2D Engine update
-        if (window.RackStudio && window.RackStudio.updatePortConfig) {
-          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, config);
-        }
-
-        this.close();
-        if (is3DMode) {
-          if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
-        } else {
-          if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
-        }
-      },
-
-      reset() {
-        if (!this.activeDevId) return;
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-          window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, null);
-        }
-        if (window.RackStudio && window.RackStudio.updatePortConfig) {
-          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
-        }
-        this.close();
-        if (is3DMode) {
-          if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
-        } else {
-          if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
-        }
-      }
-    };
-
-    // Color chips & inputs bindings
-    document.querySelectorAll('.port-color-chips .color-chip-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const hex = btn.dataset.color;
-        const colorInput = document.getElementById('port-edit-color');
-        const hexInput = document.getElementById('port-edit-color-hex');
-        if (colorInput) colorInput.value = hex;
-        if (hexInput) hexInput.value = hex.toUpperCase();
-        const badge = document.getElementById('port-edit-badge');
-        if (badge && document.getElementById('port-edit-role').value === 'trunk') {
-          badge.style.background = hex;
-        }
-      });
-    });
-
-    document.getElementById('port-edit-color')?.addEventListener('input', (e) => {
-      const hexInput = document.getElementById('port-edit-color-hex');
-      if (hexInput) hexInput.value = e.target.value.toUpperCase();
-      const badge = document.getElementById('port-edit-badge');
-      if (badge && document.getElementById('port-edit-role').value === 'trunk') {
-        badge.style.background = e.target.value;
-      }
-    });
-
-    document.getElementById('port-edit-color-hex')?.addEventListener('change', (e) => {
-      let val = e.target.value.trim();
-      if (!val.startsWith('#')) val = '#' + val;
-      if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-        const colorInput = document.getElementById('port-edit-color');
-        if (colorInput) colorInput.value = val;
-        const badge = document.getElementById('port-edit-badge');
-        if (badge && document.getElementById('port-edit-role').value === 'trunk') {
-          badge.style.background = val;
-        }
-      }
-    });
-
-    const ROLE_DEFAULT_COLORS = {
-      trunk: '#a855f7',
-      uplink: '#00d2ff',
-      poe: '#f59e0b',
-      mgmt: '#10b981',
-      management: '#10b981',
-      access: '#3b82f6'
-    };
-
-    document.getElementById('port-edit-role')?.addEventListener('change', (e) => {
-      const role = e.target.value;
-      const defColor = ROLE_DEFAULT_COLORS[role] || '#3b82f6';
-      const colorInput = document.getElementById('port-edit-color');
-      const hexInput = document.getElementById('port-edit-color-hex');
-      if (colorInput) colorInput.value = defColor;
-      if (hexInput) hexInput.value = defColor.toUpperCase();
-      const badge = document.getElementById('port-edit-badge');
-      if (badge) {
-        badge.textContent = role.toUpperCase();
-        badge.style.background = defColor;
-      }
-    });
-
-    document.getElementById('btn-close-port-edit')?.addEventListener('click', () => window.PortConfigEditor.close());
-    document.getElementById('btn-cancel-port-edit')?.addEventListener('click', () => window.PortConfigEditor.close());
-    document.getElementById('btn-save-port-edit')?.addEventListener('click', () => window.PortConfigEditor.save());
-    document.getElementById('btn-reset-port-edit')?.addEventListener('click', () => window.PortConfigEditor.reset());
-
-    document.getElementById('btn-save-device-edit')?.addEventListener('click', event => {
-      const modal = document.getElementById('modal-device-edit');
-      const devId = modal.dataset.deviceId;
-      const meta = {
-        name: document.getElementById('dev-edit-hostname').value.trim(),
-        ipAddress: document.getElementById('dev-edit-ip').value.trim(),
-        macAddress: document.getElementById('dev-edit-mac').value.trim(),
-        serialNumber: document.getElementById('dev-edit-serial').value.trim(),
-        panelLabel: document.getElementById('dev-edit-panel-label').value.trim()
-      };
-      if (modal.dataset.source === '2d') {
-        event.stopImmediatePropagation();
-        if (window.RackStudio && window.RackStudio.updateDeviceMetadata) {
-          window.RackStudio.updateDeviceMetadata(devId, meta);
-        }
-      } else if (modal.dataset.source === '3d') {
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updateDeviceMetadata) {
-          window.__STUDIO3D__.updateDeviceMetadata(devId, meta);
-          if (typeof window.renderInstalledDevicesList === 'function') window.renderInstalledDevicesList();
-        }
-      }
-      modal.dataset.source = '';
-      modal.style.display = 'none';
-      updateTelemetry();
-    }, true);
-
-    const closeDevEditModal = () => {
-      const modal = document.getElementById('modal-device-edit');
-      if (modal) {
-        modal.dataset.source = '';
-        modal.style.display = 'none';
-      }
-    };
-    document.getElementById('btn-close-device-edit')?.addEventListener('click', closeDevEditModal);
-    document.getElementById('btn-cancel-device-edit')?.addEventListener('click', closeDevEditModal);
-
-    function updateTelemetry() {
-      let totalWatts = 0;
-      if (is3DMode && window.__STUDIO3D__) {
-        const devs = window.__STUDIO3D__.state.devices || [];
-        devs.forEach(d => {
-          const cat = (window.CATALOG_3D || []).find(c => c.id === d.catalogId) || {};
-          totalWatts += d.powerWatts || cat.powerWatts || 150;
-        });
-      } else if (window.RackStudio && window.RackStudio.STATE) {
-        const rack = window.RackStudio.STATE.racks && window.RackStudio.STATE.racks[0];
-        if (rack && rack.devices) {
-          rack.devices.forEach(d => {
-            const cat = window.RackStudio.catalog && window.RackStudio.catalog[d.catalogId || d.catalogKey];
-            totalWatts += (cat && cat.powerWatts) || 150;
-          });
-        }
-      }
-      const totalBtu = Math.round(totalWatts * 3.412142);
-      if (powerValEl) powerValEl.textContent = String(totalWatts);
-      if (heatValEl) heatValEl.textContent = String(totalBtu);
-    }
-
-    function applyMode() {
-      const wrapper3D = getWrapper3D();
-      const perfControl = document.querySelector('label[for="performance-mode"]');
-      const btnWizard = document.getElementById('btn-3d-wizard-modal');
-      const fpsCounter = document.getElementById('fps-counter');
-
-      if (is3DMode) {
-        if (wrapper3D) wrapper3D.style.display = 'block';
-        if (legacyWrapper) legacyWrapper.style.display = 'none';
-        if (btnView2D) btnView2D.classList.remove('active');
-        if (btnView3D) btnView3D.classList.add('active');
-        if (controls3D) controls3D.style.display = 'flex';
-        if (controls2D) controls2D.style.display = 'none';
-        if (perfControl) perfControl.style.display = 'inline-flex';
-        if (btnWizard) btnWizard.style.display = 'inline-flex';
-        if (fpsCounter) fpsCounter.style.display = 'inline-block';
-        if (window.__STUDIO3D__) {
-          window.__STUDIO3D__.resume();
-          // Adjust canvas on view switch
-          const container = document.getElementById('studio3d-container');
-          if (container && window.__STUDIO3D__.camera && window.__STUDIO3D__.renderer) {
-            const w = container.clientWidth || window.innerWidth;
-            const h = container.clientHeight || (window.innerHeight - 56);
-            window.__STUDIO3D__.camera.aspect = w / h;
-            window.__STUDIO3D__.camera.updateProjectionMatrix();
-            window.__STUDIO3D__.renderer.setSize(w, h);
-          }
-        }
-      } else {
-        if (wrapper3D) wrapper3D.style.display = 'none';
-        if (legacyWrapper) legacyWrapper.style.display = 'flex';
-        if (btnView2D) btnView2D.classList.add('active');
-        if (btnView3D) btnView3D.classList.remove('active');
-        if (controls3D) controls3D.style.display = 'none';
-        if (controls2D) controls2D.style.display = 'flex';
-        if (perfControl) perfControl.style.display = 'none';
-        if (btnWizard) btnWizard.style.display = 'none';
-        if (fpsCounter) fpsCounter.style.display = 'none';
-        if (window.__STUDIO3D__) window.__STUDIO3D__.pause();
-      }
-      updateTelemetry();
-    }
-
-    applyMode();
-
-    async function setMode(to3D) {
-      if (is3DMode === to3D) return;
-      if (to3D) {
-        const loaded = await ensure3DStudioLoaded();
-        if (!loaded) return;
-        sync2Dto3D();
-        is3DMode = true;
-        applyMode();
-      } else {
-        is3DMode = false;
-        applyMode();
-        sync3Dto2D();
-        // Give browser DOM layout a tick to paint and calculate port bounding rects
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (window.RackStudio && typeof window.RackStudio.refresh === 'function') {
-              window.RackStudio.refresh();
-            }
-          }, 60);
-        });
-      }
-      updateTelemetry();
-    }
-
-    if (btnView2D) btnView2D.addEventListener('click', () => setMode(false));
-    if (btnView3D) btnView3D.addEventListener('click', () => setMode(true));
-    if (btnToggleHeader) btnToggleHeader.addEventListener('click', () => setMode(!is3DMode));
-    if (btnSwitchTo3D) btnSwitchTo3D.addEventListener('click', () => setMode(true));
-
-    document.getElementById('btn-2d-clear-action')?.addEventListener('click', () => {
-      document.getElementById('btn-clear-all')?.click();
-      updateTelemetry();
-    });
-
-    document.getElementById('btn-2d-face-toggle')?.addEventListener('click', () => {
-      if (window.RackStudio && window.RackStudio.toggleActiveFace) {
-        window.RackStudio.toggleActiveFace();
-      } else {
-        // Find face toggle button in 2D tabs
-        const toggleBtn = document.querySelector('[data-action="toggle-face"]') || document.getElementById('btn-toggle-face');
-        if (toggleBtn) toggleBtn.click();
-      }
-    });
-
-    // Floating Top Deck Collapse/Expand Toggle
-    const btnToggleTopdeck = document.getElementById('btn-toggle-rack-topbar');
-    const topdeck = document.getElementById('rack-floating-topdeck');
-    const toggleIcon = document.getElementById('rack-toggle-icon');
-    if (btnToggleTopdeck && topdeck) {
-      btnToggleTopdeck.addEventListener('click', () => {
-        topdeck.classList.toggle('collapsed');
-        const isCollapsed = topdeck.classList.contains('collapsed');
-        if (toggleIcon) toggleIcon.textContent = isCollapsed ? '▶' : '◀';
-        btnToggleTopdeck.title = isCollapsed ? 'Kabin Düzenleme Araçlarını Göster' : 'Kabin Düzenleme Araçlarını Gizle (Dikey Alan Aç)';
-      });
-    }
-
-    // 2D Zoom Controls
-    document.getElementById('btn-2d-zoom-in')?.addEventListener('click', () => {
-      document.getElementById('btn-zoom-in')?.click();
-    });
-    document.getElementById('btn-2d-zoom-out')?.addEventListener('click', () => {
-      document.getElementById('btn-zoom-out')?.click();
-    });
-    document.getElementById('btn-2d-zoom-fit')?.addEventListener('click', () => {
-      document.getElementById('btn-zoom-fit')?.click();
-    });
-
-    // 2D Cable Routing Mode Toggle
-    const btnRouting2D = document.getElementById('btn-2d-routing-mode');
-    btnRouting2D?.addEventListener('click', () => {
-      if (window.RackStudio && window.RackStudio.STATE) {
-        const cur = window.RackStudio.STATE.cableRoutingMode || 'structured';
-        const next = cur === 'structured' ? 'direct' : 'structured';
-        window.RackStudio.STATE.cableRoutingMode = next;
-        btnRouting2D.textContent = next === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
-        if (window.RackStudio.renderAllCables) window.RackStudio.renderAllCables();
-      }
-    });
-
-    // Unified Presets in 2D Mode
-    document.getElementById('btn-3d-preset-mdf')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('btn-preset-mdf')?.click();
-        updateTelemetry();
-      }
-    }, true);
-
-    document.getElementById('btn-3d-preset-idf')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('btn-preset-idf')?.click();
-        updateTelemetry();
-      }
-    }, true);
-
-    document.getElementById('btn-3d-preset-site')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('btn-preset-site')?.click();
-        updateTelemetry();
-      }
-    }, true);
-
-    // Unified Storage Actions in 2D Mode
-    document.getElementById('btn-export-json-3d')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('btn-export-json')?.click();
-      }
-    }, true);
-
-    document.getElementById('btn-import-json-3d')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('file-import')?.click();
-      }
-    }, true);
-
-    // Unified History (Undo/Redo) in 2D Mode
-    document.getElementById('btn-3d-undo')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.querySelector('[data-command="undo"]')?.click();
-      }
-    }, true);
-
-    document.getElementById('btn-3d-redo')?.addEventListener('click', (e) => {
-      if (!is3DMode) {
-        e.stopImmediatePropagation();
-        document.querySelector('[data-command="redo"]')?.click();
-      }
-    }, true);
-
-    // 2D Sidebar Collapse / Expand All
-    document.getElementById('btn-collapse-all')?.addEventListener('click', () => {
-      document.querySelectorAll('.sidebar-left details.collapsible-section').forEach(d => { d.open = false; });
-    });
-    document.getElementById('btn-expand-all')?.addEventListener('click', () => {
-      document.querySelectorAll('.sidebar-left details.collapsible-section').forEach(d => { d.open = true; });
-    });
-
-    // 2D Collapsible Left Sidebar (Dock / Drawer)
-    const sidebarLeft = document.getElementById('sidebar-left');
-    const btnToggleLeft = document.getElementById('btn-toggle-left-sidebar');
-    function setLeftSidebarCollapsed(collapsed) {
-      if (!sidebarLeft) return;
-      sidebarLeft.classList.toggle('collapsed', collapsed);
-      if (btnToggleLeft) {
-        btnToggleLeft.textContent = collapsed ? '▶' : '◀';
-        btnToggleLeft.title = collapsed ? 'Kütüphaneyi Aç (Ctrl+B)' : 'Kütüphaneyi Katla (Ctrl+B)';
-      }
-      try { localStorage.setItem('rack_studio_left_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
-      setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-      }, 260);
-    }
-    window.setLeftSidebarCollapsed = setLeftSidebarCollapsed;
-    btnToggleLeft?.addEventListener('click', () => {
-      const isCollapsed = sidebarLeft?.classList.contains('collapsed');
-      setLeftSidebarCollapsed(!isCollapsed);
-    });
-
-    // 2D Collapsible Right Sidebar
-    const sidebarRight = document.getElementById('sidebar-right');
-    const btnToggleRight = document.getElementById('btn-toggle-right-sidebar');
-    function setRightSidebarCollapsed(collapsed) {
-      if (!sidebarRight) return;
-      sidebarRight.classList.toggle('collapsed', collapsed);
-      if (collapsed) {
-        sidebarRight.style.width = '44px';
-        sidebarRight.style.minWidth = '44px';
-        sidebarRight.style.maxWidth = '44px';
-      } else {
-        let savedW = '450';
-        try {
-          const raw = localStorage.getItem('rack_studio_right_sidebar_width');
-          if (raw && Number(raw) >= 360 && Number(raw) <= 750) savedW = raw;
-        } catch(e) {}
-        sidebarRight.style.width = savedW + 'px';
-        sidebarRight.style.minWidth = '360px';
-        sidebarRight.style.maxWidth = '750px';
-      }
-      if (btnToggleRight) {
-        btnToggleRight.textContent = collapsed ? '◀' : '▶';
-        btnToggleRight.title = collapsed ? 'Çizelgeyi Aç' : 'Çizelgeyi Katla';
-      }
-      try { localStorage.setItem('rack_studio_right_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
-      setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-      }, 260);
-    }
-    window.setRightSidebarCollapsed = setRightSidebarCollapsed;
-    btnToggleRight?.addEventListener('click', () => {
-      const isCollapsed = sidebarRight?.classList.contains('collapsed');
-      setRightSidebarCollapsed(!isCollapsed);
-    });
-
-    // Keyboard shortcut Ctrl+B or Cmd+B to toggle left sidebar
-    window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault();
-        const isCollapsed = sidebarLeft?.classList.contains('collapsed');
-        setLeftSidebarCollapsed(!isCollapsed);
-      }
-    });
-
-    // Restore sidebar state from localStorage
-    try {
-      if (localStorage.getItem('rack_studio_left_sidebar_collapsed') === '1') {
-        setLeftSidebarCollapsed(true);
-      }
-      if (localStorage.getItem('rack_studio_right_sidebar_collapsed') === '1') {
-        setRightSidebarCollapsed(true);
-      } else {
-        const savedRightW = localStorage.getItem('rack_studio_right_sidebar_width');
-        if (savedRightW && Number(savedRightW) >= 360 && Number(savedRightW) <= 750 && sidebarRight) {
-          sidebarRight.style.width = savedRightW + 'px';
-        }
-      }
-    } catch(e) {}
-
-    // Right Sidebar Draggable Edge Resizer
-    const resizerRight = document.getElementById('sidebar-right-resizer');
-    if (resizerRight && sidebarRight) {
-      let isResizing = false;
-      let startX = 0;
-      let startW = 0;
-
-      resizerRight.addEventListener('mousedown', (e) => {
-        isResizing = true;
-        startX = e.clientX;
-        startW = sidebarRight.getBoundingClientRect().width;
-        resizerRight.classList.add('resizing');
-        document.body.style.cursor = 'ew-resize';
-        document.body.style.userSelect = 'none';
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-        const dx = startX - e.clientX;
-        const newW = Math.max(360, Math.min(750, startW + dx));
-        sidebarRight.style.width = newW + 'px';
-      });
-
-      window.addEventListener('mouseup', () => {
-        if (isResizing) {
-          isResizing = false;
-          resizerRight.classList.remove('resizing');
-          document.body.style.cursor = '';
-          document.body.style.userSelect = '';
-          try {
-            localStorage.setItem('rack_studio_right_sidebar_width', String(Math.round(sidebarRight.getBoundingClientRect().width)));
-          } catch(e) {}
-          window.dispatchEvent(new Event('resize'));
-        }
-      });
-    }
-
-    // Update telemetry periodically and on mutation
-    setInterval(updateTelemetry, 1500);
-  </script>
+  <!-- Extracted UI, Editor and Bridge Controllers -->
+  <script src="js/port-config-editor.js"></script>
+  <script src="js/device-metadata-editor.js"></script>
+  <script src="js/topbar-controller.js"></script>
+  <script src="js/sidebar-controller.js"></script>
+  <script src="js/studio-bridge.js"></script>
 </body>
 </html>

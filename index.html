@@ -567,6 +567,66 @@
     </div>
   </div>
 
+  <!-- ==================== MODERN MODAL: CISCO MASTER SWITCH KATALOĞU ==================== -->
+  <div class="modal-backdrop" id="modal-cisco-catalog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,8,17,0.88); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+    <div class="cisco-modal-container">
+      <!-- Modal Header -->
+      <div class="cisco-modal-header">
+        <div class="cisco-modal-brand">
+          <div class="cisco-brand-badge">CISCO MASTER</div>
+          <div class="cisco-brand-titles">
+            <h3>Cisco Donanım Kataloğu</h3>
+            <p>Güncel ve sahada yaygın kullanılan legacy Cisco switch modellerini arayın, inceleyin ve doğrudan projenize aktarın.</p>
+          </div>
+        </div>
+        <div class="cisco-modal-header-actions">
+          <span class="cisco-models-total-badge" id="cisco-modal-total-badge">46 Model</span>
+          <button type="button" class="btn-icon" id="btn-close-cisco-catalog" title="Kapat">✕</button>
+        </div>
+      </div>
+
+      <!-- Search & Category Filters Bar -->
+      <div class="cisco-modal-toolbar">
+        <div class="cisco-search-box">
+          <span class="cisco-search-icon">🔍</span>
+          <input type="search" id="cisco-catalog-search" class="form-input" placeholder="Model, seri, port sayısı veya özellik ara... (Örn: 9300, 2960-X, PoE, 48 port, SFP+)">
+          <button type="button" id="cisco-search-clear" class="cisco-search-clear-btn" style="display:none;">✕</button>
+        </div>
+
+        <div class="cisco-filter-pills" id="cisco-filter-pills">
+          <button type="button" class="cisco-pill active" data-filter="all">Tümü (<span class="pill-count" id="pill-count-all">0</span>)</button>
+          <button type="button" class="cisco-pill" data-filter="current">⚡ Güncel Satışta (Cat9K / 1K / Nexus)</button>
+          <button type="button" class="cisco-pill" data-filter="legacy">⏳ Yaygın Saha (2960 / 3850 / 3560)</button>
+          <button type="button" class="cisco-pill" data-filter="24p">24 Port Modeller</button>
+          <button type="button" class="cisco-pill" data-filter="48p">48 Port Modeller</button>
+          <button type="button" class="cisco-pill" data-filter="poe">⚡ PoE+ / UPOE</button>
+          <button type="button" class="cisco-pill" data-filter="fiber">💡 Fiber Omurga / SFP</button>
+          <button type="button" class="cisco-pill" data-filter="compact">📦 Kompakt (8-16 Port)</button>
+        </div>
+      </div>
+
+      <!-- Models Grid -->
+      <div class="cisco-modal-body">
+        <div class="cisco-cards-grid" id="cisco-cards-grid">
+          <!-- Dynamically populated by catalog-ui.js -->
+        </div>
+        <div class="cisco-empty-state" id="cisco-empty-state" style="display:none;">
+          <span style="font-size:32px;">🔍</span>
+          <p>Aramanızla eşleşen Cisco modeli bulunamadı.</p>
+          <button type="button" class="hud-btn" id="btn-cisco-reset-filters">Filtreleri Sıfırla</button>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="cisco-modal-footer">
+        <div class="cisco-footer-hint">
+          <span>💡 Donanımı kütüphanenize ekledikten sonra sol panelden sürükleyebilir veya <b>"Kabine Ekle"</b> ile ilk boş U yuvasına yerleştirebilirsiniz.</span>
+        </div>
+        <button type="button" class="hud-btn" id="btn-close-cisco-catalog-footer">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 2D WORKSPACE ==================== -->
   <div id="legacy-wrapper">
     <div id="legacy-root">
@@ -659,6 +719,10 @@
           <span class="rail-label">Favori</span>
         </button>
         <div class="rail-bottom-actions">
+          <button class="rail-btn rail-cisco-btn" id="rail-btn-cisco-catalog" title="Cisco Switch Kataloğu (Master Library)">
+            <span class="rail-icon">🏢</span>
+            <span class="rail-label">Cisco</span>
+          </button>
           <button class="rail-btn rail-add-btn" id="rail-btn-custom" data-action="custom" title="Özel Donanım Oluştur">
             <span class="rail-icon">➕</span>
             <span class="rail-label">Özel</span>
@@ -676,6 +740,16 @@
           </div>
           <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
             ◀
+          </button>
+        </div>
+
+        <!-- Cisco Master Catalog Launcher Bar -->
+        <div class="cisco-catalog-launcher-bar">
+          <button type="button" class="btn-cisco-master-catalog" id="btn-open-cisco-catalog" title="Cisco Switch Kataloğunu Aç (46 Model)">
+            <span class="cisco-launcher-badge">CISCO</span>
+            <span class="cisco-launcher-text">Cisco Switch Kataloğu</span>
+            <span class="cisco-launcher-count">46 Model</span>
+            <span class="cisco-launcher-arrow">➔</span>
           </button>
         </div>
 
@@ -1518,6 +1592,7 @@
   <!-- 2D Workspace Modular Scripts (Direct Browser Execution, Zero Bundler) -->
   <script src="js/2d/utils.js"></script>
   <script src="js/2d/catalog.js"></script>
+  <script src="js/2d/cisco-master-catalog.js"></script>
   <script src="js/2d/state.js"></script>
   <script src="js/2d/zoom-manager.js"></script>
   <script src="js/2d/rack-manager.js"></script>

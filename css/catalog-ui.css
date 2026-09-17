@@ -192,3 +192,527 @@
 
 .sidebar-left [hidden] { display: none !important; }
 .sidebar-left :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+
+/* ==========================================================================
+   CISCO MASTER CATALOG LAUNCHER & MODAL STYLING
+   ========================================================================== */
+
+/* Drawer Launcher Button */
+.cisco-catalog-launcher-bar {
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.btn-cisco-master-catalog {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.25) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 6px;
+  color: #f8fafc;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-cisco-master-catalog:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.45) 0%, rgba(14, 165, 233, 0.15) 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+}
+
+.cisco-launcher-badge {
+  background: #0284c7;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.cisco-launcher-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e0f2fe;
+}
+
+.cisco-launcher-count {
+  font-size: 0.65rem;
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.cisco-launcher-arrow {
+  color: #38bdf8;
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-cisco-master-catalog:hover .cisco-launcher-arrow {
+  transform: translateX(3px);
+}
+
+/* Activity Rail Cisco Button */
+.sidebar-activity-rail .rail-btn.rail-cisco-btn:hover,
+.sidebar-activity-rail .rail-btn.rail-cisco-btn.active {
+  color: #38bdf8;
+  border-left-color: #38bdf8;
+  background: rgba(2, 132, 199, 0.15);
+}
+
+/* Cisco Master Modal Container */
+.cisco-modal-container {
+  background: #0b1120;
+  border: 1px solid #0284c7;
+  border-radius: 14px;
+  width: 960px;
+  max-width: 94vw;
+  height: 86vh;
+  max-height: 840px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(2, 132, 199, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cisco-modal-header {
+  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  padding: 14px 20px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cisco-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cisco-brand-badge {
+  background: #0284c7;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);
+}
+
+.cisco-brand-titles h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.cisco-brand-titles p {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.cisco-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cisco-models-total-badge {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Toolbar & Filter Pills */
+.cisco-modal-toolbar {
+  padding: 12px 20px;
+  background: #090d16;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cisco-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cisco-search-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 13px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.cisco-search-box input[type="search"] {
+  width: 100%;
+  padding: 8px 34px 8px 34px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 13px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.cisco-search-box input[type="search"]:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+  outline: none;
+}
+
+.cisco-search-clear-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.cisco-search-clear-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.cisco-filter-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.cisco-filter-pills::-webkit-scrollbar {
+  height: 4px;
+}
+.cisco-filter-pills::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+
+.cisco-pill {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.cisco-pill:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.cisco-pill.active {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+}
+
+/* Cards Grid */
+.cisco-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  background: #070a12;
+}
+
+.cisco-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.cisco-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.cisco-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.15);
+  transform: translateY(-2px);
+}
+
+.cisco-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cisco-card-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.cisco-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.3;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cisco-card-tag {
+  font-size: 11px;
+  font-family: monospace;
+  color: #38bdf8;
+  margin-top: 2px;
+}
+
+.cisco-card-badges {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.badge-gen {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.badge-gen.current {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.badge-gen.legacy {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-u {
+  font-size: 9px;
+  font-weight: 800;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+/* Cisco Mini Bezel Preview */
+.cisco-card-bezel {
+  height: 22px;
+  background: #131c2e;
+  border: 1px solid #23354e;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 6px;
+  font-size: 9px;
+}
+
+.cisco-card-bezel .mini-bezel-ear {
+  width: 5px;
+  height: 14px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 2px;
+}
+
+.cisco-card-bezel .mini-cisco-text {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 9px;
+  color: #38bdf8;
+}
+
+.cisco-card-bezel .mini-bezel-ports-preview {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0.75;
+}
+
+.cisco-card-bezel .dot-port {
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: #38bdf8;
+}
+.cisco-card-bezel .dot-port.sfp {
+  background: #eab308;
+}
+
+/* Specs Strip */
+.cisco-card-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.spec-chip {
+  font-size: 10px;
+  background: #1e293b;
+  color: #cbd5e1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.spec-chip.poe {
+  color: #38bdf8;
+  background: rgba(2, 132, 199, 0.15);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+.spec-chip.uplink {
+  color: #a78bfa;
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(167, 139, 250, 0.25);
+}
+
+.cisco-card-desc {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Card Actions */
+.cisco-card-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-card-add-lib {
+  flex: 1;
+  padding: 6px 10px;
+  background: #0284c7;
+  border: 1px solid #38bdf8;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.btn-card-add-lib:hover {
+  background: #0ea5e9;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.btn-card-add-lib.added {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+  cursor: default;
+}
+
+.btn-card-mount-rack {
+  padding: 6px 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.btn-card-mount-rack:hover {
+  background: #334155;
+  color: #fff;
+  border-color: #64748b;
+}
+
+/* Empty State */
+.cisco-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Modal Footer */
+.cisco-modal-footer {
+  background: #090d16;
+  padding: 10px 20px;
+  border-top: 1px solid #1e293b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cisco-footer-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+.cisco-footer-hint b {
+  color: #38bdf8;
+}
+
