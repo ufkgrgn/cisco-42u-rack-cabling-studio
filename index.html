@@ -567,37 +567,68 @@
   <!-- Main Three-Pane Application -->
   <div class="workspace">
 
-    <!-- 1. LEFT SIDEBAR: Hardware Library (Collapsible Dock) -->
+    <!-- 1. LEFT SIDEBAR: Hardware Library (Activity Rail + Drawer - VS Code / CAD Style) -->
     <aside class="sidebar-left" id="sidebar-left">
-      <!-- Dock Header & Toggle Button -->
-      <div class="sidebar-dock-header">
-        <div class="sidebar-dock-brand">
-          <span class="dock-icon">🗄️</span>
-          <span class="dock-title">Donanım Kütüphanesi</span>
-        </div>
-        <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
-          ◀
+      <!-- Activity Rail (Vertical Category Icon Strip) -->
+      <nav class="sidebar-activity-rail" id="sidebar-activity-rail" aria-label="Donanım Kategori Şeridi">
+        <button class="rail-btn active" data-category="" title="Tüm Donanımlar">
+          <span class="rail-icon">🗄️</span>
+          <span class="rail-label">Tümü</span>
         </button>
-      </div>
-
-      <div class="panel-section">
-        <div class="section-title">
-          <span>Saha Donanım Kütüphanesi</span>
-          <span style="font-size:0.68rem; color:var(--accent-blue)">Cihaz Seç & U'ya Tıkla</span>
+        <button class="rail-btn" data-category="switch" title="Switchler (14)">
+          <span class="rail-icon">🔀</span>
+          <span class="rail-label">Switch</span>
+        </button>
+        <button class="rail-btn" data-category="router" title="WAN & Yönlendirici (1)">
+          <span class="rail-icon">🌐</span>
+          <span class="rail-label">Router</span>
+        </button>
+        <button class="rail-btn" data-category="patch" title="Patch Paneller (4)">
+          <span class="rail-icon">🔌</span>
+          <span class="rail-label">Patch</span>
+        </button>
+        <button class="rail-btn" data-category="organizer" title="Kablo Düzenleyiciler (4)">
+          <span class="rail-icon">🗜️</span>
+          <span class="rail-label">Org</span>
+        </button>
+        <button class="rail-btn" data-category="fiber" title="Fiber Dağıtım Panelleri (3)">
+          <span class="rail-icon">💡</span>
+          <span class="rail-label">Fiber</span>
+        </button>
+        <div class="rail-divider"></div>
+        <button class="rail-btn" id="rail-btn-fav" data-filter="favorites" title="Favori Donanımlar">
+          <span class="rail-icon star-icon">★</span>
+          <span class="rail-label">Favori</span>
+        </button>
+        <div class="rail-bottom-actions">
+          <button class="rail-btn rail-add-btn" id="rail-btn-custom" data-action="custom" title="Özel Donanım Oluştur">
+            <span class="rail-icon">➕</span>
+            <span class="rail-label">Özel</span>
+          </button>
         </div>
-        <p style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px;">
-          Listeden donanım seçin, ardından aktif kabin üzerindeki <b>U Seviyesine</b> tıklayarak monte edin.
-        </p>
-      </div>
+      </nav>
 
-      <!-- Quick Expand / Collapse Controls -->
-      <div class="sidebar-collapse-tools">
-        <button class="sidebar-tool-btn" id="btn-collapse-all" title="Tüm kategorileri daralt">🔽 Hepsini Daralt</button>
-        <button class="sidebar-tool-btn" id="btn-expand-all" title="Tüm kategorileri aç">🔼 Hepsini Aç</button>
-      </div>
+      <!-- Sidebar Drawer: Category Stream & Search -->
+      <div class="sidebar-drawer" id="sidebar-drawer">
+        <!-- Dock Header with Category Title, Count Badge and Collapse Button -->
+        <div class="sidebar-dock-header">
+          <div class="sidebar-dock-brand">
+            <span class="dock-category-title" id="drawer-category-title">TÜM DONANIMLAR</span>
+            <span class="dock-category-count" id="drawer-category-count">26</span>
+          </div>
+          <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
+            ◀
+          </button>
+        </div>
 
-      <!-- 1. WAN & ROUTER -->
-      <details class="panel-section collapsible-section" open>
+        <div class="drawer-hint">
+          <span>💡 Seç veya Kabin <b>U Seviyesine</b> sürükle</span>
+        </div>
+
+        <!-- Scrollable Cards Stream -->
+        <div class="sidebar-device-stream" id="sidebar-device-stream">
+          <!-- 1. WAN & ROUTER -->
+          <details class="panel-section collapsible-section" open>
         <summary class="section-title">
           <span>WAN & Yönlendirici (Router)</span>
           <span class="section-count-badge">1 Model</span>
@@ -1216,6 +1247,8 @@
           </div>
         </div>
       </details>
+        </div> <!-- /sidebar-device-stream -->
+      </div> <!-- /sidebar-drawer -->
     </aside>
 
     <!-- 2. CENTER AREA: 42U Rack Viewport (Scroll-Free Zoom & Pan Studio) -->
@@ -2140,6 +2173,7 @@
         window.dispatchEvent(new Event('resize'));
       }, 260);
     }
+    window.setLeftSidebarCollapsed = setLeftSidebarCollapsed;
     btnToggleLeft?.addEventListener('click', () => {
       const isCollapsed = sidebarLeft?.classList.contains('collapsed');
       setLeftSidebarCollapsed(!isCollapsed);

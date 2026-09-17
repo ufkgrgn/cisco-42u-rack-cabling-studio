@@ -1,63 +1,203 @@
-/* Left Sidebar: Hardware Library (Collapsible Dock) */
+/* Left Sidebar: Hardware Library (Activity Rail + Drawer - VS Code / CAD Style) */
 .sidebar-left {
-  width: 320px;
-  min-width: 320px;
+  width: 334px;
+  min-width: 334px;
   flex-shrink: 0;
   background-color: var(--bg-panel);
   border-right: 1px solid var(--border-color);
   display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
+  flex-direction: row;
+  overflow: hidden;
   transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   z-index: 10;
 }
 
 .sidebar-left.collapsed {
-  width: 52px;
-  min-width: 52px;
-  overflow: hidden;
+  width: 44px;
+  min-width: 44px;
 }
 
-.sidebar-left.collapsed .panel-section,
-.sidebar-left.collapsed .sidebar-collapse-tools,
-.sidebar-left.collapsed .catalog-tools {
+.sidebar-left.collapsed .sidebar-drawer {
   display: none !important;
 }
 
-/* Sidebar Dock Header & Toggle Button */
+/* Activity Rail (Vertical Category Icon Strip) */
+.sidebar-activity-rail {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 100%;
+  background: #080c14;
+  border-right: 1px solid #1a2333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 0 12px 0;
+  gap: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  z-index: 5;
+  user-select: none;
+}
+
+.rail-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.rail-btn:hover {
+  color: #f1f5f9;
+  background: #111827;
+  border-color: #1e293b;
+}
+
+.rail-btn.active {
+  color: #00d2ff;
+  background: rgba(0, 210, 255, 0.12);
+  border-color: rgba(0, 210, 255, 0.35);
+  box-shadow: inset 0 0 6px rgba(0, 210, 255, 0.15);
+}
+
+.rail-btn.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2.5px;
+  background: #00d2ff;
+  border-radius: 0 2px 2px 0;
+}
+
+.rail-btn .rail-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.rail-btn .rail-label {
+  font-size: 7px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.rail-btn .star-icon {
+  color: #eab308;
+}
+
+.rail-divider {
+  width: 24px;
+  height: 1px;
+  background: #1e293b;
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+.rail-bottom-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rail-add-btn {
+  color: #38bdf8;
+}
+.rail-add-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+/* Sidebar Drawer: Content, Header & Stream */
+.sidebar-drawer {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Sidebar Dock Header */
 .sidebar-dock-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  padding-top: 62px;
-  background: rgba(11, 15, 25, 0.7);
+  padding: 10px 12px;
+  padding-top: 56px;
+  background: rgba(11, 15, 25, 0.85);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  min-height: 44px;
+  min-height: 40px;
   flex-shrink: 0;
 }
 
 .sidebar-dock-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   overflow: hidden;
   white-space: nowrap;
 }
 
-.sidebar-dock-brand .dock-icon {
-  font-size: 1.1rem;
+.dock-category-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.dock-category-count {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #00d2ff;
+  background: rgba(0, 210, 255, 0.15);
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-family: ui-monospace, monospace;
+}
+
+.drawer-hint {
+  padding: 4px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid #1a2333;
+  font-size: 0.65rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
 }
 
-.sidebar-dock-brand .dock-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+.drawer-hint b {
+  color: #38bdf8;
+}
+
+.sidebar-device-stream {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 24px;
 }
 
 .sidebar-toggle-btn {
@@ -146,7 +286,7 @@ details.panel-section.collapsible-section {
 }
 
 details.collapsible-section summary.section-title {
-  padding: 11px 14px;
+  padding: 6px 10px;
   margin-bottom: 0;
   cursor: pointer;
   list-style: none;
@@ -154,13 +294,19 @@ details.collapsible-section summary.section-title {
   justify-content: space-between;
   align-items: center;
   user-select: none;
+  background: #090e18;
+  border-bottom: 1px solid #1a2333;
+  font-size: 0.68rem;
   transition: background 0.15s ease, color 0.15s ease;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 details.collapsible-section summary.section-title::-webkit-details-marker {
   display: none;
 }
 details.collapsible-section summary.section-title:hover {
-  background: rgba(56, 189, 248, 0.08);
+  background: rgba(56, 189, 248, 0.12);
   color: #fff;
 }
 

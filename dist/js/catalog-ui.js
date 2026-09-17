@@ -21,7 +21,18 @@
     const favoriteLabel = make('label', undefined, 'catalog-favorite-filter'); const favoriteOnly = make('input'); favoriteOnly.type = 'checkbox'; favoriteLabel.append(favoriteOnly, document.createTextNode(' Yalnızca favoriler'));
     const count = make('div', '', 'catalog-count'); count.setAttribute('aria-live', 'polite');
     toolbar.append(search, category, units, favoriteLabel, count);
-    sidebar.insertBefore(toolbar, sidebar.children[1] || null);
+
+    const drawer = sidebar.querySelector('.sidebar-drawer') || sidebar;
+    const stream = sidebar.querySelector('.sidebar-device-stream');
+    const hint = drawer.querySelector('.drawer-hint');
+    if (hint) {
+      drawer.insertBefore(toolbar, hint);
+    } else if (stream) {
+      drawer.insertBefore(toolbar, stream);
+    } else {
+      drawer.insertBefore(toolbar, drawer.children[1] || null);
+    }
+
     const customSection = make('section', undefined, 'panel-section catalog-custom');
     const details = make('details'); details.append(make('summary', '+ Özel donanım oluştur'));
     const form = make('form', undefined, 'catalog-custom-form');
@@ -33,6 +44,52 @@
     const submit = make('button', 'Kaydet ve seç'); submit.type = 'submit'; form.append(submit);
     const message = make('div', '', 'catalog-count'); message.setAttribute('role', 'status'); form.append(message); details.append(form);
     const customCards = make('div'); customSection.append(details, customCards); toolbar.after(customSection);
+
+    // Wire up Activity Rail (VS Code / CAD Icon Strip)
+    const railButtons = sidebar.querySelectorAll('.sidebar-activity-rail .rail-btn[data-category]');
+    const railFavBtn = document.getElementById('rail-btn-fav');
+    const railCustomBtn = document.getElementById('rail-btn-custom');
+    const drawerTitle = document.getElementById('drawer-category-title');
+    const drawerCount = document.getElementById('drawer-category-count');
+
+    function expandSidebarIfNeeded() {
+      if (sidebar.classList.contains('collapsed')) {
+        if (typeof window.setLeftSidebarCollapsed === 'function') {
+          window.setLeftSidebarCollapsed(false);
+        } else {
+          sidebar.classList.remove('collapsed');
+        }
+      }
+    }
+
+    railButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        expandSidebarIfNeeded();
+        const targetCategory = btn.dataset.category || '';
+        category.value = targetCategory;
+        favoriteOnly.checked = false;
+        category.dispatchEvent(new Event('change'));
+      });
+    });
+
+    if (railFavBtn) {
+      railFavBtn.addEventListener('click', () => {
+        expandSidebarIfNeeded();
+        favoriteOnly.checked = !favoriteOnly.checked;
+        favoriteOnly.dispatchEvent(new Event('change'));
+      });
+    }
+
+    if (railCustomBtn) {
+      railCustomBtn.addEventListener('click', () => {
+        expandSidebarIfNeeded();
+        details.open = !details.open;
+        if (details.open) {
+          name.focus();
+        }
+      });
+    }
+
     const status = document.getElementById('status-selection-text');
     function selectCustom(key) {
       api.STATE.selectedLibraryItem = api.STATE.selectedLibraryItem === key ? null : key;
@@ -71,6 +128,41 @@
       });
       sidebar.querySelectorAll('.panel-section').forEach(section => { if (section === toolbar || section === customSection) return; const cards = [...section.querySelectorAll('.device-card')]; if (cards.length) section.hidden = cards.every(card => card.hidden); });
       count.textContent = `${visible} / ${total} donanım${visible ? '' : ' — filtreleri değiştirin'}`;
+
+      // Update Activity Rail and Drawer UI state
+      const currentCat = category.value || '';
+      railButtons.forEach(btn => {
+        const cat = btn.dataset.category || '';
+        btn.classList.toggle('active', cat === currentCat && !favoriteOnly.checked);
+      });
+
+      if (railFavBtn) {
+        railFavBtn.classList.toggle('active', !!favoriteOnly.checked);
+      }
+
+      if (drawerTitle) {
+        if (favoriteOnly.checked) {
+          drawerTitle.textContent = 'FAVORİ DONANIMLAR';
+        } else if (currentCat === 'switch' || currentCat === 'fiber-switch') {
+          drawerTitle.textContent = 'SWITCHLER';
+        } else if (currentCat === 'router') {
+          drawerTitle.textContent = 'ROUTER & WAN';
+        } else if (currentCat === 'patch') {
+          drawerTitle.textContent = 'PATCH PANELLER';
+        } else if (currentCat === 'organizer') {
+          drawerTitle.textContent = 'KABLO DÜZENLEME';
+        } else if (currentCat === 'fiber') {
+          drawerTitle.textContent = 'FİBER DAĞITIM';
+        } else if (currentCat === 'custom') {
+          drawerTitle.textContent = 'ÖZEL DONANIMLAR';
+        } else {
+          drawerTitle.textContent = 'TÜM DONANIMLAR';
+        }
+      }
+
+      if (drawerCount) {
+        drawerCount.textContent = String(visible);
+      }
     }
     let signature = '';
     function restore() {
