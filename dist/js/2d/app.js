@@ -1,24 +1,48 @@
 /**
- * Cisco Enterprise 42U Rack & Cabling Studio - Application Main Coordinator
+ * Cisco Enterprise Rack & Cabling Studio - Main Application Bootstrap Coordinator
  */
-import { HARDWARE_CATALOG } from './catalogData.js';
-import { STATE, ZOOM_STATE, dom, initDomReferences } from './state.js';
-import { renderRackTabs, switchActiveRack, addNewRack } from './rackManager.js';
-import { 
-  renderAllCables, cancelPendingConnection, addDirectCable, 
-  highlightCable, disconnectCable, showCableQuickHud, hideCableQuickHud,
-  highlightDropSlots 
-} from './cablingEngine.js';
-import { 
-  getActiveRack, renderRackRailsAndSlots, renderMountedDevices, 
-  mountDeviceAt, removeDevice, updateDeviceMetadata 
-} from './rackRenderer.js';
-import { fitRackToScreen, setZoom, bindZoomAndPanEvents } from './zoomManager.js';
-import { renderScheduleTable, setConnectionRole } from './scheduleTable.js';
-import { exportVisioSvg, exportJson, validateTopology, refresh, loadCustomTopology } from './topologyIO.js';
-import { loadMdfPreset, loadIdfPreset, loadFullSitePreset } from './presets.js';
+(function () {
+  'use strict';
 
-// --- APPLICATION MAIN WORKFLOW ---
+  const RS = window.RackStudio = window.RackStudio || {};
+
+  const STATE = RS.STATE;
+  const dom = RS.dom;
+  const HARDWARE_CATALOG = RS.HARDWARE_CATALOG;
+  const ZOOM_STATE = RS.ZOOM_STATE;
+
+  const initDomReferences = () => RS.initDomReferences && RS.initDomReferences();
+  const getActiveRack = () => RS.getActiveRack();
+  const renderRackRailsAndSlots = (cb) => RS.renderRackRailsAndSlots && RS.renderRackRailsAndSlots(cb);
+  const renderRackTabs = () => RS.renderRackTabs && RS.renderRackTabs();
+  const switchActiveRack = (...args) => RS.switchActiveRack && RS.switchActiveRack(...args);
+  const addNewRack = (...args) => RS.addNewRack && RS.addNewRack(...args);
+  const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
+  const mountDeviceAt = (...args) => RS.mountDeviceAt && RS.mountDeviceAt(...args);
+  const removeDevice = (...args) => RS.removeDevice && RS.removeDevice(...args);
+  const updateDeviceMetadata = (...args) => RS.updateDeviceMetadata && RS.updateDeviceMetadata(...args);
+  const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
+  const cancelPendingConnection = () => RS.cancelPendingConnection && RS.cancelPendingConnection();
+  const addDirectCable = (...args) => RS.addDirectCable && RS.addDirectCable(...args);
+  const highlightCable = (...args) => RS.highlightCable && RS.highlightCable(...args);
+  const disconnectCable = (...args) => RS.disconnectCable && RS.disconnectCable(...args);
+  const showCableQuickHud = (...args) => RS.showCableQuickHud && RS.showCableQuickHud(...args);
+  const hideCableQuickHud = (...args) => RS.hideCableQuickHud && RS.hideCableQuickHud(...args);
+  const highlightDropSlots = (...args) => RS.highlightDropSlots && RS.highlightDropSlots(...args);
+  const fitRackToScreen = (smooth) => RS.fitRackToScreen && RS.fitRackToScreen(smooth);
+  const setZoom = (...args) => RS.setZoom && RS.setZoom(...args);
+  const bindZoomAndPanEvents = () => RS.bindZoomAndPanEvents && RS.bindZoomAndPanEvents();
+  const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
+  const setConnectionRole = (...args) => RS.setConnectionRole && RS.setConnectionRole(...args);
+  const exportVisioSvg = () => RS.exportVisioSvg && RS.exportVisioSvg();
+  const exportJson = () => RS.exportJson && RS.exportJson();
+  const validateTopology = (d) => RS.validateTopology && RS.validateTopology(d);
+  const refresh = () => RS.refresh && RS.refresh();
+  const loadCustomTopology = (d) => RS.loadCustomTopology && RS.loadCustomTopology(d);
+  const loadMdfPreset = () => RS.loadMdfPreset && RS.loadMdfPreset();
+  const loadIdfPreset = () => RS.loadIdfPreset && RS.loadIdfPreset();
+  const loadFullSitePreset = () => RS.loadFullSitePreset && RS.loadFullSitePreset();
+
   function init() {
     initDomReferences();
     renderRackRailsAndSlots(handleSlotClick);
@@ -360,11 +384,11 @@ import { loadMdfPreset, loadIdfPreset, loadFullSitePreset } from './presets.js';
         if (connectedCable) {
           connectedCable.color = resolvedColor;
           connectedCable.role = role;
-          if (role === 'trunk' && !connectedCable.name.startsWith('[TRUNK]')) {
-            connectedCable.name = `[TRUNK] ${connectedCable.id}`;
-          } else if (role !== 'trunk') {
-            connectedCable.name = (connectedCable.name || '').replace(/^\[TRUNK\]\s*/i, '');
-          }
+          const rolePrefixes = { trunk: '[TRUNK]', uplink: '[UPLINK]', poe: '[POE]', mgmt: '[MGMT]', management: '[MGMT]' };
+          const prefix = rolePrefixes[role] ? rolePrefixes[role] + ' ' : '';
+          const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT)\]\s*/i, '');
+          connectedCable.name = prefix + cleanName;
+
           const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
           let otherDev = null;
           (STATE.racks || []).forEach(r => {
@@ -376,6 +400,9 @@ import { loadMdfPreset, loadIdfPreset, loadFullSitePreset } from './presets.js';
               role: role,
               isTrunk: role === 'trunk' || config.isTrunk === true,
               color: resolvedColor,
+              vlan: config.vlan || '',
+              description: config.description || '',
+              ciscoName: config.ciscoName || '',
               autoCableColor: true
             };
             otherDev.portsConfig[String(otherEndpoint.portId).replace('p','')] = otherDev.portsConfig[otherEndpoint.portId];
@@ -390,33 +417,10 @@ import { loadMdfPreset, loadIdfPreset, loadFullSitePreset } from './presets.js';
     return true;
   }
 
-  window.RackStudio = {
-    STATE,
-    catalog: HARDWARE_CATALOG,
-    getActiveRack,
-    refresh,
-    renderAllCables,
-    renderMountedDevices,
-    renderScheduleTable,
-    setConnectionRole,
-    fit: fitRackToScreen,
-    mountDeviceAt,
-    mountDeviceFromAction,
-    setViewMode,
-    loadCustomTopology,
-    validateTopology,
-    exportJson,
-    exportVisioSvg,
-    switchActiveRack,
-    addNewRack,
-    removeDevice,
-    updateDeviceMetadata,
-    updatePortConfig,
-    highlightCable,
-    disconnectCable,
-    showCableQuickHud,
-    hideCableQuickHud
-  };
+  // Populate public API on window.RackStudio
+  RS.mountDeviceFromAction = mountDeviceFromAction;
+  RS.setViewMode = setViewMode;
+  RS.updatePortConfig = updatePortConfig;
 
   // Automatic init on DOM ready or immediate if already loaded
   if (document.readyState === 'loading') {
@@ -424,3 +428,4 @@ import { loadMdfPreset, loadIdfPreset, loadFullSitePreset } from './presets.js';
   } else {
     init();
   }
+})();

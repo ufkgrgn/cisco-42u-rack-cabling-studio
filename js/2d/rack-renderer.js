@@ -24,6 +24,7 @@
   const switchActiveRack = (...args) => RS.switchActiveRack && RS.switchActiveRack(...args);
   const initDomReferences = () => RS.initDomReferences && RS.initDomReferences();
   const portKey = (instanceId, portId) => (RS.portKey ? RS.portKey(instanceId, portId) : JSON.stringify([instanceId, portId]));
+  const getNextCableId = () => (RS.getNextCableId ? RS.getNextCableId() : 'cable-' + Date.now());
   let occupiedPortKeys = new Set();
 
 function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
@@ -53,11 +54,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   slot.className = 'rack-slot';
   slot.dataset.u = u;
   slot.dataset.rackId = rack.id;
-  if (isSingleOrActive) {
-    slot.id = `rack-slot-u${u}`;
-  } else {
-    slot.id = `rack-${rack.id}-slot-u${u}`;
-  }
+  slot.id = isSingleOrActive ? `rack-slot-u${u}` : `rack-${rack.id}-slot-u${u}`;
 
   // Single click: informs the user without mounting (prevents accidental placement during pan/click)
   slot.addEventListener('click', (e) => {
@@ -122,49 +119,28 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
     if (!isMulti) {
       // SINGLE RACK FOCUS MODE
-      let container = document.getElementById('rack-container');
-      if (!container) {
-        rackStage.innerHTML = `
-          <div class="rack-container" id="rack-container">
-            <div class="rack-rail left" id="rail-left"></div>
-            <div class="rack-main-space" id="rack-space"></div>
-            <div class="rack-rail right" id="rail-right"></div>
-            <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 1344" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
-                </filter>
-              </defs>
-              <g id="cables-group"></g>
-              <g id="connectors-group"></g>
-              <g id="dring-overlay-group"></g>
-            </svg>
-          </div>
-        `;
-        initDomReferences();
-      } else {
-        rackStage.querySelectorAll('.rack-container').forEach(c => {
-          if (c !== container) c.remove();
-        });
-        container.classList.remove('active-rack-target');
-        const existingPlate = container.querySelector('.rack-header-plate');
-        if (existingPlate) existingPlate.remove();
+      const activeRack = getActiveRack() || STATE.racks?.[0];
+      const heightU = activeRack?.heightU || 42;
 
-        const svg = document.getElementById('cables-svg');
-        if (svg && svg.parentElement !== container) {
-          container.appendChild(svg);
-        }
-      }
-
+      rackStage.innerHTML = `
+        <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
+          <div class="rack-rail left" id="rail-left"></div>
+          <div class="rack-main-space" id="rack-space"></div>
+          <div class="rack-rail right" id="rail-right"></div>
+          <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+              </filter>
+            </defs>
+            <g id="cables-group"></g>
+            <g id="connectors-group"></g>
+            <g id="dring-overlay-group"></g>
+          </svg>
+        </div>
+      `;
       initDomReferences();
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
-      dom.railLeft.innerHTML = '';
-      dom.railRight.innerHTML = '';
-      dom.rackSpace.innerHTML = '';
-
-      const activeRack = getActiveRack();
-      const heightU = activeRack?.heightU || 42;
-      if (dom.cablesSvg) dom.cablesSvg.setAttribute("viewBox", `0 0 618 ${heightU * 32}`);
 
       for (let u = heightU; u >= 1; u--) {
         const { leftU, rightU, slot } = createRackUnitAndSlot(activeRack, u, clickHandler, true);
@@ -174,42 +150,36 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       }
     } else {
       // MULTI-RACK (SIDE-BY-SIDE) MODE
-      rackStage.querySelectorAll('.rack-container').forEach(c => c.remove());
-
-      let svg = document.getElementById('cables-svg');
-      if (!svg) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('class', 'cables-svg-layer');
-        svg.setAttribute('id', 'cables-svg');
-        svg.innerHTML = `
-          <defs>
-            <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
-            </filter>
-          </defs>
-          <g id="cables-group"></g>
-          <g id="connectors-group"></g>
-          <g id="dring-overlay-group"></g>
-        `;
-      }
-      rackStage.appendChild(svg);
+      rackStage.innerHTML = '';
 
       const numRacks = STATE.racks.length;
       const maxU = Math.max(...STATE.racks.map(r => r.heightU || 42));
       const baseW = numRacks * 634 + (numRacks - 1) * 64 + 120;
       const baseH = maxU * 32 + 156;
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'cables-svg-layer');
+      svg.setAttribute('id', 'cables-svg');
+      svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('viewBox', `0 0 ${baseW} ${baseH}`);
+      svg.innerHTML = `
+        <defs>
+          <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
+          </filter>
+        </defs>
+        <g id="cables-group"></g>
+        <g id="connectors-group"></g>
+        <g id="dring-overlay-group"></g>
+      `;
+      rackStage.appendChild(svg);
 
       STATE.racks.forEach((rack) => {
         const isAct = rack.id === STATE.activeRackId;
         const cont = document.createElement('div');
         cont.className = `rack-container ${isAct ? 'active-rack-target' : ''}`;
         cont.dataset.rackId = rack.id;
-        if (isAct) {
-          cont.id = 'rack-container';
-        } else {
-          cont.id = `rack-container-${rack.id}`;
-        }
+        cont.id = `rack-container-${rack.id}`;
 
         const headerPlate = document.createElement('div');
         headerPlate.className = 'rack-header-plate';
@@ -232,25 +202,22 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
         const railL = document.createElement('div');
         railL.className = 'rack-rail left';
-        if (isAct) railL.id = 'rail-left';
-        else railL.id = `rail-left-${rack.id}`;
+        railL.id = `rack-${rack.id}-rail-left`;
         cont.appendChild(railL);
 
         const space = document.createElement('div');
         space.className = 'rack-main-space';
-        if (isAct) space.id = 'rack-space';
-        else space.id = `rack-space-${rack.id}`;
+        space.id = `rack-${rack.id}-space`;
         cont.appendChild(space);
 
         const railR = document.createElement('div');
         railR.className = 'rack-rail right';
-        if (isAct) railR.id = 'rail-right';
-        else railR.id = `rail-right-${rack.id}`;
+        railR.id = `rack-${rack.id}-rail-right`;
         cont.appendChild(railR);
 
         const rHeightU = rack.heightU || 42;
         for (let u = rHeightU; u >= 1; u--) {
-          const { leftU, rightU, slot } = createRackUnitAndSlot(rack, u, clickHandler, isAct);
+          const { leftU, rightU, slot } = createRackUnitAndSlot(rack, u, clickHandler, false);
           railL.appendChild(leftU);
           railR.appendChild(rightU);
           space.appendChild(slot);
@@ -350,14 +317,10 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         const cat = HARDWARE_CATALOG[dev.catalogKey];
         if (!cat) return;
 
-        // Find the slot element for this device - in multi mode, use rack-specific slot IDs
-        const isActiveRack = rack.id === STATE.activeRackId;
-        let slotEl = null;
-        if (isActiveRack || !isMulti) {
-          slotEl = document.getElementById(`rack-slot-u${dev.topU}`);
-        } else {
-          slotEl = document.getElementById(`rack-${rack.id}-slot-u${dev.topU}`);
-        }
+        // Find the slot element for this device
+        let slotEl = isMulti
+          ? document.getElementById(`rack-${rack.id}-slot-u${dev.topU}`)
+          : document.getElementById(`rack-slot-u${dev.topU}`);
         if (!slotEl) return;
 
         const devEl = document.createElement('div');
@@ -384,7 +347,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             if (e.target.closest('.port, .del-device-btn')) return;
             window.DeviceMetadataEditor?.open2D(dev.instanceId);
           });
-          devEl.querySelector('.bezel-badge')?.addEventListener('click', (e) => {
+          const bezel = devEl.querySelector('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
+          bezel?.addEventListener('click', (e) => {
             e.stopPropagation();
             window.DeviceMetadataEditor?.open2D(dev.instanceId);
           });
@@ -526,11 +490,11 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
       const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : 'cisco-port-bay');
 
-      let patchStrip = '';
+      let bayHeader = '';
       if (isPatchPanel && groupPorts.length > 0) {
         const firstPortName = groupPorts[0]?.name || '1';
         const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
-        patchStrip = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+        bayHeader = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
       }
 
       if (isTwoRows) {
@@ -539,7 +503,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
         portsHtml += `
           <div class="port-group ${bayClass}">
-            ${patchStrip}
+            ${bayHeader}
             <div class="port-row">
               ${row0.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>
@@ -551,7 +515,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       } else {
         portsHtml += `
           <div class="port-group ${bayClass}">
-            ${patchStrip}
+            ${bayHeader}
             <div class="port-row">
               ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>
@@ -562,13 +526,24 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
     let leftSection = '';
     if (isCisco) {
-      // Option A: Integrated Compact Cisco Bezel (~74px width, zero overflow)
+      // Series-specific Bezel styling & signature LEDs
+      const seriesKey = cat.series || (
+        cat.modelTag?.includes('9300') || cat.modelTag?.includes('9200') || cat.modelTag?.includes('9500') ? 'cat9k' :
+        cat.modelTag?.includes('2960-X') || cat.modelTag?.includes('2960X') ? 'cat2960x' :
+        cat.modelTag?.includes('2960') ? 'cat2960' :
+        cat.modelTag?.includes('N9K') || cat.modelTag?.includes('Nexus') ? 'nexus' :
+        cat.modelTag?.includes('ISR') ? 'isr' : ''
+      );
+      const bezelClass = seriesKey ? `bezel-${seriesKey}` : '';
+      const beaconHtml = (seriesKey === 'cat9k') ? '<span class="cisco-beacon-led" title="Cisco Blue Locator Beacon (Cat9K Signature)"></span>' : '';
+
       const modelText = cat.modelTag || cat.name || 'Cisco';
       leftSection = `
-        <div class="cisco-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, 'Cisco Catalyst Managed Switch'].filter(Boolean).join(' · '))}">
+        <div class="cisco-integrated-bezel ${bezelClass}" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, 'Cisco Catalyst Managed Switch'].filter(Boolean).join(' · '))}">
           <div class="cisco-bezel-top">
             <span class="cisco-brand-logo">CISCO</span>
             <div class="cisco-bezel-leds">
+              ${beaconHtml}
               <span class="cisco-mini-mode" title="Mode Button"></span>
               <span class="cisco-mini-led" title="SYST: Normal"><i></i></span>
               <span class="cisco-mini-led" title="STAT: Active"><i></i></span>
@@ -646,8 +621,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     }
 
     const isConnected = occupiedPortKeys.has(portKey(instanceId, port.id));
-    const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
-    const dev = activeRack && activeRack.devices.find(d => d.instanceId === instanceId);
+    const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
+    const dev = allDevices.find(d => d.instanceId === instanceId);
     const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
 
     let specialClass = '';
@@ -659,23 +634,31 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const customColor = portCfg.color;
 
       if (role === 'trunk' || portCfg.isTrunk) {
-        const color = customColor || '#a855f7';
+        const color = customColor || '#7c3aed';
         specialClass = 'port-special port-trunk';
         specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --trunk-color: ${color}; --port-badge-text: 'T';"`;
       } else if (role === 'uplink') {
         const color = customColor || '#00d2ff';
         specialClass = 'port-special port-uplink';
         specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '▲';"`;
+      } else if (role === 'trunk-ap') {
+        const color = customColor || '#ec4899';
+        specialClass = 'port-special port-trunk-ap';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'W';"`;
+      } else if (role === 'routed') {
+        const color = customColor || '#b91c1c';
+        specialClass = 'port-special port-routed';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'R';"`;
       } else if (role === 'poe') {
         const color = customColor || '#f59e0b';
         specialClass = 'port-special port-poe';
         specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '⚡';"`;
       } else if (role === 'management' || role === 'mgmt') {
-        const color = customColor || '#10b981';
+        const color = customColor || '#059669';
         specialClass = 'port-special port-mgmt';
         specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'M';"`;
       } else if (hasVlan || (role === 'access' && hasVlan)) {
-        const color = customColor || '#3b82f6';
+        const color = customColor || '#38bdf8';
         const vlanLabel = String(portCfg.vlan).trim().split(/[, ]+/)[0];
         const badgeText = vlanLabel ? `V${vlanLabel.slice(0, 3)}` : 'V';
         specialClass = 'port-special port-vlan';
@@ -683,6 +666,10 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       } else if (customColor) {
         specialClass = 'port-special';
         specialStyle = `style="--port-role-color: ${customColor}; --custom-color: ${customColor}; --port-badge-text: '●';"`;
+      }
+
+      if (portCfg.poeState === 'never') {
+        specialClass += ' port-poe-disabled';
       }
     }
 
@@ -793,10 +780,24 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     if (dom.tooltip) {
       const rect = portEl.getBoundingClientRect();
       dom.tooltip.style.display = 'block';
-      dom.tooltip.style.left = `${rect.right + 10}px`;
-      dom.tooltip.style.top = `${rect.top - 5}px`;
-      const trunkBadge = isTrunk ? `<div style="color:${trunkColor}; font-weight:bold; font-size:10px;">⚡ 802.1Q TRUNK</div>` : '';
-      dom.tooltip.innerHTML = `<b>${escapeHtml(cat.modelTag)}</b> &bull; ${escapeHtml(portName)}${trunkBadge}<br><span style="color:#94a3b8; font-size:0.68rem;">${escapeHtml(portSpeed)}</span><br><span style="color:#38bdf8; font-size:0.65rem;">Ayarlar: <b>Sağ Tık / Shift+Tık</b></span>`;
+      dom.tooltip.style.left = `${rect.right + 12}px`;
+      dom.tooltip.style.top = `${rect.top - 6}px`;
+      const trunkBadge = isTrunk ? `<span style="background:${trunkColor}; color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:2px; margin-left:6px;">802.1Q TRUNK</span>` : '';
+      const vlanInfo = portCfg?.vlan ? `<div style="color:#38bdf8; font-size:0.68rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
+      const connInfo = connectedCable ? `<div style="color:#22c55e; font-size:0.68rem; margin-top:3px;">🔗 ${connectionInfo}</div>` : `<div style="color:#64748b; font-size:0.68rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
+      
+      dom.tooltip.innerHTML = `
+        <div style="font-weight:800; font-size:0.75rem; color:#f8fafc; border-bottom:1px solid #334155; padding-bottom:3px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
+          <span>${escapeHtml(cat.modelTag || cat.name)}</span>
+          <span style="color:#38bdf8; font-family:monospace; font-size:0.75rem;">${escapeHtml(portName)}</span>
+          ${trunkBadge}
+        </div>
+        <div style="color:#cbd5e1; font-size:0.68rem;">⚡ <b>Hız:</b> ${escapeHtml(portSpeed)}</div>
+        <div style="color:#94a3b8; font-size:0.66rem;">🔌 <b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
+        ${vlanInfo}
+        ${connInfo}
+        <div style="color:#0ea5e9; font-size:0.63rem; margin-top:4px; border-top:1px dashed #1e293b; padding-top:2px;">⚙️ Sağ Tık / Shift+Tık: <i>Port Yapılandırması</i></div>
+      `;
     }
   }
 
@@ -870,24 +871,126 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const isInterRack = source.rackId !== devRack.id;
       const cableId = getNextCableId();
 
-      // Check trunk role and color inheritance
+      // Find source and target devices
       const sourceDev = STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId);
       const targetDev = devRack.devices?.find(d => d.instanceId === instanceId);
-      const sourcePortCfg = sourceDev?.portsConfig && (sourceDev.portsConfig[source.portId] || sourceDev.portsConfig[source.portId.replace('p', '')]);
-      const targetPortCfg = targetDev?.portsConfig && (targetDev.portsConfig[portId] || targetDev.portsConfig[portId.replace('p', '')]);
-      const isTrunkLink = (sourcePortCfg && sourcePortCfg.isTrunk) || (targetPortCfg && targetPortCfg.isTrunk);
-      const trunkColor = (sourcePortCfg && sourcePortCfg.isTrunk && sourcePortCfg.color) || (targetPortCfg && targetPortCfg.isTrunk && targetPortCfg.color) || '#a855f7';
-      const effectiveCableColor = (isTrunkLink && ((sourcePortCfg && sourcePortCfg.autoCableColor !== false) || (targetPortCfg && targetPortCfg.autoCableColor !== false))) ? trunkColor : STATE.selectedCableColor;
-      const trunkPrefix = isTrunkLink ? '[TRUNK] ' : '';
+
+      const getCfg = (dev, pId) => {
+        if (!dev || !dev.portsConfig || !pId) return null;
+        const strId = String(pId);
+        const numId = strId.replace(/^p/i, '');
+        return dev.portsConfig[strId] || dev.portsConfig[numId] || null;
+      };
+
+      const sourcePortCfg = getCfg(sourceDev, source.portId);
+      const targetPortCfg = getCfg(targetDev, portId);
+
+      const ROLE_DEFAULT_COLORS = {
+        trunk: '#7c3aed',
+        uplink: '#00d2ff',
+        'trunk-ap': '#ec4899',
+        routed: '#b91c1c',
+        mgmt: '#059669',
+        management: '#059669',
+        access: '#38bdf8',
+        poe: '#f59e0b'
+      };
+
+      // Check if source or target port is marked/configured
+      const isSourceConfigured = Boolean(sourcePortCfg && (sourcePortCfg.color || sourcePortCfg.role || sourcePortCfg.isTrunk || sourcePortCfg.vlan || sourcePortCfg.description));
+      const isTargetConfigured = Boolean(targetPortCfg && (targetPortCfg.color || targetPortCfg.role || targetPortCfg.isTrunk || targetPortCfg.vlan || targetPortCfg.description));
+
+      let effectiveRole = 'standard';
+      let effectiveColor = STATE.selectedCableColor;
+      let isTrunk = false;
+
+      if (isSourceConfigured && !isTargetConfigured) {
+        // Master is source: target inherits configuration, marking, and cable color
+        effectiveRole = sourcePortCfg.role || (sourcePortCfg.isTrunk ? 'trunk' : 'access');
+        isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!sourcePortCfg.isTrunk;
+        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+
+        if (targetDev) {
+          if (!targetDev.portsConfig) targetDev.portsConfig = {};
+          const inheritedCfg = {
+            role: effectiveRole,
+            isTrunk: isTrunk,
+            poeState: sourcePortCfg.poeState || 'auto',
+            color: effectiveColor,
+            vlan: sourcePortCfg.vlan || '',
+            description: sourcePortCfg.description || '',
+            ciscoName: sourcePortCfg.ciscoName || '',
+            autoCableColor: sourcePortCfg.autoCableColor !== false
+          };
+          targetDev.portsConfig[portId] = inheritedCfg;
+          targetDev.portsConfig[String(portId).replace(/^p/i, '')] = inheritedCfg;
+        }
+      } else if (!isSourceConfigured && isTargetConfigured) {
+        // Master is target: source inherits configuration, marking, and cable color
+        effectiveRole = targetPortCfg.role || (targetPortCfg.isTrunk ? 'trunk' : 'access');
+        isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!targetPortCfg.isTrunk;
+        effectiveColor = targetPortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+
+        if (sourceDev) {
+          if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
+          const inheritedCfg = {
+            role: effectiveRole,
+            isTrunk: isTrunk,
+            poeState: targetPortCfg.poeState || 'auto',
+            color: effectiveColor,
+            vlan: targetPortCfg.vlan || '',
+            description: targetPortCfg.description || '',
+            ciscoName: targetPortCfg.ciscoName || '',
+            autoCableColor: targetPortCfg.autoCableColor !== false
+          };
+          sourceDev.portsConfig[source.portId] = inheritedCfg;
+          sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = inheritedCfg;
+        }
+      } else if (isSourceConfigured && isTargetConfigured) {
+        // Both already configured: prioritize source for cable attributes
+        effectiveRole = sourcePortCfg.role || (sourcePortCfg.isTrunk ? 'trunk' : 'standard');
+        isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!sourcePortCfg.isTrunk;
+        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+      } else {
+        effectiveRole = 'standard';
+        effectiveColor = STATE.selectedCableColor;
+      }
+
+      let rolePrefix = '';
+      if (effectiveRole === 'trunk') rolePrefix = '[TRUNK] ';
+      else if (effectiveRole === 'uplink') rolePrefix = '[UPLINK] ';
+      else if (effectiveRole === 'trunk-ap') rolePrefix = '[AP-TRUNK] ';
+      else if (effectiveRole === 'routed') rolePrefix = '[ROUTED] ';
+      else if (effectiveRole === 'poe') rolePrefix = '[POE] ';
+      else if (effectiveRole === 'mgmt' || effectiveRole === 'management') rolePrefix = '[MGMT] ';
+      else if (isTrunk) rolePrefix = '[TRUNK] ';
 
       const newCable = {
         id: cableId,
-        name: trunkPrefix + cableId,
+        name: rolePrefix + cableId,
+        role: effectiveRole,
         from: { rackId: source.rackId, instanceId: source.instanceId, portId: source.portId },
         to: { rackId: devRack.id, instanceId, portId },
-        color: effectiveCableColor,
+        color: effectiveColor,
         lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId, isInterRack)
       };
+
+      // Sync to 3D engine if active
+      if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+        try {
+          const pIdxSrc = parseInt(String(source.portId).replace(/^p/i, ''), 10) || 1;
+          const pIdxTgt = parseInt(String(portId).replace(/^p/i, ''), 10) || 1;
+          const dev3DSrc = sourceDev?.id || sourceDev?.instanceId;
+          const dev3DTgt = targetDev?.id || targetDev?.instanceId;
+          if (isSourceConfigured && !isTargetConfigured && dev3DTgt) {
+            window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
+          } else if (!isSourceConfigured && isTargetConfigured && dev3DSrc) {
+            window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
+          }
+        } catch (e) {
+          console.warn('3D port sync warning:', e);
+        }
+      }
 
       STATE.cables.push(newCable);
       cancelPendingConnection();
@@ -895,6 +998,11 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       renderMountedDevices();
       renderScheduleTable();
       renderAllCables();
+
+      if (typeof window.sync2Dto3D === 'function') {
+        window.sync2Dto3D();
+      }
+      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     }
   }
 

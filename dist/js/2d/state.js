@@ -1,10 +1,12 @@
 /**
- * Multi-Rack Application State & DOM References
+ * Cisco Enterprise Rack & Cabling Studio - Multi-Rack State & DOM References
  */
-import { HARDWARE_CATALOG, BUILTIN_KEYS } from './catalogData.js';
-import { escapeHtml } from './utils.js';
+(function () {
+  'use strict';
 
-// --- MULTI-RACK APPLICATION STATE ---
+  const RS = window.RackStudio = window.RackStudio || {};
+
+  // --- MULTI-RACK APPLICATION STATE ---
   const STATE = {
     customCatalog: {},
     racks: [
@@ -23,7 +25,7 @@ import { escapeHtml } from './utils.js';
     selectedLibraryItem: null,
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
-    viewMode: 'multi', // 'multi' (side-by-side all racks) or 'single' (focused on active rack)
+    viewMode: 'single', // 'single' (focused on active rack) or 'multi' (side-by-side all racks)
     pendingConnection: null, // { rackId, instanceId, portId, element }
     highlightedCableId: null
   };
@@ -140,4 +142,9 @@ import { escapeHtml } from './utils.js';
     dom.btnViewModeMulti = document.getElementById('btn-view-mode-multi');
   }
 
-export { STATE, getActiveRack, ZOOM_STATE, dom, initDomReferences };
+  RS.STATE = STATE;
+  RS.ZOOM_STATE = ZOOM_STATE;
+  RS.dom = dom;
+  RS.initDomReferences = initDomReferences;
+  RS.getActiveRack = getActiveRack;
+})();

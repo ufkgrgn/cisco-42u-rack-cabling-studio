@@ -976,16 +976,62 @@ import { StudioState } from './state3d.js';
 
       const portCfgFrom = (devFrom && devFrom.portsConfig && (devFrom.portsConfig[from.portIdx] || devFrom.portsConfig['p' + from.portIdx])) || null;
       const portCfgTo = (devTo && devTo.portsConfig && (devTo.portsConfig[to.portIdx] || devTo.portsConfig['p' + to.portIdx])) || null;
-      const trunkPortCfg = (portCfgFrom && portCfgFrom.isTrunk && portCfgFrom) || (portCfgTo && portCfgTo.isTrunk && portCfgTo);
-      const isTrunk = !!trunkPortCfg;
+
+      const isFromConfigured = Boolean(portCfgFrom && (portCfgFrom.color || portCfgFrom.role || portCfgFrom.isTrunk || portCfgFrom.vlan));
+      const isToConfigured = Boolean(portCfgTo && (portCfgTo.color || portCfgTo.role || portCfgTo.isTrunk || portCfgTo.vlan));
+
+      let masterCfg = null;
+      if (isFromConfigured && !isToConfigured) {
+        masterCfg = portCfgFrom;
+        if (devTo) {
+          this.updatePortConfig(to.devId, to.portIdx, {
+            role: portCfgFrom.role || (portCfgFrom.isTrunk ? 'trunk' : 'access'),
+            isTrunk: !!portCfgFrom.isTrunk,
+            poeState: portCfgFrom.poeState || 'auto',
+            color: portCfgFrom.color,
+            vlan: portCfgFrom.vlan || '',
+            description: portCfgFrom.description || '',
+            ciscoName: portCfgFrom.ciscoName || '',
+            autoCableColor: portCfgFrom.autoCableColor !== false
+          });
+        }
+      } else if (!isFromConfigured && isToConfigured) {
+        masterCfg = portCfgTo;
+        if (devFrom) {
+          this.updatePortConfig(from.devId, from.portIdx, {
+            role: portCfgTo.role || (portCfgTo.isTrunk ? 'trunk' : 'access'),
+            isTrunk: !!portCfgTo.isTrunk,
+            poeState: portCfgTo.poeState || 'auto',
+            color: portCfgTo.color,
+            vlan: portCfgTo.vlan || '',
+            description: portCfgTo.description || '',
+            ciscoName: portCfgTo.ciscoName || '',
+            autoCableColor: portCfgTo.autoCableColor !== false
+          });
+        }
+      } else if (isFromConfigured && isToConfigured) {
+        masterCfg = portCfgFrom;
+      }
+
+      const effectiveRole = masterCfg ? (masterCfg.role || (masterCfg.isTrunk ? 'trunk' : 'access')) : 'standard';
+      const isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || Boolean(masterCfg && masterCfg.isTrunk);
+
+      let rolePrefix = '';
+      if (effectiveRole === 'trunk') rolePrefix = '[TRUNK] ';
+      else if (effectiveRole === 'uplink') rolePrefix = '[UPLINK] ';
+      else if (effectiveRole === 'trunk-ap') rolePrefix = '[AP-TRUNK] ';
+      else if (effectiveRole === 'routed') rolePrefix = '[ROUTED] ';
+      else if (effectiveRole === 'poe') rolePrefix = '[POE] ';
+      else if (effectiveRole === 'mgmt' || effectiveRole === 'management') rolePrefix = '[MGMT] ';
+      else if (isTrunk) rolePrefix = '[TRUNK] ';
 
       const cableId = 'cbl-' + Math.random().toString(36).substr(2, 9);
       const fromLabel = (portCfgFrom && portCfgFrom.ciscoName) || `${nameFrom}:P${from.portIdx}`;
       const toLabel = (portCfgTo && portCfgTo.ciscoName) || `${nameTo}:P${to.portIdx}`;
-      const defaultName = isTrunk ? `[TRUNK] ${fromLabel} ➔ ${toLabel}` : `${fromLabel} ➔ ${toLabel}`;
-      const defaultNote = (trunkPortCfg && (trunkPortCfg.description || trunkPortCfg.note)) || '';
+      const defaultName = `${rolePrefix}${fromLabel} ➔ ${toLabel}`;
+      const defaultNote = (masterCfg && (masterCfg.description || masterCfg.note)) || '';
 
-      const cableColor = colorHex || ((isTrunk && trunkPortCfg.autoCableColor !== false) ? trunkPortCfg.color : CABLE_COLORS[this.state.cableColorIdx].hex);
+      const cableColor = colorHex || (masterCfg && masterCfg.autoCableColor !== false && masterCfg.color) || CABLE_COLORS[this.state.cableColorIdx].hex;
 
       const cableData = {
         id: cableId,

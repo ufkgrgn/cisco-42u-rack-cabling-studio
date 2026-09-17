@@ -1,16 +1,28 @@
 /**
- * Export & Import Module (Visio SVG & JSON)
+ * Cisco Enterprise Rack & Cabling Studio - Topology Export & Import Module
  */
-import { STATE, ZOOM_STATE, dom, getActiveRack } from './state.js';
-import { HARDWARE_CATALOG, BUILTIN_KEYS } from './catalogData.js';
-import { escapeHtml, portKey } from './utils.js';
-import { renderRackTabs } from './rackManager.js';
-import { renderMountedDevices, renderRackRailsAndSlots } from './rackRenderer.js';
-import { renderScheduleTable } from './scheduleTable.js';
-import { renderAllCables, cancelPendingConnection } from './cablingEngine.js';
-import { fitRackToScreen } from './zoomManager.js';
+(function () {
+  'use strict';
 
-// --- EXPORT & IMPORT MODULE ---
+  const RS = window.RackStudio = window.RackStudio || {};
+
+  const STATE = RS.STATE;
+  const dom = RS.dom;
+  const HARDWARE_CATALOG = RS.HARDWARE_CATALOG;
+  const BUILTIN_KEYS = RS.BUILTIN_KEYS;
+  const ZOOM_STATE = RS.ZOOM_STATE;
+
+  const getActiveRack = () => (RS.getActiveRack ? RS.getActiveRack() : RS.STATE?.racks?.[0]);
+  const escapeHtml = (val) => RS.escapeHtml ? RS.escapeHtml(val) : String(val ?? '');
+  const portKey = (inst, port) => RS.portKey ? RS.portKey(inst, port) : JSON.stringify([inst, port]);
+  const renderRackTabs = () => RS.renderRackTabs && RS.renderRackTabs();
+  const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
+  const renderRackRailsAndSlots = () => RS.renderRackRailsAndSlots && RS.renderRackRailsAndSlots();
+  const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
+  const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
+  const cancelPendingConnection = () => RS.cancelPendingConnection && RS.cancelPendingConnection();
+  const fitRackToScreen = (smooth) => RS.fitRackToScreen && RS.fitRackToScreen(smooth);
+
   function exportVisioSvg() {
     const totalWidth = 700;
     const activeRack = getActiveRack();
@@ -191,10 +203,9 @@ import { fitRackToScreen } from './zoomManager.js';
     return true;
   }
 
-export {
-  exportVisioSvg,
-  exportJson,
-  validateTopology,
-  refresh,
-  loadCustomTopology
-};
+  RS.exportVisioSvg = exportVisioSvg;
+  RS.exportJson = exportJson;
+  RS.validateTopology = validateTopology;
+  RS.refresh = refresh;
+  RS.loadCustomTopology = loadCustomTopology;
+})();

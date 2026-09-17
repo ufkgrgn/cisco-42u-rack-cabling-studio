@@ -1,13 +1,22 @@
 /**
- * Cabling Module (SVG rendering, Bézier curves, structured 90-degree orthogonal channel routing)
+ * Cisco Enterprise Rack & Cabling Studio - Cabling Module
  */
-import { STATE, dom, getActiveRack } from './state.js';
-import { HARDWARE_CATALOG } from './catalogData.js';
-import { escapeHtml, showTemporaryTooltip } from './utils.js';
-import { renderMountedDevices } from './rackRenderer.js';
-import { renderScheduleTable } from './scheduleTable.js';
+(function () {
+  'use strict';
 
-// --- CABLING MODULE ---
+  const RS = window.RackStudio = window.RackStudio || {};
+
+  const STATE = RS.STATE;
+  const dom = RS.dom;
+  const HARDWARE_CATALOG = RS.HARDWARE_CATALOG;
+  const ZOOM_STATE = RS.ZOOM_STATE;
+
+  const getActiveRack = () => (RS.getActiveRack ? RS.getActiveRack() : RS.STATE?.racks?.[0]);
+  const escapeHtml = (val) => RS.escapeHtml ? RS.escapeHtml(val) : String(val ?? '');
+  const showTemporaryTooltip = (...args) => RS.showTemporaryTooltip && RS.showTemporaryTooltip(...args);
+  const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
+  const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
+
   function cancelPendingConnection() {
     if (STATE.pendingConnection && STATE.pendingConnection.element) {
       STATE.pendingConnection.element.classList.remove('selected');
@@ -145,71 +154,121 @@ import { renderScheduleTable } from './scheduleTable.js';
     return coords;
   }
 
-  function renderDRingOverlays(activeRack) {
-    if (!dom.dringOverlayGroup) return;
-    dom.dringOverlayGroup.innerHTML = '';
-    const drings = getActiveOrganizers(activeRack).filter(dev => {
-      const cat = HARDWARE_CATALOG[dev.catalogKey];
-      return dev.catalogKey === 'organizer-dring-1u' ||
-        (cat && cat.modelTag && cat.modelTag.includes('D-RING')) ||
-        (cat && cat.name && cat.name.toLowerCase().includes('d-ring')) ||
-        (dev.catalogKey && dev.catalogKey.includes('dring'));
-    });
+  function renderDRingOverlays(activeRack, clientToSvg) {
+    const overlayGroup = dom.dringOverlayGroup || document.getElementById('dring-overlay-group');
+    if (!overlayGroup) return;
+    overlayGroup.innerHTML = '';
+
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    if (!svgEl) return;
+
+    let toSvg = clientToSvg;
+    if (!toSvg) {
+      const ctmInv = svgEl.getScreenCTM ? svgEl.getScreenCTM()?.inverse() : null;
+      const svgPoint = svgEl.createSVGPoint ? svgEl.createSVGPoint() : null;
+      if (ctmInv && svgPoint) {
+        toSvg = (cx, cy) => {
+          svgPoint.x = cx;
+          svgPoint.y = cy;
+          const pt = svgPoint.matrixTransform(ctmInv);
+          return { x: pt.x, y: pt.y };
+        };
+      }
+    }
+    if (!toSvg) return;
+
+    const drings = document.querySelectorAll('.dring-faceplate .dring-loop');
     if (!drings.length) return;
 
-    const ringXs = [111.4, 210.2, 309.0, 407.8, 506.6];
-    const ringW = 38;
-    const ringH = 24;
+    drings.forEach(loopEl => {
+      const rect = loopEl.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
-    drings.forEach(org => {
-      const topU = Number(org.topU || 1);
-      const uH = Number(org.uHeight || 1);
-      const centerY = (42 - topU) * 32 + (uH * 32) / 2;
+      const p1 = toSvg(rect.left, rect.top);
+      const p2 = toSvg(rect.right, rect.bottom);
+      const x = p1.x;
+      const y = p1.y;
+      const w = p2.x - p1.x;
+      const h = p2.y - p1.y;
 
-      ringXs.forEach(rx => {
-        const loopX = rx - ringW / 2;
-        const loopY = centerY - ringH / 2;
+      if (w <= 0 || h <= 0) return;
 
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('class', 'dring-svg-bracket');
-        g.setAttribute('style', 'pointer-events:none;');
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'dring-svg-bracket');
+      g.setAttribute('style', 'pointer-events:none;');
 
-        // Left vertical retaining post (draws in front of cable)
-        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        leftPillar.setAttribute('x', loopX);
-        leftPillar.setAttribute('y', loopY);
-        leftPillar.setAttribute('width', '4.5');
-        leftPillar.setAttribute('height', ringH);
-        leftPillar.setAttribute('rx', '1.5');
-        leftPillar.setAttribute('fill', '#334155');
-        leftPillar.setAttribute('stroke', '#475569');
-        leftPillar.setAttribute('stroke-width', '0.6');
-        g.appendChild(leftPillar);
+      const apW = w * (26 / 38);
+      const apH = h * (12 / 22);
+      const apX = x + (w - apW) / 2;
+      const apY = y + (h - apH) / 2;
+      const rx = 4 * (w / 38);
+      const apRx = 2 * (w / 38);
 
-        // Right vertical retaining post (draws in front of cable)
-        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rightPillar.setAttribute('x', loopX + ringW - 4.5);
-        rightPillar.setAttribute('y', loopY);
-        rightPillar.setAttribute('width', '4.5');
-        rightPillar.setAttribute('height', ringH);
-        rightPillar.setAttribute('rx', '1.5');
-        rightPillar.setAttribute('fill', '#334155');
-        rightPillar.setAttribute('stroke', '#475569');
-        rightPillar.setAttribute('stroke-width', '0.6');
-        g.appendChild(rightPillar);
+      // Hollow retention hoop path using evenodd fill rule:
+      // Solid steel frame (#141b26) sits over the cables, while central aperture is transparent
+      // allowing the cables passing inside to be visible through the hoop opening.
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const d = `
+        M ${x + rx} ${y}
+        h ${w - 2 * rx}
+        a ${rx} ${rx} 0 0 1 ${rx} ${rx}
+        v ${h - 2 * rx}
+        a ${rx} ${rx} 0 0 1 -${rx} ${rx}
+        h -${w - 2 * rx}
+        a ${rx} ${rx} 0 0 1 -${rx} -${rx}
+        v -${h - 2 * rx}
+        a ${rx} ${rx} 0 0 1 ${rx} -${rx}
+        Z
+        M ${apX + apRx} ${apY}
+        h ${apW - 2 * apRx}
+        a ${apRx} ${apRx} 0 0 1 ${apRx} ${apRx}
+        v ${apH - 2 * apRx}
+        a ${apRx} ${apRx} 0 0 1 -${apRx} ${apRx}
+        h -${apW - 2 * apRx}
+        a ${apRx} ${apRx} 0 0 1 -${apRx} -${apRx}
+        v -${apH - 2 * apRx}
+        a ${apRx} ${apRx} 0 0 1 ${apRx} -${apRx}
+        Z
+      `;
+      path.setAttribute('d', d.trim().replace(/\s+/g, ' '));
+      path.setAttribute('fill', '#141b26');
+      path.setAttribute('fill-rule', 'evenodd');
+      path.setAttribute('stroke', 'none');
+      g.appendChild(path);
 
-        // Top retention clip
-        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        clip.setAttribute('x', loopX + 12);
-        clip.setAttribute('y', loopY - 1);
-        clip.setAttribute('width', '14');
-        clip.setAttribute('height', '2.5');
-        clip.setAttribute('rx', '1');
-        clip.setAttribute('fill', '#64748b');
-        g.appendChild(clip);
+      // Outer steel rim
+      const outerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      outerRect.setAttribute('x', x.toFixed(2));
+      outerRect.setAttribute('y', y.toFixed(2));
+      outerRect.setAttribute('width', w.toFixed(2));
+      outerRect.setAttribute('height', h.toFixed(2));
+      outerRect.setAttribute('rx', rx.toFixed(2));
+      outerRect.setAttribute('fill', 'none');
+      outerRect.setAttribute('stroke', '#56687e');
+      outerRect.setAttribute('stroke-width', (1.8 * (w / 38)).toFixed(2));
+      g.appendChild(outerRect);
 
-        dom.dringOverlayGroup.appendChild(g);
-      });
+      // Top metallic highlight chamfer
+      const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      highlight.setAttribute('d', `M ${(x + rx).toFixed(2)} ${(y + 0.8).toFixed(2)} h ${(w - 2 * rx).toFixed(2)}`);
+      highlight.setAttribute('stroke', 'rgba(255, 255, 255, 0.25)');
+      highlight.setAttribute('stroke-width', (0.8 * (w / 38)).toFixed(2));
+      highlight.setAttribute('stroke-linecap', 'round');
+      g.appendChild(highlight);
+
+      // Inner aperture rim
+      const apBorder = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      apBorder.setAttribute('x', apX.toFixed(2));
+      apBorder.setAttribute('y', apY.toFixed(2));
+      apBorder.setAttribute('width', apW.toFixed(2));
+      apBorder.setAttribute('height', apH.toFixed(2));
+      apBorder.setAttribute('rx', apRx.toFixed(2));
+      apBorder.setAttribute('fill', 'none');
+      apBorder.setAttribute('stroke', '#1a2332');
+      apBorder.setAttribute('stroke-width', '1');
+      g.appendChild(apBorder);
+
+      overlayGroup.appendChild(g);
     });
   }
 
@@ -262,10 +321,27 @@ import { renderScheduleTable } from './scheduleTable.js';
 
     if (svgEl) {
       svgEl.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+      svgEl.setAttribute('preserveAspectRatio', 'none');
     }
 
     const scaleX = svgRect.width / svgW;
     const scaleY = svgRect.height / svgH;
+
+    const ctmInv = (svgEl && svgEl.getScreenCTM) ? svgEl.getScreenCTM()?.inverse() : null;
+    const svgPoint = (svgEl && svgEl.createSVGPoint) ? svgEl.createSVGPoint() : null;
+
+    function clientToSvg(clientX, clientY) {
+      if (ctmInv && svgPoint) {
+        svgPoint.x = clientX;
+        svgPoint.y = clientY;
+        const pt = svgPoint.matrixTransform(ctmInv);
+        return { x: pt.x, y: pt.y };
+      }
+      return {
+        x: (clientX - svgRect.left) / scaleX,
+        y: (clientY - svgRect.top) / scaleY
+      };
+    }
 
     const portRects = new Map();
     function getPortRect(el) {
@@ -306,11 +382,13 @@ import { renderScheduleTable } from './scheduleTable.js';
       if (!rectA || !rectB) return;
       if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
 
-      // Exact unscaled SVG user coordinate calculation (invariant across zoom levels and transitions)
-      const x1 = (rectA.left + rectA.width / 2 - svgRect.left) / scaleX;
-      const y1 = (rectA.top + rectA.height / 2 - svgRect.top) / scaleY;
-      const x2 = (rectB.left + rectB.width / 2 - svgRect.left) / scaleX;
-      const y2 = (rectB.top + rectB.height / 2 - svgRect.top) / scaleY;
+      // Exact unscaled SVG user coordinate calculation via SVG CTM transform
+      const p1 = clientToSvg(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
+      const p2 = clientToSvg(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
+      const x1 = p1.x;
+      const y1 = p1.y;
+      const x2 = p2.x;
+      const y2 = p2.y;
 
       const dy = Math.abs(y2 - y1);
       const dx = Math.abs(x2 - x1);
@@ -345,7 +423,7 @@ import { renderScheduleTable } from './scheduleTable.js';
               const orgEl = document.getElementById(org.instanceId);
               if (orgEl) {
                 const r = orgEl.getBoundingClientRect();
-                return (r.top + r.height / 2 - svgRect.top) / scaleY;
+                return clientToSvg(0, r.top + r.height / 2).y;
               }
             }
             return fallbackY + (otherY >= fallbackY ? 14 : -14);
@@ -362,8 +440,30 @@ import { renderScheduleTable } from './scheduleTable.js';
           }
 
           const avgX = (x1 + x2) / 2;
-          const useRightChannel = (x1 >= 309 && x2 >= 309) || (avgX >= 309);
-          const channelBase = useRightChannel ? 595 : 23;
+
+          // Dynamic channel X: read actual rack rail centers from DOM
+          // This keeps cables neatly centered in the 44px side rails in both single and multi-rack modes
+          let rackLeftEdge = 23;
+          let rackRightEdge = 595;
+          const rackContEl = document.querySelector(`.rack-container[data-rack-id="${rackA?.id}"]`) ||
+                             document.getElementById('rack-container');
+          if (rackContEl) {
+            const railL = rackContEl.querySelector('.rack-rail.left');
+            const railR = rackContEl.querySelector('.rack-rail.right');
+            if (railL && railR) {
+              const lRect = railL.getBoundingClientRect();
+              const rRect = railR.getBoundingClientRect();
+              rackLeftEdge = clientToSvg(lRect.left + lRect.width / 2, 0).x;
+              rackRightEdge = clientToSvg(rRect.left + rRect.width / 2, 0).x;
+            } else {
+              const rc = rackContEl.getBoundingClientRect();
+              rackLeftEdge = clientToSvg(rc.left + 30, 0).x;
+              rackRightEdge = clientToSvg(rc.right - 30, 0).x;
+            }
+          }
+
+          const useRightChannel = avgX > (rackLeftEdge + rackRightEdge) / 2;
+          const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
           const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
           const railOffset = ((bundleIdx % 7) - 3) * 2.8;
@@ -534,7 +634,7 @@ import { renderScheduleTable } from './scheduleTable.js';
       }
     });
 
-    renderDRingOverlays(activeRack);
+    renderDRingOverlays(activeRack, clientToSvg);
   }
 
   let quickHudEl = null;
@@ -789,25 +889,24 @@ import { renderScheduleTable } from './scheduleTable.js';
     }
   }
 
-export {
-  cancelPendingConnection,
-  getNextCableId,
-  getCableEndpointInfo,
-  getCableLabel,
-  renameCable2D,
-  getEndpointOrganizerChannelYs,
-  getActiveOrganizers,
-  findDeviceOrganizer,
-  getDRingBracketCoords,
-  renderDRingOverlays,
-  buildStructuredCablePath,
-  renderAllCables,
-  hideCableQuickHud,
-  hideCableContextMenu,
-  disconnectCable,
-  showCableQuickHud,
-  showCableContextMenu,
-  highlightCable,
-  addDirectCable,
-  highlightDropSlots
-};
+  RS.cancelPendingConnection = cancelPendingConnection;
+  RS.getNextCableId = getNextCableId;
+  RS.getCableEndpointInfo = getCableEndpointInfo;
+  RS.getCableLabel = getCableLabel;
+  RS.renameCable2D = renameCable2D;
+  RS.getEndpointOrganizerChannelYs = getEndpointOrganizerChannelYs;
+  RS.getActiveOrganizers = getActiveOrganizers;
+  RS.findDeviceOrganizer = findDeviceOrganizer;
+  RS.getDRingBracketCoords = getDRingBracketCoords;
+  RS.renderDRingOverlays = renderDRingOverlays;
+  RS.buildStructuredCablePath = buildStructuredCablePath;
+  RS.renderAllCables = renderAllCables;
+  RS.hideCableQuickHud = hideCableQuickHud;
+  RS.hideCableContextMenu = hideCableContextMenu;
+  RS.disconnectCable = disconnectCable;
+  RS.showCableQuickHud = showCableQuickHud;
+  RS.showCableContextMenu = showCableContextMenu;
+  RS.highlightCable = highlightCable;
+  RS.addDirectCable = addDirectCable;
+  RS.highlightDropSlots = highlightDropSlots;
+})();

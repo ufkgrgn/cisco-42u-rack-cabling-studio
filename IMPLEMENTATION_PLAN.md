@@ -30,6 +30,24 @@ Bu iş paketleri 60 FPS veya kurumsal çok kullanıcılı ürün sertifikası de
 - Firma izolasyonu, rol yetkileri, revizyonlar, paylaşım ve eşzamanlı çakışma çözümü.
 - Web/PWA ve Tauri paketleri; platform, erişilebilirlik ve uzun süreli kurtarma testleri.
 
-## Kaynak düzeni
+## Kaynak düzeni ve Mimari Rehberi (AI Agent ve Geliştirici Kılavuzu)
 
-Bu sürümde çalışan çekirdeğin kaynağı js/app.bundle.js dosyasıdır; ismine rağmen elle bakımı yapılan bağımsız giriş dosyasıdır. Eski js/app.js, rack.js vb. ES modülleri index.html tarafından yüklenmez. Yeni modüller RackStudio API'si üzerinden bağlanır. Eski dosyalar geçiş referansı olarak korunur; iki ayrı kaynağa aynı değişiklik yazılmaz.
+- **2D Rack Studio Çekirdeği:** Canonical (ana) kaynak `js/2d/` klasörüdür. `index.html` ve `dist/index.html` doğrudan bu modülleri sırayla yükler:
+  - `js/2d/utils.js`: Temel yardımcılar (`escapeHtml`, `portKey`, bildirim baloncuğu)
+  - `js/2d/catalog.js`: Donanım modelleri ve katalog özellikleri (`HARDWARE_CATALOG`)
+  - `js/2d/state.js`: Çoklu kabin reaktif state ve DOM referansları (`STATE`, `dom`, `getActiveRack`)
+  - `js/2d/zoom-manager.js`: Tuval yakınlaştırma, kaydırma ve ekrana sığdırma (`fitRackToScreen`)
+  - `js/2d/rack-manager.js`: Çoklu kabin sekmeleri, kabin ekleme/silme/değiştirme
+  - `js/2d/rack-renderer.js`: 42U ray slotları, cihaz yerleşimi (`mountDeviceAt`) ve ön panel çizimleri
+  - `js/2d/cabling-engine.js`: SVG Bézier ve ortogonal D-ring kanal rotalaması (`renderAllCables`)
+  - `js/2d/schedule-table.js`: Kablo bağlantı çizelgesi tablosu ve rol seçici popover
+  - `js/2d/topology-io.js`: JSON topoloji dışa/içe aktarımı (`loadCustomTopology`), Visio SVG çıktısı
+  - `js/2d/presets.js`: MDF, IDF ve Tam Saha hazır topoloji şablonları
+  - `js/2d/app.js`: Olay koordinatörü, sürükle-bırak entegrasyonu ve `window.RackStudio` export'u
+
+- **UI ve Modal Kontrolcüleri:** `js/` kök dizininde tekil sorumluluklu ayrık dosyalar:
+  - `js/port-config-editor.js`, `js/device-metadata-editor.js`, `js/topbar-controller.js`, `js/sidebar-controller.js`, `js/studio-bridge.js`
+
+- **3D Stüdyo Modülleri:** Kaynaklar `js/src/3d/` ve `js/src/3d-ui/` altındadır (`npm run bundle` ile `js/studio3d.js` ve `js/studio3d-ui.js` üretilir).
+
+- **ÖNEMLİ KURAL (AI Agent Uyarısı):** Eski `app.bundle.js` tamamen silinmiştir ve projeden çıkarılmıştır. Hiçbir yapay zeka ajanı veya geliştirici `app.bundle.js` oluşturmamalı veya aramamalıdır. Tüm 2D geliştirmeleri doğrudan `js/2d/` altındaki ayrıştırılmış dosyalarda yapılmalıdır.

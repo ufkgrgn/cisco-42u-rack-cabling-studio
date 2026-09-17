@@ -453,29 +453,44 @@
         <div class="form-group">
           <label>Port Rolü / Çalışma Modu</label>
           <select id="port-edit-role" class="form-input">
-            <option value="access">Standart Access Port (PC / Uç Birim)</option>
-            <option value="trunk">⚡ 802.1Q TRUNK (Switch / Omurga / Oda Dağıtım)</option>
-            <option value="uplink">▲ Uplink / WAN (Router / Dış Hat)</option>
-            <option value="poe">⚡ PoE (Kamera / AP / Telefon Besleme)</option>
-            <option value="mgmt">🔒 Management (OOB / Yönetim)</option>
+            <optgroup label="── 802.1Q TRUNK (Çoklu VLAN Taşıyan Hatlar) ──">
+              <option value="trunk">⚡ 802.1Q TRUNK (Switch-to-Switch / Dağıtım Omurgası)</option>
+              <option value="uplink">▲ TRUNK UPLINK (Core / Dağıtım Katı Çıkışı - 10G/SFP+)</option>
+              <option value="trunk-ap">📶 TRUNK AP (Access Point Çoklu-SSID / VLAN Hattı)</option>
+            </optgroup>
+            <optgroup label="── ACCESS (Tek VLAN / Uç Nokta Portları) ──">
+              <option value="access">💻 Standart Access (Kullanıcı PC / IP Telefon / Data - PoE Dahil)</option>
+              <option value="mgmt">🔒 Management (OOB / İzole Cihaz Yönetim Portu)</option>
+            </optgroup>
+            <optgroup label="── LAYER 3 / WAN HATLARI ──">
+              <option value="routed">🌐 Routed Port / WAN (Router / Firewall / ISP - no switchport)</option>
+            </optgroup>
           </select>
         </div>
 
+        <div class="form-group">
+          <label>PoE (Power over Ethernet) Güç Durumu</label>
+          <select id="port-edit-poe" class="form-input">
+            <option value="auto">⚡ PoE Açık (power inline auto - 802.3af/at/bt Aktif)</option>
+            <option value="never">❌ PoE Devre Dışı (power inline never - Güç Kesildi)</option>
+          </select>
+          <span style="font-size:11px;color:#94a3b8;margin-top:2px;display:block;">Cisco switch'lerde PoE varsayılan olarak açıktır (IP Telefon / AP). İhtiyaç halinde port bazında kapatılabilir.</span>
+        </div>
+
         <div class="form-group" id="port-edit-color-group">
-          <label>Özel Port & Trunk Görsel Rengi</label>
+          <label>Özel Port &amp; Rol Tanımlama Rengi</label>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <input type="color" id="port-edit-color" class="form-input" style="width:44px; height:32px; padding:2px; cursor:pointer; border-radius:4px;" value="#a855f7">
-            <input type="text" id="port-edit-color-hex" class="form-input" style="width:90px; font-family:monospace; text-transform:uppercase;" value="#A855F7">
-            <span style="font-size:11px; color:#94a3b8;">(3D/2D port ve kablo rengi)</span>
+            <input type="color" id="port-edit-color" class="form-input" style="width:44px; height:32px; padding:2px; cursor:pointer; border-radius:4px;" value="#7c3aed">
+            <input type="text" id="port-edit-color-hex" class="form-input" style="width:90px; font-family:monospace; text-transform:uppercase;" value="#7C3AED">
+            <span style="font-size:11px; color:#94a3b8;">(Özel port işaretleme ve hat rengi)</span>
           </div>
           <div class="port-color-chips" style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="color-chip-btn" data-color="#a855f7" style="background:#a855f7; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Neon Mor (Önerilen Trunk)"></button>
-            <button type="button" class="color-chip-btn" data-color="#f59e0b" style="background:#f59e0b; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Kehribar / Turuncu"></button>
-            <button type="button" class="color-chip-btn" data-color="#00e5ff" style="background:#00e5ff; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Camgöbeği / Cyan"></button>
-            <button type="button" class="color-chip-btn" data-color="#10b981" style="background:#10b981; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Zümrüt Yeşili"></button>
-            <button type="button" class="color-chip-btn" data-color="#ef4444" style="background:#ef4444; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Kırmızı"></button>
-            <button type="button" class="color-chip-btn" data-color="#ec4899" style="background:#ec4899; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Fuşya"></button>
-            <button type="button" class="color-chip-btn" data-color="#3b82f6" style="background:#3b82f6; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Mavi"></button>
+            <button type="button" class="color-chip-btn" data-color="#7c3aed" style="background:#7c3aed; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Trunk (Elektrik Mor - #7c3aed)"></button>
+            <button type="button" class="color-chip-btn" data-color="#00d2ff" style="background:#00d2ff; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Uplink Core (Neon Cyan - #00d2ff)"></button>
+            <button type="button" class="color-chip-btn" data-color="#ec4899" style="background:#ec4899; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Trunk AP / Wi-Fi (Canlı Fuşya - #ec4899)"></button>
+            <button type="button" class="color-chip-btn" data-color="#b91c1c" style="background:#b91c1c; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Routed Port / L3 (Koyu Karmin - #b91c1c)"></button>
+            <button type="button" class="color-chip-btn" data-color="#059669" style="background:#059669; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="MGMT / OOB (Zümrüt - #059669)"></button>
+            <button type="button" class="color-chip-btn" data-color="#38bdf8" style="background:#38bdf8; width:26px; height:26px; border-radius:4px; border:2px solid rgba(255,255,255,0.2); cursor:pointer;" title="Standart Access (Açık Mavi - #38bdf8)"></button>
           </div>
         </div>
 

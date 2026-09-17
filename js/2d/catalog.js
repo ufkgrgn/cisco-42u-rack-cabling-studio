@@ -13,14 +13,15 @@
       u: 1,
       category: 'router',
       logo: 'CISCO',
-      modelTag: 'ISR 4431 ROUTER',
-      desc: 'Kurumsal WAN & İnternet Yönlendiricisi, 4x Dahili GE/SFP Portu, 3x NIM Yuvası, Çift Güç Kaynağı.',
+      series: 'isr',
+      modelTag: 'ISR 4431 WAN ROUTER',
+      desc: 'Kurumsal WAN & İnternet Yönlendiricisi, 4x Dahili GE/SFP Portu (GE0/0/0 - GE0/0/3), 1x Dedicated OOB Mgmt0, 3x NIM Yuvası, Çift Güç Kaynağı.',
       ports: [
-        { id: 'ge0_0_0', name: 'GE0/0/0', type: 'rj45', group: 0, row: 0, speed: '1G WAN / Routed' },
-        { id: 'ge0_0_1', name: 'GE0/0/1', type: 'rj45', group: 0, row: 0, speed: '1G WAN / Routed' },
+        { id: 'ge0_0_0', name: 'GE0/0/0', type: 'rj45', group: 0, row: 0, speed: '10/100/1000 Gigabit WAN (Bakır)' },
+        { id: 'ge0_0_1', name: 'GE0/0/1', type: 'rj45', group: 0, row: 1, speed: '10/100/1000 Gigabit WAN (Bakır)' },
         { id: 'ge0_0_2', name: 'GE0/0/2', type: 'sfp', group: 1, row: 0, speed: '1G SFP Fiber WAN' },
-        { id: 'ge0_0_3', name: 'GE0/0/3', type: 'sfp', group: 1, row: 0, speed: '1G SFP Fiber WAN' },
-        { id: 'mgmt0', name: 'MGMT', type: 'rj45', group: 2, row: 0, speed: '1G Out-of-Band MGMT' }
+        { id: 'ge0_0_3', name: 'GE0/0/3', type: 'sfp', group: 1, row: 1, speed: '1G SFP Fiber WAN' },
+        { id: 'mgmt0', name: 'Mgmt0', type: 'rj45', group: 2, row: 0, speed: '10/100/1000 OOB Yönetim Portu' }
       ]
     },
 
@@ -30,14 +31,15 @@
       u: 1,
       category: 'fiber-switch',
       logo: 'CISCO',
+      series: 'cat3k',
       modelTag: 'WS-C3850-24S-S',
-      desc: '24 Port SFP 1G Fiber Omurga/Toplama Switchi, 4x 10G SFP+ Modüler Uplink.',
+      desc: '24 Port SFP 1G Fiber Omurga/Toplama Switchi (Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Modüler Ağ Modülü (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `sfp${i + 1}`,
           name: `Gi1/0/${i + 1}`,
           type: 'sfp',
-          group: Math.floor(i / 6),
+          group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
           speed: '1G SFP Fiber (IDF Toplama)'
         })),
@@ -45,8 +47,8 @@
           id: `up${i + 1}`,
           name: `Te1/1/${i + 1}`,
           type: 'sfp',
-          group: 4,
-          row: 0,
+          group: 2,
+          row: (i % 2 === 0) ? 0 : 1,
           speed: '10G SFP+ 10Gbps Uplink'
         }))
       ]
@@ -56,8 +58,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'nexus',
       modelTag: 'N9K-C93180YC-FX',
-      desc: 'Veri merkezi ToR switch, 48x 10/25G SFP28 ve 6x 100G QSFP28 omurga portu.',
+      desc: 'Veri merkezi ToR switch, 48x 10/25G SFP28 (Eth1/1 - Eth1/48) ve 6x 40/100G QSFP28 omurga portu (Eth1/49 - Eth1/54).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
           id: `eth1_${i + 1}`,
@@ -65,7 +68,7 @@
           type: 'sfp',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '25G SFP28'
+          speed: '25G SFP28 ToR'
         })),
         ...Array.from({ length: 6 }, (_, i) => ({
           id: `eth1_${i + 49}`,
@@ -73,7 +76,7 @@
           type: 'sfp',
           group: 4,
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '100G QSFP28'
+          speed: '100G QSFP28 Spine'
         }))
       ]
     },
@@ -82,24 +85,25 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'cat9k',
       modelTag: 'C9500-24Y4C',
-      desc: 'Kampüs çekirdek omurga, 24x 25G SFP28 ve 4x 100G QSFP28 uplink portu.',
+      desc: 'Kampüs çekirdek omurga, 24x 1/10/25G SFP28 (25GE1/0/1 - 25GE1/0/24) ve 4x 40/100G QSFP28 uplink (100GE1/0/25 - 100GE1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
           name: `25GE1/0/${i + 1}`,
           type: 'sfp',
-          group: Math.floor(i / 6),
+          group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '25G SFP28'
+          speed: '25G SFP28 Core'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
           name: `100GE1/0/${i + 25}`,
           type: 'sfp',
-          group: 4,
-          row: 0,
-          speed: '100G QSFP28'
+          group: 2,
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '100G QSFP28 Core Uplink'
         }))
       ]
     },
@@ -110,8 +114,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: '2960X-24PS-L (PoE+)',
-      desc: '24x Gigabit RJ45 PoE+ (370W) ve 4x 1G SFP Uplink yuvası. Sahada 55 adet.',
+      series: 'cat2960x',
+      modelTag: 'WS-C2960X-24PS-L',
+      desc: '24x 10/100/1000 Gigabit RJ45 PoE+ (370W, Gi1/0/1 - Gi1/0/24) ve 4x 1G SFP Uplink (Gi1/0/25 - Gi1/0/28). Sahada 55 adet.',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -119,14 +124,41 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G Gigabit PoE+'
+          speed: '10/100/1000 Gigabit PoE+ (30W)'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
-          name: `Te1/1/${i + 1}`,
+          name: `Gi1/0/${i + 25}`,
           type: 'sfp',
           group: 2,
-          row: 0,
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '1G SFP Fiber Uplink'
+        }))
+      ]
+    },
+    'cisco-2960x-24ts': {
+      name: 'Cisco Catalyst 2960-X 24TS-L',
+      u: 1,
+      category: 'switch',
+      logo: 'CISCO',
+      series: 'cat2960x',
+      modelTag: 'WS-C2960X-24TS-L',
+      desc: '24x 10/100/1000 Gigabit Data RJ45 (Gi1/0/1 - Gi1/0/24), 4x 1G SFP Uplink (Gi1/0/25 - Gi1/0/28).',
+      ports: [
+        ...Array.from({ length: 24 }, (_, i) => ({
+          id: `p${i + 1}`,
+          name: `Gi1/0/${i + 1}`,
+          type: 'rj45',
+          group: Math.floor(i / 12),
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '10/100/1000 Gigabit Data'
+        })),
+        ...Array.from({ length: 4 }, (_, i) => ({
+          id: `up${i + 1}`,
+          name: `Gi1/0/${i + 25}`,
+          type: 'sfp',
+          group: 2,
+          row: (i % 2 === 0) ? 0 : 1,
           speed: '1G SFP Fiber Uplink'
         }))
       ]
@@ -136,8 +168,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: '2960XR-24PS-I (L3)',
-      desc: 'L3 Kurumsal Kenar, 24x Gigabit PoE+ (370W), 2x 10G SFP+ Uplink, Yedekli Çift Güç Kaynağı.',
+      series: 'cat2960x',
+      modelTag: 'WS-C2960XR-24PS-I',
+      desc: 'L3 Kurumsal Kenar, 24x Gigabit PoE+ (370W, Gi1/0/1 - Gi1/0/24), 2x 10G SFP+ Uplink (Te1/0/25 - Te1/0/26), Çift Yedekli Güç Kaynağı.',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -145,16 +178,10 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G Gigabit PoE+'
+          speed: '10/100/1000 Gigabit PoE+'
         })),
-        ...Array.from({ length: 2 }, (_, i) => ({
-          id: `up${i + 1}`,
-          name: `Te1/1/${i + 1}`,
-          type: 'sfp',
-          group: 2,
-          row: 0,
-          speed: '10G SFP+ Uplink'
-        }))
+        { id: 'up1', name: 'Te1/0/25', type: 'sfp', group: 2, row: 0, speed: '10G SFP+ 10Gbps Uplink' },
+        { id: 'up2', name: 'Te1/0/26', type: 'sfp', group: 2, row: 1, speed: '10G SFP+ 10Gbps Uplink' }
       ]
     },
     'cisco-9200l-24p': {
@@ -162,8 +189,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'cat9k',
       modelTag: 'C9200L-24P-4X',
-      desc: 'Yeni Nesil Kurumsal Kenar, 24x Gigabit PoE+ (370W), 4x 10G SFP+ Sabit Uplink.',
+      desc: 'Yeni Nesil Kurumsal Kenar, 24x Gigabit PoE+ (370W, Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Sabit Uplink (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -171,14 +199,14 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G PoE+ (30W)'
+          speed: '10/100/1000 Gigabit PoE+ (30W)'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
           name: `Te1/1/${i + 1}`,
           type: 'sfp',
           group: 2,
-          row: 0,
+          row: (i % 2 === 0) ? 0 : 1,
           speed: '10G SFP+ 10Gbps Uplink'
         }))
       ]
@@ -188,8 +216,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'cat9k',
       modelTag: 'C9300L-24P-4X',
-      desc: 'StackWise-320 destekli Kenar Switch, 24x 1G PoE+ (505W UPOE), 4x 10G SFP+ Uplink.',
+      desc: 'StackWise-320 destekli Kenar Switch, 24x 1G PoE+ (505W UPOE, Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Sabit Uplink (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -197,15 +226,15 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G PoE+ UPOE'
+          speed: '10/100/1000 Gigabit PoE+ UPOE'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
           name: `Te1/1/${i + 1}`,
           type: 'sfp',
           group: 2,
-          row: 0,
-          speed: '10G SFP+ 10Gbps'
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '10G SFP+ 10Gbps Uplink'
         }))
       ]
     },
@@ -214,24 +243,25 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: 'CATALYST 9300X',
-      desc: 'Omurga/Kenar switch, 48x Multigigabit PoE+, modüler 4x 25G SFP28 Uplink.',
+      series: 'cat9k',
+      modelTag: 'C9300X-48HX UPOE+',
+      desc: 'StackWise-1T, 48x Multigigabit 10G UPOE+ (90W, Te1/0/1 - Te1/0/48), Modüler 4x 25G SFP28 Uplink (Twe1/1/1 - Twe1/1/4).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
           id: `p${i + 1}`,
-          name: `Gi1/0/${i + 1}`,
+          name: `Te1/0/${i + 1}`,
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '10G mGig PoE+'
+          speed: '100M/1G/2.5G/5G/10G mGig UPOE+ (90W)'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
-          name: `Te1/1/${i + 1}`,
+          name: `Twe1/1/${i + 1}`,
           type: 'sfp',
           group: 4,
-          row: 0,
-          speed: '25G SFP28'
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '25G/10G SFP28 Uplink'
         }))
       ]
     },
@@ -240,8 +270,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'cat1k',
       modelTag: 'C1000-24P-4G-L',
-      desc: '24x 1G RJ45 PoE+ (195W), 4x 1G SFP sabit uplink portu.',
+      desc: '24x 10/100/1000 Gigabit PoE+ (195W, Gi1/0/1 - Gi1/0/24), 4x 1G SFP Sabit Uplink (Gi1/0/25 - Gi1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -249,15 +280,15 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G PoE+ (195W)'
+          speed: '10/100/1000 Gigabit PoE+ (195W)'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
-          name: `SFP${i + 1}`,
+          name: `Gi1/0/${i + 25}`,
           type: 'sfp',
           group: 2,
-          row: 0,
-          speed: '1G SFP'
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '1G SFP Fiber Uplink'
         }))
       ]
     },
@@ -268,8 +299,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: '2960-24PC-L (PoE)',
-      desc: 'Sahada en yaygın model (133 Adet). 24x 10/100 PoE (370W), 2x Dual-Purpose 1G Gigabit/SFP uplink.',
+      series: 'cat2960',
+      modelTag: 'WS-C2960-24PC-L (PoE)',
+      desc: 'Sahada en yaygın model (133 Adet). 24x 10/100 PoE (370W, Fa0/1 - Fa0/24), 2x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1 - Gi0/2).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `fa${i + 1}`,
@@ -277,10 +309,12 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '10/100 Mbps PoE'
+          speed: '10/100 Mbps FastEthernet PoE (15.4W)'
         })),
-        { id: 'up1', name: 'Gi0/1 (Dual)', type: 'rj45', group: 2, row: 0, speed: '1G RJ45 / SFP Dual' },
-        { id: 'up2', name: 'Gi0/2 (Dual)', type: 'rj45', group: 2, row: 1, speed: '1G RJ45 / SFP Dual' }
+        { id: 'up1', name: 'Gi0/1 (RJ45)', type: 'rj45', group: 2, row: 0, speed: '10/100/1000 Gigabit Dual-Purpose Bakır' },
+        { id: 'up2', name: 'Gi0/2 (RJ45)', type: 'rj45', group: 2, row: 1, speed: '10/100/1000 Gigabit Dual-Purpose Bakır' },
+        { id: 'sfp1', name: 'Gi0/1 (SFP)', type: 'sfp', group: 3, row: 0, speed: '1G SFP Dual-Purpose Fiber' },
+        { id: 'sfp2', name: 'Gi0/2 (SFP)', type: 'sfp', group: 3, row: 1, speed: '1G SFP Dual-Purpose Fiber' }
       ]
     },
     'cisco-2960-24tc': {
@@ -288,8 +322,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: '2960-24TC-L',
-      desc: '24x 10/100 Mbps RJ45 (PoE Yok), 2x Dual-Purpose 1G Gigabit/SFP uplink.',
+      series: 'cat2960',
+      modelTag: 'WS-C2960-24TC-L',
+      desc: '24x 10/100 Mbps RJ45 (PoE Yok, Fa0/1 - Fa0/24), 2x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1 - Gi0/2).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `fa${i + 1}`,
@@ -299,34 +334,10 @@
           row: (i % 2 === 0) ? 0 : 1,
           speed: '10/100 Mbps 100Base-TX'
         })),
-        { id: 'up1', name: 'Gi0/1', type: 'rj45', group: 2, row: 0, speed: '1G RJ45 / SFP Dual' },
-        { id: 'up2', name: 'Gi0/2', type: 'rj45', group: 2, row: 1, speed: '1G RJ45 / SFP Dual' }
-      ]
-    },
-    'cisco-2960x-24ts': {
-      name: 'Cisco Catalyst 2960-X 24TS-L',
-      u: 1,
-      category: 'switch',
-      logo: 'CISCO',
-      modelTag: '2960-X 24TS-L',
-      desc: 'Klasik kurumsal kenar switch, 24x GigE RJ45, 4x 1G SFP uplink yuvası.',
-      ports: [
-        ...Array.from({ length: 24 }, (_, i) => ({
-          id: `p${i + 1}`,
-          name: `Gi1/0/${i + 1}`,
-          type: 'rj45',
-          group: Math.floor(i / 12),
-          row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G RJ45 Gigabit'
-        })),
-        ...Array.from({ length: 4 }, (_, i) => ({
-          id: `up${i + 1}`,
-          name: `Te1/1/${i + 1}`,
-          type: 'sfp',
-          group: 2,
-          row: 0,
-          speed: '1G SFP'
-        }))
+        { id: 'up1', name: 'Gi0/1 (RJ45)', type: 'rj45', group: 2, row: 0, speed: '10/100/1000 Gigabit Dual-Purpose Bakır' },
+        { id: 'up2', name: 'Gi0/2 (RJ45)', type: 'rj45', group: 2, row: 1, speed: '10/100/1000 Gigabit Dual-Purpose Bakır' },
+        { id: 'sfp1', name: 'Gi0/1 (SFP)', type: 'sfp', group: 3, row: 0, speed: '1G SFP Dual-Purpose Fiber' },
+        { id: 'sfp2', name: 'Gi0/2 (SFP)', type: 'sfp', group: 3, row: 1, speed: '1G SFP Dual-Purpose Fiber' }
       ]
     },
     'cisco-2960-48tc': {
@@ -334,8 +345,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
-      modelTag: '2960-48TC-L (48P)',
-      desc: '48x 10/100 Mbps RJ45, 2x 10/100/1000 Gigabit RJ45 ve 2x 1G SFP uplink.',
+      series: 'cat2960',
+      modelTag: 'WS-C2960-48TC-L (48P)',
+      desc: '48x 10/100 Mbps RJ45 (Fa0/1 - Fa0/48), 2x 10/100/1000 Gigabit RJ45 (Gi0/1 - Gi0/2) ve 2x 1G SFP uplink (Gi0/3 - Gi0/4).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
           id: `fa${i + 1}`,
@@ -345,10 +357,10 @@
           row: (i % 2 === 0) ? 0 : 1,
           speed: '10/100 Mbps 100Base-TX'
         })),
-        { id: 'up1', name: 'Gi0/1', type: 'rj45', group: 4, row: 0, speed: '1G Gigabit' },
-        { id: 'up2', name: 'Gi0/2', type: 'rj45', group: 4, row: 1, speed: '1G Gigabit' },
-        { id: 'sfp1', name: 'SFP1', type: 'sfp', group: 5, row: 0, speed: '1G SFP' },
-        { id: 'sfp2', name: 'SFP2', type: 'sfp', group: 5, row: 1, speed: '1G SFP' }
+        { id: 'up1', name: 'Gi0/1', type: 'rj45', group: 4, row: 0, speed: '10/100/1000 Gigabit RJ45' },
+        { id: 'up2', name: 'Gi0/2', type: 'rj45', group: 4, row: 1, speed: '10/100/1000 Gigabit RJ45' },
+        { id: 'sfp1', name: 'Gi0/3', type: 'sfp', group: 5, row: 0, speed: '1G SFP Fiber' },
+        { id: 'sfp2', name: 'Gi0/4', type: 'sfp', group: 5, row: 1, speed: '1G SFP Fiber' }
       ]
     },
     'cisco-3560x-24t': {
@@ -356,8 +368,9 @@
       u: 1,
       category: 'switch',
       logo: 'CISCO',
+      series: 'cat3k',
       modelTag: 'WS-C3560X-24T-S',
-      desc: '24x Gigabit 10/100/1000 RJ45 portu, Modüler Ağ Modülü (4x 1G / 2x 10G SFP+).',
+      desc: '24x Gigabit 10/100/1000 RJ45 (Gi1/0/1 - Gi1/0/24), Modüler Ağ Modülü (4x 10G/1G SFP+ Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -365,15 +378,15 @@
           type: 'rj45',
           group: Math.floor(i / 12),
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G Gigabit RJ45'
+          speed: '10/100/1000 Gigabit RJ45'
         })),
         ...Array.from({ length: 4 }, (_, i) => ({
           id: `up${i + 1}`,
           name: `Te1/1/${i + 1}`,
           type: 'sfp',
           group: 2,
-          row: 0,
-          speed: '10G/1G SFP+'
+          row: (i % 2 === 0) ? 0 : 1,
+          speed: '10G/1G SFP+ Uplink'
         }))
       ]
     },
@@ -384,8 +397,9 @@
       u: 1,
       category: 'compact',
       logo: 'CISCO',
-      modelTag: '3560-8PC-S (Kompakt)',
-      desc: '8x 10/100 PoE (123W) + 1x Dual-Purpose 1G Gigabit/SFP uplink.',
+      series: 'compact',
+      modelTag: 'WS-C3560-8PC-S',
+      desc: '8x 10/100 PoE (123W, Fa0/1 - Fa0/8) + 1x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1).',
       ports: [
         ...Array.from({ length: 8 }, (_, i) => ({
           id: `fa${i + 1}`,
@@ -395,7 +409,7 @@
           row: (i % 2 === 0) ? 0 : 1,
           speed: '10/100 PoE (15.4W)'
         })),
-        { id: 'up1', name: 'Gi0/1 Dual', type: 'rj45', group: 1, row: 0, speed: '1G RJ45 / SFP' }
+        { id: 'up1', name: 'Gi0/1 Dual', type: 'rj45', group: 1, row: 0, speed: '1G RJ45 / SFP Dual-Purpose' }
       ]
     },
     'cisco-2960cx-8pc': {
@@ -403,8 +417,9 @@
       u: 1,
       category: 'compact',
       logo: 'CISCO',
-      modelTag: '2960CX-8PC-L',
-      desc: '8x Gigabit PoE+ (240W) + 2x 1G Bakır Uplink + 2x 1G SFP Portu.',
+      series: 'compact',
+      modelTag: 'WS-C2960CX-8PC-L',
+      desc: '8x Gigabit PoE+ (240W, Gi1/0/1 - Gi1/0/8) + 2x 1G Bakır Uplink (Gi1/0/9 - Gi1/0/10) + 2x 1G SFP Portu (Gi1/0/11 - Gi1/0/12).',
       ports: [
         ...Array.from({ length: 8 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -412,12 +427,12 @@
           type: 'rj45',
           group: 0,
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G Gigabit PoE+'
+          speed: '10/100/1000 Gigabit PoE+'
         })),
-        { id: 'up_cu1', name: 'Gi1/0/9', type: 'rj45', group: 1, row: 0, speed: '1G Copper' },
-        { id: 'up_cu2', name: 'Gi1/0/10', type: 'rj45', group: 1, row: 1, speed: '1G Copper' },
-        { id: 'up_sfp1', name: 'SFP1', type: 'sfp', group: 2, row: 0, speed: '1G SFP' },
-        { id: 'up_sfp2', name: 'SFP2', type: 'sfp', group: 2, row: 1, speed: '1G SFP' }
+        { id: 'up_cu1', name: 'Gi1/0/9', type: 'rj45', group: 1, row: 0, speed: '1G Copper Uplink' },
+        { id: 'up_cu2', name: 'Gi1/0/10', type: 'rj45', group: 1, row: 1, speed: '1G Copper Uplink' },
+        { id: 'up_sfp1', name: 'Gi1/0/11', type: 'sfp', group: 2, row: 0, speed: '1G SFP Fiber Uplink' },
+        { id: 'up_sfp2', name: 'Gi1/0/12', type: 'sfp', group: 2, row: 1, speed: '1G SFP Fiber Uplink' }
       ]
     },
     'cisco-2960g-8tc': {
@@ -425,8 +440,9 @@
       u: 1,
       category: 'compact',
       logo: 'CISCO',
-      modelTag: '2960G-8TC-L',
-      desc: '7x 10/100/1000 Gigabit RJ45 + 1x Dual-Purpose 1G Gigabit/SFP yuvası.',
+      series: 'compact',
+      modelTag: 'WS-C2960G-8TC-L',
+      desc: '7x 10/100/1000 Gigabit RJ45 (Gi0/1 - Gi0/7) + 1x Dual-Purpose 1G Gigabit/SFP yuvası (Gi0/8).',
       ports: [
         ...Array.from({ length: 7 }, (_, i) => ({
           id: `p${i + 1}`,
@@ -434,9 +450,9 @@
           type: 'rj45',
           group: 0,
           row: (i % 2 === 0) ? 0 : 1,
-          speed: '1G Gigabit RJ45'
+          speed: '10/100/1000 Gigabit RJ45'
         })),
-        { id: 'up1', name: 'Gi0/8 Dual', type: 'rj45', group: 1, row: 0, speed: '1G RJ45 / SFP' }
+        { id: 'up1', name: 'Gi0/8 Dual', type: 'rj45', group: 1, row: 0, speed: '1G RJ45 / SFP Dual-Purpose' }
       ]
     },
 

@@ -202,7 +202,12 @@ describe('Tier 4 — Real-World Application Scenarios (12 Scenarios)', () => {
   // ---------------------------------------------------------------------------
   it('R4.3: Full Multi-Rack Campus Distribution with color-coded VLAN trunks and multi-rack tabs', async () => {
     // Click Full Site Preset button
-    await page.locator('#btn-preset-site').click();
+    const presetBtn = page.locator('#btn-3d-preset-site');
+    if (await presetBtn.isVisible()) {
+      await presetBtn.click();
+    } else {
+      await page.evaluate(() => document.getElementById('btn-preset-site')?.click() || window.RackStudio.loadFullSitePreset?.());
+    }
     await page.waitForTimeout(100);
 
     const result = await page.evaluate(() => {
@@ -656,7 +661,12 @@ describe('Tier 4 — Real-World Application Scenarios (12 Scenarios)', () => {
   // ---------------------------------------------------------------------------
   it('R4.10: Full Site Deletion & Atomic Reset resets workspace and detaches event listeners', async () => {
     // First load full site preset
-    await page.locator('#btn-preset-site').click();
+    const presetBtn = page.locator('#btn-3d-preset-site');
+    if (await presetBtn.isVisible()) {
+      await presetBtn.click();
+    } else {
+      await page.evaluate(() => document.getElementById('btn-preset-site')?.click() || window.RackStudio.loadFullSitePreset?.());
+    }
     await page.waitForTimeout(100);
 
     // Verify site was loaded
@@ -664,7 +674,12 @@ describe('Tier 4 — Real-World Application Scenarios (12 Scenarios)', () => {
     assert.equal(loadedCount, 3);
 
     // Click Clear All / Reset button (Playwright harness auto-accepts dialog)
-    await page.locator('#btn-clear-all').click();
+    const clearBtn = page.locator('#btn-2d-clear-action');
+    if (await clearBtn.isVisible()) {
+      await clearBtn.click();
+    } else {
+      await page.evaluate(() => document.getElementById('btn-clear-all')?.click());
+    }
     await page.waitForTimeout(100);
 
     const resetResult = await page.evaluate(() => {

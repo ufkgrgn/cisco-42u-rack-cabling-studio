@@ -1,14 +1,20 @@
 /**
- * Topology Presets (MDF, IDF, Full Site)
+ * Cisco Enterprise Rack & Cabling Studio - Topology Presets (MDF, IDF, Full Site)
  */
-import { STATE } from './state.js';
-import { renderRackTabs } from './rackManager.js';
-import { renderMountedDevices, renderRackRailsAndSlots, mountDeviceAt } from './rackRenderer.js';
-import { renderScheduleTable } from './scheduleTable.js';
-import { renderAllCables, addDirectCable } from './cablingEngine.js';
-import { fitRackToScreen } from './zoomManager.js';
+(function () {
+  'use strict';
 
-// --- PRESETS: MDF, IDF & FULL SITE TOPOLOGIES ---
+  const RS = window.RackStudio = window.RackStudio || {};
+
+  const STATE = RS.STATE;
+  const renderRackTabs = () => RS.renderRackTabs && RS.renderRackTabs();
+  const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
+  const renderRackRailsAndSlots = () => RS.renderRackRailsAndSlots && RS.renderRackRailsAndSlots();
+  const mountDeviceAt = (...args) => RS.mountDeviceAt && RS.mountDeviceAt(...args);
+  const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
+  const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
+  const addDirectCable = (...args) => RS.addDirectCable && RS.addDirectCable(...args);
+
   function loadMdfPreset() {
     STATE.racks = [
       {
@@ -212,8 +218,7 @@ import { fitRackToScreen } from './zoomManager.js';
     setTimeout(renderAllCables, 50);
   }
 
-export {
-  loadMdfPreset,
-  loadIdfPreset,
-  loadFullSitePreset
-};
+  RS.loadMdfPreset = loadMdfPreset;
+  RS.loadIdfPreset = loadIdfPreset;
+  RS.loadFullSitePreset = loadFullSitePreset;
+})();

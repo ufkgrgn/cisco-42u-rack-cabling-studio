@@ -384,11 +384,11 @@
         if (connectedCable) {
           connectedCable.color = resolvedColor;
           connectedCable.role = role;
-          if (role === 'trunk' && !connectedCable.name.startsWith('[TRUNK]')) {
-            connectedCable.name = `[TRUNK] ${connectedCable.id}`;
-          } else if (role !== 'trunk') {
-            connectedCable.name = (connectedCable.name || '').replace(/^\[TRUNK\]\s*/i, '');
-          }
+          const rolePrefixes = { trunk: '[TRUNK]', uplink: '[UPLINK]', poe: '[POE]', mgmt: '[MGMT]', management: '[MGMT]' };
+          const prefix = rolePrefixes[role] ? rolePrefixes[role] + ' ' : '';
+          const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT)\]\s*/i, '');
+          connectedCable.name = prefix + cleanName;
+
           const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
           let otherDev = null;
           (STATE.racks || []).forEach(r => {
@@ -400,6 +400,9 @@
               role: role,
               isTrunk: role === 'trunk' || config.isTrunk === true,
               color: resolvedColor,
+              vlan: config.vlan || '',
+              description: config.description || '',
+              ciscoName: config.ciscoName || '',
               autoCableColor: true
             };
             otherDev.portsConfig[String(otherEndpoint.portId).replace('p','')] = otherDev.portsConfig[otherEndpoint.portId];

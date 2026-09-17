@@ -365,6 +365,55 @@
   flex-shrink: 0;
 }
 
+/* Cisco Series Specific Front Bezels */
+.cisco-integrated-bezel.bezel-cat9k {
+  background: linear-gradient(135deg, #09121f 0%, #0d1a2d 100%);
+  border-color: #1e3a5f;
+  border-left: 2.5px solid #00d2ff;
+  box-shadow: inset 0 1px 0 rgba(0, 210, 255, 0.15);
+}
+
+.cisco-integrated-bezel.bezel-cat2960x {
+  background: linear-gradient(135deg, #0a141a 0%, #0e1e24 100%);
+  border-color: #1a3338;
+  border-left: 2.5px solid #10b981;
+}
+
+.cisco-integrated-bezel.bezel-cat2960 {
+  background: linear-gradient(135deg, #08111a 0%, #0b1926 100%);
+  border-color: #162c42;
+  border-left: 2.5px solid #0284c7;
+}
+
+.cisco-integrated-bezel.bezel-nexus {
+  background: linear-gradient(135deg, #0c0f17 0%, #151824 100%);
+  border-color: #2b354d;
+  border-left: 2.5px solid #a855f7;
+}
+
+.cisco-integrated-bezel.bezel-isr {
+  background: linear-gradient(135deg, #13141c 0%, #1d1c24 100%);
+  border-color: #3b3a4a;
+  border-left: 2.5px solid #f97316;
+}
+
+/* Cisco Blue Beacon / UID Locator LED (Catalyst 9000 Signature) */
+.cisco-beacon-led {
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #00d2ff;
+  box-shadow: 0 0 4px #00d2ff, 0 0 7px rgba(0, 210, 255, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: ciscoBeaconPulse 2s infinite alternate;
+}
+
+@keyframes ciscoBeaconPulse {
+  0% { opacity: 0.7; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 6px #00e5ff, 0 0 10px rgba(0, 229, 255, 0.8); }
+}
+
 /* Cisco Status Cluster: Mode Button, Micro LEDs, Console Port (Fallback) */
 .cisco-status-cluster {
   display: flex;
@@ -441,7 +490,7 @@
   border: 1px solid #1e2a3c;
   border-radius: 2px;
   padding: 1.5px 3px;
-  gap: 2px;
+  gap: 1.5px;
 }
 
 /* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
@@ -449,19 +498,6 @@
   background: #0f1826;
   border: 1px solid rgba(0, 188, 235, 0.45);
   position: relative;
-}
-
-.faceplate-switch .port-group.cisco-uplink-bay::before {
-  content: "UPLINK";
-  display: block;
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 5px;
-  font-weight: 800;
-  color: #38bdf8;
-  letter-spacing: 0.5px;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: 1.5px;
 }
 
 /* Cisco RJ45 Port Enhancement: Link Status LED */
@@ -870,7 +906,7 @@
 }
 
 .port.port-trunk {
-  --port-role-color: var(--custom-color, var(--trunk-color, #a855f7));
+  --port-role-color: var(--custom-color, var(--trunk-color, #7c3aed));
   --port-badge-text: "T";
 }
 
@@ -885,13 +921,41 @@
 }
 
 .port.port-mgmt {
-  --port-role-color: var(--custom-color, #10b981);
+  --port-role-color: var(--custom-color, #059669);
   --port-badge-text: "M";
 }
 
 .port.port-vlan {
   --port-role-color: var(--custom-color, #3b82f6);
   --port-badge-text: var(--vlan-badge, "V");
+}
+
+.port.port-trunk-ap {
+  --port-role-color: var(--custom-color, #ec4899);
+  --port-badge-text: "W";
+}
+
+.port.port-routed {
+  --port-role-color: var(--custom-color, #b91c1c);
+  --port-badge-text: "R";
+}
+
+.port.port-poe-disabled {
+  position: relative;
+}
+
+.port.port-poe-disabled::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 1px !important;
+  right: 1px !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: #ef4444 !important;
+  box-shadow: 0 0 3px #ef4444 !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
 }
 
 .port.port-special.connected::after,
@@ -933,17 +997,16 @@
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* --- ENTERPRISE D-RING CABLE ORGANIZER (1U / 2U) --- */
+/* --- CLEAN MODERN ENTERPRISE D-RING CABLE ORGANIZER (1U / 2U) --- */
 .dring-faceplate {
   background: linear-gradient(
     180deg,
-    #0c1018 0%,
-    #0a0d13 35%,
-    #0c1018 50%,
-    #0a0d13 65%,
-    #0c1018 100%
+    #101520 0%,
+    #0c1018 40%,
+    #0a0d14 60%,
+    #080a10 100%
   ) !important;
-  border-top: 1px solid #1a202c !important;
+  border-top: 1px solid #222c3d !important;
   border-bottom: 1.5px solid #020305 !important;
   border-left: 4px solid #3d4f65 !important;
   position: relative;
@@ -952,28 +1015,29 @@
   display: flex !important;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  box-shadow: none !important;
+  padding: 0 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+  box-sizing: border-box;
   overflow: visible !important;
 }
 
-/* Horizontal mounting rail lines across faceplate */
+/* Horizontal center guide line on steel faceplate */
 .dring-faceplate::before {
   content: "";
   position: absolute;
   top: 50%;
-  left: 16px;
-  right: 16px;
+  left: 24px;
+  right: 24px;
   height: 1px;
   background: repeating-linear-gradient(
     90deg,
-    #1c2333 0px,
-    #1c2333 3px,
-    transparent 3px,
-    transparent 8px
+    #1e293b 0px,
+    #1e293b 4px,
+    transparent 4px,
+    transparent 10px
   );
   transform: translateY(-50%);
-  opacity: 0.5;
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -983,83 +1047,63 @@
   align-items: center;
   width: 100%;
   height: 100%;
-  padding: 0 10px;
+  padding: 0 14px;
   position: relative;
   z-index: 2;
 }
 
-/* Individual D-Ring Bracket — mounting plate base */
+/* Individual D-Ring Bracket */
 .dring-bracket {
   position: relative;
-  width: 36px;
-  height: 100%;
+  width: 44px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: default;
-  transition: filter 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .dring-bracket:hover {
-  filter: brightness(1.3);
+  transform: translateY(-1px);
 }
 
-/* D-Ring Loop: U-shape with two vertical pillars and open top
-   Achieved by using border only on left, right, bottom + top border-radius = U shape
-   The cable aperture (hole) is dark and slightly inset
-*/
+/* Solid Steel D-Ring Retention Hoop */
 .dring-loop {
   position: relative;
-  width: 28px;
-  height: 20px;
-  /* U-shape: pillar walls + curved base, open top */
-  border: 2px solid #546070;
-  border-top: none;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
-  background: transparent !important;
+  width: 38px;
+  height: 22px;
+  border-radius: 4px;
+  background: #141b26 !important;
+  border: 1.8px solid #56687e !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.7),
-    2px 0 0 rgba(255, 255, 255, 0.06) inset,
-    -2px 0 0 rgba(255, 255, 255, 0.06) inset !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 5px rgba(0, 0, 0, 0.6) !important;
   z-index: 3;
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Cable aperture — dark window visible through the loop opening */
+/* Inner pass-through aperture */
 .dring-loop::before {
   content: "";
-  position: absolute;
-  top: 2px;
-  left: 3px;
-  right: 3px;
-  bottom: 3px;
-  border-radius: 0 0 4px 4px;
-  background: #05080e;
-  border: 1px solid #0f1925;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-/* Top mounting flange — horizontal tab connecting the loop to the faceplate rail */
-.dring-loop::after {
-  content: "";
-  position: absolute;
-  top: -5px;
-  left: -3px;
-  right: -3px;
-  height: 5px;
-  background: linear-gradient(180deg, #3d4f65 0%, #2d3d52 100%);
-  border-top: 1px solid #56687d;
-  border-left: 1px solid #46596e;
-  border-right: 1px solid #46596e;
-  border-radius: 2px 2px 0 0;
+  display: block;
+  width: 26px;
+  height: 12px;
+  border-radius: 2px;
+  background: #06090f;
+  border: 1px solid #1a2332;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
 }
 
 .dring-bracket:hover .dring-loop {
-  border-color: #4a9cc7;
+  border-color: #38bdf8 !important;
   box-shadow:
-    inset 0 -2px 4px rgba(0, 0, 0, 0.6),
-    0 0 6px rgba(56, 189, 248, 0.25) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 8px rgba(56, 189, 248, 0.4) !important;
 }
 
 .dring-mount-base,

@@ -5,12 +5,14 @@
   'use strict';
 
   const ROLE_DEFAULT_COLORS = {
-    trunk: '#a855f7',
+    trunk: '#7c3aed',
     uplink: '#00d2ff',
-    poe: '#f59e0b',
-    mgmt: '#10b981',
-    management: '#10b981',
-    access: '#3b82f6'
+    'trunk-ap': '#ec4899',
+    routed: '#b91c1c',
+    mgmt: '#059669',
+    management: '#059669',
+    access: '#38bdf8',
+    poe: '#f59e0b'
   };
 
   window.PortConfigEditor = {
@@ -70,13 +72,15 @@
       if (portLabelEl) portLabelEl.textContent = `${portName} (${portType.toUpperCase()})`;
 
       const role = (portCfg && portCfg.role) || 'access';
-      const color = (portCfg && portCfg.color) || '#a855f7';
+      const color = (portCfg && portCfg.color) || ROLE_DEFAULT_COLORS[role] || '#7c3aed';
+      const poeState = (portCfg && portCfg.poeState) || 'auto';
       const ciscoName = (portCfg && portCfg.ciscoName) || '';
       const vlan = (portCfg && portCfg.vlan) || '';
       const desc = (portCfg && (portCfg.description || portCfg.note)) || '';
       const autoCable = portCfg ? (portCfg.autoCableColor !== false) : true;
 
       const roleEl = document.getElementById('port-edit-role');
+      const poeEl = document.getElementById('port-edit-poe');
       const colorEl = document.getElementById('port-edit-color');
       const colorHexEl = document.getElementById('port-edit-color-hex');
       const ciscoNameEl = document.getElementById('port-edit-cisco-name');
@@ -85,6 +89,7 @@
       const autoCableEl = document.getElementById('port-edit-auto-cable-color');
 
       if (roleEl) roleEl.value = role;
+      if (poeEl) poeEl.value = poeState;
       if (colorEl) colorEl.value = color;
       if (colorHexEl) colorHexEl.value = color.toUpperCase();
       if (ciscoNameEl) ciscoNameEl.value = ciscoName;
@@ -95,7 +100,7 @@
       const badge = document.getElementById('port-edit-badge');
       if (badge) {
         badge.textContent = role.toUpperCase();
-        badge.style.background = role === 'trunk' ? color : (role === 'uplink' ? '#0284c7' : '#334155');
+        badge.style.background = color || ROLE_DEFAULT_COLORS[role] || '#334155';
         badge.style.color = '#ffffff';
       }
 
@@ -107,21 +112,26 @@
 
     close() {
       const modal = document.getElementById('modal-port-edit');
-      if (modal) modal.style.display = 'none';
+      if (!modal) return;
+      modal.style.display = 'none';
     },
 
     save() {
       if (!this.activeDevId) return;
       const role = document.getElementById('port-edit-role')?.value || 'access';
-      const color = document.getElementById('port-edit-color')?.value || '#a855f7';
+      const poeState = document.getElementById('port-edit-poe')?.value || 'auto';
+      const color = document.getElementById('port-edit-color')?.value || ROLE_DEFAULT_COLORS[role] || '#7c3aed';
       const ciscoName = document.getElementById('port-edit-cisco-name')?.value.trim() || '';
       const vlan = document.getElementById('port-edit-vlan')?.value.trim() || '';
       const desc = document.getElementById('port-edit-desc')?.value.trim() || '';
       const autoCableColor = document.getElementById('port-edit-auto-cable-color')?.checked ?? true;
 
+      const isTrunk = role === 'trunk' || role === 'uplink' || role === 'trunk-ap';
+
       const config = {
         role,
-        isTrunk: role === 'trunk',
+        isTrunk,
+        poeState,
         color,
         ciscoName,
         vlan,
@@ -174,8 +184,7 @@
         if (colorInput) colorInput.value = hex;
         if (hexInput) hexInput.value = hex.toUpperCase();
         const badge = document.getElementById('port-edit-badge');
-        const roleEl = document.getElementById('port-edit-role');
-        if (badge && roleEl && roleEl.value === 'trunk') {
+        if (badge) {
           badge.style.background = hex;
         }
       });
@@ -185,8 +194,7 @@
       const hexInput = document.getElementById('port-edit-color-hex');
       if (hexInput) hexInput.value = e.target.value.toUpperCase();
       const badge = document.getElementById('port-edit-badge');
-      const roleEl = document.getElementById('port-edit-role');
-      if (badge && roleEl && roleEl.value === 'trunk') {
+      if (badge) {
         badge.style.background = e.target.value;
       }
     });
@@ -198,8 +206,7 @@
         const colorInput = document.getElementById('port-edit-color');
         if (colorInput) colorInput.value = val;
         const badge = document.getElementById('port-edit-badge');
-        const roleEl = document.getElementById('port-edit-role');
-        if (badge && roleEl && roleEl.value === 'trunk') {
+        if (badge) {
           badge.style.background = val;
         }
       }
@@ -207,7 +214,7 @@
 
     document.getElementById('port-edit-role')?.addEventListener('change', (e) => {
       const role = e.target.value;
-      const defColor = ROLE_DEFAULT_COLORS[role] || '#3b82f6';
+      const defColor = ROLE_DEFAULT_COLORS[role] || '#38bdf8';
       const colorInput = document.getElementById('port-edit-color');
       const hexInput = document.getElementById('port-edit-color-hex');
       if (colorInput) colorInput.value = defColor;

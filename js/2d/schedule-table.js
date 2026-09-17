@@ -22,27 +22,40 @@
     if (!cable) return;
 
     const ROLE_COLORS = {
-      trunk: '#a855f7',
+      trunk: '#7c3aed',
       uplink: '#00d2ff',
+      'trunk-ap': '#ec4899',
+      routed: '#b91c1c',
+      mgmt: '#059669',
+      management: '#059669',
+      access: '#38bdf8',
       poe: '#f59e0b',
-      mgmt: '#10b981',
-      management: '#10b981',
       standard: STATE.selectedCableColor || '#2563eb'
     };
 
     const isStandard = !newRole || newRole === 'standard' || newRole === 'access';
     const roleKey = isStandard ? null : newRole.toLowerCase();
-    const resolvedColor = isStandard ? (STATE.selectedCableColor || '#2563eb') : (ROLE_COLORS[roleKey] || '#a855f7');
+    const resolvedColor = isStandard ? (STATE.selectedCableColor || '#2563eb') : (ROLE_COLORS[roleKey] || '#7c3aed');
 
     cable.role = roleKey;
     cable.color = resolvedColor;
 
-    if (roleKey === 'trunk') {
+    const isTrunkRole = roleKey === 'trunk' || roleKey === 'uplink' || roleKey === 'trunk-ap';
+
+    if (roleKey === 'trunk' || roleKey === 'uplink') {
       if (!cable.name.startsWith('[TRUNK]')) {
         cable.name = `[TRUNK] ${cable.id}`;
       }
+    } else if (roleKey === 'trunk-ap') {
+      if (!cable.name.startsWith('[AP-TRUNK]')) {
+        cable.name = `[AP-TRUNK] ${cable.id}`;
+      }
+    } else if (roleKey === 'routed') {
+      if (!cable.name.startsWith('[ROUTED]')) {
+        cable.name = `[ROUTED] ${cable.id}`;
+      }
     } else {
-      cable.name = (cable.name || '').replace(/^\[TRUNK\]\s*/i, '');
+      cable.name = (cable.name || '').replace(/^\[(TRUNK|AP-TRUNK|ROUTED)\]\s*/i, '');
     }
 
     let devA = null, devB = null;
@@ -59,7 +72,7 @@
         delete devA.portsConfig[pIdA];
         delete devA.portsConfig[pNumA];
       } else {
-        const cfg = { role: roleKey, isTrunk: roleKey === 'trunk', color: resolvedColor, autoCableColor: true };
+        const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
         devA.portsConfig[pIdA] = cfg;
         devA.portsConfig[pNumA] = cfg;
       }
@@ -73,7 +86,7 @@
         delete devB.portsConfig[pIdB];
         delete devB.portsConfig[pNumB];
       } else {
-        const cfg = { role: roleKey, isTrunk: roleKey === 'trunk', color: resolvedColor, autoCableColor: true };
+        const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
         devB.portsConfig[pIdB] = cfg;
         devB.portsConfig[pNumB] = cfg;
       }
@@ -85,8 +98,8 @@
         const portIdxB = parseInt(String(cable.to.portId).replace('p', ''), 10) || 1;
         const dev3DA = devA?.id || devA?.instanceId;
         const dev3DB = devB?.id || devB?.instanceId;
-        if (dev3DA) window.__STUDIO3D__.updatePortConfig(dev3DA, portIdxA, isStandard ? null : { role: roleKey, isTrunk: roleKey === 'trunk', color: resolvedColor });
-        if (dev3DB) window.__STUDIO3D__.updatePortConfig(dev3DB, portIdxB, isStandard ? null : { role: roleKey, isTrunk: roleKey === 'trunk', color: resolvedColor });
+        if (dev3DA) window.__STUDIO3D__.updatePortConfig(dev3DA, portIdxA, isStandard ? null : { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor });
+        if (dev3DB) window.__STUDIO3D__.updatePortConfig(dev3DB, portIdxB, isStandard ? null : { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor });
       } catch (e) {
         console.warn('3D sync warning:', e);
       }
@@ -108,41 +121,51 @@
     const popover = document.createElement('div');
     popover.className = 'role-picker-popover';
     popover.innerHTML = `
-      <div class="role-picker-title">Bağlantı Rolü &amp; Renk</div>
+      <div class="role-picker-title">802.1Q TRUNK HATLARI</div>
       <div class="role-picker-item ${currentRole === 'trunk' ? 'active' : ''}" data-role="trunk">
         <span class="role-badge-preview trunk">T</span>
         <div class="role-text-group">
-          <span class="role-label">TRUNK (802.1Q)</span>
-          <span class="role-hint">Mor (#a855f7) · VLAN Omurga</span>
+          <span class="role-label">TRUNK (Switch-to-Switch)</span>
+          <span class="role-hint">Elektrik Mor (#7c3aed) · Çoklu VLAN Dağıtım</span>
         </div>
       </div>
       <div class="role-picker-item ${currentRole === 'uplink' ? 'active' : ''}" data-role="uplink">
         <span class="role-badge-preview uplink">▲</span>
         <div class="role-text-group">
-          <span class="role-label">UPLINK (Core/Dist)</span>
-          <span class="role-hint">Cyan (#00d2ff) · Üst Çıkış</span>
+          <span class="role-label">TRUNK UPLINK (Core/Dist)</span>
+          <span class="role-hint">Neon Cyan (#00d2ff) · Omurga / Üst Çıkış</span>
         </div>
       </div>
-      <div class="role-picker-item ${currentRole === 'poe' ? 'active' : ''}" data-role="poe">
-        <span class="role-badge-preview poe">⚡</span>
+      <div class="role-picker-item ${currentRole === 'trunk-ap' ? 'active' : ''}" data-role="trunk-ap">
+        <span class="role-badge-preview trunk-ap">W</span>
         <div class="role-text-group">
-          <span class="role-label">PoE (802.3af/at)</span>
-          <span class="role-hint">Kehribar (#f59e0b) · Güç</span>
+          <span class="role-label">TRUNK AP (Wi-Fi Access Point)</span>
+          <span class="role-hint">Canlı Fuşya (#ec4899) · Çoklu-SSID VLAN</span>
+        </div>
+      </div>
+      <div class="role-picker-sep"></div>
+      <div class="role-picker-title">ACCESS &amp; UÇ NOKTA</div>
+      <div class="role-picker-item ${!currentRole || currentRole === 'standard' || currentRole === 'access' ? 'active' : ''}" data-role="standard">
+        <span class="role-badge-preview standard">A</span>
+        <div class="role-text-group">
+          <span class="role-label">STANDART ACCESS (Data / IP Tel)</span>
+          <span class="role-hint">Standart Kablo Rengi · PoE Dahil</span>
         </div>
       </div>
       <div class="role-picker-item ${currentRole === 'mgmt' || currentRole === 'management' ? 'active' : ''}" data-role="mgmt">
         <span class="role-badge-preview mgmt">M</span>
         <div class="role-text-group">
-          <span class="role-label">MGMT (Yönetim)</span>
-          <span class="role-hint">Yeşil (#10b981) · OOB Portu</span>
+          <span class="role-label">MGMT (OOB Yönetim)</span>
+          <span class="role-hint">Zümrüt (#059669) · Dedicated Konsol/OOB</span>
         </div>
       </div>
       <div class="role-picker-sep"></div>
-      <div class="role-picker-item ${!currentRole || currentRole === 'standard' ? 'active' : ''}" data-role="standard">
-        <span class="role-badge-preview standard">—</span>
+      <div class="role-picker-title">LAYER 3 &amp; WAN</div>
+      <div class="role-picker-item ${currentRole === 'routed' ? 'active' : ''}" data-role="routed">
+        <span class="role-badge-preview routed">R</span>
         <div class="role-text-group">
-          <span class="role-label">Standart Bağlantı</span>
-          <span class="role-hint">Özel Rolü Sıfırla · Standart Mavi</span>
+          <span class="role-label">ROUTED PORT (no switchport)</span>
+          <span class="role-hint">Koyu Karmin (#b91c1c) · L3 IP Noktadan Noktaya</span>
         </div>
       </div>
     `;
@@ -247,10 +270,14 @@
         roleTriggerHtml = `<button type="button" class="role-select-trigger trunk" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">T</span>TRUNK ▾</button>`;
       } else if (portRole === 'uplink') {
         roleTriggerHtml = `<button type="button" class="role-select-trigger uplink" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">▲</span>UPLINK ▾</button>`;
+      } else if (portRole === 'trunk-ap') {
+        roleTriggerHtml = `<button type="button" class="role-select-trigger trunk-ap" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">W</span>AP-TRUNK ▾</button>`;
       } else if (portRole === 'poe') {
         roleTriggerHtml = `<button type="button" class="role-select-trigger poe" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">⚡</span>PoE ▾</button>`;
       } else if (portRole === 'mgmt' || portRole === 'management') {
         roleTriggerHtml = `<button type="button" class="role-select-trigger mgmt" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">M</span>MGMT ▾</button>`;
+      } else if (portRole === 'routed') {
+        roleTriggerHtml = `<button type="button" class="role-select-trigger routed" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">R</span>ROUTED ▾</button>`;
       } else {
         roleTriggerHtml = `<button type="button" class="role-select-trigger standard" data-cable-id="${c.id}" title="Özel Rol Tanımla"><span class="role-tag">+</span>Rol Ata ▾</button>`;
       }
