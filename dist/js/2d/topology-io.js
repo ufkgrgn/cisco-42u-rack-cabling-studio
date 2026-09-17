@@ -123,6 +123,8 @@
       customCatalog: STATE.customCatalog,
       timestamp: new Date().toISOString(),
       activeRackId: STATE.activeRackId,
+      viewMode: STATE.viewMode || 'single',
+      cableRoutingMode: STATE.cableRoutingMode || 'structured',
       racks: STATE.racks,
       cables: STATE.cables
     };
@@ -181,7 +183,14 @@
       if(c.lengthMeters !== undefined && (!Number.isFinite(c.lengthMeters) || c.lengthMeters < 0)) throw new Error('Geçersiz kablo uzunluğu.');
       return {...c, from:endpoints[0], to:endpoints[1]};
     });
-    return {racks, cables, customCatalog, activeRackId:rackIds.has(data.activeRackId) ? data.activeRackId : racks[0].id};
+    return {
+      racks,
+      cables,
+      customCatalog,
+      activeRackId: rackIds.has(data.activeRackId) ? data.activeRackId : racks[0].id,
+      viewMode: (data.viewMode === 'multi' || data.viewMode === 'single') ? data.viewMode : (STATE.viewMode || 'single'),
+      cableRoutingMode: data.cableRoutingMode || 'structured'
+    };
   }
 
   function refresh() {
@@ -196,6 +205,9 @@
     for (const key of Object.keys(HARDWARE_CATALOG)) if (!BUILTIN_KEYS.has(key)) delete HARDWARE_CATALOG[key];
     Object.assign(HARDWARE_CATALOG, next.customCatalog);
     Object.assign(STATE, next);
+    if (next.viewMode && RS.setViewMode) {
+      RS.setViewMode(next.viewMode, true);
+    }
     STATE.rackCounter = Math.max(0, ...STATE.racks.map(r => Number(r.id.match(/\d+$/)?.[0]) || 0));
     STATE.cableCounter = Math.max(0, ...STATE.cables.map(c => Number(c.id.match(/\d+$/)?.[0]) || 0));
     cancelPendingConnection(); STATE.highlightedCableId = null;

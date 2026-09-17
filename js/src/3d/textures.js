@@ -2,6 +2,7 @@
  * Procedural Canvas 2D Texture Generators for Three.js Materials
  */
 import { getDeviceVisualKind, getDevicePortLayout } from './helpers.js';
+import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
 
 // --- PROCEDURAL TEXTURE GENERATORS ---
   function createFloorTexture() {
@@ -296,7 +297,7 @@ import { getDeviceVisualKind, getDevicePortLayout } from './helpers.js';
         ctx.textAlign = 'center';
         ctx.fillText('1U BLANKING PANEL (EIA-310-D)', w / 2, h / 2 + 5);
       } else {
-        // Cable Organizer / D-Ring: Professional matte black with loop guides
+        // Cable Organizer (Brush, Finger-Duct, D-Ring)
         ctx.strokeStyle = '#273346';
         ctx.lineWidth = 1.5;
         ctx.strokeRect(20, 12, w - 40, h - 24);
@@ -304,7 +305,13 @@ import { getDeviceVisualKind, getDevicePortLayout } from './helpers.js';
         ctx.fillStyle = '#64748b';
         ctx.font = 'bold 12px system-ui, -apple-system, monospace';
         ctx.textAlign = 'left';
-        ctx.fillText('1U HORIZONTAL CABLE MANAGEMENT PANEL', 36, h / 2 + 4);
+        const is2U = dev.uHeight === 2;
+        const orgTitle = is2U || (dev.catalogId && dev.catalogId.includes('2u'))
+          ? '2U SLOTTED FINGER-DUCT CABLE ORGANIZER'
+          : (dev.catalogId && dev.catalogId.includes('dring'))
+            ? '1U 5x D-RING CABLE RETENTION ORGANIZER'
+            : '1U BRUSH PASS-THROUGH CABLE ORGANIZER';
+        ctx.fillText(orgTitle, 36, h / 2 + 4);
       }
 
 
@@ -444,8 +451,70 @@ import { getDeviceVisualKind, getDevicePortLayout } from './helpers.js';
     return tex;
   }
 
+  function createRackHeaderBadgeTexture(rackName = 'MDF', rackU = 42) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    // High-tech dark glass acrylic header panel
+    const bgGrad = ctx.createLinearGradient(0, 0, 1024, 0);
+    bgGrad.addColorStop(0, '#040b14');
+    bgGrad.addColorStop(0.5, '#0f172a');
+    bgGrad.addColorStop(1, '#040b14');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1024, 128);
+
+    // Cyan glowing borderline
+    ctx.strokeStyle = '#0284c7';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(4, 4, 1016, 120);
+
+    // Corner decorative accents
+    ctx.fillStyle = '#38bdf8';
+    [[8, 8], [1016 - 16, 8], [8, 128 - 16], [1016 - 16, 128 - 16]].forEach(([cx, cy]) => {
+      ctx.fillRect(cx, cy, 8, 8);
+    });
+
+    // Cabinet icon & prefix
+    ctx.fillStyle = '#0ea5e9';
+    ctx.font = '700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('RACK / ENCLOSURE', 36, 42);
+
+    // Main Rack Name
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 48px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(String(rackName).substring(0, 24), 36, 88);
+
+    // Height U badge on the right
+    const uBadgeX = 860;
+    const uBadgeY = 24;
+    const uBadgeW = 128;
+    const uBadgeH = 80;
+    ctx.fillStyle = 'rgba(14, 165, 233, 0.2)';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3;
+    if (ctx.roundRect) ctx.roundRect(uBadgeX, uBadgeY, uBadgeW, uBadgeH, 12);
+    else ctx.rect(uBadgeX, uBadgeY, uBadgeW, uBadgeH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.textAlign = 'center';
+    ctx.font = '900 40px -apple-system, BlinkMacSystemFont, "Segoe UI", monospace';
+    ctx.fillText(`${rackU}U`, uBadgeX + uBadgeW / 2, uBadgeY + uBadgeH / 2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 8;
+    tex.generateMipmaps = true;
+    return tex;
+  }
+
 export {
   createFloorTexture,
   createRailTexture,
-  createFaceplateTexture
+  createFaceplateTexture,
+  createRackHeaderBadgeTexture
 };

@@ -143,5 +143,26 @@ export const PATCH_PANELS: DeviceCatalogItem[] = [
       { id: 'cable_entry_left', name: 'Cable Gland Left', type: 'terminal', xPct: 0.15, yPct: 0.50, facing: 'rear' },
       { id: 'cable_entry_right', name: 'Cable Gland Right', type: 'terminal', xPct: 0.85, yPct: 0.50, facing: 'rear' }
     ]
+  },
+
+  // 6. 24-Port OS2 SC Duplex Fiber ODF
+  {
+    id: 'fiber-odf-24-sc',
+    name: '24-Port OS2 Singlemode SC-Duplex Fiber ODF (48 Cores)',
+    category: 'patch-panel',
+    u: 1,
+    manufacturer: 'Generic',
+    depthMm: 240,
+    weightKg: 2.6,
+    powerWatts: 0,
+    heatBtu: 0,
+    heatBtuPerHour: 0,
+    modelTag: 'ODF-OS2-24SC',
+    desc: '1U 19" singlemode distribution panel with 24 push-pull SC-Duplex adapters for Metro Ethernet and ISP uplinks.',
+    ports: makePatchPorts(24, 'OS2 SC', 'sc' as any, 1),
+    rearPorts: [
+      { id: 'cable_entry_left', name: 'Cable Gland Left', type: 'terminal', xPct: 0.15, yPct: 0.50, facing: 'rear' },
+      { id: 'cable_entry_right', name: 'Cable Gland Right', type: 'terminal', xPct: 0.85, yPct: 0.50, facing: 'rear' }
+    ]
   }
 ];

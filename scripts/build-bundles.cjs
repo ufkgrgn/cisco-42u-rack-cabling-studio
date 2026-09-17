@@ -21,6 +21,9 @@ try {
     target: ['es2020'],
     legalComments: 'inline'
   });
+  if (fs.existsSync(path.join(root, 'dist/js'))) {
+    fs.copyFileSync(path.join(root, 'js/studio3d.js'), path.join(root, 'dist/js/studio3d.js'));
+  }
   console.log(`✅ Built js/studio3d.js (${fs.statSync(path.join(root, 'js/studio3d.js')).size} bytes) in ${Date.now() - start3D}ms`);
 
   // 3. Build 3D Studio UI Bundle
@@ -33,6 +36,9 @@ try {
     target: ['es2020'],
     legalComments: 'inline'
   });
+  if (fs.existsSync(path.join(root, 'dist/js'))) {
+    fs.copyFileSync(path.join(root, 'js/studio3d-ui.js'), path.join(root, 'dist/js/studio3d-ui.js'));
+  }
   console.log(`✅ Built js/studio3d-ui.js (${fs.statSync(path.join(root, 'js/studio3d-ui.js')).size} bytes) in ${Date.now() - startUI}ms`);
 
   console.log('🎉 All standalone bundles compiled successfully!');

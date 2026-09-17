@@ -100,12 +100,41 @@
     const catalogList = document.getElementById("catalog-items-list");
     const searchInput2 = document.getElementById("catalog-search-input");
     let activeCategory = "all";
+    function getUnifiedCatalog() {
+      const catalog3D = window.CATALOG_3D || [];
+      const RS = window.RackStudio;
+      const catalog2D = RS && RS.HARDWARE_CATALOG || RS && RS.catalog || {};
+      const unified = [...catalog3D];
+      const existingIds = new Set(catalog3D.map((c) => c.id));
+      Object.entries(catalog2D).forEach(([key, item]) => {
+        if (!existingIds.has(key)) {
+          existingIds.add(key);
+          unified.push({
+            id: key,
+            name: item.name || key,
+            desc: item.desc || item.name || "",
+            manufacturer: item.manufacturer || item.logo || (item.category === "patch" || item.category === "fiber" ? "Panel" : "Cisco"),
+            category: item.category || "switch",
+            u: item.u || item.uHeight || 1,
+            depthMm: item.depthMm || 450,
+            color: item.color || 2372168,
+            portsCount: Array.isArray(item.ports) ? item.ports.length : item.portsCount || 24,
+            portType: item.portType || item.ports && item.ports[0] && item.ports[0].type || "rj45",
+            ports: item.ports || [],
+            powerWatts: item.powerWatts,
+            heatBtu: item.heatBtu
+          });
+        }
+      });
+      return unified;
+    }
     function renderCatalog2(filterText = "") {
       if (!catalogList) return;
       catalogList.innerHTML = "";
       const norm = (s) => (s || "").toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const query = norm(filterText);
-      const items = window.CATALOG_3D.filter((item) => {
+      const allCatalogItems = getUnifiedCatalog();
+      const items = allCatalogItems.filter((item) => {
         const matchesCat = activeCategory === "all" || item.category === activeCategory;
         const matchesQuery = !query || norm(item.name).includes(query) || norm(item.desc).includes(query) || norm(item.manufacturer).includes(query);
         return matchesCat && matchesQuery;
@@ -114,19 +143,33 @@
         catalogList.innerHTML = '<div style="padding:16px;text-align:center;color:#64748b;font-size:12px;">E\u015Fle\u015Fen donan\u0131m bulunamad\u0131.</div>';
         return;
       }
+      const racks = Array.isArray(studio.state.racks) && studio.state.racks.length > 0 ? studio.state.racks : [{ id: "rack-1", name: "MDF - Da\u011F\u0131t\u0131m Kabini", heightU: studio.state.rackHeightU || 42 }];
+      const hasMultiRack = racks.length > 1;
       items.forEach((item) => {
         const card = document.createElement("div");
         card.className = "catalog-card";
-        const suggestedSlot = studio.findNextAvailableSlot(item.u) || 1;
+        let currentTargetRackId = studio.state.activeRackId || racks[0].id;
+        let suggestedSlot = studio.findNextAvailableSlot(item.u, currentTargetRackId) || 1;
+        const rackSelectHtml = hasMultiRack ? `
+          <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:#94a3b8;white-space:nowrap;">Kabin:</span>
+            <select class="rack-select-input" style="flex:1;background:#0f172a;border:1px solid #334155;color:#38bdf8;font-size:11px;border-radius:4px;padding:3px 6px;">
+              ${racks.map((r) => `<option value="${r.id}" ${r.id === currentTargetRackId ? "selected" : ""}>${r.name}</option>`).join("")}
+            </select>
+          </div>
+        ` : "";
+        const targetRack = studio.getRack ? studio.getRack(currentTargetRackId) : racks[0];
+        const maxU = targetRack && targetRack.heightU || studio.state.rackHeightU || 42;
         card.innerHTML = `
           <div class="catalog-card-header">
             <span class="catalog-card-name">${item.name}</span>
             <span class="catalog-card-u">${item.u}U</span>
           </div>
           <div class="catalog-card-desc">${item.desc}</div>
+          ${rackSelectHtml}
           <div class="catalog-card-mount">
             <span style="font-size:11px;color:#94a3b8;">U Slot:</span>
-            <input type="number" class="slot-input" min="1" max="${studio.state.rackHeightU - item.u + 1}" value="${suggestedSlot}" title="Montaj yap\u0131lacak U slotu (Bo\u015F olan \xF6nerilmi\u015Ftir)">
+            <input type="number" class="slot-input" min="1" max="${maxU - item.u + 1}" value="${suggestedSlot}" title="Montaj yap\u0131lacak U slotu (Bo\u015F olan \xF6nerilmi\u015Ftir)">
             <button class="hud-btn btn-primary btn-mount" style="flex:1;justify-content:center;padding:4px 8px;font-size:11px;">
               \u26A1 3D Montaj
             </button>
@@ -134,11 +177,21 @@
         `;
         const slotInput = card.querySelector(".slot-input");
         const mountBtn = card.querySelector(".btn-mount");
+        const rackSelect = card.querySelector(".rack-select-input");
+        if (rackSelect) {
+          rackSelect.addEventListener("change", () => {
+            currentTargetRackId = rackSelect.value;
+            const newSlot = studio.findNextAvailableSlot(item.u, currentTargetRackId) || 1;
+            slotInput.value = newSlot;
+          });
+        }
         mountBtn.addEventListener("click", () => {
           const targetU = parseInt(slotInput.value) || suggestedSlot;
-          const res = studio.mountDevice(item.id, targetU);
+          const targetRackId = rackSelect ? rackSelect.value : currentTargetRackId;
+          const res = studio.mountDevice(item.id, targetU, targetRackId);
           if (res) {
-            studio.showToast(`${item.name} U${res.startU} pozisyonuna ba\u015Far\u0131yla monte edildi.`);
+            const rName = (racks.find((r) => r.id === targetRackId) || {}).name || "Kabin";
+            studio.showToast(`${item.name} [${rName}] U${res.startU} pozisyonuna ba\u015Far\u0131yla monte edildi.`);
             renderCatalog2(searchInput2 ? searchInput2.value : "");
           }
         });
@@ -195,6 +248,7 @@
         const topU = dev.startU + dev.uHeight - 1;
         const uLabel = dev.uHeight > 1 ? `U${topU}-${dev.startU}` : `U${dev.startU}`;
         const cableCount = studio.state.cables.filter((c) => c.from.devId === dev.id || c.to.devId === dev.id).length;
+        const rackObj = (studio.state.racks || []).find((r) => r.id === dev.rackId) || { name: "MDF" };
         const card = document.createElement("div");
         card.className = "installed-device-card" + (studio.selectedDeviceId === dev.id ? " active" : "");
         card.dataset.devId = dev.id;
@@ -206,9 +260,10 @@
           <div class="installed-card-top">
             <span class="installed-u-pill">${uLabel}</span>
             <span class="installed-dev-title" title="${dev.name}">${dev.name}</span>
+            <span style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(2,132,199,0.25);border:1px solid #0284c7;color:#38bdf8;font-weight:700;">${rackObj.name}</span>
             <span class="installed-cables-badge" title="Ba\u011Fl\u0131 Kablo Say\u0131s\u0131">\u{1F50C} ${cableCount}</span>
           </div>
-          <div class="installed-card-sub">${dev.manufacturer || "Cisco"} \xB7 ${dev.uHeight}U \xB7 ${dev.category || "Donan\u0131m"}</div>
+          <div class="installed-card-sub">${dev.manufacturer || "Cisco"} \xB7 ${dev.uHeight}U \xB7 ${dev.powerWatts !== void 0 ? dev.powerWatts : 150}W \xB7 ${dev.category || "Donan\u0131m"}</div>
           ${metaHtml}
           <div class="installed-card-actions">
             <button class="btn-inst-action btn-inst-edit" title="Donan\u0131m bilgilerini yap\u0131land\u0131r">\u270F\uFE0F D\xFCzenle</button>
@@ -498,12 +553,14 @@
             studio.state.cables.forEach((c, idx) => {
               const dFrom = studio.state.devices.find((d) => d.id === c.from.devId);
               const dTo = studio.state.devices.find((d) => d.id === c.to.devId);
+              const rFrom = (studio.state.racks || []).find((r) => r.id === (c.from.rackId || dFrom && dFrom.rackId)) || { name: "MDF" };
+              const rTo = (studio.state.racks || []).find((r) => r.id === (c.to.rackId || dTo && dTo.rackId)) || { name: "MDF" };
               const tr = document.createElement("tr");
               tr.innerHTML = `
                 <td>#${idx + 1}</td>
                 <td><strong style="color:#38bdf8;cursor:pointer;" class="schedule-cable-name" title="\u0130smi d\xFCzenlemek i\xE7in t\u0131klay\u0131n">${c.name || "\u0130simsiz Kablo"}</strong></td>
-                <td><strong>${dFrom ? dFrom.name : "Bilinmeyen"}</strong> (P${c.from.portIdx})</td>
-                <td><strong>${dTo ? dTo.name : "Bilinmeyen"}</strong> (P${c.to.portIdx})</td>
+                <td><span style="font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(2,132,199,0.2);color:#38bdf8;margin-right:4px;">${rFrom.name}</span><strong>${dFrom ? dFrom.name : "Bilinmeyen"}</strong> (P${c.from.portIdx})</td>
+                <td><span style="font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(2,132,199,0.2);color:#38bdf8;margin-right:4px;">${rTo.name}</span><strong>${dTo ? dTo.name : "Bilinmeyen"}</strong> (P${c.to.portIdx})</td>
                 <td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background-color:#${c.color.toString(16).padStart(6, "0")};margin-right:6px;vertical-align:middle;"></span>#${c.color.toString(16).padStart(6, "0")}</td>
                 <td><strong>${c.lengthM} Metre</strong></td>
                 <td>

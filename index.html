@@ -34,7 +34,7 @@
 
       <!-- Live Power & Thermal Telemetry Badges -->
       <div class="telemetry-group">
-        <span class="telemetry-badge power" title="Toplam Aktif Güç Tüketimi">⚡ <span id="telemetry-power-val">0</span> W</span>
+        <span class="telemetry-badge power" title="Toplam Aktif Güç Tüketimi">⚡ <span id="telemetry-power-val">0</span> W <span id="telemetry-amp-val" style="opacity:0.75;font-weight:normal;">(0.0A)</span></span>
         <span class="telemetry-badge heat" title="Toplam Termal Isı Yayılımı">♨️ <span id="telemetry-heat-val">0</span> BTU/h</span>
       </div>
     </div>
@@ -124,6 +124,8 @@
       <div class="hud-btn-group">
         <button class="hud-btn icon-only" id="btn-3d-undo" title="Geri Al (Ctrl+Z)">↩️</button>
         <button class="hud-btn icon-only" id="btn-3d-redo" title="İleri Al (Ctrl+Y)">↪️</button>
+        <button class="hud-btn icon-only" id="btn-network-compliance" title="Ağ Standartları & Döngü Koruması (Açık/Kapalı)">🛡️</button>
+        <button class="hud-btn icon-only" id="btn-audio-toggle" title="Ses Efektlerini Aç/Kapat">🔊</button>
       </div>
 
       <!-- Performance FPS Counter -->
@@ -461,6 +463,7 @@
             <optgroup label="── ACCESS (Tek VLAN / Uç Nokta Portları) ──">
               <option value="access">💻 Standart Access (Kullanıcı PC / IP Telefon / Data - PoE Dahil)</option>
               <option value="mgmt">🔒 Management (OOB / İzole Cihaz Yönetim Portu)</option>
+              <option value="console">📟 Console (Cisco RJ45 Seri Konsol Portu)</option>
             </optgroup>
             <optgroup label="── LAYER 3 / WAN HATLARI ──">
               <option value="routed">🌐 Routed Port / WAN (Router / Firewall / ISP - no switchport)</option>
@@ -1202,7 +1205,7 @@
       <details class="panel-section collapsible-section" open>
         <summary class="section-title">
           <span>Yapısal Kablolama & Panel</span>
-          <span class="section-count-badge">4 Model</span>
+          <span class="section-count-badge">6 Model</span>
         </summary>
         <div class="section-content">
           <div class="device-card hw-item-1u" data-device-id="patch-cat6-24" title="Cat6A 24-Port Patch Panel (1U) - 24x RJ45 Cat6A, 10G Ready">
@@ -1248,7 +1251,7 @@
             <div class="device-ports-tag" style="display:none;"><span class="tag">48x RJ45 Cat6</span><span class="tag">Çift Sıra</span></div>
           </div>
 
-          <div class="device-card hw-item-1u" data-device-id="fiber-odf-24" title="24-Port OM4 Fiber Panel ODF (1U) - 24x LC Duplex, OM4 Aqua">
+          <div class="device-card hw-item-1u" data-device-id="fiber-odf-24" title="24-Port OM4 Fiber Panel ODF (1U) - 24x LC Duplex, OM4 Aqua Multi Mode">
             <div class="hw-mini-bezel bezel-odf" aria-hidden="true">
               <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
               <div class="mini-bezel-face">
@@ -1262,11 +1265,52 @@
               <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
             </div>
             <div class="hw-info">
-              <span class="device-name">24-Port OM4 ODF</span>
+              <span class="device-name">24-Port OM4 LC ODF</span>
             </div>
             <span class="device-u-badge">1U</span>
-            <div class="device-desc" style="display:none;">Veri merkezi OM4 LC Duplex çok modlu fiber optik sonlandırma çekmecesi.</div>
+            <div class="device-desc" style="display:none;">Veri merkezi OM4 LC Duplex çok modlu (Aqua) fiber optik sonlandırma çekmecesi.</div>
             <div class="device-ports-tag" style="display:none;"><span class="tag">24x LC Duplex</span><span class="tag">OM4 Aqua</span></div>
+          </div>
+
+          <div class="device-card hw-item-1u" data-device-id="fiber-odf-24-os2" title="24-Port OS2 Fiber Panel ODF (1U) - 24x LC Duplex, OS2 Single Mode (Mavi)">
+            <div class="hw-mini-bezel bezel-os2-odf" aria-hidden="true">
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+              <div class="mini-bezel-face">
+                <span class="mini-cisco-text" style="color:#38bdf8;">ODF-OS2</span>
+                <div class="mini-ports-row">
+                  <span class="mini-os2-block"></span>
+                  <span class="mini-os2-block"></span>
+                  <span class="mini-os2-block"></span>
+                </div>
+              </div>
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+            </div>
+            <div class="hw-info">
+              <span class="device-name">24-Port OS2 LC ODF</span>
+            </div>
+            <span class="device-u-badge">1U</span>
+            <div class="device-desc" style="display:none;">19" 1U OS2 Single Mode (9/125µm) LC Duplex mavi adaptörlü fiber optik sonlandırma çekmecesi.</div>
+            <div class="device-ports-tag" style="display:none;"><span class="tag">24x LC Duplex</span><span class="tag">OS2 Single Mode</span></div>
+          </div>
+
+          <div class="device-card hw-item-1u" data-device-id="fiber-odf-24-sc" title="24-Port OS2 SC Duplex Panel (1U) - 24x SC Duplex, Single Mode (Push-Pull Mavi)">
+            <div class="hw-mini-bezel bezel-sc-odf" aria-hidden="true">
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+              <div class="mini-bezel-face">
+                <span class="mini-cisco-text" style="color:#0ea5e9;">SC-ODF</span>
+                <div class="mini-ports-row">
+                  <span class="mini-sc-block"></span>
+                  <span class="mini-sc-block"></span>
+                </div>
+              </div>
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+            </div>
+            <div class="hw-info">
+              <span class="device-name">24-Port SC Duplex ODF</span>
+            </div>
+            <span class="device-u-badge">1U</span>
+            <div class="device-desc" style="display:none;">19" 1U 24-Port SC Duplex Single Mode fiber dağıtım paneli, push-pull mavi adaptör yuvalı.</div>
+            <div class="device-ports-tag" style="display:none;"><span class="tag">24x SC Duplex</span><span class="tag">Push-Pull OS2</span></div>
           </div>
 
           <div class="device-card hw-item-1u" data-device-id="hcs-datalight-24" title="HCS DataLight Fiber Patch Panel (1U) - 24x Fiber Adaptör, Modüler">
@@ -1295,10 +1339,30 @@
       <!-- 7. CABLE MANAGEMENT & BLANKING -->
       <details class="panel-section collapsible-section" open>
         <summary class="section-title">
-          <span>Kablo Düzenleme & Kör Panel</span>
-          <span class="section-count-badge">4 Model</span>
+          <span>Kablo Düzenleme & Güç (PDU)</span>
+          <span class="section-count-badge">5 Model</span>
         </summary>
         <div class="section-content">
+          <div class="device-card hw-item-1u" data-device-id="pdu-8port-1u" title="1U 8-Soketli Rack PDU (1U) - 16A 250V Schuko Güç Dağıtım Ünitesi">
+            <div class="hw-mini-bezel bezel-pdu" aria-hidden="true">
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+              <div class="mini-bezel-face">
+                <span class="mini-cisco-text" style="color:#22c55e;">230V</span>
+                <div class="mini-ports-row">
+                  <span class="mini-pdu-socket"></span>
+                  <span class="mini-pdu-socket"></span>
+                  <span class="mini-pdu-socket"></span>
+                </div>
+              </div>
+              <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
+            </div>
+            <div class="hw-info">
+              <span class="device-name">1U 8-Soket PDU</span>
+            </div>
+            <span class="device-u-badge">1U</span>
+            <div class="device-desc" style="display:none;">19" 1U 16A 250V 8 soketli Schuko tip güç dağıtım ünitesi, ışıklı açma/kapama şalteri ve aşırı akım sigortalı.</div>
+            <div class="device-ports-tag" style="display:none;"><span class="tag">8x Schuko Priz</span><span class="tag">16A 250V</span></div>
+          </div>
           <div class="device-card hw-item-1u" data-device-id="organizer-1u" title="1U Fırçalı Yatay Düzenleyici (1U) - Ön Geçişli Fırça Paneli">
             <div class="hw-mini-bezel bezel-blank" aria-hidden="true">
               <div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>
@@ -1537,22 +1601,6 @@
 
       <div class="schedule-table-wrapper">
         <table class="schedule-table" id="schedule-table">
-          <colgroup>
-            <col style="width: 18%;">
-            <col style="width: 48%;">
-            <col style="width: 18%;">
-            <col style="width: 10%;">
-            <col style="width: 6%;">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Bağlantı Rotası</th>
-              <th>Rol / Durum</th>
-              <th>Metraj</th>
-              <th>İşlem</th>
-            </tr>
-          </thead>
           <tbody id="schedule-tbody"></tbody>
         </table>
       </div>
@@ -1596,6 +1644,7 @@
   <script src="js/2d/state.js"></script>
   <script src="js/2d/zoom-manager.js"></script>
   <script src="js/2d/rack-manager.js"></script>
+  <script src="js/2d/network-rules.js"></script>
   <script src="js/2d/rack-renderer.js"></script>
   <script src="js/2d/cabling-engine.js"></script>
   <script src="js/2d/schedule-table.js"></script>
@@ -1606,6 +1655,7 @@
   <script src="js/catalog-ui.js"></script>
 
   <!-- Extracted UI, Editor and Bridge Controllers -->
+  <script src="js/audio-fx.js"></script>
   <script src="js/port-config-editor.js"></script>
   <script src="js/device-metadata-editor.js"></script>
   <script src="js/topbar-controller.js"></script>

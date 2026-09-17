@@ -31,6 +31,8 @@
       management: '#059669',
       access: '#38bdf8',
       poe: '#f59e0b',
+      console: '#00bceb',
+      fiber: '#facc15',
       standard: STATE.selectedCableColor || '#2563eb'
     };
 
@@ -43,9 +45,13 @@
 
     const isTrunkRole = roleKey === 'trunk' || roleKey === 'uplink' || roleKey === 'trunk-ap';
 
-    if (roleKey === 'trunk' || roleKey === 'uplink') {
+    if (roleKey === 'trunk') {
       if (!cable.name.startsWith('[TRUNK]')) {
         cable.name = `[TRUNK] ${cable.id}`;
+      }
+    } else if (roleKey === 'uplink') {
+      if (!cable.name.startsWith('[UPLINK]')) {
+        cable.name = `[UPLINK] ${cable.id}`;
       }
     } else if (roleKey === 'trunk-ap') {
       if (!cable.name.startsWith('[AP-TRUNK]')) {
@@ -55,8 +61,16 @@
       if (!cable.name.startsWith('[ROUTED]')) {
         cable.name = `[ROUTED] ${cable.id}`;
       }
+    } else if (roleKey === 'fiber') {
+      if (!cable.name.startsWith('[FIBER]')) {
+        cable.name = `[FIBER] ${cable.id}`;
+      }
+    } else if (roleKey === 'console') {
+      if (!cable.name.startsWith('[CONSOLE]')) {
+        cable.name = `[CONSOLE] ${cable.id}`;
+      }
     } else {
-      cable.name = (cable.name || '').replace(/^\[(TRUNK|AP-TRUNK|ROUTED)\]\s*/i, '');
+      cable.name = (cable.name || '').replace(/^\[(TRUNK|AP-TRUNK|ROUTED|FIBER|UPLINK|CONSOLE)\]\s*/i, '');
     }
 
     let devA = null, devB = null;
@@ -68,35 +82,53 @@
     if (devA) {
       if (!devA.portsConfig) devA.portsConfig = {};
       const pIdA = cable.from.portId;
-      const pNumA = String(pIdA).replace('p', '');
+      const isNumA = /^p\d+$/i.test(String(pIdA)) || /^\d+$/.test(String(pIdA));
+      const pNumA = isNumA ? String(pIdA).replace(/^p/i, '') : String(pIdA);
       if (isStandard) {
         delete devA.portsConfig[pIdA];
-        delete devA.portsConfig[pNumA];
+        if (isNumA) {
+          delete devA.portsConfig[pNumA];
+          delete devA.portsConfig['p' + pNumA];
+        }
+        delete devA.portsConfig['p' + pIdA];
       } else {
         const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
+        delete devA.portsConfig['p' + pIdA];
         devA.portsConfig[pIdA] = cfg;
-        devA.portsConfig[pNumA] = cfg;
+        if (isNumA) {
+          devA.portsConfig[pNumA] = cfg;
+          devA.portsConfig['p' + pNumA] = cfg;
+        }
       }
     }
 
     if (devB) {
       if (!devB.portsConfig) devB.portsConfig = {};
       const pIdB = cable.to.portId;
-      const pNumB = String(pIdB).replace('p', '');
+      const isNumB = /^p\d+$/i.test(String(pIdB)) || /^\d+$/.test(String(pIdB));
+      const pNumB = isNumB ? String(pIdB).replace(/^p/i, '') : String(pIdB);
       if (isStandard) {
         delete devB.portsConfig[pIdB];
-        delete devB.portsConfig[pNumB];
+        if (isNumB) {
+          delete devB.portsConfig[pNumB];
+          delete devB.portsConfig['p' + pNumB];
+        }
+        delete devB.portsConfig['p' + pIdB];
       } else {
         const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
+        delete devB.portsConfig['p' + pIdB];
         devB.portsConfig[pIdB] = cfg;
-        devB.portsConfig[pNumB] = cfg;
+        if (isNumB) {
+          devB.portsConfig[pNumB] = cfg;
+          devB.portsConfig['p' + pNumB] = cfg;
+        }
       }
     }
 
     if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
       try {
-        const portIdxA = parseInt(String(cable.from.portId).replace('p', ''), 10) || 1;
-        const portIdxB = parseInt(String(cable.to.portId).replace('p', ''), 10) || 1;
+        const portIdxA = parseInt(String(cable.from.portId).replace(/\D+/g, ''), 10) || 1;
+        const portIdxB = parseInt(String(cable.to.portId).replace(/\D+/g, ''), 10) || 1;
         const dev3DA = devA?.id || devA?.instanceId;
         const dev3DB = devB?.id || devB?.instanceId;
         if (dev3DA) window.__STUDIO3D__.updatePortConfig(dev3DA, portIdxA, isStandard ? null : { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor });
@@ -113,6 +145,8 @@
     renderMountedDevices();
     renderScheduleTable();
     renderAllCables();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
@@ -160,6 +194,13 @@
           <span class="role-hint">Zümrüt (#059669) · Dedicated Konsol/OOB</span>
         </div>
       </div>
+      <div class="role-picker-item ${currentRole === 'console' ? 'active' : ''}" data-role="console">
+        <span class="role-badge-preview console">C</span>
+        <div class="role-text-group">
+          <span class="role-label">CONSOLE (Cisco Seri Port)</span>
+          <span class="role-hint">Cisco Cyan (#00bceb) · RJ45 Seri Konsol</span>
+        </div>
+      </div>
       <div class="role-picker-sep"></div>
       <div class="role-picker-title">LAYER 3 &amp; WAN</div>
       <div class="role-picker-item ${currentRole === 'routed' ? 'active' : ''}" data-role="routed">
@@ -167,6 +208,15 @@
         <div class="role-text-group">
           <span class="role-label">ROUTED PORT (no switchport)</span>
           <span class="role-hint">Koyu Karmin (#b91c1c) · L3 IP Noktadan Noktaya</span>
+        </div>
+      </div>
+      <div class="role-picker-sep"></div>
+      <div class="role-picker-title">FİBER OPTİK (OS2 / OM4)</div>
+      <div class="role-picker-item ${currentRole === 'fiber' ? 'active' : ''}" data-role="fiber">
+        <span class="role-badge-preview fiber">F</span>
+        <div class="role-text-group">
+          <span class="role-label">FIBER OPTİK (Single-Mode)</span>
+          <span class="role-hint">Sarı (#facc15) · LC/SC Optik Hat</span>
         </div>
       </div>
     `;
@@ -205,28 +255,469 @@
     setTimeout(() => document.addEventListener('click', outsideClick), 0);
   }
 
-  let schedulePage = 0;
-  const SCHEDULE_PAGE_SIZE = 100;
+  let scheduleSortMode = 'u'; // 'u' | 'panel' | 'tree'
+  const collapsedSwitches = new Set();
+
+  function getPortSortIndex(portId, portName) {
+    const str = String(portName || portId || '');
+    const m3 = str.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (m3) return parseInt(m3[1], 10) * 10000 + parseInt(m3[2], 10) * 1000 + parseInt(m3[3], 10);
+    const m2 = str.match(/(\d+)\/(\d+)/);
+    if (m2) return parseInt(m2[1], 10) * 1000 + parseInt(m2[2], 10);
+    const m1 = str.match(/\d+/);
+    if (m1) return parseInt(m1[0], 10);
+    return 9999;
+  }
+
+  function renderSingleCableCard(c) {
+    const rackA = STATE.racks ? STATE.racks.find(r => r.id === c.from?.rackId) : null;
+    const rackB = STATE.racks ? STATE.racks.find(r => r.id === c.to?.rackId) : null;
+    const devA = rackA ? rackA.devices?.find(d => d.instanceId === c.from?.instanceId) : null;
+    const devB = rackB ? rackB.devices?.find(d => d.instanceId === c.to?.instanceId) : null;
+
+    const catA = devA ? HARDWARE_CATALOG[devA.catalogKey] : null;
+    const catB = devB ? HARDWARE_CATALOG[devB.catalogKey] : null;
+    const portA = catA ? catA.ports?.find(p => p.id === c.from?.portId) : null;
+    const portB = catB ? catB.ports?.find(p => p.id === c.to?.portId) : null;
+
+    const isInterRack = c.from?.rackId !== c.to?.rackId;
+
+    const tr = document.createElement('tr');
+    tr.dataset.cableId = c.id;
+    if (c.id === STATE.highlightedCableId) tr.className = 'active';
+
+    const rackShortA = rackA ? (rackA.name.length > 10 ? rackA.name.slice(0, 10) + '…' : rackA.name) : 'Kabin';
+    const rackShortB = rackB ? (rackB.name.length > 10 ? rackB.name.slice(0, 10) + '…' : rackB.name) : 'Kabin';
+
+    const sourcePortCfg = devA?.portsConfig && (devA.portsConfig[c.from?.portId] || devA.portsConfig[String(c.from?.portId).replace('p', '')]);
+    const targetPortCfg = devB?.portsConfig && (devB.portsConfig[c.to?.portId] || devB.portsConfig[String(c.to?.portId).replace('p', '')]);
+    const portRole = (c.role || (sourcePortCfg && sourcePortCfg.role) || (targetPortCfg && targetPortCfg.role) || (portA && portA.role) || (portB && portB.role) || '').toLowerCase();
+
+    const roleColors = {
+      trunk: '#7c3aed',
+      uplink: '#00d2ff',
+      'trunk-ap': '#ec4899',
+      poe: '#f59e0b',
+      mgmt: '#059669',
+      management: '#059669',
+      console: '#00bceb',
+      routed: '#b91c1c',
+      fiber: '#facc15'
+    };
+
+    const portTypeA = portA?.type === 'fiber' || portA?.type === 'lc' || portA?.type === 'sc' || portA?.type === 'sfp' ? 'fiber' : (portA?.type === 'power' ? 'power' : 'copper');
+    const portTypeB = portB?.type === 'fiber' || portB?.type === 'lc' || portB?.type === 'sc' || portB?.type === 'sfp' ? 'fiber' : (portB?.type === 'power' ? 'power' : 'copper');
+
+    const isOpticalRun = portRole === 'fiber' ||
+                         c.color === '#facc15' ||
+                         (c.name && c.name.startsWith('[FIBER]')) ||
+                         (portTypeA === 'fiber' && portTypeB === 'fiber');
+
+    if (isOpticalRun) {
+      if (c.color !== '#facc15') c.color = '#facc15';
+      if (c.role !== 'fiber') c.role = 'fiber';
+      if (c.name && c.name.startsWith('[UPLINK]')) c.name = c.name.replace('[UPLINK]', '[FIBER]');
+    }
+
+    const effectiveCardRole = isOpticalRun ? 'fiber' : (portRole || 'standard');
+    const rowAccentColor = isOpticalRun ? '#facc15' : (roleColors[effectiveCardRole] || c.color || '#38bdf8');
+    tr.style.setProperty('--row-accent', rowAccentColor);
+    tr.classList.add('schedule-cable-card');
+    if (effectiveCardRole) tr.classList.add(`role-${effectiveCardRole}`);
+
+    let roleTagLetter = '●';
+    let roleBadgeText = 'STANDART';
+    if (effectiveCardRole === 'fiber') { roleBadgeText = 'FIBER'; roleTagLetter = 'F'; }
+    else if (effectiveCardRole === 'trunk') { roleBadgeText = 'TRUNK'; roleTagLetter = 'T'; }
+    else if (effectiveCardRole === 'uplink') { roleBadgeText = 'UPLINK'; roleTagLetter = '▲'; }
+    else if (effectiveCardRole === 'trunk-ap') { roleBadgeText = 'AP-TRUNK'; roleTagLetter = 'W'; }
+    else if (effectiveCardRole === 'poe') { roleBadgeText = 'PoE'; roleTagLetter = '⚡'; }
+    else if (effectiveCardRole === 'mgmt' || effectiveCardRole === 'management') { roleBadgeText = 'MGMT'; roleTagLetter = 'M'; }
+    else if (effectiveCardRole === 'console') { roleBadgeText = 'CONSOLE'; roleTagLetter = 'C'; }
+    else if (effectiveCardRole === 'routed') { roleBadgeText = 'ROUTED'; roleTagLetter = 'R'; }
+
+    const devLabelA = devA?.panelLabel || devA?.hostname || devA?.name || catA?.name || '';
+    const devLabelB = devB?.panelLabel || devB?.hostname || devB?.name || catB?.name || '';
+
+    const panelTagA = devA?.panelLabel
+      ? `<span class="badge-panel-tag" title="Patch Panel: ${escapeHtml(devA.panelLabel)}">${escapeHtml(devA.panelLabel)}</span>`
+      : (devA?.hostname && devA.hostname !== catA?.name ? `<span class="badge-dev-tag" title="Cihaz: ${escapeHtml(devA.hostname)}">${escapeHtml(devA.hostname.length > 8 ? devA.hostname.slice(0, 8) + '…' : devA.hostname)}</span>` : '');
+
+    const panelTagB = devB?.panelLabel
+      ? `<span class="badge-panel-tag" title="Patch Panel: ${escapeHtml(devB.panelLabel)}">${escapeHtml(devB.panelLabel)}</span>`
+      : (devB?.hostname && devB.hostname !== catB?.name ? `<span class="badge-dev-tag" title="Cihaz: ${escapeHtml(devB.hostname)}">${escapeHtml(devB.hostname.length > 8 ? devB.hostname.slice(0, 8) + '…' : devB.hostname)}</span>` : '');
+
+    let left = {
+      rack: rackA,
+      dev: devA,
+      cat: catA,
+      port: portA,
+      portId: c.from?.portId,
+      instanceId: c.from?.instanceId,
+      portType: portTypeA,
+      devLabel: devLabelA,
+      panelTag: panelTagA,
+      rackShort: rackShortA
+    };
+
+    let right = {
+      rack: rackB,
+      dev: devB,
+      cat: catB,
+      port: portB,
+      portId: c.to?.portId,
+      instanceId: c.to?.instanceId,
+      portType: portTypeB,
+      devLabel: devLabelB,
+      panelTag: panelTagB,
+      rackShort: rackShortB
+    };
+
+    // Standardize: Patch Panel is ALWAYS first (Left / Source), Switch is ALWAYS second (Right / Target)
+    const isPatchA = catA && (catA.category === 'patch' || catA.category === 'fiber' || catA.category === 'fiber-panel' || catA.category === 'odf');
+    const isPatchB = catB && (catB.category === 'patch' || catB.category === 'fiber' || catB.category === 'fiber-panel' || catB.category === 'odf');
+    if (!isPatchA && isPatchB) {
+      const tmp = left;
+      left = right;
+      right = tmp;
+    }
+
+    let displayName = (c.name && !c.name.includes('→')) ? c.name : (c.id || c.name || 'CBL');
+    if (isOpticalRun && displayName.startsWith('[UPLINK]')) {
+      displayName = displayName.replace('[UPLINK]', '[FIBER]');
+    }
+
+    const routingOrgs = (!isInterRack && rackA && rackA === rackB && devA && devB && RS.findRoutingOrganizers)
+      ? RS.findRoutingOrganizers(rackA, devA, devB)
+      : [];
+
+    const orgPathStr = routingOrgs.length > 0
+      ? ` ➔ Dikey Kanal ➔ ${routingOrgs.map(o => 'U' + o.topU + ' Düzenleyici').join(' ➔ ')} ➔ Dikey Kanal ➔ `
+      : ' ➔ ';
+    const flowTooltip = `Saha Güzergahı: ${left.devLabel || 'Cihaz'} (U${left.dev ? left.dev.topU : '?'}, ${left.port ? left.port.name : left.portId})${orgPathStr}${right.devLabel || 'Cihaz'} (U${right.dev ? right.dev.topU : '?'}, ${right.port ? right.port.name : right.portId}) | Gerçek Saha Metrajı: ${c.lengthMeters}m (%10 Servis Halkası Dahil)`;
+
+    const currentDuct = c.ductSide || 'auto';
+    const ductLabel = currentDuct === 'left' ? '⬅️ Sol' : (currentDuct === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductTooltip = `Dikey Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
+
+    tr.innerHTML = `
+      <td class="schedule-card-cell" colspan="3">
+        <div class="card-legend-bar">
+          <div class="card-legend-left role-select-trigger" data-cable-id="${c.id}" title="Kablo Rolü Ata / Değiştir (Tıkla)">
+            <span class="cable-color-dot" style="background:${isOpticalRun ? '#facc15' : c.color};box-shadow:0 0 6px ${isOpticalRun ? '#facc15' : c.color};"></span>
+            <span class="cable-role-tag role-${effectiveCardRole}">${roleTagLetter} ${escapeHtml(roleBadgeText)} ▾</span>
+            <span class="cable-id-badge" title="${escapeHtml(c.name || c.id)}">${escapeHtml(displayName)}</span>
+          </div>
+          <div class="card-legend-right">
+            <button type="button" class="duct-select-trigger" data-cable-id="${c.id}" title="${escapeHtml(ductTooltip)}">${escapeHtml(ductLabel)}</button>
+            <span class="metraj-badge" title="Gerçek Saha Metrajı (Servis Payı Dahil)">${c.lengthMeters}m</span>
+          </div>
+        </div>
+        <div class="card-route-bar">
+          <div class="route-split-container" title="${escapeHtml(flowTooltip)}">
+            <div class="route-endpoint-box left clickable-endpoint" data-instance-id="${left.instanceId}" data-port-id="${left.portId}" title="Kaynak: ${escapeHtml(left.devLabel)} (${left.port ? left.port.name : left.portId})">
+              ${isInterRack && left.rack ? `<span class="inter-rack-tag" title="${escapeHtml(left.rack.name)}">${escapeHtml(left.rackShort)}</span>` : ''}
+              <span class="badge-u-prominent">U${left.dev ? left.dev.topU : '?'}</span>
+              <span class="route-pipe">|</span>
+              <span class="badge-port-prominent ${left.portType}">${left.panelTag ? left.panelTag + ' ' : ''}${escapeHtml(left.port ? left.port.name : left.portId)}</span>
+            </div>
+            <span class="route-center-sep" aria-hidden="true">➔</span>
+            <div class="route-endpoint-box right clickable-endpoint" data-instance-id="${right.instanceId}" data-port-id="${right.portId}" title="Hedef: ${escapeHtml(right.devLabel)} (${right.port ? right.port.name : right.portId})">
+              <span class="badge-port-prominent ${right.portType}">${right.panelTag ? right.panelTag + ' ' : ''}${escapeHtml(right.port ? right.port.name : right.portId)}</span>
+              <span class="route-pipe">|</span>
+              <span class="badge-u-prominent">U${right.dev ? right.dev.topU : '?'}</span>
+              ${isInterRack && right.rack ? `<span class="inter-rack-tag" title="${escapeHtml(right.rack.name)}">${escapeHtml(right.rackShort)}</span>` : ''}
+            </div>
+          </div>
+          <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök (Delete)">✕</button>
+        </div>
+      </td>
+    `;
+
+    tr.addEventListener('mouseenter', () => {
+      setCableHover(c.id, true);
+    });
+
+    tr.addEventListener('mouseleave', () => {
+      setCableHover(c.id, false);
+    });
+
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.duct-select-trigger') || e.target.closest('.clickable-endpoint')) return;
+      highlightCable(c.id);
+    });
+
+    tr.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.duct-select-trigger') || e.target.closest('.clickable-endpoint')) return;
+      e.preventDefault();
+      renameCable2D(c.id);
+    });
+
+    const roleBtn = tr.querySelector('.role-select-trigger');
+    if (roleBtn) {
+      roleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showRolePickerPopover(roleBtn, c.id, effectiveCardRole);
+      });
+    }
+
+    const ductBtn = tr.querySelector('.duct-select-trigger');
+    if (ductBtn) {
+      ductBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (e.currentTarget && e.currentTarget.blur) e.currentTarget.blur();
+        if (RS.toggleCableDuctSide) {
+          RS.toggleCableDuctSide(c.id);
+        }
+      });
+    }
+
+    tr.querySelectorAll('.clickable-endpoint').forEach(ep => {
+      ep.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const instId = ep.dataset.instanceId;
+        const pId = ep.dataset.portId;
+        if (window.PortConfigEditor) {
+          window.PortConfigEditor.open(instId, pId, '2d');
+        }
+      });
+    });
+
+    const delBtn = tr.querySelector('.del-cable-btn');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.SoundFX) window.SoundFX.playCableCut();
+        STATE.cables = STATE.cables.filter(item => item.id !== c.id);
+        if (STATE.highlightedCableId === c.id) STATE.highlightedCableId = null;
+        renderMountedDevices();
+        renderScheduleTable();
+        renderAllCables();
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+        document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+        window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+      });
+    }
+
+    dom.scheduleTbody.appendChild(tr);
+  }
+
+  function renderSwitchTreeView() {
+    const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
+    const switches = allDevices.filter(d => {
+      const cat = HARDWARE_CATALOG[d.catalogKey];
+      if (!cat) return false;
+      return cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact' || cat.category === 'router';
+    });
+
+    // Sort switches by highest U to lowest U
+    switches.sort((a, b) => (b.topU || 0) - (a.topU || 0));
+
+    const processedCableIds = new Set();
+
+    switches.forEach(sw => {
+      const swCat = HARDWARE_CATALOG[sw.catalogKey];
+      const swShort = RS.getShortModelName ? RS.getShortModelName(swCat?.modelTag || swCat?.name || 'Switch') : (swCat?.modelTag || 'Switch');
+      const isCollapsed = collapsedSwitches.has(sw.instanceId);
+
+      const swCables = (STATE.cables || []).filter(c => c.from?.instanceId === sw.instanceId || c.to?.instanceId === sw.instanceId);
+      if (swCables.length === 0) return;
+
+      swCables.forEach(c => processedCableIds.add(c.id));
+
+      // Sort cables by switch local port
+      swCables.sort((c1, c2) => {
+        const p1 = (c1.from.instanceId === sw.instanceId) ? c1.from.portId : c1.to.portId;
+        const p2 = (c2.from.instanceId === sw.instanceId) ? c2.from.portId : c2.to.portId;
+        const obj1 = swCat?.ports?.find(p => p.id === p1 || String(p.id).replace(/^p/i, '') === String(p1).replace(/^p/i, ''));
+        const obj2 = swCat?.ports?.find(p => p.id === p2 || String(p.id).replace(/^p/i, '') === String(p2).replace(/^p/i, ''));
+        return getPortSortIndex(p1, obj1?.name) - getPortSortIndex(p2, obj2?.name);
+      });
+
+      const tr = document.createElement('tr');
+      tr.className = `schedule-tree-switch-card ${isCollapsed ? 'collapsed' : ''}`;
+      tr.dataset.instanceId = sw.instanceId;
+
+      let treeRowsHtml = '';
+      swCables.forEach(c => {
+        const isFrom = c.from.instanceId === sw.instanceId;
+        const localPortId = isFrom ? c.from.portId : c.to.portId;
+        const remoteInstanceId = isFrom ? c.to.instanceId : c.from.instanceId;
+        const remotePortId = isFrom ? c.to.portId : c.from.portId;
+
+        const localPortObj = swCat?.ports?.find(p => p.id === localPortId || String(p.id).replace(/^p/i, '') === String(localPortId).replace(/^p/i, ''));
+        const localPortName = localPortObj?.name || localPortId;
+        const isFiberPort = localPortObj?.type === 'fiber' || localPortObj?.type === 'lc' || localPortObj?.type === 'sc' || localPortObj?.type === 'sfp';
+
+        const remoteDev = allDevices.find(d => d.instanceId === remoteInstanceId);
+        const remoteCat = remoteDev ? HARDWARE_CATALOG[remoteDev.catalogKey] : null;
+        const remotePortObj = remoteCat?.ports?.find(p => p.id === remotePortId || String(p.id).replace(/^p/i, '') === String(remotePortId).replace(/^p/i, ''));
+        const remotePortName = remotePortObj?.name || remotePortId;
+        const remoteLabel = remoteDev?.panelLabel ? `Panel ${remoteDev.panelLabel}` : (remoteDev?.hostname || remoteCat?.name || 'Cihaz');
+
+        const isOptical = c.color === '#facc15' || c.name?.startsWith('[FIBER]') || c.role === 'fiber' || isFiberPort;
+        const effRole = isOptical ? 'fiber' : (c.role || 'standard');
+        const roleColors = { trunk: '#7c3aed', uplink: '#00d2ff', 'trunk-ap': '#ec4899', poe: '#f59e0b', mgmt: '#059669', console: '#00bceb', routed: '#b91c1c', fiber: '#facc15', standard: '#334155' };
+        const accent = roleColors[effRole] || c.color || '#38bdf8';
+
+        let roleTagLetter = '●';
+        let roleBadgeText = 'STANDART';
+        if (effRole === 'fiber') { roleBadgeText = 'FIBER'; roleTagLetter = 'F'; }
+        else if (effRole === 'trunk') { roleBadgeText = 'TRUNK'; roleTagLetter = 'T'; }
+        else if (effRole === 'uplink') { roleBadgeText = 'UPLINK'; roleTagLetter = '▲'; }
+        else if (effRole === 'trunk-ap') { roleBadgeText = 'AP-TRUNK'; roleTagLetter = 'W'; }
+        else if (effRole === 'poe') { roleBadgeText = 'PoE'; roleTagLetter = '⚡'; }
+        else if (effRole === 'mgmt' || effRole === 'management') { roleBadgeText = 'MGMT'; roleTagLetter = 'M'; }
+        else if (effRole === 'console') { roleBadgeText = 'CONSOLE'; roleTagLetter = 'C'; }
+        else if (effRole === 'routed') { roleBadgeText = 'ROUTED'; roleTagLetter = 'R'; }
+
+        treeRowsHtml += `
+          <div class="tree-cable-row" data-cable-id="${c.id}" style="--row-accent: ${accent};">
+            <div class="tree-port-left">
+              <span class="tree-branch-symbol">├─</span>
+              <span class="tree-src-port ${isOptical ? 'fiber' : ''}">${escapeHtml(localPortName)}</span>
+              <span class="route-center-sep" style="font-size:12px;opacity:0.7;">➔</span>
+              <div class="tree-dest-info">
+                <span class="tree-dest-u">U${remoteDev ? remoteDev.topU : '?'}</span>
+                <span>${escapeHtml(remoteLabel)} (${escapeHtml(remotePortName)})</span>
+              </div>
+            </div>
+            <div class="tree-cable-right">
+              <span class="cable-color-dot" style="background:${isOptical ? '#facc15' : c.color};box-shadow:0 0 5px ${isOptical ? '#facc15' : c.color};"></span>
+              <span class="cable-role-tag role-${effRole}">${roleTagLetter} ${escapeHtml(roleBadgeText)}</span>
+              <span class="metraj-badge">${c.lengthMeters}m</span>
+              <button type="button" class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök">✕</button>
+            </div>
+          </div>
+        `;
+      });
+
+      tr.innerHTML = `
+        <td class="schedule-card-cell" colspan="3" style="padding:0;">
+          <div class="tree-switch-header">
+            <div class="tree-switch-info">
+              <span class="tree-toggle-icon">${isCollapsed ? '▶' : '▼'}</span>
+              <span class="tree-switch-badge-u">U${sw.topU}</span>
+              <span class="tree-switch-title">${escapeHtml(swShort)}</span>
+              ${sw.hostname && sw.hostname !== swShort ? `<span class="tree-switch-model">(${escapeHtml(sw.hostname)})</span>` : ''}
+            </div>
+            <div class="tree-switch-actions">
+              <button type="button" class="btn-switch-bulk-color" data-instance-id="${sw.instanceId}" title="Bu switch'e bağlı tüm kabloları renklendir">🎨 Renk</button>
+              <span class="tree-switch-count">${swCables.length} Port Bağlı</span>
+            </div>
+          </div>
+          <div class="tree-switch-body">
+            ${treeRowsHtml}
+          </div>
+        </td>
+      `;
+
+      // Header Events: Switch Hover Highlights all its cables!
+      const header = tr.querySelector('.tree-switch-header');
+      header.addEventListener('mouseenter', () => {
+        if (RS.setDeviceCablesHover) RS.setDeviceCablesHover(sw.instanceId, true);
+      });
+      header.addEventListener('mouseleave', () => {
+        if (RS.setDeviceCablesHover) RS.setDeviceCablesHover(sw.instanceId, false);
+      });
+      header.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-switch-bulk-color')) return;
+        if (collapsedSwitches.has(sw.instanceId)) {
+          collapsedSwitches.delete(sw.instanceId);
+        } else {
+          collapsedSwitches.add(sw.instanceId);
+        }
+        renderScheduleTable();
+      });
+
+      const colorBtn = tr.querySelector('.btn-switch-bulk-color');
+      if (colorBtn) {
+        colorBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (RS.openSwitchBulkColorPopover) {
+            RS.openSwitchBulkColorPopover(colorBtn, sw.instanceId);
+          }
+        });
+      }
+
+      // Child Row Events: Individual cable hover
+      tr.querySelectorAll('.tree-cable-row').forEach(row => {
+        const cId = row.dataset.cableId;
+        row.addEventListener('mouseenter', (e) => {
+          e.stopPropagation();
+          setCableHover(cId, true);
+        });
+        row.addEventListener('mouseleave', (e) => {
+          e.stopPropagation();
+          setCableHover(cId, false);
+        });
+        row.addEventListener('click', (e) => {
+          if (e.target.closest('.del-cable-btn')) return;
+          e.stopPropagation();
+          highlightCable(cId);
+        });
+        const delBtn = row.querySelector('.del-cable-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (window.SoundFX) window.SoundFX.playCableCut();
+            STATE.cables = STATE.cables.filter(item => item.id !== cId);
+            if (STATE.highlightedCableId === cId) STATE.highlightedCableId = null;
+            renderMountedDevices();
+            renderScheduleTable();
+            renderAllCables();
+            document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+            document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+          });
+        }
+      });
+
+      dom.scheduleTbody.appendChild(tr);
+    });
+
+    // Render any remaining cables (e.g. Patch Panel to Patch Panel tie cables)
+    const remainingCables = (STATE.cables || []).filter(c => !processedCableIds.has(c.id));
+    if (remainingCables.length > 0) {
+      remainingCables.forEach(c => renderSingleCableCard(c));
+    }
+  }
+
   function renderScheduleTable() {
     if (!dom.scheduleTbody) return;
     dom.scheduleTbody.innerHTML = '';
-    let pager = document.getElementById('schedule-pagination');
-    if (!pager) {
-      pager = document.createElement('div'); pager.id = 'schedule-pagination';
-      pager.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px;font-size:12px;';
-      const previous = document.createElement('button'); previous.type = 'button'; previous.textContent = '← Önceki';
-      const label = document.createElement('span'); label.className = 'schedule-page-label'; label.setAttribute('aria-live','polite');
-      const next = document.createElement('button'); next.type = 'button'; next.textContent = 'Sonraki →';
-      previous.addEventListener('click', () => { schedulePage--; renderScheduleTable(); });
-      next.addEventListener('click', () => { schedulePage++; renderScheduleTable(); });
-      pager.append(previous,label,next);
-      dom.scheduleTbody.closest('table').before(pager);
+
+    // Remove legacy pagination element if present
+    const oldPager = document.getElementById('schedule-pagination');
+    if (oldPager) oldPager.remove();
+
+    // Render Schedule View & Sort Toolbar
+    let toolbar = document.getElementById('schedule-toolbar');
+    if (!toolbar) {
+      toolbar = document.createElement('div');
+      toolbar.id = 'schedule-toolbar';
+      const table = dom.scheduleTbody.closest('table');
+      if (table) table.before(toolbar);
     }
-    const pages = Math.max(1, Math.ceil(STATE.cables.length / SCHEDULE_PAGE_SIZE));
-    schedulePage = Math.max(0, Math.min(schedulePage, pages - 1));
-    pager.querySelector('.schedule-page-label').textContent = (schedulePage + 1) + ' / ' + pages + ' · ' + STATE.cables.length + ' bağlantı';
-    pager.firstElementChild.disabled = schedulePage === 0;
-    pager.lastElementChild.disabled = schedulePage === pages - 1;
+
+    toolbar.innerHTML = `
+      <div class="schedule-toolbar-left">
+        <span class="schedule-total-badge">${STATE.cables.length} Bağlantı</span>
+      </div>
+      <div class="schedule-sort-group">
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'u' ? 'active' : ''}" data-sort="u" title="Kabin U Konumuna Göre Sırala">⇕ U Sırası</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'panel' ? 'active' : ''}" data-sort="panel" title="Patch Panel Adına Göre Sırala (A-Z)">A-Z Panel</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'tree' ? 'active' : ''}" data-sort="tree" title="Cisco Switch Port Ağacı Görünümü">🌿 Switch Ağacı</button>
+      </div>
+    `;
+
+    toolbar.querySelectorAll('.sort-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        scheduleSortMode = btn.dataset.sort;
+        renderScheduleTable();
+      });
+    });
+
     if (dom.cableCountLabel) {
       dom.cableCountLabel.textContent = `${STATE.cables.length} Bağlantı Yapıldı`;
     }
@@ -238,10 +729,13 @@
         if (cur) {
           setCableHover(cur, false);
         }
+        if (RS.setDeviceCablesHover) {
+          RS.setDeviceCablesHover(null, false);
+        }
       });
     }
 
-    if (STATE.cables.length === 0) {
+    if (!STATE.cables || STATE.cables.length === 0) {
       dom.scheduleTbody.innerHTML = `
         <tr>
           <td colspan="5" style="text-align:center; color:#64748b; padding:20px;">
@@ -252,134 +746,77 @@
       return;
     }
 
-    STATE.cables.slice(schedulePage * SCHEDULE_PAGE_SIZE, (schedulePage + 1) * SCHEDULE_PAGE_SIZE).forEach(c => {
-      const rackA = STATE.racks.find(r => r.id === c.from.rackId);
-      const rackB = STATE.racks.find(r => r.id === c.to.rackId);
-      const devA = rackA ? rackA.devices.find(d => d.instanceId === c.from.instanceId) : null;
-      const devB = rackB ? rackB.devices.find(d => d.instanceId === c.to.instanceId) : null;
+    if (scheduleSortMode === 'tree') {
+      renderSwitchTreeView();
+      return;
+    }
 
-      const catA = devA ? HARDWARE_CATALOG[devA.catalogKey] : null;
-      const catB = devB ? HARDWARE_CATALOG[devB.catalogKey] : null;
-      const portA = catA ? catA.ports.find(p => p.id === c.from.portId) : null;
-      const portB = catB ? catB.ports.find(p => p.id === c.to.portId) : null;
+    // Standard list modes: Clone and sort cables
+    const cablesList = [...STATE.cables];
+    const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
 
-      const isInterRack = c.from.rackId !== c.to.rackId;
+    if (scheduleSortMode === 'u') {
+      cablesList.sort((a, b) => {
+        const devA1 = allDevices.find(d => d.instanceId === a.from?.instanceId);
+        const devA2 = allDevices.find(d => d.instanceId === a.to?.instanceId);
+        const maxUA = Math.max(devA1?.topU || 0, devA2?.topU || 0);
 
-      const tr = document.createElement('tr');
-      tr.dataset.cableId = c.id;
-      if (c.id === STATE.highlightedCableId) tr.className = 'active';
+        const devB1 = allDevices.find(d => d.instanceId === b.from?.instanceId);
+        const devB2 = allDevices.find(d => d.instanceId === b.to?.instanceId);
+        const maxUB = Math.max(devB1?.topU || 0, devB2?.topU || 0);
 
-      const rackShortA = rackA ? (rackA.name.length > 10 ? rackA.name.slice(0, 10) + '…' : rackA.name) : 'Kabin';
-      const rackShortB = rackB ? (rackB.name.length > 10 ? rackB.name.slice(0, 10) + '…' : rackB.name) : 'Kabin';
-
-      const sourcePortCfg = devA?.portsConfig && (devA.portsConfig[c.from.portId] || devA.portsConfig[String(c.from.portId).replace('p', '')]);
-      const targetPortCfg = devB?.portsConfig && (devB.portsConfig[c.to.portId] || devB.portsConfig[String(c.to.portId).replace('p', '')]);
-      const portRole = (c.role || (sourcePortCfg && sourcePortCfg.role) || (targetPortCfg && targetPortCfg.role) || (portA && portA.role) || (portB && portB.role) || '').toLowerCase();
-
-      let roleTriggerHtml = '';
-      if (portRole === 'trunk') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger trunk" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">T</span>TRUNK ▾</button>`;
-      } else if (portRole === 'uplink') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger uplink" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">▲</span>UPLINK ▾</button>`;
-      } else if (portRole === 'trunk-ap') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger trunk-ap" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">W</span>AP-TRUNK ▾</button>`;
-      } else if (portRole === 'poe') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger poe" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">⚡</span>PoE ▾</button>`;
-      } else if (portRole === 'mgmt' || portRole === 'management') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger mgmt" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">M</span>MGMT ▾</button>`;
-      } else if (portRole === 'routed') {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger routed" data-cable-id="${c.id}" title="Bağlantı Rolünü Değiştir"><span class="role-tag">R</span>ROUTED ▾</button>`;
-      } else {
-        roleTriggerHtml = `<button type="button" class="role-select-trigger standard" data-cable-id="${c.id}" title="Özel Rol Tanımla"><span class="role-tag">+</span>Rol Ata ▾</button>`;
-      }
-
-      const portTypeA = portA?.type === 'fiber' || portA?.type === 'lc' || portA?.type === 'sfp' ? 'fiber' : 'copper';
-      const portTypeB = portB?.type === 'fiber' || portB?.type === 'lc' || portB?.type === 'sfp' ? 'fiber' : 'copper';
-
-      const displayName = (c.name && !c.name.includes('→')) ? c.name : (c.id || c.name || 'CBL');
-
-      tr.innerHTML = `
-        <td>
-          <div class="cable-pill-cell">
-            <span class="cable-color-dot" style="background:${c.color};box-shadow:0 0 6px ${c.color};"></span>
-            <span class="cable-id-badge" title="${escapeHtml(c.name || c.id)}">${escapeHtml(displayName)}</span>
-          </div>
-        </td>
-        <td>
-          <div class="route-flow-cell" title="${escapeHtml(catA ? catA.name : '')} (${escapeHtml(portA ? portA.name : c.from.portId)}) ➔ ${escapeHtml(catB ? catB.name : '')} (${escapeHtml(portB ? portB.name : c.to.portId)})">
-            <div class="endpoint-badge clickable-endpoint" data-instance-id="${c.from.instanceId}" data-port-id="${c.from.portId}" title="Kaynak Port Ayarları / Odaklan">
-              ${isInterRack && rackA ? `<span class="inter-rack-tag" title="${escapeHtml(rackA.name)}">${escapeHtml(rackShortA)}</span>` : ''}
-              <span class="badge-u">U${devA ? devA.topU : '?'}</span>
-              <span class="badge-port ${portTypeA}">${escapeHtml(portA ? portA.name : c.from.portId)}</span>
-            </div>
-            <span class="route-arrow" aria-hidden="true">➔</span>
-            <div class="endpoint-badge clickable-endpoint" data-instance-id="${c.to.instanceId}" data-port-id="${c.to.portId}" title="Hedef Port Ayarları / Odaklan">
-              ${isInterRack && rackB ? `<span class="inter-rack-tag" title="${escapeHtml(rackB.name)}">${escapeHtml(rackShortB)}</span>` : ''}
-              <span class="badge-u">U${devB ? devB.topU : '?'}</span>
-              <span class="badge-port ${portTypeB}">${escapeHtml(portB ? portB.name : c.to.portId)}</span>
-            </div>
-          </div>
-        </td>
-        <td>
-          ${roleTriggerHtml}
-        </td>
-        <td><span class="metraj-badge">${c.lengthMeters}m</span></td>
-        <td>
-          <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök (Delete)">✂️</button>
-        </td>
-      `;
-
-      tr.addEventListener('mouseenter', () => {
-        setCableHover(c.id, true);
+        if (maxUB !== maxUA) return maxUB - maxUA;
+        return (a.id || '').localeCompare(b.id || '');
       });
+    } else if (scheduleSortMode === 'panel') {
+      cablesList.sort((a, b) => {
+        const devA1 = allDevices.find(d => d.instanceId === a.from?.instanceId);
+        const devA2 = allDevices.find(d => d.instanceId === a.to?.instanceId);
+        const panelA = devA1?.panelLabel || devA2?.panelLabel || devA1?.hostname || devA2?.hostname || '';
 
-      tr.addEventListener('mouseleave', () => {
-        setCableHover(c.id, false);
+        const devB1 = allDevices.find(d => d.instanceId === b.from?.instanceId);
+        const devB2 = allDevices.find(d => d.instanceId === b.to?.instanceId);
+        const panelB = devB1?.panelLabel || devB2?.panelLabel || devB1?.hostname || devB2?.hostname || '';
+
+        const cmp = panelA.localeCompare(panelB);
+        if (cmp !== 0) return cmp;
+        return (a.id || '').localeCompare(b.id || '');
       });
+    }
 
-      tr.addEventListener('click', (e) => {
-        if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.clickable-endpoint')) return;
-        highlightCable(c.id);
-      });
-
-      tr.addEventListener('dblclick', (e) => {
-        if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.clickable-endpoint')) return;
-        e.preventDefault();
-        renameCable2D(c.id);
-      });
-
-      const roleBtn = tr.querySelector('.role-select-trigger');
-      if (roleBtn) {
-        roleBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showRolePickerPopover(roleBtn, c.id, portRole);
-        });
-      }
-
-      tr.querySelectorAll('.clickable-endpoint').forEach(ep => {
-        ep.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const instId = ep.dataset.instanceId;
-          const pId = ep.dataset.portId;
-          if (window.PortConfigEditor) {
-            window.PortConfigEditor.open(instId, pId, '2d');
-          }
-        });
-      });
-
-      const delBtn = tr.querySelector('.del-cable-btn');
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        STATE.cables = STATE.cables.filter(item => item.id !== c.id);
-        if (STATE.highlightedCableId === c.id) STATE.highlightedCableId = null;
-        renderMountedDevices();
-        renderScheduleTable();
-        renderAllCables();
-      });
-
-      dom.scheduleTbody.appendChild(tr);
+    cablesList.forEach(c => {
+      renderSingleCableCard(c);
     });
   }
+
+  RS.ensureCableVisibleInSchedule = function(cableId) {
+    if (!STATE.cables) return null;
+    const cable = STATE.cables.find(c => c.id === cableId);
+    if (!cable) return null;
+
+    if (scheduleSortMode === 'tree') {
+      const swId1 = cable.from?.instanceId;
+      const swId2 = cable.to?.instanceId;
+      if (swId1 && collapsedSwitches.has(swId1)) {
+        collapsedSwitches.delete(swId1);
+        renderScheduleTable();
+      } else if (swId2 && collapsedSwitches.has(swId2)) {
+        collapsedSwitches.delete(swId2);
+        renderScheduleTable();
+      }
+      const treeRow = document.querySelector(`.tree-cable-row[data-cable-id="${cableId}"]`);
+      if (treeRow) {
+        treeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return treeRow;
+      }
+    }
+
+    const row = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    return row;
+  };
 
   RS.setConnectionRole = setConnectionRole;
   RS.showRolePickerPopover = showRolePickerPopover;

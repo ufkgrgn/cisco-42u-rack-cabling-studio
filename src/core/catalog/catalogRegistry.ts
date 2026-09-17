@@ -53,7 +53,8 @@ export const CATALOG_ALIASES: Record<string, string> = {
   'organizer-2u': 'organizer-2u-5ring',
   'server-dell-r740': 'server-dell-r750',
   'fiber-odf-24': 'fiber-odf-24-om4',
-  'fiber-odf-48': 'fiber-odf-48-om4'
+  'fiber-odf-48': 'fiber-odf-48-om4',
+  'pdu-8port-1u': 'pdu-1u-basic-8c13'
 };
 
 // Singleton master registry map

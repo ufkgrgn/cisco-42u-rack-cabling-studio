@@ -2,10 +2,41 @@
  * 3D Catalog Drawer & Installed Devices List
  */
 export function initCatalogDrawer(studio) {
-    // 6. Catalog Search & Filter with Smart Auto-Slot Allocation
+    // 6. Catalog Search & Filter with Smart Auto-Slot Allocation & Unified Cisco Catalog
     const catalogList = document.getElementById('catalog-items-list');
     const searchInput = document.getElementById('catalog-search-input');
     let activeCategory = 'all';
+
+    function getUnifiedCatalog() {
+      const catalog3D = window.CATALOG_3D || [];
+      const RS = window.RackStudio;
+      const catalog2D = (RS && RS.HARDWARE_CATALOG) || (RS && RS.catalog) || {};
+
+      const unified = [...catalog3D];
+      const existingIds = new Set(catalog3D.map(c => c.id));
+
+      Object.entries(catalog2D).forEach(([key, item]) => {
+        if (!existingIds.has(key)) {
+          existingIds.add(key);
+          unified.push({
+            id: key,
+            name: item.name || key,
+            desc: item.desc || item.name || '',
+            manufacturer: item.manufacturer || item.logo || (item.category === 'patch' || item.category === 'fiber' ? 'Panel' : 'Cisco'),
+            category: item.category || 'switch',
+            u: item.u || item.uHeight || 1,
+            depthMm: item.depthMm || 450,
+            color: item.color || 0x243248,
+            portsCount: Array.isArray(item.ports) ? item.ports.length : (item.portsCount || 24),
+            portType: item.portType || (item.ports && item.ports[0] && item.ports[0].type) || 'rj45',
+            ports: item.ports || [],
+            powerWatts: item.powerWatts,
+            heatBtu: item.heatBtu
+          });
+        }
+      });
+      return unified;
+    }
 
     function renderCatalog(filterText = '') {
       if (!catalogList) return;
@@ -13,8 +44,9 @@ export function initCatalogDrawer(studio) {
 
       const norm = (s) => (s || '').toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const query = norm(filterText);
+      const allCatalogItems = getUnifiedCatalog();
 
-      const items = window.CATALOG_3D.filter(item => {
+      const items = allCatalogItems.filter(item => {
         const matchesCat = activeCategory === 'all' || item.category === activeCategory;
         const matchesQuery = !query || norm(item.name).includes(query) || norm(item.desc).includes(query) || norm(item.manufacturer).includes(query);
         return matchesCat && matchesQuery;
@@ -25,11 +57,28 @@ export function initCatalogDrawer(studio) {
         return;
       }
 
+      const racks = (Array.isArray(studio.state.racks) && studio.state.racks.length > 0)
+        ? studio.state.racks
+        : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: studio.state.rackHeightU || 42 }];
+      const hasMultiRack = racks.length > 1;
+
       items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'catalog-card';
-        // Smart slot default: auto-find first free slot
-        const suggestedSlot = studio.findNextAvailableSlot(item.u) || 1;
+        let currentTargetRackId = studio.state.activeRackId || racks[0].id;
+        let suggestedSlot = studio.findNextAvailableSlot(item.u, currentTargetRackId) || 1;
+
+        const rackSelectHtml = hasMultiRack ? `
+          <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:#94a3b8;white-space:nowrap;">Kabin:</span>
+            <select class="rack-select-input" style="flex:1;background:#0f172a;border:1px solid #334155;color:#38bdf8;font-size:11px;border-radius:4px;padding:3px 6px;">
+              ${racks.map(r => `<option value="${r.id}" ${r.id === currentTargetRackId ? 'selected' : ''}>${r.name}</option>`).join('')}
+            </select>
+          </div>
+        ` : '';
+
+        const targetRack = studio.getRack ? studio.getRack(currentTargetRackId) : racks[0];
+        const maxU = (targetRack && targetRack.heightU) || studio.state.rackHeightU || 42;
 
         card.innerHTML = `
           <div class="catalog-card-header">
@@ -37,9 +86,10 @@ export function initCatalogDrawer(studio) {
             <span class="catalog-card-u">${item.u}U</span>
           </div>
           <div class="catalog-card-desc">${item.desc}</div>
+          ${rackSelectHtml}
           <div class="catalog-card-mount">
             <span style="font-size:11px;color:#94a3b8;">U Slot:</span>
-            <input type="number" class="slot-input" min="1" max="${studio.state.rackHeightU - item.u + 1}" value="${suggestedSlot}" title="Montaj yapılacak U slotu (Boş olan önerilmiştir)">
+            <input type="number" class="slot-input" min="1" max="${maxU - item.u + 1}" value="${suggestedSlot}" title="Montaj yapılacak U slotu (Boş olan önerilmiştir)">
             <button class="hud-btn btn-primary btn-mount" style="flex:1;justify-content:center;padding:4px 8px;font-size:11px;">
               ⚡ 3D Montaj
             </button>
@@ -48,12 +98,23 @@ export function initCatalogDrawer(studio) {
 
         const slotInput = card.querySelector('.slot-input');
         const mountBtn = card.querySelector('.btn-mount');
+        const rackSelect = card.querySelector('.rack-select-input');
+
+        if (rackSelect) {
+          rackSelect.addEventListener('change', () => {
+            currentTargetRackId = rackSelect.value;
+            const newSlot = studio.findNextAvailableSlot(item.u, currentTargetRackId) || 1;
+            slotInput.value = newSlot;
+          });
+        }
 
         mountBtn.addEventListener('click', () => {
           const targetU = parseInt(slotInput.value) || suggestedSlot;
-          const res = studio.mountDevice(item.id, targetU);
+          const targetRackId = rackSelect ? rackSelect.value : currentTargetRackId;
+          const res = studio.mountDevice(item.id, targetU, targetRackId);
           if (res) {
-            studio.showToast(`${item.name} U${res.startU} pozisyonuna başarıyla monte edildi.`);
+            const rName = (racks.find(r => r.id === targetRackId) || {}).name || 'Kabin';
+            studio.showToast(`${item.name} [${rName}] U${res.startU} pozisyonuna başarıyla monte edildi.`);
             renderCatalog(searchInput ? searchInput.value : '');
           }
         });
@@ -125,6 +186,7 @@ export function initCatalogDrawer(studio) {
         const topU = dev.startU + dev.uHeight - 1;
         const uLabel = dev.uHeight > 1 ? `U${topU}-${dev.startU}` : `U${dev.startU}`;
         const cableCount = studio.state.cables.filter(c => c.from.devId === dev.id || c.to.devId === dev.id).length;
+        const rackObj = (studio.state.racks || []).find(r => r.id === dev.rackId) || { name: 'MDF' };
 
         const card = document.createElement('div');
         card.className = 'installed-device-card' + (studio.selectedDeviceId === dev.id ? ' active' : '');
@@ -139,9 +201,10 @@ export function initCatalogDrawer(studio) {
           <div class="installed-card-top">
             <span class="installed-u-pill">${uLabel}</span>
             <span class="installed-dev-title" title="${dev.name}">${dev.name}</span>
+            <span style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(2,132,199,0.25);border:1px solid #0284c7;color:#38bdf8;font-weight:700;">${rackObj.name}</span>
             <span class="installed-cables-badge" title="Bağlı Kablo Sayısı">🔌 ${cableCount}</span>
           </div>
-          <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${dev.category || 'Donanım'}</div>
+          <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${dev.powerWatts !== undefined ? dev.powerWatts : 150}W · ${dev.category || 'Donanım'}</div>
           ${metaHtml}
           <div class="installed-card-actions">
             <button class="btn-inst-action btn-inst-edit" title="Donanım bilgilerini yapılandır">✏️ Düzenle</button>

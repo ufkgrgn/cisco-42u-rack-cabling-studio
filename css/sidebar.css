@@ -441,6 +441,21 @@ details.collapsible-section:not([open]) summary.section-title::after {
   border-color: #06b6d4;
 }
 
+.hw-mini-bezel.bezel-os2-odf {
+  background: linear-gradient(180deg, #0c2840 0%, #041424 100%);
+  border-color: #0284c7;
+}
+
+.hw-mini-bezel.bezel-sc-odf {
+  background: linear-gradient(180deg, #0b2238 0%, #03111f 100%);
+  border-color: #0ea5e9;
+}
+
+.hw-mini-bezel.bezel-pdu {
+  background: linear-gradient(180deg, #1e293b 0%, #090d16 100%);
+  border-color: #475569;
+}
+
 .hw-mini-bezel.bezel-dring {
   background: linear-gradient(180deg, #0f131a 0%, #06080c 100%);
   border-color: #475569;
@@ -540,6 +555,29 @@ details.collapsible-section:not([open]) summary.section-title::after {
   height: 6px;
   background: #0891b2;
   border-radius: 0.5px;
+}
+
+.mini-os2-block {
+  width: 6px;
+  height: 6px;
+  background: #0284c7;
+  border-radius: 0.5px;
+}
+
+.mini-sc-block {
+  width: 7px;
+  height: 6px;
+  background: #0284c7;
+  border: 0.5px solid #38bdf8;
+  border-radius: 0.5px;
+}
+
+.mini-pdu-socket {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #020617;
+  border: 0.5px solid #64748b;
 }
 
 .mini-dring-bars {

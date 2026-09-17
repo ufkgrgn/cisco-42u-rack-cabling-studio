@@ -33,13 +33,26 @@
     // Preserved for test compatibility and accessibility while keeping UI clean & compact
     const accessibleGroup = make('div', undefined, 'catalog-hidden-accessible');
     const category = make('select'); category.setAttribute('aria-label', 'Donanım kategorisi');
-    [['', 'Tüm kategoriler'], ['switch', 'Switch'], ['router', 'Router'], ['fiber-switch', 'Fiber switch'], ['compact', 'Kompakt'], ['patch', 'Patch panel'], ['fiber', 'Fiber panel'], ['organizer', 'Organizatör'], ['blank', 'Boş panel'], ['custom', 'Özel donanım']].forEach(([value, label]) => { const option = make('option', label); option.value = value; category.append(option); });
+    [['', 'Tüm kategoriler'], ['switch', 'Switch'], ['router', 'Router'], ['fiber-switch', 'Fiber switch'], ['compact', 'Kompakt'], ['patch', 'Patch panel'], ['fiber', 'Fiber panel'], ['organizer', 'Organizatör'], ['blank', 'Boş panel'], ['pdu', 'PDU'], ['custom', 'Özel donanım']].forEach(([value, label]) => { const option = make('option', label); option.value = value; category.append(option); });
     const units = make('input'); units.type = 'number'; units.min = '1'; units.max = '60'; units.placeholder = 'U yüksekliği'; units.setAttribute('aria-label', 'U yüksekliğine göre filtrele');
     const favoriteLabel = make('label', undefined, 'catalog-favorite-filter'); const favoriteOnly = make('input'); favoriteOnly.type = 'checkbox'; favoriteLabel.append(favoriteOnly, document.createTextNode(' Yalnızca favoriler'));
     const count = make('div', '', 'catalog-count'); count.setAttribute('aria-live', 'polite');
     accessibleGroup.append(category, units, favoriteLabel, count);
 
-    toolbar.append(searchWrapper, accessibleGroup);
+    // View Mode Segmented Controls (Series Tree vs Category Tree)
+    let catalogViewMode = 'series';
+    const viewModeSegmented = make('div', undefined, 'catalog-view-segmented');
+    const btnModeSeries = make('button', '🌳 Model Serileri', 'catalog-mode-btn active');
+    btnModeSeries.type = 'button';
+    btnModeSeries.dataset.mode = 'series';
+    btnModeSeries.title = 'Cisco model serilerine göre Switch Tree yapısı';
+    const btnModeCategory = make('button', '📁 Kategoriler', 'catalog-mode-btn');
+    btnModeCategory.type = 'button';
+    btnModeCategory.dataset.mode = 'category';
+    btnModeCategory.title = 'Fonksiyonel kategorilere göre Switch Tree yapısı';
+    viewModeSegmented.append(btnModeSeries, btnModeCategory);
+
+    toolbar.append(searchWrapper, viewModeSegmented, accessibleGroup);
 
     const drawer = sidebar.querySelector('.sidebar-drawer') || sidebar;
     const stream = sidebar.querySelector('.sidebar-device-stream');
@@ -439,6 +452,151 @@
       function update() { const chosen = favorites.has(card.dataset.deviceId); favorite.textContent = chosen ? '★' : '☆'; favorite.setAttribute('aria-label', chosen ? 'Favorilerden çıkar' : 'Favorilere ekle'); favorite.setAttribute('aria-pressed', String(chosen)); }
       update(); favorite.addEventListener('click', event => { event.stopPropagation(); const key = card.dataset.deviceId; favorites.has(key) ? favorites.delete(key) : favorites.add(key); try { localStorage.setItem('rackstudio.favorites', JSON.stringify([...favorites])); } catch (_) {} update(); filter(); }); card.append(favorite);
     }
+    // --- Switch-Tree Style Catalog Series & Category Architecture ---
+    function getDeviceSeriesGroup(deviceId, item) {
+      const id = String(deviceId || '').toLowerCase();
+      const name = String(item?.name || '').toLowerCase();
+      const seriesKey = String(item?.series || '').toLowerCase();
+      const cat = String(item?.category || '').toLowerCase();
+
+      if (seriesKey === 'cat9k' || id.includes('9300') || id.includes('9200') || id.includes('9500') || name.includes('9300') || name.includes('9200') || name.includes('9500')) {
+        return { key: 'cat9k', title: 'Catalyst 9000 Serisi', badge: 'CAT 9000', order: 1 };
+      }
+      if (seriesKey === 'cat3k' || id.includes('3850') || id.includes('3650') || name.includes('3850') || name.includes('3650')) {
+        return { key: 'cat3k', title: 'Catalyst 3850 Serisi', badge: 'CAT 3850', order: 2 };
+      }
+      if (seriesKey === 'cat2k' || id.includes('2960') || name.includes('2960')) {
+        return { key: 'cat2k', title: 'Catalyst 2960 Serisi', badge: 'CAT 2960', order: 3 };
+      }
+      if (seriesKey === 'nexus' || id.includes('nexus') || name.includes('nexus')) {
+        return { key: 'nexus', title: 'Nexus Veri Merkezi', badge: 'NEXUS', order: 4 };
+      }
+      if (seriesKey === 'isr' || cat === 'router' || id.includes('isr') || name.includes('router') || name.includes('isr')) {
+        return { key: 'isr', title: 'ISR Router Serisi', badge: 'ISR WAN', order: 5 };
+      }
+      if (cat === 'compact' || id.includes('3560') || name.includes('3560-cx')) {
+        return { key: 'compact', title: 'Kompakt & Duvar', badge: 'COMPACT', order: 6 };
+      }
+      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf') || name.includes('patch')) {
+        return { key: 'patch', title: 'Patch & ODF Paneller', badge: 'PATCH & ODF', order: 7 };
+      }
+      if (cat === 'organizer' || cat === 'blank' || id.includes('organizer') || id.includes('blank') || name.includes('düzenleyici') || name.includes('kör panel')) {
+        return { key: 'management', title: 'Düzenleyici & Kör', badge: 'D-RING', order: 8 };
+      }
+      return { key: 'custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 9 };
+    }
+
+    function getDeviceCategoryGroup(deviceId, item) {
+      const cat = String(item?.category || '').toLowerCase();
+      const id = String(deviceId || '').toLowerCase();
+
+      if (cat === 'router' || id.includes('isr')) {
+        return { key: 'grp-router', title: 'WAN & Yönlendirici (Router)', badge: 'ROUTER', order: 1 };
+      }
+      if (cat === 'fiber-switch' || id.includes('3850-24s') || id.includes('nexus') || id.includes('9500')) {
+        return { key: 'grp-fiber', title: 'Fiber Dağıtım & Omurga', badge: 'CORE', order: 2 };
+      }
+      if (cat === 'switch' || id.includes('2960') || id.includes('9300') || id.includes('9200')) {
+        return { key: 'grp-switch', title: 'Gigabit PoE+ Kenar Switchler', badge: 'ACCESS', order: 3 };
+      }
+      if (cat === 'compact' || id.includes('3560')) {
+        return { key: 'grp-compact', title: 'Kompakt & Duvar Tipi Switchler', badge: 'COMPACT', order: 4 };
+      }
+      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf')) {
+        return { key: 'grp-patch', title: 'Patch Paneller & Sonlandırma', badge: 'PATCH', order: 5 };
+      }
+      if (cat === 'organizer' || cat === 'blank') {
+        return { key: 'grp-org', title: 'Kablo Düzenleme & Boş Paneller', badge: 'D-RING', order: 6 };
+      }
+      return { key: 'grp-custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 7 };
+    }
+
+    const collapsedTreeGroups = new Set();
+    const treeContainer = make('div', undefined, 'catalog-tree-container');
+
+    // Collect all initial device cards from sidebar
+    const allDeviceCards = [];
+    sidebar.querySelectorAll('.sidebar-device-stream .device-card').forEach(card => {
+      allDeviceCards.push(card);
+    });
+
+    function renderTreeGroups() {
+      treeContainer.replaceChildren();
+      const groupsMap = new Map();
+
+      allDeviceCards.forEach(card => {
+        const key = card.dataset.deviceId;
+        const item = api.catalog[key];
+        const groupInfo = (catalogViewMode === 'series')
+          ? getDeviceSeriesGroup(key, item)
+          : getDeviceCategoryGroup(key, item);
+
+        if (!groupsMap.has(groupInfo.key)) {
+          groupsMap.set(groupInfo.key, { info: groupInfo, cards: [] });
+        }
+        groupsMap.get(groupInfo.key).cards.push(card);
+      });
+
+      // Sort groups by order
+      const sortedGroups = [...groupsMap.values()].sort((a, b) => a.info.order - b.info.order);
+
+      sortedGroups.forEach(grp => {
+        const isCollapsed = collapsedTreeGroups.has(grp.info.key);
+        const cardEl = make('div', undefined, `catalog-tree-card panel-section collapsible-section ${isCollapsed ? 'collapsed' : ''}`);
+        cardEl.dataset.groupKey = grp.info.key;
+
+        const header = make('div', undefined, 'catalog-tree-header');
+        const info = make('div', undefined, 'catalog-tree-info');
+        const icon = make('span', isCollapsed ? '▶' : '▼', 'catalog-tree-icon');
+        const badge = make('span', grp.info.badge, 'catalog-tree-badge');
+        const title = make('span', grp.info.title, 'catalog-tree-title');
+        info.append(icon, badge, title);
+
+        const countBadge = make('span', `${grp.cards.length} Model`, 'catalog-tree-count');
+        header.append(info, countBadge);
+
+        const body = make('div', undefined, 'catalog-tree-body');
+        grp.cards.forEach(c => body.append(c));
+
+        header.addEventListener('click', () => {
+          const coll = collapsedTreeGroups.has(grp.info.key);
+          if (coll) {
+            collapsedTreeGroups.delete(grp.info.key);
+          } else {
+            collapsedTreeGroups.add(grp.info.key);
+          }
+          cardEl.classList.toggle('collapsed', !coll);
+          icon.textContent = !coll ? '▶' : '▼';
+        });
+
+        cardEl.append(header, body);
+        treeContainer.append(cardEl);
+      });
+    }
+
+    if (stream) {
+      stream.replaceChildren(treeContainer, customSection);
+      renderTreeGroups();
+    }
+
+    btnModeSeries.addEventListener('click', () => {
+      if (catalogViewMode === 'series') return;
+      catalogViewMode = 'series';
+      btnModeSeries.classList.add('active');
+      btnModeCategory.classList.remove('active');
+      renderTreeGroups();
+      filter();
+    });
+
+    btnModeCategory.addEventListener('click', () => {
+      if (catalogViewMode === 'category') return;
+      catalogViewMode = 'category';
+      btnModeCategory.classList.add('active');
+      btnModeSeries.classList.remove('active');
+      renderTreeGroups();
+      filter();
+    });
+
     function filter() {
       const query = normalize(search.value); let visible = 0; let total = 0;
       sidebar.querySelectorAll('.device-card').forEach(card => {
@@ -447,7 +605,25 @@
         const matches = (!query || normalize([item.name, item.modelTag, item.desc, card.dataset.deviceId].join(' ')).includes(query)) && (!category.value || item.category === category.value) && (!units.value || item.u === Number(units.value)) && (!favoriteOnly.checked || favorites.has(card.dataset.deviceId));
         card.hidden = !matches; if (matches) visible++;
       });
-      sidebar.querySelectorAll('.panel-section').forEach(section => { if (section === toolbar || section === customSection) return; const cards = [...section.querySelectorAll('.device-card')]; if (cards.length) section.hidden = cards.every(card => card.hidden); });
+
+      // Update tree group cards visibility and model counts
+      treeContainer.querySelectorAll('.catalog-tree-card').forEach(cardEl => {
+        const cardsInGroup = [...cardEl.querySelectorAll('.device-card')];
+        const visibleInGroup = cardsInGroup.filter(c => !c.hidden).length;
+        cardEl.hidden = (visibleInGroup === 0);
+        cardEl.style.display = (visibleInGroup === 0) ? 'none' : '';
+        const countBadge = cardEl.querySelector('.catalog-tree-count');
+        if (countBadge) {
+          countBadge.textContent = `${visibleInGroup} Model`;
+        }
+      });
+
+      sidebar.querySelectorAll('.panel-section').forEach(section => {
+        if (section === toolbar || section === customSection) return;
+        const cards = [...section.querySelectorAll('.device-card')];
+        if (cards.length) section.hidden = cards.every(card => card.hidden);
+      });
+
       count.textContent = `${visible} / ${total} donanım${visible ? '' : ' — filtreleri değiştirin'}`;
 
       // Update Activity Rail and Drawer UI state
@@ -477,7 +653,7 @@
         } else if (currentCat === 'custom') {
           drawerTitle.textContent = 'ÖZEL DONANIMLAR';
         } else {
-          drawerTitle.textContent = 'TÜM DONANIMLAR';
+          drawerTitle.textContent = (catalogViewMode === 'series') ? 'MODEL SERİLERİ' : 'TÜM DONANIMLAR';
         }
       }
 
@@ -508,7 +684,8 @@
           const desc = make('div', `${item.ports.length} port · ${isCisco ? 'Cisco Switch' : 'Özel donanım'}`, 'device-desc');
           desc.style.display = 'none';
           card.append(bezel, info, badge, desc);
-          card.addEventListener('click', () => selectCustom(key)); customCards.append(card);
+          card.addEventListener('click', () => selectCustom(key));
+          customCards.append(card);
         });
       }
       sidebar.querySelectorAll('.device-card').forEach(card => card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem));

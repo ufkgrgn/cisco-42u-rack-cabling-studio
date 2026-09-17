@@ -15,6 +15,8 @@
       logo: 'CISCO',
       series: 'isr',
       modelTag: 'ISR 4431 WAN ROUTER',
+      powerWatts: 250,
+      heatBtu: 853,
       desc: 'Kurumsal WAN & İnternet Yönlendiricisi, 4x Dahili GE/SFP Portu (GE0/0/0 - GE0/0/3), 1x Dedicated OOB Mgmt0, 3x NIM Yuvası, Çift Güç Kaynağı.',
       ports: [
         { id: 'ge0_0_0', name: 'GE0/0/0', type: 'rj45', group: 0, row: 0, speed: '10/100/1000 Gigabit WAN (Bakır)' },
@@ -33,6 +35,8 @@
       logo: 'CISCO',
       series: 'cat3k',
       modelTag: 'WS-C3850-24S-S',
+      powerWatts: 350,
+      heatBtu: 1194,
       desc: '24 Port SFP 1G Fiber Omurga/Toplama Switchi (Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Modüler Ağ Modülü (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -60,6 +64,8 @@
       logo: 'CISCO',
       series: 'nexus',
       modelTag: 'N9K-C93180YC-FX',
+      powerWatts: 450,
+      heatBtu: 1535,
       desc: 'Veri merkezi ToR switch, 48x 10/25G SFP28 (Eth1/1 - Eth1/48) ve 6x 40/100G QSFP28 omurga portu (Eth1/49 - Eth1/54).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
@@ -87,6 +93,8 @@
       logo: 'CISCO',
       series: 'cat9k',
       modelTag: 'C9500-24Y4C',
+      powerWatts: 950,
+      heatBtu: 3241,
       desc: 'Kampüs çekirdek omurga, 24x 1/10/25G SFP28 (25GE1/0/1 - 25GE1/0/24) ve 4x 40/100G QSFP28 uplink (100GE1/0/25 - 100GE1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -116,6 +124,8 @@
       logo: 'CISCO',
       series: 'cat2960x',
       modelTag: 'WS-C2960X-24PS-L',
+      powerWatts: 450,
+      heatBtu: 1535,
       desc: '24x 10/100/1000 Gigabit RJ45 PoE+ (370W, Gi1/0/1 - Gi1/0/24) ve 4x 1G SFP Uplink (Gi1/0/25 - Gi1/0/28). Sahada 55 adet.',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -143,6 +153,8 @@
       logo: 'CISCO',
       series: 'cat2960x',
       modelTag: 'WS-C2960X-24TS-L',
+      powerWatts: 45,
+      heatBtu: 153,
       desc: '24x 10/100/1000 Gigabit Data RJ45 (Gi1/0/1 - Gi1/0/24), 4x 1G SFP Uplink (Gi1/0/25 - Gi1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -170,6 +182,8 @@
       logo: 'CISCO',
       series: 'cat2960x',
       modelTag: 'WS-C2960XR-24PS-I',
+      powerWatts: 450,
+      heatBtu: 1535,
       desc: 'L3 Kurumsal Kenar, 24x Gigabit PoE+ (370W, Gi1/0/1 - Gi1/0/24), 2x 10G SFP+ Uplink (Te1/0/25 - Te1/0/26), Çift Yedekli Güç Kaynağı.',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -191,6 +205,8 @@
       logo: 'CISCO',
       series: 'cat9k',
       modelTag: 'C9200L-24P-4X',
+      powerWatts: 450,
+      heatBtu: 1535,
       desc: 'Yeni Nesil Kurumsal Kenar, 24x Gigabit PoE+ (370W, Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Sabit Uplink (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -218,6 +234,8 @@
       logo: 'CISCO',
       series: 'cat9k',
       modelTag: 'C9300L-24P-4X',
+      powerWatts: 505,
+      heatBtu: 1723,
       desc: 'StackWise-320 destekli Kenar Switch, 24x 1G PoE+ (505W UPOE, Gi1/0/1 - Gi1/0/24), 4x 10G SFP+ Sabit Uplink (Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -245,6 +263,8 @@
       logo: 'CISCO',
       series: 'cat9k',
       modelTag: 'C9300X-48HX UPOE+',
+      powerWatts: 1100,
+      heatBtu: 3753,
       desc: 'StackWise-1T, 48x Multigigabit 10G UPOE+ (90W, Te1/0/1 - Te1/0/48), Modüler 4x 25G SFP28 Uplink (Twe1/1/1 - Twe1/1/4).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
@@ -272,6 +292,8 @@
       logo: 'CISCO',
       series: 'cat1k',
       modelTag: 'C1000-24P-4G-L',
+      powerWatts: 240,
+      heatBtu: 818,
       desc: '24x 10/100/1000 Gigabit PoE+ (195W, Gi1/0/1 - Gi1/0/24), 4x 1G SFP Sabit Uplink (Gi1/0/25 - Gi1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -301,6 +323,8 @@
       logo: 'CISCO',
       series: 'cat2960',
       modelTag: 'WS-C2960-24PC-L (PoE)',
+      powerWatts: 450,
+      heatBtu: 1535,
       desc: 'Sahada en yaygın model (133 Adet). 24x 10/100 PoE (370W, Fa0/1 - Fa0/24), 2x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1 - Gi0/2).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -324,6 +348,8 @@
       logo: 'CISCO',
       series: 'cat2960',
       modelTag: 'WS-C2960-24TC-L',
+      powerWatts: 45,
+      heatBtu: 153,
       desc: '24x 10/100 Mbps RJ45 (PoE Yok, Fa0/1 - Fa0/24), 2x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1 - Gi0/2).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -347,6 +373,8 @@
       logo: 'CISCO',
       series: 'cat2960',
       modelTag: 'WS-C2960-48TC-L (48P)',
+      powerWatts: 60,
+      heatBtu: 205,
       desc: '48x 10/100 Mbps RJ45 (Fa0/1 - Fa0/48), 2x 10/100/1000 Gigabit RJ45 (Gi0/1 - Gi0/2) ve 2x 1G SFP uplink (Gi0/3 - Gi0/4).',
       ports: [
         ...Array.from({ length: 48 }, (_, i) => ({
@@ -370,6 +398,8 @@
       logo: 'CISCO',
       series: 'cat3k',
       modelTag: 'WS-C3560X-24T-S',
+      powerWatts: 350,
+      heatBtu: 1194,
       desc: '24x Gigabit 10/100/1000 RJ45 (Gi1/0/1 - Gi1/0/24), Modüler Ağ Modülü (4x 10G/1G SFP+ Te1/1/1 - Te1/1/4).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -399,6 +429,8 @@
       logo: 'CISCO',
       series: 'compact',
       modelTag: 'WS-C3560-8PC-S',
+      powerWatts: 154,
+      heatBtu: 525,
       desc: '8x 10/100 PoE (123W, Fa0/1 - Fa0/8) + 1x Dual-Purpose 1G Gigabit/SFP uplink (Gi0/1).',
       ports: [
         ...Array.from({ length: 8 }, (_, i) => ({
@@ -419,6 +451,8 @@
       logo: 'CISCO',
       series: 'compact',
       modelTag: 'WS-C2960CX-8PC-L',
+      powerWatts: 280,
+      heatBtu: 955,
       desc: '8x Gigabit PoE+ (240W, Gi1/0/1 - Gi1/0/8) + 2x 1G Bakır Uplink (Gi1/0/9 - Gi1/0/10) + 2x 1G SFP Portu (Gi1/0/11 - Gi1/0/12).',
       ports: [
         ...Array.from({ length: 8 }, (_, i) => ({
@@ -442,6 +476,8 @@
       logo: 'CISCO',
       series: 'compact',
       modelTag: 'WS-C2960G-8TC-L',
+      powerWatts: 45,
+      heatBtu: 153,
       desc: '7x 10/100/1000 Gigabit RJ45 (Gi0/1 - Gi0/7) + 1x Dual-Purpose 1G Gigabit/SFP yuvası (Gi0/8).',
       ports: [
         ...Array.from({ length: 7 }, (_, i) => ({
@@ -463,6 +499,8 @@
       category: 'patch',
       logo: 'PANEL',
       modelTag: 'CAT6A 24P-UTP',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: '19" Rack montajlı 24 Port 10Gbps Cat6A UTP bakır sonlandırma paneli.',
       ports: Array.from({ length: 24 }, (_, i) => ({
         id: `pt${i + 1}`,
@@ -479,6 +517,8 @@
       category: 'patch',
       logo: 'PANEL',
       modelTag: 'CAT6-48P-HD',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: '1U alanında 48 port çift sıralı yüksek yoğunluklu RJ45 patch panel.',
       ports: Array.from({ length: 48 }, (_, i) => ({
         id: `pt${i + 1}`,
@@ -495,7 +535,9 @@
       category: 'fiber',
       logo: 'FIBER ODF',
       modelTag: 'OM4 LC-DUPLEX',
-      desc: 'Veri merkezi OM4 LC Duplex çok modlu fiber optik sonlandırma çekmecesi.',
+      powerWatts: 0,
+      heatBtu: 0,
+      desc: 'Veri merkezi OM4 LC Duplex çok modlu (Aqua) fiber optik sonlandırma çekmecesi (48 Core).',
       ports: Array.from({ length: 24 }, (_, i) => ({
         id: `lc${i + 1}`,
         name: `LC-${String(i + 1).padStart(2, '0')}`,
@@ -505,12 +547,50 @@
         speed: '100G MultiMode OM4'
       }))
     },
+    'fiber-odf-24-os2': {
+      name: '24-Port OS2 Singlemode Fiber Paneli (ODF)',
+      u: 1,
+      category: 'fiber',
+      logo: 'FIBER ODF',
+      modelTag: 'OS2 LC-DUPLEX',
+      powerWatts: 0,
+      heatBtu: 0,
+      desc: '19" 1U OS2 Single Mode (9/125µm) LC Duplex mavi adaptörlü fiber optik sonlandırma çekmecesi (48 Core).',
+      ports: Array.from({ length: 24 }, (_, i) => ({
+        id: `lc${i + 1}`,
+        name: `LC-${String(i + 1).padStart(2, '0')}`,
+        type: 'lc',
+        group: Math.floor(i / 4),
+        row: 0,
+        speed: '100G SingleMode OS2 (UPC)'
+      }))
+    },
+    'fiber-odf-24-sc': {
+      name: '24-Port OS2 SC Duplex Fiber Paneli (ODF)',
+      u: 1,
+      category: 'fiber',
+      logo: 'SC ODF',
+      modelTag: 'OS2 SC-DUPLEX',
+      powerWatts: 0,
+      heatBtu: 0,
+      desc: '19" 1U 24-Port SC Duplex Single Mode fiber dağıtım paneli, push-pull mavi adaptör yuvalı (48 Core).',
+      ports: Array.from({ length: 24 }, (_, i) => ({
+        id: `sc${i + 1}`,
+        name: `SC-${String(i + 1).padStart(2, '0')}`,
+        type: 'sc',
+        group: Math.floor(i / 4),
+        row: 0,
+        speed: '10G/100G SingleMode OS2 SC'
+      }))
+    },
     'hcs-datalight-24': {
       name: 'HCS DataLight Fiber Patch Panel',
       u: 1,
       category: 'fiber',
       logo: 'HCS',
       modelTag: 'HCS-DATALIGHT-24',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: '19” teleskopik kasa ve çapraz dizilimli mavi modüler fiber adaptör yuvaları.',
       ports: Array.from({ length: 24 }, (_, i) => ({
         id: `f${i + 1}`,
@@ -521,6 +601,26 @@
         speed: '10G OM4 LC Duplex'
       }))
     },
+    'pdu-8port-1u': {
+      name: '1U 8-Soketli Rack Montajlı PDU',
+      u: 1,
+      category: 'pdu',
+      logo: 'PDU',
+      modelTag: '1U 8x SCHUKO PDU',
+      powerWatts: 0,
+      heatBtu: 0,
+      maxWatts: 3680,
+      maxAmps: 16,
+      desc: '19" 1U 16A 250V 8 soketli Schuko tip güç dağıtım ünitesi, ışıklı açma/kapama şalteri ve aşırı akım sigortalı.',
+      ports: Array.from({ length: 8 }, (_, i) => ({
+        id: `pwr${i + 1}`,
+        name: `Priz ${i + 1}`,
+        type: 'power',
+        group: Math.floor(i / 4),
+        row: 0,
+        speed: '230V 16A 50Hz AC'
+      }))
+    },
 
     // 7. CABLE MANAGEMENT & BLANKING
     'organizer-1u': {
@@ -529,6 +629,8 @@
       category: 'organizer',
       logo: 'ORGANIZER',
       modelTag: '1U HORIZONTAL BRUSH',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: 'Hava sızdırmaz fırçalı tip, patch kabloları gizleyen 1U yatay kablo tavası.',
       ports: []
     },
@@ -538,6 +640,8 @@
       category: 'organizer',
       logo: 'ORGANIZER',
       modelTag: '1U 5x D-RING ORGANIZER',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: '5 Adet Metal D-Ring kancalı 19" 1U yatay kablo düzenleyici organizer.',
       ports: []
     },
@@ -547,6 +651,8 @@
       category: 'organizer',
       logo: 'ORGANIZER',
       modelTag: '2U FINGER-DUCT ORGANIZER',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: 'Yüksek kapasiteli, ön kapaklı parmak tipi (finger duct) 2U organizer.',
       ports: []
     },
@@ -556,6 +662,8 @@
       category: 'blank',
       logo: 'BLANK',
       modelTag: '1U BLANKING PANEL',
+      powerWatts: 0,
+      heatBtu: 0,
       desc: 'Hava akışını yönlendirmek ve boş U yuvalarını kapatmak için kör panel.',
       ports: []
     }

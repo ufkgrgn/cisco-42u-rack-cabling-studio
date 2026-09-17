@@ -1,8 +1,8 @@
 /* Right Sidebar: Run Schedule & Details (Collapsible & Resizable) */
 .sidebar-right {
-  width: 450px;
-  min-width: 360px;
-  max-width: 750px;
+  width: 520px;
+  min-width: 420px;
+  max-width: 800px;
   flex-shrink: 0;
   background-color: var(--bg-panel);
   border-left: 1px solid var(--border-color);
@@ -104,67 +104,205 @@
 .schedule-table {
   width: 100%;
   table-layout: fixed;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.74rem;
   text-align: left;
+  display: block;
+  padding: 6px 8px;
 }
 
-.schedule-table th {
-  background: rgba(11, 15, 25, 0.95);
-  color: var(--text-muted);
-  padding: 8px 4px;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  border-bottom: 1px solid var(--border-color);
-  white-space: nowrap;
+.schedule-table thead {
+  display: none !important;
+}
+
+.schedule-table tbody {
+  display: block;
+  width: 100%;
+}
+
+.schedule-table tr.schedule-cable-card {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  border-radius: 6px;
   box-sizing: border-box;
-}
-
-.schedule-table th:last-child,
-.schedule-table td:last-child {
-  text-align: center;
-  padding-right: 4px;
-}
-
-.schedule-table td {
-  padding: 5px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-  vertical-align: middle;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.schedule-table tr {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid var(--row-accent, #38bdf8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  transition: background 0.15s;
-}
-
-.schedule-table tr:hover,
-.schedule-table tr.hovered-row {
-  background: rgba(0, 229, 255, 0.12);
-  border-left: 3px solid var(--neon-cyan);
-}
-
-.schedule-table tr.active {
-  background: rgba(56, 189, 248, 0.2);
-  border-left: 3px solid var(--accent-blue);
-}
-
-.cable-pill-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
   overflow: hidden;
-  white-space: nowrap;
+}
+
+.schedule-table tr.schedule-cable-card:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.schedule-table tr.schedule-cable-card.hovered-row {
+  outline: 2px solid #00e5ff !important;
+  animation: cableCardHoverPulse 1.2s infinite ease-in-out !important;
+  transform: translateY(-2px) scale(1.015) !important;
+  filter: brightness(1.3) !important;
+  z-index: 10 !important;
+  position: relative;
+}
+
+@keyframes cableCardHoverPulse {
+  0% {
+    box-shadow: 0 0 0 2px #00e5ff, 0 0 14px rgba(0, 229, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 3px #ffffff, 0 0 24px rgba(0, 229, 255, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #00e5ff, 0 0 14px rgba(0, 229, 255, 0.7);
+  }
+}
+
+.schedule-table tr.schedule-cable-card.active {
+  box-shadow: 0 0 0 2px var(--neon-cyan), 0 6px 20px rgba(0, 229, 255, 0.45) !important;
+}
+
+/* Rol Seçildiğinde Tüm List Item (Card) Tamamı O Renge Boyanır */
+.schedule-table tr.schedule-cable-card.role-trunk {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.42) 0%, rgba(76, 29, 149, 0.28) 100%) !important;
+  border-color: rgba(168, 85, 247, 0.55) !important;
+  border-left-color: #a855f7 !important;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-trunk:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.55) 0%, rgba(76, 29, 149, 0.38) 100%) !important;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-uplink {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.35) 0%, rgba(2, 132, 199, 0.25) 100%) !important;
+  border-color: rgba(0, 210, 255, 0.55) !important;
+  border-left-color: #00d2ff !important;
+  box-shadow: 0 2px 10px rgba(0, 210, 255, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-uplink:hover {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.48) 0%, rgba(2, 132, 199, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 210, 255, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-trunk-ap {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.35) 0%, rgba(157, 23, 77, 0.25) 100%) !important;
+  border-color: rgba(236, 72, 153, 0.55) !important;
+  border-left-color: #ec4899 !important;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-trunk-ap:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.48) 0%, rgba(157, 23, 77, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-poe {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32) 0%, rgba(146, 64, 14, 0.22) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  border-left-color: #f59e0b !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-poe:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.45) 0%, rgba(146, 64, 14, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-mgmt,
+.schedule-table tr.schedule-cable-card.role-management {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.32) 0%, rgba(6, 95, 70, 0.22) 100%) !important;
+  border-color: rgba(16, 185, 129, 0.55) !important;
+  border-left-color: #10b981 !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-mgmt:hover,
+.schedule-table tr.schedule-cable-card.role-management:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(6, 95, 70, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-routed {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.35) 0%, rgba(153, 27, 27, 0.25) 100%) !important;
+  border-color: rgba(239, 68, 68, 0.55) !important;
+  border-left-color: #ef4444 !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-routed:hover {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.48) 0%, rgba(153, 27, 27, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-fiber {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.32) 0%, rgba(161, 98, 7, 0.22) 100%) !important;
+  border-color: rgba(250, 204, 21, 0.6) !important;
+  border-left-color: #facc15 !important;
+  box-shadow: 0 2px 10px rgba(250, 204, 21, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-fiber:hover {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.45) 0%, rgba(161, 98, 7, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(250, 204, 21, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-console {
+  background: linear-gradient(135deg, rgba(0, 188, 235, 0.28) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+  border-color: rgba(0, 188, 235, 0.55) !important;
+  border-left-color: #00bceb !important;
+  box-shadow: 0 2px 10px rgba(0, 188, 235, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-console:hover {
+  background: linear-gradient(135deg, rgba(0, 188, 235, 0.42) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 188, 235, 0.45) !important;
+}
+
+.schedule-table td.schedule-card-cell {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  border-bottom: none;
+  transition: padding 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Card Legend Bar (Üst Satır: Rol Ayarlama / ID / Yön Butonu / Metraj) */
+.card-legend-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 1px solid transparent;
+  width: 100%;
+  min-width: 0;
+  transition: padding-bottom 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-bottom 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+.card-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.card-legend-left:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-0.5px);
 }
 
 .cable-color-dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -177,9 +315,289 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 68px;
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+
+.badge-panel-tag {
+  background: rgba(249, 115, 22, 0.22);
+  border-right: 1px solid rgba(249, 115, 22, 0.45);
+  color: #fdba74;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 4px;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.badge-dev-tag {
+  background: rgba(14, 165, 233, 0.2);
+  border-right: 1px solid rgba(14, 165, 233, 0.4);
+  color: #7dd3fc;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  flex-shrink: 0;
+}
+
+.cable-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 8.5px;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+}
+
+.cable-role-tag.role-trunk { background: #7c3aed; border-color: #a855f7; color: #fff; }
+.cable-role-tag.role-uplink { background: #00d2ff; border-color: #38bdf8; color: #000; font-weight: 900; }
+.cable-role-tag.role-trunk-ap { background: #ec4899; border-color: #f472b6; color: #fff; }
+.cable-role-tag.role-poe { background: #f59e0b; border-color: #fbbf24; color: #000; font-weight: 900; }
+.cable-role-tag.role-mgmt { background: #059669; border-color: #34d399; color: #fff; }
+.cable-role-tag.role-routed { background: #b91c1c; border-color: #f87171; color: #fff; }
+.cable-role-tag.role-fiber { background: #facc15; border-color: #fde047; color: #000; font-weight: 900; box-shadow: 0 0 6px rgba(250, 204, 21, 0.45); }
+.cable-role-tag.role-console { background: #00bceb; border-color: #38bdf8; color: #000; font-weight: 900; }
+.cable-role-tag.role-standard { background: #334155; border-color: #475569; color: #cbd5e1; }
+
+.card-legend-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.duct-select-trigger {
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.duct-select-trigger:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #fff;
+  transform: scale(1.04);
+}
+
+.metraj-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+/* Card Route Bar (Alt Satır: Kaynak ➔ Düzenleyici ➔ Hedef ve Silme Butonu) */
+.card-route-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  padding-top: 0;
+  pointer-events: none;
+  transition: max-height 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-top 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              padding-top 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Hover Reveal (Genişletme / Ayrıntıları Gösterme) - Yalnızca ve kesinlikle fare kartın üzerindeyken açılır */
+.schedule-table tr.schedule-cable-card:hover td.schedule-card-cell {
+  padding: 6px 8px;
+}
+
+.schedule-table tr.schedule-cable-card:hover .card-legend-bar {
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.schedule-table tr.schedule-cable-card:hover .card-route-bar {
+  max-height: 60px;
+  opacity: 1;
+  pointer-events: auto;
+  margin-top: 2px;
+}
+
+.card-route-bar .route-flow-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.card-route-bar .route-flow-cell::-webkit-scrollbar {
+  display: none;
+}
+
+.card-route-bar .del-cable-btn {
+  flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  margin-left: 4px;
+}
+
+/* Symmetrical Full-Width Split Route Bar (U32 | Port1 > Gi1/0/1 | U33) */
+.route-split-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  background: rgba(11, 19, 32, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 3px 6px;
+  box-sizing: border-box;
+}
+
+.route-endpoint-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  padding: 4.5px 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.route-endpoint-box:hover {
+  border-color: #38bdf8;
+  background: rgba(30, 41, 59, 0.98);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+  transform: translateY(-1px);
+}
+
+.route-endpoint-box.left {
+  justify-content: center;
+}
+
+.route-endpoint-box.right {
+  justify-content: center;
+}
+
+.badge-u-prominent {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #00e5ff;
+  background: #080e18;
+  border: 1px solid rgba(0, 229, 255, 0.55);
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.4px;
+  box-shadow: inset 0 0 5px rgba(0, 229, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.route-pipe {
+  color: rgba(148, 163, 184, 0.5);
+  font-weight: 700;
+  font-size: 12px;
+  user-select: none;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+.badge-port-prominent {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.badge-port-prominent.fiber {
+  color: #facc15;
+  text-shadow: 0 0 6px rgba(250, 204, 21, 0.4);
+}
+
+.badge-port-prominent.copper {
+  color: #38bdf8;
+}
+
+.badge-port-prominent.power {
+  color: #f59e0b;
+}
+
+.route-center-sep {
+  color: #38bdf8;
+  font-size: 14px;
+  font-weight: 900;
+  opacity: 0.95;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0 4px;
+  line-height: 1;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+}
+
+.card-route-bar .del-cable-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+  transform: scale(1.08);
+}
+
+.cable-color-dot {
   display: inline-block;
-  vertical-align: middle;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* Combined Route Flow Cell (Source ➔ Target) */
@@ -228,7 +646,7 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   white-space: nowrap;
   flex-shrink: 0;
-  max-width: 95px;
+  max-width: none;
 }
 
 .endpoint-badge.clickable-endpoint {
@@ -240,6 +658,22 @@
   border-color: #38bdf8;
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
   transform: translateY(-0.5px);
+}
+
+.badge-organizer {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(30, 41, 59, 0.9);
+  color: #94a3b8;
+  border: 1px dashed #475569;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
 }
 
 .badge-u {
@@ -261,7 +695,9 @@
 }
 
 .badge-port.fiber {
-  color: #00e5ff;
+  color: #facc15;
+  font-weight: 700;
+  text-shadow: 0 0 5px rgba(250, 204, 21, 0.45);
 }
 
 .badge-port.copper {
@@ -457,6 +893,8 @@
 .role-badge-preview.poe { background: #f59e0b; color: #000; box-shadow: 0 0 6px #f59e0b; }
 .role-badge-preview.mgmt { background: #059669; color: #fff; box-shadow: 0 0 6px #059669; }
 .role-badge-preview.routed { background: #b91c1c; color: #fff; box-shadow: 0 0 6px #b91c1c; }
+.role-badge-preview.fiber { background: #facc15; color: #000; font-weight: 900; box-shadow: 0 0 6px #facc15; }
+.role-badge-preview.console { background: #00bceb; color: #000; font-weight: 900; box-shadow: 0 0 6px #00bceb; }
 .role-badge-preview.standard { background: #334155; color: #cbd5e1; }
 
 .role-text-group {
@@ -535,3 +973,294 @@
   border-color: #ef4444;
   transform: scale(1.08);
 }
+
+/* ==========================================================================
+   SCHEDULE VIEW & SORT TOOLBAR
+   ========================================================================== */
+#schedule-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #111827 0%, #0b1120 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.schedule-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-total-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.schedule-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sort-tab-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.sort-tab-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sort-tab-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+}
+
+/* ==========================================================================
+   SWITCH TREE VIEW ACCORDION & ROWS
+   ========================================================================== */
+.schedule-tree-switch-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.schedule-tree-switch-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.schedule-tree-switch-card.active-switch {
+  border-color: #00e5ff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+}
+
+.tree-switch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.tree-switch-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-toggle-icon {
+  font-size: 10px;
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+}
+
+.schedule-tree-switch-card.collapsed .tree-toggle-icon {
+  transform: rotate(-9deg);
+}
+
+.tree-switch-badge-u {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 900;
+  color: #00e5ff;
+  background: #0b1320;
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.tree-switch-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-switch-model {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tree-switch-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tree-switch-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 6px 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(11, 17, 30, 0.7);
+}
+
+.schedule-tree-switch-card.collapsed .tree-switch-body {
+  display: none;
+}
+
+.tree-cable-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--row-accent, #38bdf8);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  font-size: 11.5px;
+  gap: 6px;
+}
+
+.tree-cable-row:hover,
+.tree-cable-row.hovered {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+  transform: translateX(2px);
+}
+
+.tree-branch-symbol {
+  color: #64748b;
+  font-family: monospace;
+  font-size: 12px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.tree-port-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tree-src-port {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+  font-size: 11.5px;
+  color: #f1f5f9;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.tree-src-port.fiber {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.4);
+  text-shadow: 0 0 5px rgba(250, 204, 21, 0.4);
+}
+
+.tree-dest-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #cbd5e1;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-dest-u {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 900;
+  font-size: 11px;
+  color: #00e5ff;
+  background: #0b1320;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.tree-cable-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tree-switch-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-switch-bulk-color {
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-switch-bulk-color:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+  transform: translateY(-0.5px);
+}
+
+

@@ -120,7 +120,8 @@ export const DeviceInstanceSchema = z.object({
   powerWatts: z.number().nonnegative().optional(),
   assetTag: z.string().optional(),
   serialNumber: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  portsConfig: z.record(z.string(), z.any()).optional()
 }).refine(
   dev => dev.startU + dev.uHeight - 1 <= 60,
   dev => ({ message: `Device spans from U${dev.startU} to U${dev.startU + dev.uHeight - 1}, exceeding the 60U maximum rack boundary.` })
@@ -196,6 +197,8 @@ export const CableRunSchema = z.object({
   color: z.string(),
   category: z.enum(['copper', 'fiber', 'dac', 'power']).default('copper'),
   routingStyle: z.enum(['structured', 'direct']).default('structured'),
+  ductSide: z.enum(['auto', 'left', 'right']).optional(),
+  role: z.string().optional(),
   lengthMeters: z.number().positive('Cable length must be greater than zero').optional().default(1.5),
   notes: z.string().optional()
 }).refine(
@@ -230,6 +233,7 @@ export const ProjectSchemaV3 = z.object({
   name: z.string().min(1).max(150),
   metadata: ProjectMetadataSchema,
   activeRackId: z.string().min(1),
+  cableRoutingMode: z.enum(['structured', 'direct']).optional(),
   racks: z.array(RackModelSchema).min(1, 'Project must contain at least one rack cabinet'),
   cables: z.array(CableRunSchema).default([]),
   customCatalog: z.record(z.string(), DeviceCatalogItemSchema).default({}),

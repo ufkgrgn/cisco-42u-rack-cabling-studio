@@ -5,7 +5,8 @@ import { sfx } from './audio.js';
 import { 
   escapeTooltipHtml, 
   getDeviceVisualKind, 
-  getDevicePortLayout 
+  getDevicePortLayout,
+  inferSwitchUplinks 
 } from './helpers.js';
 import { 
   CATALOG, 
@@ -18,7 +19,8 @@ import {
 import { 
   createFloorTexture, 
   createRailTexture, 
-  createFaceplateTexture 
+  createFaceplateTexture,
+  createRackHeaderBadgeTexture
 } from './textures.js';
 import { StudioState } from './state3d.js';
 
@@ -30,6 +32,7 @@ import { StudioState } from './state3d.js';
       this.ledObjects = [];
       this.rackGroup = null;
       this.doorGroup = null;
+      this.doorGroups = [];
       this.devicesGroup = null;
       this.cablesGroup = null;
       this.lights = {};
@@ -250,9 +253,27 @@ import { StudioState } from './state3d.js';
         bundle.position.set(0, 23.7, z);
         this.scene.add(bundle);
       }
+      this.ghostRacksGroup = new THREE.Group();
+      this.ghostRacksGroup.name = 'ghost_racks_group';
+      this.scene.add(this.ghostRacksGroup);
+      this.updateGhostRacks();
+    }
 
-      this.buildGhostRack(-9.5, 42);
-      this.buildGhostRack(9.5, 42);
+    updateGhostRacks() {
+      if (!this.ghostRacksGroup) return;
+      while (this.ghostRacksGroup.children.length > 0) {
+        this.ghostRacksGroup.remove(this.ghostRacksGroup.children[0]);
+      }
+      const racks = (Array.isArray(this.state.racks) && this.state.racks.length > 0)
+        ? this.state.racks
+        : [{ id: 'rack-1' }];
+      const spacing = 6.4;
+      const numRacks = racks.length;
+      const startX = -((numRacks - 1) * spacing) / 2;
+      const leftGhostX = startX - spacing;
+      const rightGhostX = startX + (numRacks - 1) * spacing + spacing;
+      this.buildGhostRack(leftGhostX, 42);
+      this.buildGhostRack(rightGhostX, 42);
     }
 
     buildGhostRack(xPos, uCount) {
@@ -277,7 +298,39 @@ import { StudioState } from './state3d.js';
       gGroup.add(beacon);
 
       gGroup.position.set(xPos, 0, 0);
-      this.scene.add(gGroup);
+      this.ghostRacksGroup.add(gGroup);
+    }
+
+    getRack(rackId) {
+      const racks = (Array.isArray(this.state.racks) && this.state.racks.length > 0)
+        ? this.state.racks
+        : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: this.state.rackHeightU || 42 }];
+      return racks.find(r => r.id === rackId) || racks[0];
+    }
+
+    getRackX(rackId) {
+      const racks = (Array.isArray(this.state.racks) && this.state.racks.length > 0)
+        ? this.state.racks
+        : [{ id: 'rack-1' }];
+      const idx = racks.findIndex(r => r.id === rackId);
+      const validIdx = idx >= 0 ? idx : 0;
+      const spacing = 6.4;
+      const startX = -((racks.length - 1) * spacing) / 2;
+      return startX + validIdx * spacing;
+    }
+
+    focusRack(rackId) {
+      const rack = this.getRack(rackId);
+      const rx = this.getRackX(rack.id);
+      const h = (rack.heightU || 42) * U_HEIGHT;
+      const targetY = h / 2 + 0.3;
+      if (this.controls) {
+        this.controls.target.set(rx, targetY, 0);
+        this.camera.position.set(rx + 3.2, targetY + 1.2, 6.4);
+        this.controls.update();
+      }
+      this.state.activeRackId = rack.id;
+      this.showToast(`🔍 ${rack.name} odaklandı`);
     }
 
     buildRack(uHeight) {
@@ -285,130 +338,205 @@ import { StudioState } from './state3d.js';
         this.rackGroup.remove(this.rackGroup.children[0]);
       }
       this.doorGroup = null;
+      this.doorGroups = [];
 
-      const totalH = uHeight * U_HEIGHT;
-      const frameMat = new THREE.MeshStandardMaterial({
-        color: 0x1e2634,
-        roughness: 0.35,
-        metalness: 0.8
+      const racks = (Array.isArray(this.state.racks) && this.state.racks.length > 0)
+        ? this.state.racks
+        : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: uHeight || this.state.rackHeightU || 42 }];
+
+      const spacing = 6.4;
+      const numRacks = racks.length;
+      const startX = -((numRacks - 1) * spacing) / 2;
+
+      let maxTotalH = 0;
+
+      racks.forEach((rack, idx) => {
+        const rackU = rack.heightU || uHeight || this.state.rackHeightU || 42;
+        const totalH = rackU * U_HEIGHT;
+        if (totalH > maxTotalH) maxTotalH = totalH;
+
+        const rackX = startX + idx * spacing;
+        const singleRackGroup = new THREE.Group();
+        singleRackGroup.name = `rack_enclosure_${rack.id}`;
+        singleRackGroup.position.set(rackX, 0, 0);
+
+        const frameMat = new THREE.MeshStandardMaterial({
+          color: 0x1e2634,
+          roughness: 0.35,
+          metalness: 0.8
+        });
+
+        const pillarGeo = new THREE.BoxGeometry(0.32, totalH + 0.4, 0.32);
+        const halfW = (RACK_WIDTH - 0.3) / 2;
+        const halfD = (RACK_DEPTH - 0.3) / 2;
+        const pillarY = (totalH + 0.4) / 2;
+
+        [[-halfW, -halfD], [halfW, -halfD], [-halfW, halfD], [halfW, halfD]].forEach(([px, pz]) => {
+          const pillar = new THREE.Mesh(pillarGeo, frameMat);
+          pillar.position.set(px, pillarY, pz);
+          pillar.castShadow = true;
+          pillar.receiveShadow = true;
+          singleRackGroup.add(pillar);
+        });
+
+        const plateGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.3, RACK_DEPTH);
+        const basePlate = new THREE.Mesh(plateGeo, frameMat);
+        basePlate.position.set(0, 0.15, 0);
+        singleRackGroup.add(basePlate);
+
+        const topPlate = new THREE.Mesh(plateGeo, frameMat);
+        topPlate.position.set(0, totalH + 0.35, 0);
+        singleRackGroup.add(topPlate);
+
+        const sideMat = new THREE.MeshStandardMaterial({ color: 0x242d3c, roughness: 0.5, metalness: 0.7 });
+        const sideGeo = new THREE.BoxGeometry(0.08, totalH, RACK_DEPTH - 0.6);
+        const leftSide = new THREE.Mesh(sideGeo, sideMat);
+        leftSide.position.set(-halfW - 0.08, totalH / 2 + 0.3, 0);
+        singleRackGroup.add(leftSide);
+
+        const rightSide = new THREE.Mesh(sideGeo, sideMat);
+        rightSide.position.set(halfW + 0.08, totalH / 2 + 0.3, 0);
+        singleRackGroup.add(rightSide);
+
+        const railGeo = new THREE.BoxGeometry(0.32, totalH, 0.28);
+        const railFrontZ = halfD - 0.8;
+        const railRearZ = -halfD + 0.8;
+        const railHalfW = RAIL_WIDTH / 2;
+
+        const railTex = createRailTexture(rackU);
+        const frontRailMat = new THREE.MeshStandardMaterial({
+          map: railTex,
+          roughness: 0.3,
+          metalness: 0.85
+        });
+        const rearRailMat = new THREE.MeshStandardMaterial({
+          color: 0x334155,
+          roughness: 0.3,
+          metalness: 0.85
+        });
+
+        const fLeftRail = new THREE.Mesh(railGeo, frontRailMat);
+        fLeftRail.position.set(-railHalfW, totalH / 2 + 0.3, railFrontZ);
+        fLeftRail.castShadow = true;
+        singleRackGroup.add(fLeftRail);
+
+        const fRightRail = new THREE.Mesh(railGeo, frontRailMat);
+        fRightRail.position.set(railHalfW, totalH / 2 + 0.3, railFrontZ);
+        fRightRail.castShadow = true;
+        singleRackGroup.add(fRightRail);
+
+        const rLeftRail = new THREE.Mesh(railGeo, rearRailMat);
+        rLeftRail.position.set(-railHalfW, totalH / 2 + 0.3, railRearZ);
+        singleRackGroup.add(rLeftRail);
+
+        const rRightRail = new THREE.Mesh(railGeo, rearRailMat);
+        rRightRail.position.set(railHalfW, totalH / 2 + 0.3, railRearZ);
+        singleRackGroup.add(rRightRail);
+
+        // Rack Glass Door
+        const rackDoorGroup = new THREE.Group();
+        rackDoorGroup.position.set(-halfW, 0, halfD + 0.15);
+
+        const glassGeo = new THREE.BoxGeometry(RACK_WIDTH - 0.4, totalH - 0.2, 0.05);
+        const glassMat = new THREE.MeshPhysicalMaterial({
+          color: 0x1e293b,
+          metalness: 0.1,
+          roughness: 0.08,
+          transmission: 0.82,
+          transparent: true,
+          opacity: 0.85,
+          reflectivity: 0.95
+        });
+        const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+        glassMesh.position.set(RACK_WIDTH / 2 - 0.2, totalH / 2 + 0.3, 0);
+        rackDoorGroup.add(glassMesh);
+
+        const handleMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.98, roughness: 0.05 });
+        const handleGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.9, 16);
+        const handle = new THREE.Mesh(handleGeo, handleMat);
+        handle.position.set(RACK_WIDTH - 0.6, totalH / 2 + 0.3, 0.1);
+        rackDoorGroup.add(handle);
+
+        singleRackGroup.add(rackDoorGroup);
+        rackDoorGroup.rotation.y = this.state.doorOpen ? -Math.PI * 0.65 : 0;
+        this.doorGroups.push(rackDoorGroup);
+        if (idx === 0) this.doorGroup = rackDoorGroup;
+
+        // Dynamic Illuminated Rack Header Badge (Kabin Adı ve U Boyu)
+        const badgeTex = createRackHeaderBadgeTexture(rack.name || `Kabin ${idx + 1}`, rackU);
+        const badgeGeo = new THREE.BoxGeometry(3.6, 0.45, 0.08);
+        const badgeMat = new THREE.MeshStandardMaterial({
+          map: badgeTex,
+          emissiveMap: badgeTex,
+          emissive: 0xffffff,
+          emissiveIntensity: 0.85,
+          roughness: 0.2,
+          metalness: 0.4
+        });
+        const badge = new THREE.Mesh(badgeGeo, badgeMat);
+        badge.position.set(0, totalH + 0.45, halfD + 0.08);
+        singleRackGroup.add(badge);
+
+        this.rackGroup.add(singleRackGroup);
       });
 
-      const pillarGeo = new THREE.BoxGeometry(0.32, totalH + 0.4, 0.32);
-      const halfW = (RACK_WIDTH - 0.3) / 2;
-      const halfD = (RACK_DEPTH - 0.3) / 2;
-      const pillarY = (totalH + 0.4) / 2;
+      // Overhead Inter-Rack Cable Tray (Ladder Rack) connecting all racks in the row
+      if (numRacks > 1) {
+        const traySpan = (numRacks - 1) * spacing + RACK_WIDTH;
+        const trayY = maxTotalH + 0.90;
+        const trayZ = 0;
 
-      [[-halfW, -halfD], [halfW, -halfD], [-halfW, halfD], [halfW, halfD]].forEach(([px, pz]) => {
-        const pillar = new THREE.Mesh(pillarGeo, frameMat);
-        pillar.position.set(px, pillarY, pz);
-        pillar.castShadow = true;
-        pillar.receiveShadow = true;
-        this.rackGroup.add(pillar);
-      });
+        const trayGroup = new THREE.Group();
+        trayGroup.name = 'overhead_cable_tray';
 
-      const plateGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.3, RACK_DEPTH);
-      const basePlate = new THREE.Mesh(plateGeo, frameMat);
-      basePlate.position.set(0, 0.15, 0);
-      this.rackGroup.add(basePlate);
+        const sideRailMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
+        const railGeo = new THREE.BoxGeometry(traySpan, 0.12, 0.08);
 
-      const topPlate = new THREE.Mesh(plateGeo, frameMat);
-      topPlate.position.set(0, totalH + 0.35, 0);
-      this.rackGroup.add(topPlate);
+        const frontRail = new THREE.Mesh(railGeo, sideRailMat);
+        frontRail.position.set(0, trayY, trayZ + 0.9);
+        trayGroup.add(frontRail);
 
-      const sideMat = new THREE.MeshStandardMaterial({ color: 0x242d3c, roughness: 0.5, metalness: 0.7 });
-      const sideGeo = new THREE.BoxGeometry(0.08, totalH, RACK_DEPTH - 0.6);
-      const leftSide = new THREE.Mesh(sideGeo, sideMat);
-      leftSide.position.set(-halfW - 0.08, totalH / 2 + 0.3, 0);
-      this.rackGroup.add(leftSide);
+        const rearRail = new THREE.Mesh(railGeo, sideRailMat);
+        rearRail.position.set(0, trayY, trayZ - 0.9);
+        trayGroup.add(rearRail);
 
-      const rightSide = new THREE.Mesh(sideGeo, sideMat);
-      rightSide.position.set(halfW + 0.08, totalH / 2 + 0.3, 0);
-      this.rackGroup.add(rightSide);
+        const rungGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.8, 12);
+        const rungMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+        const stepRung = 0.6;
+        const countRungs = Math.floor(traySpan / stepRung);
+        const rungStartX = -traySpan / 2 + stepRung / 2;
 
-      const railGeo = new THREE.BoxGeometry(0.32, totalH, 0.28);
-      const railFrontZ = halfD - 0.8;
-      const railRearZ = -halfD + 0.8;
-      const railHalfW = RAIL_WIDTH / 2;
+        for (let r = 0; r <= countRungs; r++) {
+          const rx = rungStartX + r * stepRung;
+          if (rx <= traySpan / 2) {
+            const rung = new THREE.Mesh(rungGeo, rungMat);
+            rung.rotation.x = Math.PI / 2;
+            rung.position.set(rx, trayY - 0.04, trayZ);
+            trayGroup.add(rung);
+          }
+        }
 
-      const railTex = createRailTexture(uHeight);
-      const frontRailMat = new THREE.MeshStandardMaterial({
-        map: railTex,
-        roughness: 0.3,
-        metalness: 0.85
-      });
-      const rearRailMat = new THREE.MeshStandardMaterial({
-        color: 0x334155,
-        roughness: 0.3,
-        metalness: 0.85
-      });
-
-      const fLeftRail = new THREE.Mesh(railGeo, frontRailMat);
-      fLeftRail.position.set(-railHalfW, totalH / 2 + 0.3, railFrontZ);
-      fLeftRail.castShadow = true;
-      this.rackGroup.add(fLeftRail);
-
-      const fRightRail = new THREE.Mesh(railGeo, frontRailMat);
-      fRightRail.position.set(railHalfW, totalH / 2 + 0.3, railFrontZ);
-      fRightRail.castShadow = true;
-      this.rackGroup.add(fRightRail);
-
-      const rLeftRail = new THREE.Mesh(railGeo, rearRailMat);
-      rLeftRail.position.set(-railHalfW, totalH / 2 + 0.3, railRearZ);
-      this.rackGroup.add(rLeftRail);
-
-      const rRightRail = new THREE.Mesh(railGeo, rearRailMat);
-      rRightRail.position.set(railHalfW, totalH / 2 + 0.3, railRearZ);
-      this.rackGroup.add(rRightRail);
-
-      this.doorGroup = new THREE.Group();
-      this.doorGroup.position.set(-halfW, 0, halfD + 0.15);
-
-      const glassGeo = new THREE.BoxGeometry(RACK_WIDTH - 0.4, totalH - 0.2, 0.05);
-      const glassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x1e293b,
-        metalness: 0.1,
-        roughness: 0.08,
-        transmission: 0.82,
-        transparent: true,
-        opacity: 0.85,
-        reflectivity: 0.95
-      });
-      const glassMesh = new THREE.Mesh(glassGeo, glassMat);
-      glassMesh.position.set(RACK_WIDTH / 2 - 0.2, totalH / 2 + 0.3, 0);
-      this.doorGroup.add(glassMesh);
-
-      const handleMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.98, roughness: 0.05 });
-      const handleGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.9, 16);
-      const handle = new THREE.Mesh(handleGeo, handleMat);
-      handle.position.set(RACK_WIDTH - 0.6, totalH / 2 + 0.3, 0.1);
-      this.doorGroup.add(handle);
-
-      this.rackGroup.add(this.doorGroup);
-      this.doorGroup.rotation.y = this.state.doorOpen ? -Math.PI * 0.65 : 0;
-
-      const badgeGeo = new THREE.BoxGeometry(2.4, 0.24, 0.06);
-      const badgeMat = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        emissive: 0x00e5ff,
-        emissiveIntensity: 0.6,
-        roughness: 0.2
-      });
-      const badge = new THREE.Mesh(badgeGeo, badgeMat);
-      badge.position.set(0, totalH + 0.35, halfD + 0.1);
-      this.rackGroup.add(badge);
+        this.rackGroup.add(trayGroup);
+      }
 
       if (this.controls) {
-        this.controls.target.set(0, totalH / 2 + 0.3, 0);
+        const activeX = this.getRackX(this.state.activeRackId);
+        this.controls.target.set(activeX, maxTotalH / 2 + 0.3, 0);
       }
       if (this.lights.rackInternalLight) {
-        this.lights.rackInternalLight.position.set(0, totalH / 2 + 3.0, 3.6);
+        this.lights.rackInternalLight.position.set(0, maxTotalH / 2 + 3.0, 3.6);
       }
+      this.updateGhostRacks();
     }
 
     setDoorOpen(isOpen) {
       this.state.doorOpen = Boolean(isOpen);
-      if (this.doorGroup) {
-        const targetRot = this.state.doorOpen ? -Math.PI * 0.65 : 0;
+      const targetRot = this.state.doorOpen ? -Math.PI * 0.65 : 0;
+      if (Array.isArray(this.doorGroups) && this.doorGroups.length > 0) {
+        this.doorGroups.forEach(dg => {
+          dg.rotation.y = targetRot;
+        });
+      } else if (this.doorGroup) {
         this.doorGroup.rotation.y = targetRot;
       }
       this.state.autoSave();
@@ -431,10 +559,15 @@ import { StudioState } from './state3d.js';
     }
 
     // --- SMART FREE SLOT FINDER ---
-    findNextAvailableSlot(uHeight) {
-      for (let u = 1; u <= this.state.rackHeightU - uHeight + 1; u++) {
+    findNextAvailableSlot(uHeight, targetRackId) {
+      const rackId = targetRackId || this.state.activeRackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
+      const rack = this.getRack(rackId);
+      const rackMaxU = rack.heightU || this.state.rackHeightU || 42;
+      const rackDevices = this.state.devices.filter(d => (d.rackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1') === rackId);
+
+      for (let u = 1; u <= rackMaxU - uHeight + 1; u++) {
         const uEnd = u + uHeight - 1;
-        const collision = this.state.devices.find(d => {
+        const collision = rackDevices.find(d => {
           const dEnd = d.startU + d.uHeight - 1;
           return !(uEnd < d.startU || u > dEnd);
         });
@@ -444,27 +577,34 @@ import { StudioState } from './state3d.js';
     }
 
     // --- 3D HARDWARE CHASSIS GENERATION ---
-    mountDevice(catalogId, targetU) {
-      const item = CATALOG.find(c => c.id === catalogId);
+    mountDevice(catalogId, targetU, targetRackId) {
+      const cat3D = (window.CATALOG_3D || CATALOG).find(c => c.id === catalogId);
+      const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catalogId];
+      const item = cat3D || cat2D;
       if (!item) return false;
 
-      const uHeight = item.u;
+      const rackId = targetRackId || this.state.activeRackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
+      const rack = this.getRack(rackId);
+      const rackMaxU = rack.heightU || this.state.rackHeightU || 42;
+      const rackDevices = this.state.devices.filter(d => (d.rackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1') === rackId);
+
+      const uHeight = item.u || item.uHeight || 1;
       targetU = parseInt(targetU);
 
       // Smart slot fallback: if requested slot is invalid or occupied, find first free slot!
       const isOccupied = (u) => {
-        if (!u || u < 1 || u + uHeight - 1 > this.state.rackHeightU) return true;
+        if (!u || u < 1 || u + uHeight - 1 > rackMaxU) return true;
         const targetEnd = u + uHeight - 1;
-        return !!this.state.devices.find(d => {
+        return !!rackDevices.find(d => {
           const dEnd = d.startU + d.uHeight - 1;
           return !(targetEnd < d.startU || u > dEnd);
         });
       };
 
       if (!targetU || isOccupied(targetU)) {
-        const freeSlot = this.findNextAvailableSlot(uHeight);
+        const freeSlot = this.findNextAvailableSlot(uHeight, rackId);
         if (!freeSlot) {
-          alert(`Kabin dolu! Bu cihaz için (${uHeight}U) boş yer bulunamadı. Lütfen kabin yüksekliğini artırın.`);
+          alert(`"${rack.name}" kabini dolu! Bu cihaz için (${uHeight}U) boş yer bulunamadı.`);
           return false;
         }
         if (targetU && targetU !== freeSlot) {
@@ -474,25 +614,41 @@ import { StudioState } from './state3d.js';
       }
 
       const instanceId = 'dev-' + Math.random().toString(36).substr(2, 9);
+      const portDefinitions = Array.isArray(item.ports) ? item.ports.map(port => ({
+        id: port.id,
+        name: port.name,
+        type: port.type || 'rj45',
+        group: port.group,
+        row: port.row
+      })) : [];
+
+      const powerWatts = typeof item.powerWatts === 'number' ? item.powerWatts : (['organizer', 'accessory', 'blank', 'patch', 'fiber'].includes(item.category) ? 0 : 150);
+      const heatBtu = typeof item.heatBtu === 'number' ? item.heatBtu : Math.round(powerWatts * 3.412142);
+
       const devData = {
         id: instanceId,
-        catalogId: item.id,
+        rackId: rackId,
+        catalogId: item.id || catalogId,
         name: item.name,
         hostname: item.name,
         ipAddress: '',
         macAddress: '',
         serialNumber: '',
         panelLabel: '',
-        manufacturer: item.manufacturer,
-        category: item.category,
+        manufacturer: item.manufacturer || item.logo || (item.category === 'patch' || item.category === 'fiber' ? 'Panel' : 'Cisco'),
+        category: item.category || 'switch',
         startU: targetU,
         uHeight: uHeight,
-        depthMm: item.depthMm,
-        color: item.color,
-        portsCount: item.portsCount,
-        portType: item.portType,
-        uplinks: item.uplinks,
-        faceplateStyle: item.faceplateStyle || ''
+        depthMm: item.depthMm || 450,
+        color: item.color || 0x243248,
+        portsCount: portDefinitions.length || (Number.isFinite(Number(item.portsCount)) ? Number(item.portsCount) :
+          (['organizer', 'accessory', 'blank'].includes(item.category) ? 0 : 24)),
+        portType: item.portType || (portDefinitions[0] && portDefinitions[0].type) || 'rj45',
+        portDefinitions,
+        uplinks: inferSwitchUplinks(item),
+        faceplateStyle: item.faceplateStyle || '',
+        powerWatts: powerWatts,
+        heatBtu: heatBtu
       };
 
       this.state.devices.push(devData);
@@ -594,10 +750,11 @@ import { StudioState } from './state3d.js';
     focusDevice(instanceId) {
       const dev = this.state.devices.find(d => d.id === instanceId);
       if (!dev) return;
+      const rackX = this.getRackX(dev.rackId);
       const targetY = (dev.startU - 1) * U_HEIGHT + (dev.uHeight * U_HEIGHT) / 2 + 0.3;
       if (this.controls) {
-        this.controls.target.set(0, targetY, 0);
-        this.camera.position.set(3.2, targetY + 0.8, 6.2);
+        this.controls.target.set(rackX, targetY, 0);
+        this.camera.position.set(rackX + 3.2, targetY + 0.8, 6.2);
         this.controls.update();
       }
       this.selectDevice(instanceId);
@@ -606,49 +763,71 @@ import { StudioState } from './state3d.js';
 
     loadTopologyFromProject(projectData) {
       if (!projectData) return;
-      const rack = (projectData.racks && projectData.racks[0]) || projectData;
-      if (!rack) return;
+      const rawRacks = (Array.isArray(projectData.racks) && projectData.racks.length > 0)
+        ? projectData.racks
+        : (projectData.heightU ? [projectData] : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: 42 }]);
 
       if (typeof projectData.doorOpen === 'boolean') this.state.doorOpen = projectData.doorOpen;
-      else if (typeof rack.doorOpen === 'boolean') this.state.doorOpen = rack.doorOpen;
-      this.state.rackHeightU = rack.heightU || 42;
-      this.state.devices = (rack.devices || []).map(d => {
-        const catId = d.catalogKey || d.catalogId;
-        const cat3D = (window.CATALOG_3D || []).find(c => c.id === catId);
-        const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catId];
-        const cat = cat3D || cat2D || {};
-        const portDefinitions = Array.isArray(cat.ports) ? cat.ports.map(port => ({
-          id: port.id,
-          name: port.name,
-          type: port.type || 'rj45',
-          group: port.group,
-          row: port.row
-        })) : [];
-        const uH = d.uHeight || cat.u || 1;
-        const startU = d.startU !== undefined ? d.startU : (d.topU !== undefined ? d.topU - uH + 1 : 1);
-        return {
-          id: d.instanceId || d.id || ('dev-' + Math.random().toString(36).substr(2, 9)),
-          catalogId: catId,
-          name: d.name || cat.name || 'Donanım',
-          hostname: d.hostname || d.name || cat.name || 'Donanım',
-          ipAddress: d.ipAddress || '',
-          macAddress: d.macAddress || '',
-          serialNumber: d.serialNumber || '',
-          panelLabel: d.panelLabel || '',
-          manufacturer: cat.manufacturer || cat.logo || (cat.category === 'patch' || cat.category === 'fiber' ? 'Panel' : 'Cisco'),
-          category: cat.category || 'switch',
-          startU: Math.max(1, startU),
-          uHeight: uH,
-          depthMm: cat.depthMm || 450,
-          color: cat.color || 0x243248,
-          portsCount: portDefinitions.length || (Number.isFinite(Number(cat.portsCount)) ? Number(cat.portsCount) :
-            (['organizer', 'accessory', 'blank'].includes(cat.category) ? 0 : 24)),
-          portType: cat.portType || (portDefinitions[0] && portDefinitions[0].type) || 'rj45',
-          portDefinitions,
-          uplinks: inferSwitchUplinks(cat),
-          faceplateStyle: cat.faceplateStyle || ''
-        };
+      else if (typeof rawRacks[0].doorOpen === 'boolean') this.state.doorOpen = rawRacks[0].doorOpen;
+
+      this.state.racks = rawRacks.map(r => ({
+        id: r.id || 'rack-1',
+        name: r.name || 'MDF - Dağıtım Kabini',
+        heightU: r.heightU || 42
+      }));
+
+      this.state.activeRackId = projectData.activeRackId || this.state.racks[0].id;
+      this.state.rackHeightU = this.state.racks[0].heightU || 42;
+
+      const loadedDevices = [];
+      rawRacks.forEach(r => {
+        const rackId = r.id || 'rack-1';
+        (r.devices || []).forEach(d => {
+          const catId = d.catalogKey || d.catalogId;
+          const cat3D = (window.CATALOG_3D || []).find(c => c.id === catId);
+          const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catId];
+          const cat = cat3D || cat2D || {};
+          const portDefinitions = Array.isArray(cat.ports) ? cat.ports.map(port => ({
+            id: port.id,
+            name: port.name,
+            type: port.type || 'rj45',
+            group: port.group,
+            row: port.row
+          })) : [];
+          const uH = d.uHeight || cat.u || 1;
+          const startU = d.startU !== undefined ? d.startU : (d.topU !== undefined ? d.topU - uH + 1 : 1);
+          const powerWatts = typeof cat.powerWatts === 'number' ? cat.powerWatts : (['organizer', 'accessory', 'blank', 'patch', 'fiber'].includes(cat.category) ? 0 : 150);
+          const heatBtu = typeof cat.heatBtu === 'number' ? cat.heatBtu : Math.round(powerWatts * 3.412142);
+
+          loadedDevices.push({
+            id: d.instanceId || d.id || ('dev-' + Math.random().toString(36).substr(2, 9)),
+            rackId: d.rackId || rackId,
+            catalogId: catId,
+            name: d.name || cat.name || 'Donanım',
+            hostname: d.hostname || d.name || cat.name || 'Donanım',
+            ipAddress: d.ipAddress || '',
+            macAddress: d.macAddress || '',
+            serialNumber: d.serialNumber || '',
+            panelLabel: d.panelLabel || '',
+            manufacturer: cat.manufacturer || cat.logo || (cat.category === 'patch' || cat.category === 'fiber' ? 'Panel' : 'Cisco'),
+            category: cat.category || 'switch',
+            startU: Math.max(1, startU),
+            uHeight: uH,
+            depthMm: cat.depthMm || 450,
+            color: cat.color || 0x243248,
+            portsCount: portDefinitions.length || (Number.isFinite(Number(cat.portsCount)) ? Number(cat.portsCount) :
+              (['organizer', 'accessory', 'blank'].includes(cat.category) ? 0 : 24)),
+            portType: cat.portType || (portDefinitions[0] && portDefinitions[0].type) || 'rj45',
+            portDefinitions,
+            uplinks: inferSwitchUplinks(cat),
+            faceplateStyle: cat.faceplateStyle || '',
+            powerWatts: powerWatts,
+            heatBtu: heatBtu,
+            portsConfig: d.portsConfig ? JSON.parse(JSON.stringify(d.portsConfig)) : {}
+          });
+        });
       });
+      this.state.devices = loadedDevices;
 
       const resolvePortIndex = (endpoint, devId) => {
         const device = this.state.devices.find(d => d.id === devId);
@@ -665,16 +844,23 @@ import { StudioState } from './state3d.js';
       this.state.cables = (projectData.cables || []).map(c => {
         const fromDev = (c.from && (c.from.instanceId || c.from.deviceId || c.from.devId)) || '';
         const toDev = (c.to && (c.to.instanceId || c.to.deviceId || c.to.devId)) || '';
+        const devFromObj = this.state.devices.find(d => d.id === fromDev);
+        const devToObj = this.state.devices.find(d => d.id === toDev);
         const fromP = resolvePortIndex(c.from, fromDev);
         const toP = resolvePortIndex(c.to, toDev);
+        const fromRack = (c.from && c.from.rackId) || (devFromObj && devFromObj.rackId) || this.state.racks[0].id;
+        const toRack = (c.to && c.to.rackId) || (devToObj && devToObj.rackId) || this.state.racks[0].id;
+
         return {
           id: c.id || ('cbl-' + Math.random().toString(36).substr(2, 9)),
           name: c.name || 'Kablo',
           note: c.note || '',
+          role: c.role || '',
+          ductSide: c.ductSide || 'auto',
           color: typeof c.color === 'number' ? c.color : (parseInt((c.color || '#00d2ff').replace('#', ''), 16) || 0x00d2ff),
           lengthM: c.lengthMeters || c.lengthM || 1.5,
-          from: { devId: fromDev, portIdx: fromP || 1, portId: (c.from && c.from.portId) || undefined },
-          to: { devId: toDev, portIdx: toP || 1, portId: (c.to && c.to.portId) || undefined }
+          from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: (c.from && c.from.portId) || undefined },
+          to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: (c.to && c.to.portId) || undefined }
         };
       });
 
@@ -694,6 +880,7 @@ import { StudioState } from './state3d.js';
       const devGroup = new THREE.Group();
       devGroup.name = dev.id;
 
+      const rackX = this.getRackX(dev.rackId);
       const h = dev.uHeight * U_HEIGHT - 0.03;
       const w = RAIL_WIDTH - 0.08;
       const d = Math.max(2.2, (dev.depthMm / 1000) * 8.0);
@@ -823,6 +1010,108 @@ import { StudioState } from './state3d.js';
         });
       }
 
+      // 4c. 3D Brush Pass-Through Cable Organizer (organizer-1u)
+      if (dev.catalogId === 'organizer-1u' || (dev.id && (dev.id.includes('brush') || dev.id.includes('organizer-1u')))) {
+        const frameMat = new THREE.MeshStandardMaterial({
+          color: 0x111622,
+          metalness: 0.82,
+          roughness: 0.35
+        });
+        const bristleMat = new THREE.MeshStandardMaterial({
+          color: 0x05070a,
+          metalness: 0.1,
+          roughness: 0.95
+        });
+
+        const brushGroup = new THREE.Group();
+        brushGroup.position.set(0, 0, d / 2 + 0.015);
+
+        // Center recessed brush channel background
+        const slotW = w * 0.74;
+        const slotH = h * 0.46;
+        const backingMesh = new THREE.Mesh(new THREE.BoxGeometry(slotW, slotH, 0.02), bristleMat);
+        backingMesh.position.set(0.12, 0, 0);
+        brushGroup.add(backingMesh);
+
+        // Top retaining aluminum lip
+        const topLip = new THREE.Mesh(new THREE.BoxGeometry(slotW + 0.08, 0.04, 0.04), frameMat);
+        topLip.position.set(0.12, slotH / 2 + 0.02, 0.015);
+        brushGroup.add(topLip);
+
+        // Bottom retaining aluminum lip
+        const botLip = new THREE.Mesh(new THREE.BoxGeometry(slotW + 0.08, 0.04, 0.04), frameMat);
+        botLip.position.set(0.12, -slotH / 2 - 0.02, 0.015);
+        brushGroup.add(botLip);
+
+        // Bristle fiber rows (upper and lower nylon curtain)
+        const fiberRows = 16;
+        for (let fi = 0; fi < fiberRows; fi++) {
+          const fx = -slotW / 2 + 0.12 + (fi / (fiberRows - 1)) * slotW;
+          const topFiber = new THREE.Mesh(new THREE.BoxGeometry(0.04, slotH * 0.46, 0.03), bristleMat);
+          topFiber.position.set(fx, slotH * 0.25, 0.01);
+          brushGroup.add(topFiber);
+
+          const botFiber = new THREE.Mesh(new THREE.BoxGeometry(0.04, slotH * 0.46, 0.03), bristleMat);
+          botFiber.position.set(fx, -slotH * 0.25, 0.01);
+          brushGroup.add(botFiber);
+        }
+
+        devGroup.add(brushGroup);
+      }
+
+      // 4d. 3D Enterprise 2U Slotted Finger-Duct Organizer (organizer-2u)
+      if (dev.catalogId === 'organizer-2u' || (dev.id && (dev.id.includes('finger') || dev.id.includes('organizer-2u')))) {
+        const coverMat = new THREE.MeshStandardMaterial({
+          color: 0x121824,
+          metalness: 0.75,
+          roughness: 0.3
+        });
+        const tineMat = new THREE.MeshStandardMaterial({
+          color: 0x18202d,
+          metalness: 0.5,
+          roughness: 0.5
+        });
+
+        const ductGroup = new THREE.Group();
+        ductGroup.position.set(0, 0, d / 2 + 0.02);
+
+        const ductW = w * 0.82;
+        const ductH = h * 0.88;
+        const ductDepth = 0.22;
+
+        // Slotted finger tines (upper row and lower row)
+        const numTines = 18;
+        for (let ti = 0; ti < numTines; ti++) {
+          const tx = -ductW / 2 + 0.1 + (ti / (numTines - 1)) * ductW;
+          // Top tine
+          const topTine = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, ductDepth), tineMat);
+          topTine.position.set(tx, ductH / 2 - 0.08, ductDepth / 2);
+          ductGroup.add(topTine);
+
+          // Bottom tine
+          const botTine = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, ductDepth), tineMat);
+          botTine.position.set(tx, -ductH / 2 + 0.08, ductDepth / 2);
+          ductGroup.add(botTine);
+        }
+
+        // Front Snap-On Duct Cover (centered horizontally and vertically)
+        const coverH = ductH * 0.58;
+        const coverMesh = new THREE.Mesh(new THREE.BoxGeometry(ductW + 0.06, coverH, 0.04), coverMat);
+        coverMesh.position.set(0, 0, ductDepth + 0.02);
+        ductGroup.add(coverMesh);
+
+        // Cover handle grip notches
+        const gripMat = new THREE.MeshStandardMaterial({ color: 0x2d3a4f, roughness: 0.2 });
+        for (let gi = -2; gi <= 2; gi++) {
+          const gripBar = new THREE.Mesh(new THREE.BoxGeometry(0.02, coverH * 0.45, 0.02), gripMat);
+          gripBar.position.set(gi * 0.06, 0, ductDepth + 0.042);
+          ductGroup.add(gripBar);
+        }
+
+        devGroup.add(ductGroup);
+      }
+
+
       // 5. Interactive 3D Ports (Strictly positioned from x = -0.65 to +2.0, ZERO overlap with left brand text!)
       if (!blocksInteractivePorts && dev.portsCount > 0) {
         const layout = getDevicePortLayout(dev);
@@ -917,7 +1206,7 @@ import { StudioState } from './state3d.js';
         devGroup.add(psu);
       });
 
-      devGroup.position.set(0, yPos, zPos);
+      devGroup.position.set(rackX, yPos, zPos);
       this.devicesGroup.add(devGroup);
     }
 
@@ -971,6 +1260,9 @@ import { StudioState } from './state3d.js';
 
       const devFrom = this.state.devices.find(d => d.id === from.devId);
       const devTo = this.state.devices.find(d => d.id === to.devId);
+      const defaultRackId = (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
+      from.rackId = from.rackId || (devFrom && devFrom.rackId) || defaultRackId;
+      to.rackId = to.rackId || (devTo && devTo.rackId) || defaultRackId;
       const nameFrom = devFrom ? devFrom.name.split(' ')[1] || 'Cihaz' : 'D1';
       const nameTo = devTo ? devTo.name.split(' ')[1] || 'Cihaz' : 'D2';
 
@@ -1225,22 +1517,26 @@ import { StudioState } from './state3d.js';
       const sideSignA = getPortSideSign(portIdxA, pCountA);
       const sideSignB = getPortSideSign(portIdxB, pCountB);
 
-      // Dedicated Left/Right D-Ring Alignment (Excludes center X=0 so no cables drop vertically down the middle)
-      const getNearestRingX = (px, sideSign) => {
+      const rackAX = this.getRackX(cable.from.rackId || (devA && devA.rackId));
+      const rackBX = this.getRackX(cable.to.rackId || (devB && devB.rackId));
+
+      // Dedicated Left/Right D-Ring Alignment (Offset by each rack's center X)
+      const getNearestRingX = (px, rackX, sideSign) => {
         const candidates = sideSign < 0 ? [-1.6, -0.8] : [0.8, 1.6];
-        let best = candidates[0];
+        let best = rackX + candidates[0];
         let minD = Math.abs(px - best);
         for (let i = 1; i < candidates.length; i++) {
-          const d = Math.abs(px - candidates[i]);
+          const cand = rackX + candidates[i];
+          const d = Math.abs(px - cand);
           if (d < minD) {
             minD = d;
-            best = candidates[i];
+            best = cand;
           }
         }
         return best;
       };
-      const ringXA = getNearestRingX(pA.x, sideSignA);
-      const ringXB = getNearestRingX(pB.x, sideSignB);
+      const ringXA = getNearestRingX(pA.x, rackAX, sideSignA);
+      const ringXB = getNearestRingX(pB.x, rackBX, sideSignB);
 
       // Converts sharp 90-degree corner waypoints into smooth circular fillets (prevents Catmull-Rom kinks)
       const filletPath = (rawPts, radius = 0.075) => {
@@ -1293,14 +1589,32 @@ import { StudioState } from './state3d.js';
       const pAOut = pA.clone().add(new THREE.Vector3(0, 0, 0.12));
       rawPoints.push(pAOut);
 
-      if (this.state.cableRoutingMode === 'structured' && organizerYs.length) {
+      const isInterRack = Math.abs(pA.x - pB.x) > 2.5;
+
+      if (isInterRack) {
+        // Inter-rack overhead ladder tray traversal (Enterprise Datacenter Routing)
+        const topTrayY = (Math.max(this.state.rackHeightU || 42, 42)) * U_HEIGHT + 0.90;
+        const trayZ = 0.0 + ((portIdxHash % 7) - 3) * 0.04;
+        const zChannel = Math.max(pA.z, pB.z) + 0.22 + zStagger;
+        const sideXA = rackAX + sideSignA * (RAIL_WIDTH / 2 + 0.28);
+        const sideXB = rackBX + sideSignB * (RAIL_WIDTH / 2 + 0.28);
+
+        rawPoints.push(new THREE.Vector3(pA.x + sideSignA * 0.2, pA.y - 0.06, zChannel));
+        rawPoints.push(new THREE.Vector3(sideXA, pA.y - 0.1, zChannel));
+        rawPoints.push(new THREE.Vector3(sideXA, topTrayY - 0.2, zChannel));
+        rawPoints.push(new THREE.Vector3(sideXA, topTrayY, trayZ));
+        rawPoints.push(new THREE.Vector3(sideXB, topTrayY, trayZ));
+        rawPoints.push(new THREE.Vector3(sideXB, topTrayY - 0.2, zChannel));
+        rawPoints.push(new THREE.Vector3(sideXB, pB.y - 0.1, zChannel));
+        rawPoints.push(new THREE.Vector3(pB.x + sideSignB * 0.2, pB.y - 0.06, zChannel));
+      } else if (this.state.cableRoutingMode === 'structured' && organizerYs.length) {
         const ringLaneY = ((portIdxHash % 7) - 3) * 0.016;
         const ringLaneZ = ((portIdxHash % 5) - 2) * 0.018;
         const entryY = organizerYs[0] + ringLaneY;
         const exitY = organizerYs[organizerYs.length - 1] + ringLaneY;
 
-        // Side channels are strictly outside the 19" equipment rail width
-        const sideXA = sideSignA * (RAIL_WIDTH / 2 + 0.24 + ((portIdxHash % 6) - 2.5) * 0.025);
+        // Side channels are strictly outside the 19" equipment rail width of rack A
+        const sideXA = rackAX + sideSignA * (RAIL_WIDTH / 2 + 0.24 + ((portIdxHash % 6) - 2.5) * 0.025);
         const ringChannelZ = Math.max(pA.z, pB.z) + 0.26 + ringLaneZ;
         const frontTransitionZ = Math.max(pA.z, pB.z) + 0.16;
 
@@ -1342,7 +1656,7 @@ import { StudioState } from './state3d.js';
       } else if (this.state.cableRoutingMode === 'structured') {
         // Structured cabling through vertical channel without D-rings
         const chosenSide = sideSignA;
-        const sideX = chosenSide * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.03);
+        const sideX = rackAX + chosenSide * (RAIL_WIDTH / 2 + 0.22 + ((portIdxHash % 6) - 2.5) * 0.03);
         const zChannel = Math.max(pA.z, pB.z) + 0.20 + zStagger;
         const midY = (pA.y + pB.y) / 2;
 
@@ -1370,6 +1684,10 @@ import { StudioState } from './state3d.js';
       // Centripetal catmull-rom curve guarantees zero self-intersecting loops and smooth curvature
       const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
       const curveLen = curve.getLength();
+      const calcMeters = parseFloat((curveLen * 0.44 + 0.5).toFixed(2));
+      if (!cable.lengthM || isInterRack) {
+        cable.lengthM = calcMeters;
+      }
       
       // Slender realistic patch cord with 12 radial segments for a silky-smooth cylindrical profile
       const tubularSegments = Math.max(48, Math.min(128, Math.round(curveLen * 32)));

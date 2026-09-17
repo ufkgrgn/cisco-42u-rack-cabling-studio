@@ -53,8 +53,10 @@
   function getCableLabel(activeRack, cable) {
     const from = getCableEndpointInfo(activeRack, cable.from);
     const to = getCableEndpointInfo(activeRack, cable.to);
-    const endpoints = `${from.deviceName} / ${from.portName} → ${to.deviceName} / ${to.portName}`;
-    return cable.name ? `${cable.name}: ${endpoints}` : endpoints;
+    const isFiber = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
+    const fiberTag = isFiber ? '[FIBER OS2] ' : '';
+    const endpoints = `${from.deviceName} / ${from.portName} ➔ ${to.deviceName} / ${to.portName}`;
+    return cable.name ? `${fiberTag}${cable.name}: ${endpoints}` : `${fiberTag}${endpoints}`;
   }
 
   function renameCable2D(cableId) {
@@ -93,6 +95,91 @@
     const fromY = centerY(findOrganizerDirectlyBelow(findDevice(cable.from)));
     const toY = centerY(findOrganizerDirectlyBelow(findDevice(cable.to)));
     return Number.isFinite(fromY) && Number.isFinite(toY) ? [fromY, toY] : [];
+  }
+
+  /**
+   * Intelligently resolves whether a cable should route via the Left or Right vertical duct.
+   * Considers:
+   * 1. Manual user override (cable.ductSide === 'left' | 'right')
+   * 2. Port index split: Ports 1-12 -> Left, Ports 13-24 & Uplinks -> Right
+   * 3. Geometric port X coordinates relative to rack centerline
+   * 4. Dynamic channel balancing between left & right ducts
+   */
+  function resolveCableDuctSide(cable, x1, x2, rackCenterLine, leftUsage, rightUsage) {
+    // 1. Explicit User Override
+    if (cable.ductSide === 'left') return false;
+    if (cable.ductSide === 'right') return true;
+
+    // 2. Extract port index or uplink nature
+    const getPortWeight = (endpoint) => {
+      const pId = String(endpoint?.portId || '').toLowerCase();
+      if (pId.startsWith('up') || pId.includes('te') || pId.includes('fo') || pId.includes('100ge')) {
+        return 1.0; // Strongly right-biased (uplinks are on the right side)
+      }
+      const numMatch = pId.match(/\d+/);
+      const num = numMatch ? parseInt(numMatch[0], 10) : null;
+      if (num !== null) {
+        if (num <= 12) return -1.0; // Left block (1-12)
+        if (num > 12) return 1.0;  // Right block (13-24+)
+      }
+      return 0.0;
+    };
+
+    const wFrom = getPortWeight(cable.from);
+    const wTo = getPortWeight(cable.to);
+    const combinedWeight = wFrom + wTo;
+
+    // If both ports are clearly in the right block or uplinks -> Right channel
+    if (combinedWeight > 0.5) return true;
+    // If both ports are clearly in the left block -> Left channel
+    if (combinedWeight < -0.5) return false;
+
+    // 3. Fallback to physical geometry (average port X vs rack centerline)
+    const avgX = (x1 + x2) / 2;
+    const isGeometricRight = avgX > rackCenterLine;
+
+    // 4. Dynamic Load Balancing: if the preferred channel is heavily saturated (+4 more cables), spill to other side
+    if (isGeometricRight && (rightUsage - leftUsage >= 4)) {
+      return false;
+    }
+    if (!isGeometricRight && (leftUsage - rightUsage >= 4)) {
+      return true;
+    }
+
+    return isGeometricRight;
+  }
+
+  function toggleCableDuctSide(cableId) {
+    const cable = STATE.cables.find(c => c.id === cableId);
+    if (!cable) return;
+    const current = cable.ductSide || 'auto';
+    const next = current === 'auto' ? 'left' : (current === 'left' ? 'right' : 'auto');
+    cable.ductSide = next;
+
+    // Explicitly maintain active cable selection & highlight so route change is immediately visible
+    STATE.highlightedCableId = cableId;
+    renderAllCables();
+    setCableHover(cableId, true);
+
+    // Update duct triggers in-place without destroying schedule table DOM to prevent card flicker
+    const ductLabel = next === 'left' ? '⬅️ Sol' : (next === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductTooltip = `Dikey Kanal Güzergahı: ${next === 'left' ? 'Sol Dikey Tava' : (next === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
+    document.querySelectorAll(`.duct-select-trigger[data-cable-id="${cableId}"]`).forEach(btn => {
+      btn.textContent = ductLabel;
+      btn.title = ductTooltip;
+    });
+
+    document.querySelectorAll('#schedule-tbody tr').forEach(row => {
+      row.classList.toggle('active', row.dataset.cableId === cableId);
+    });
+    document.querySelectorAll('.tree-cable-row').forEach(row => {
+      row.classList.toggle('active', row.dataset.cableId === cableId);
+    });
+
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    return next;
   }
 
   function getActiveOrganizers(activeRack) {
@@ -154,7 +241,7 @@
     return coords;
   }
 
-  function renderDRingOverlays(activeRack, clientToSvg) {
+  function renderOrganizerOverlays(activeRack, clientToSvg) {
     const overlayGroup = dom.dringOverlayGroup || document.getElementById('dring-overlay-group');
     if (!overlayGroup) return;
     overlayGroup.innerHTML = '';
@@ -177,9 +264,8 @@
     }
     if (!toSvg) return;
 
+    // 1. D-Ring Overlays
     const drings = document.querySelectorAll('.dring-faceplate .dring-loop');
-    if (!drings.length) return;
-
     drings.forEach(loopEl => {
       const rect = loopEl.getBoundingClientRect();
       if (!rect || rect.width <= 0 || rect.height <= 0) return;
@@ -204,9 +290,6 @@
       const rx = 4 * (w / 38);
       const apRx = 2 * (w / 38);
 
-      // Hollow retention hoop path using evenodd fill rule:
-      // Solid steel frame (#141b26) sits over the cables, while central aperture is transparent
-      // allowing the cables passing inside to be visible through the hoop opening.
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       const d = `
         M ${x + rx} ${y}
@@ -236,7 +319,6 @@
       path.setAttribute('stroke', 'none');
       g.appendChild(path);
 
-      // Outer steel rim
       const outerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       outerRect.setAttribute('x', x.toFixed(2));
       outerRect.setAttribute('y', y.toFixed(2));
@@ -248,7 +330,6 @@
       outerRect.setAttribute('stroke-width', (1.8 * (w / 38)).toFixed(2));
       g.appendChild(outerRect);
 
-      // Top metallic highlight chamfer
       const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       highlight.setAttribute('d', `M ${(x + rx).toFixed(2)} ${(y + 0.8).toFixed(2)} h ${(w - 2 * rx).toFixed(2)}`);
       highlight.setAttribute('stroke', 'rgba(255, 255, 255, 0.25)');
@@ -256,7 +337,6 @@
       highlight.setAttribute('stroke-linecap', 'round');
       g.appendChild(highlight);
 
-      // Inner aperture rim
       const apBorder = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       apBorder.setAttribute('x', apX.toFixed(2));
       apBorder.setAttribute('y', apY.toFixed(2));
@@ -270,7 +350,164 @@
 
       overlayGroup.appendChild(g);
     });
+
+    // 2. Brush Pass-Through Overlays (.brush-faceplate .brush-slot)
+    const brushSlots = document.querySelectorAll('.brush-faceplate .brush-slot');
+    brushSlots.forEach(slotEl => {
+      const rect = slotEl.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return;
+
+      const p1 = toSvg(rect.left, rect.top);
+      const p2 = toSvg(rect.right, rect.bottom);
+      const x = p1.x;
+      const y = p1.y;
+      const w = p2.x - p1.x;
+      const h = p2.y - p1.y;
+      if (w <= 0 || h <= 0) return;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'brush-svg-overlay');
+      g.setAttribute('style', 'pointer-events:none;');
+
+      // Top metal lip
+      const topLip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      topLip.setAttribute('x', x.toFixed(2));
+      topLip.setAttribute('y', y.toFixed(2));
+      topLip.setAttribute('width', w.toFixed(2));
+      topLip.setAttribute('height', (h * 0.28).toFixed(2));
+      topLip.setAttribute('class', 'brush-svg-lip');
+      topLip.setAttribute('rx', '1');
+      g.appendChild(topLip);
+
+      // Bottom metal lip
+      const botLip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      botLip.setAttribute('x', x.toFixed(2));
+      botLip.setAttribute('y', (y + h * 0.72).toFixed(2));
+      botLip.setAttribute('width', w.toFixed(2));
+      botLip.setAttribute('height', (h * 0.28).toFixed(2));
+      botLip.setAttribute('class', 'brush-svg-lip');
+      botLip.setAttribute('rx', '1');
+      g.appendChild(botLip);
+
+      // Dense vertical nylon bristle strokes covering cables passing through the slit
+      const bristlePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      let bristleD = '';
+      const step = 4;
+      for (let bx = x + 4; bx < x + w - 4; bx += step) {
+        // Upper bristles going down
+        bristleD += `M ${bx.toFixed(2)} ${(y + h * 0.25).toFixed(2)} L ${bx.toFixed(2)} ${(y + h * 0.46).toFixed(2)} `;
+        // Lower bristles going up
+        bristleD += `M ${bx.toFixed(2)} ${(y + h * 0.75).toFixed(2)} L ${bx.toFixed(2)} ${(y + h * 0.54).toFixed(2)} `;
+      }
+      bristlePath.setAttribute('d', bristleD);
+      bristlePath.setAttribute('class', 'brush-svg-bristle');
+      g.appendChild(bristlePath);
+
+      // Top highlight
+      const hl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      hl.setAttribute('x1', (x + 2).toFixed(2));
+      hl.setAttribute('y1', (y + 0.6).toFixed(2));
+      hl.setAttribute('x2', (x + w - 2).toFixed(2));
+      hl.setAttribute('y2', (y + 0.6).toFixed(2));
+      hl.setAttribute('stroke', 'rgba(255, 255, 255, 0.2)');
+      hl.setAttribute('stroke-width', '0.75');
+      g.appendChild(hl);
+
+      overlayGroup.appendChild(g);
+    });
+
+    // 3. Finger Duct Overlays (.finger-duct-faceplate)
+    const fingerPlates = document.querySelectorAll('.finger-duct-faceplate');
+    fingerPlates.forEach(fpEl => {
+      // Individual slotted finger tines
+      const tines = fpEl.querySelectorAll('.finger-tine');
+      tines.forEach(tEl => {
+        const r = tEl.getBoundingClientRect();
+        if (!r || r.width <= 0 || r.height <= 0) return;
+        const p1 = toSvg(r.left, r.top);
+        const p2 = toSvg(r.right, r.bottom);
+        const tw = p2.x - p1.x;
+        const th = p2.y - p1.y;
+        if (tw <= 0 || th <= 0) return;
+
+        const tineRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        tineRect.setAttribute('x', p1.x.toFixed(2));
+        tineRect.setAttribute('y', p1.y.toFixed(2));
+        tineRect.setAttribute('width', tw.toFixed(2));
+        tineRect.setAttribute('height', th.toFixed(2));
+        tineRect.setAttribute('rx', '1.5');
+        tineRect.setAttribute('class', 'finger-duct-svg-tine');
+        overlayGroup.appendChild(tineRect);
+      });
+
+      // Snap-on duct cover overlay
+      const coverEl = fpEl.querySelector('.finger-duct-cover');
+      if (coverEl) {
+        const cr = coverEl.getBoundingClientRect();
+        if (cr && cr.width > 0 && cr.height > 0) {
+          const cp1 = toSvg(cr.left, cr.top);
+          const cp2 = toSvg(cr.right, cr.bottom);
+          const cw = cp2.x - cp1.x;
+          const ch = cp2.y - cp1.y;
+          if (cw > 0 && ch > 0) {
+            const isOpen = coverEl.classList.contains('open');
+            const cg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            cg.setAttribute('style', 'pointer-events:none;');
+
+            const coverRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            coverRect.setAttribute('x', cp1.x.toFixed(2));
+            coverRect.setAttribute('y', cp1.y.toFixed(2));
+            coverRect.setAttribute('width', cw.toFixed(2));
+            coverRect.setAttribute('height', ch.toFixed(2));
+            coverRect.setAttribute('rx', '3');
+            coverRect.setAttribute('class', `finger-duct-svg-cover ${isOpen ? 'open' : ''}`);
+            cg.appendChild(coverRect);
+
+            if (!isOpen) {
+              // Highlight rim
+              const ctl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              ctl.setAttribute('x1', (cp1.x + 4).toFixed(2));
+              ctl.setAttribute('y1', (cp1.y + 1).toFixed(2));
+              ctl.setAttribute('x2', (cp2.x - 4).toFixed(2));
+              ctl.setAttribute('y2', (cp1.y + 1).toFixed(2));
+              ctl.setAttribute('stroke', 'rgba(255, 255, 255, 0.15)');
+              ctl.setAttribute('stroke-width', '0.75');
+              cg.appendChild(ctl);
+
+              // Grip center ribs
+              const midX = cp1.x + cw / 2;
+              const midY = cp1.y + ch / 2;
+              for (let ox = -6; ox <= 6; ox += 3) {
+                const grip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                grip.setAttribute('x1', (midX + ox).toFixed(2));
+                grip.setAttribute('y1', (midY - 4).toFixed(2));
+                grip.setAttribute('x2', (midX + ox).toFixed(2));
+                grip.setAttribute('y2', (midY + 4).toFixed(2));
+                grip.setAttribute('stroke', '#334155');
+                grip.setAttribute('stroke-width', '1.2');
+                cg.appendChild(grip);
+              }
+            } else {
+              // Cover is open: draw subtle text indicator in SVG
+              const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              text.setAttribute('x', (cp1.x + 12).toFixed(2));
+              text.setAttribute('y', (cp1.y + ch / 2 + 3).toFixed(2));
+              text.setAttribute('fill', '#3b82f6');
+              text.setAttribute('font-size', '8');
+              text.setAttribute('font-family', 'monospace');
+              text.setAttribute('letter-spacing', '0.5');
+              text.textContent = '2U KANAL AÇIK [KABLOLAR GÖRÜNÜR]';
+              cg.appendChild(text);
+            }
+
+            overlayGroup.appendChild(cg);
+          }
+        }
+      }
+    });
   }
+
+  const renderDRingOverlays = renderOrganizerOverlays;
 
   function buildStructuredCablePath(x1, y1, x2, y2, channelX, organizerYs) {
     const ordered = organizerYs;
@@ -366,8 +603,14 @@
     const boots = Array.from(document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`));
     boots.forEach(b => b.classList.add('hovered'));
 
-    const tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
-    if (tableRow) tableRow.classList.add('hovered-row');
+    let tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
+    if (!tableRow && RS.ensureCableVisibleInSchedule) {
+      tableRow = RS.ensureCableVisibleInSchedule(cableId);
+    }
+    if (tableRow) {
+      tableRow.classList.add('hovered-row');
+      tableRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 
     // Temporarily bring the hovered cable & casing to the very top of cablesGroup (SVG z-order)
     if (cablesGroup && c && p && c.parentNode === cablesGroup) {
@@ -387,6 +630,47 @@
       hoveredPlaceholder = { placeholder, casing: c, path: p, bootPlaceholder, boots, cableId };
       activeHoveredCableId = cableId;
     }
+  }
+
+  let activeHoveredDeviceId = null;
+
+  function setDeviceCablesHover(instanceId, isHovered) {
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    if (!isHovered) {
+      if (activeHoveredDeviceId === instanceId) {
+        activeHoveredDeviceId = null;
+        if (svgEl) svgEl.classList.remove('has-cable-hovered');
+        document.querySelectorAll('.cable-path.hovered, .cable-casing.hovered, .cable-boot.hovered, .cable-boot-pin.hovered').forEach(el => {
+          el.classList.remove('hovered');
+        });
+        document.querySelectorAll('.tree-cable-row.hovered, .schedule-tree-switch-card.active-switch').forEach(el => {
+          el.classList.remove('hovered', 'active-switch');
+        });
+      }
+      return;
+    }
+
+    activeHoveredDeviceId = instanceId;
+    if (svgEl) svgEl.classList.add('has-cable-hovered');
+
+    const switchCard = document.querySelector(`.schedule-tree-switch-card[data-instance-id="${instanceId}"]`);
+    if (switchCard) switchCard.classList.add('active-switch');
+
+    const deviceCables = (STATE.cables || []).filter(c =>
+      (c.from && c.from.instanceId === instanceId) || (c.to && c.to.instanceId === instanceId)
+    );
+
+    deviceCables.forEach(c => {
+      const p = document.getElementById(`svg-cable-${c.id}`);
+      const casing = document.getElementById(`svg-cable-casing-${c.id}`);
+      if (p) p.classList.add('hovered');
+      if (casing) casing.classList.add('hovered');
+      document.querySelectorAll(`.cable-boot[data-cable-id="${c.id}"], .cable-boot-pin[data-cable-id="${c.id}"]`).forEach(b => {
+        b.classList.add('hovered');
+      });
+      const treeRow = document.querySelector(`.tree-cable-row[data-cable-id="${c.id}"]`);
+      if (treeRow) treeRow.classList.add('hovered');
+    });
   }
 
   function renderAllCables() {
@@ -508,10 +792,147 @@
       // Check for inter-rack cable (horizontal span across cabinets)
       const isInterRack = cable.from.rackId !== cable.to.rackId;
 
-      if (isInterRack) {
-        // Inter-rack cable: overhead Bézier arc above both racks
+      if (isInterRack && STATE.cableRoutingMode === 'direct') {
+        // Inter-rack cable in DIRECT mode: aerial Bézier arc above cabinets
         const overheadY = Math.min(y1, y2) - 80 - (leftChannelUsage++ % 6) * 8;
         pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
+      } else if (isInterRack && STATE.cableRoutingMode === 'structured') {
+        // Inter-rack cable in STRUCTURED mode:
+        // Follows datacenter pathway: Organizer A -> Vertical Channel A (UP) -> Overhead Cable Tray (across) -> Vertical Channel B (DOWN) -> Organizer B -> Port B
+        const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
+        const devB = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB);
+        const rackA = STATE.racks.find(r => r.id === cable.from.rackId);
+        const rackB = STATE.racks.find(r => r.id === cable.to.rackId);
+
+        const orgA = findDeviceOrganizer(rackA, devA);
+        const orgB = findDeviceOrganizer(rackB, devB);
+
+        const getOrgY = (org, fallbackY, otherY) => {
+          if (org) {
+            const orgEl = document.getElementById(org.instanceId);
+            if (orgEl) {
+              const r = orgEl.getBoundingClientRect();
+              return clientToSvg(0, r.top + r.height / 2).y;
+            }
+          }
+          return fallbackY + (otherY >= fallbackY ? 14 : -14);
+        };
+
+        let trayYA = getOrgY(orgA, y1, y2);
+        let trayYB = getOrgY(orgB, y2, y1);
+
+        const rackContA = document.querySelector(`.rack-container[data-rack-id="${rackA?.id}"]`) ||
+                          document.getElementById(`rack-container-${rackA?.id}`) ||
+                          document.getElementById('rack-container');
+        const rackContB = document.querySelector(`.rack-container[data-rack-id="${rackB?.id}"]`) ||
+                          document.getElementById(`rack-container-${rackB?.id}`) ||
+                          document.getElementById('rack-container');
+
+        let rackALeft = 23;
+        let rackARight = 595;
+        let topYA = y1 - 40;
+        if (rackContA) {
+          const railL = rackContA.querySelector('.rack-rail.left');
+          const railR = rackContA.querySelector('.rack-rail.right');
+          const rc = rackContA.getBoundingClientRect();
+          if (railL && railR) {
+            const lRect = railL.getBoundingClientRect();
+            const rRect = railR.getBoundingClientRect();
+            rackALeft = clientToSvg(lRect.left + lRect.width / 2, 0).x;
+            rackARight = clientToSvg(rRect.left + rRect.width / 2, 0).x;
+          } else {
+            rackALeft = clientToSvg(rc.left + 30, 0).x;
+            rackARight = clientToSvg(rc.right - 30, 0).x;
+          }
+          topYA = clientToSvg(0, rc.top).y;
+        }
+
+        let rackBLeft = rackARight + 100;
+        let rackBRight = rackBLeft + 572;
+        let topYB = topYA;
+        if (rackContB) {
+          const railL = rackContB.querySelector('.rack-rail.left');
+          const railR = rackContB.querySelector('.rack-rail.right');
+          const rc = rackContB.getBoundingClientRect();
+          if (railL && railR) {
+            const lRect = railL.getBoundingClientRect();
+            const rRect = railR.getBoundingClientRect();
+            rackBLeft = clientToSvg(lRect.left + lRect.width / 2, 0).x;
+            rackBRight = clientToSvg(rRect.left + rRect.width / 2, 0).x;
+          } else {
+            rackBLeft = clientToSvg(rc.left + 30, 0).x;
+            rackBRight = clientToSvg(rc.right - 30, 0).x;
+          }
+          topYB = clientToSvg(0, rc.top).y;
+        }
+
+        const rackACenter = (rackALeft + rackARight) / 2;
+        const rackBCenter = (rackBLeft + rackBRight) / 2;
+
+        const goingRight = rackBCenter >= rackACenter;
+        const useRightA = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x1 >= rackACenter - 40) : (x1 >= rackACenter + 40)));
+        const useRightB = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x2 >= rackBCenter + 40) : (x2 >= rackBCenter - 40)));
+
+        const bundleIdxA = useRightA ? rightChannelUsage++ : leftChannelUsage++;
+        const railLaneA = (bundleIdxA % 9) - 4;
+        const railOffsetA = railLaneA * 3.2;
+        const channelXA = (useRightA ? rackARight : rackALeft) + railOffsetA;
+
+        const bundleIdxB = useRightB ? rightChannelUsage++ : leftChannelUsage++;
+        const railLaneB = (bundleIdxB % 9) - 4;
+        const railOffsetB = railLaneB * 3.2;
+        const channelXB = (useRightB ? rackBRight : rackBLeft) + railOffsetB;
+
+        const traySlotA = (bundleIdxA % 7) - 3;
+        const actualTrayYA = trayYA + traySlotA * 2.8;
+
+        const traySlotB = (bundleIdxB % 7) - 3;
+        const actualTrayYB = trayYB + traySlotB * 2.8;
+
+        // Overhead ladder / tray level: above highest rack top
+        const overheadLane = (bundleIdxA % 8);
+        const overheadTrayY = Math.min(topYA, topYB) - 18 - (overheadLane * 4);
+
+        // 1. Port 1 (x1, y1) -> Horizontal Tray A
+        const dirY1 = actualTrayYA >= y1 ? 1 : -1;
+        const dirX1 = channelXA >= x1 ? 1 : -1;
+        const r1 = Math.min(8, Math.abs(channelXA - x1) / 2, Math.abs(actualTrayYA - y1) / 2 || 4);
+
+        // 2. Horizontal Tray A -> Vertical Channel A (going UP towards overhead tray)
+        const distRailYA = Math.abs(actualTrayYA - overheadTrayY);
+        const rRailA = Math.min(10, Math.abs(channelXA - x1) / 2, distRailYA / 2 || 6);
+
+        // 3. Vertical Channel A UP -> Overhead Tray (heading towards Rack B)
+        const dirX_top = channelXB >= channelXA ? 1 : -1;
+        const distTopX = Math.abs(channelXB - channelXA);
+        const rTopA = Math.min(10, distTopX / 2 || 6, distRailYA / 2 || 6);
+
+        // 4. Overhead Tray -> Vertical Channel B (turning DOWN towards Tray B)
+        const distRailYB = Math.abs(actualTrayYB - overheadTrayY);
+        const rTopB = Math.min(10, distTopX / 2 || 6, distRailYB / 2 || 6);
+
+        // 5. Vertical Channel B DOWN -> Horizontal Tray B
+        const dirX2 = x2 >= channelXB ? 1 : -1;
+        const rRailB = Math.min(10, Math.abs(x2 - channelXB) / 2, distRailYB / 2 || 6);
+
+        // 6. Horizontal Tray B -> Port B (x2, y2)
+        const dirY2 = y2 >= actualTrayYB ? 1 : -1;
+        const r2 = Math.min(8, Math.abs(x2 - channelXB) / 2, Math.abs(y2 - actualTrayYB) / 2 || 4);
+
+        pathD = `M ${x1} ${y1} ` +
+                `L ${x1} ${actualTrayYA - dirY1 * r1} ` +
+                `Q ${x1} ${actualTrayYA} ${x1 + dirX1 * r1} ${actualTrayYA} ` +
+                `L ${channelXA - dirX1 * rRailA} ${actualTrayYA} ` +
+                `Q ${channelXA} ${actualTrayYA} ${channelXA} ${actualTrayYA - rRailA} ` +
+                `L ${channelXA} ${overheadTrayY + rTopA} ` +
+                `Q ${channelXA} ${overheadTrayY} ${channelXA + dirX_top * rTopA} ${overheadTrayY} ` +
+                `L ${channelXB - dirX_top * rTopB} ${overheadTrayY} ` +
+                `Q ${channelXB} ${overheadTrayY} ${channelXB} ${overheadTrayY + rTopB} ` +
+                `L ${channelXB} ${actualTrayYB - rRailB} ` +
+                `Q ${channelXB} ${actualTrayYB} ${channelXB + dirX2 * rRailB} ${actualTrayYB} ` +
+                `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
+                `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
+                `L ${x2} ${y2}`;
       } else if (STATE.cableRoutingMode === 'structured') {
         // Find devices: check all racks, not just active rack
         const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
@@ -572,7 +993,8 @@
             }
           }
 
-          const useRightChannel = avgX > (rackLeftEdge + rackRightEdge) / 2;
+          const rackCenterLine = (rackLeftEdge + rackRightEdge) / 2;
+          const useRightChannel = resolveCableDuctSide(cable, x1, x2, rackCenterLine, leftChannelUsage, rightChannelUsage);
           const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
           const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
@@ -625,31 +1047,33 @@
       }
 
       // Casing / Outline path (for clear separation between overlapping & adjacent cables)
+      const isFiberCable = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
       const casing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       casing.setAttribute('d', pathD);
-      casing.setAttribute('class', `cable-casing ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''}`);
+      casing.setAttribute('class', `cable-casing ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''} ${isFiberCable ? 'cable-casing-fiber' : ''}`.trim());
       casing.setAttribute('id', `svg-cable-casing-${cable.id}`);
       casing.setAttribute('data-cable-id', cable.id);
+      casing.style.setProperty('--cable-color', cable.color);
       dom.cablesGroup.appendChild(casing);
 
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathD);
       path.setAttribute('stroke', cable.color);
-      path.setAttribute('stroke-width', '2.6');
+      path.setAttribute('stroke-width', isFiberCable ? '2.8' : '2.6');
       path.setAttribute('stroke-linecap', 'round');
       path.setAttribute('stroke-linejoin', 'round');
-      path.setAttribute('class', `cable-path ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''}`);
+      path.style.color = cable.color;
+      path.style.setProperty('--cable-color', cable.color);
+      path.setAttribute('class', `cable-path ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''} ${isFiberCable ? 'cable-fiber' : ''}`.trim());
       path.setAttribute('id', `svg-cable-${cable.id}`);
       path.setAttribute('data-cable-id', cable.id);
       path.setAttribute('filter', 'url(#cable-shadow)');
 
       const cableLabel = getCableLabel(activeRack, cable);
       path.setAttribute('aria-label', cableLabel);
-      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-      title.textContent = cableLabel;
-      path.appendChild(title);
 
       const showCableTooltip = (e) => {
+        if (STATE.pendingConnection || !dom.tooltip) return;
         dom.tooltip.style.display = 'block';
         dom.tooltip.style.left = `${e.clientX + 10}px`;
         dom.tooltip.style.top = `${e.clientY - 10}px`;
@@ -680,12 +1104,14 @@
       });
 
       path.addEventListener('mouseenter', (e) => {
+        if (STATE.pendingConnection) return;
         setCableHover(cable.id, true);
         showCableTooltip(e);
       });
 
       path.addEventListener('mousemove', (e) => {
-        if (dom.tooltip.style.display !== 'none') {
+        if (STATE.pendingConnection) return;
+        if (dom.tooltip && dom.tooltip.style.display !== 'none') {
           dom.tooltip.style.left = `${e.clientX + 10}px`;
           dom.tooltip.style.top = `${e.clientY - 10}px`;
         }
@@ -693,7 +1119,7 @@
 
       path.addEventListener('mouseleave', () => {
         setCableHover(cable.id, false);
-        if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
+        if (dom.tooltip) dom.tooltip.style.display = 'none';
       });
 
       dom.cablesGroup.appendChild(path);
@@ -706,6 +1132,8 @@
         bootA.setAttribute('fill', '#090d16');
         bootA.setAttribute('stroke', cable.color);
         bootA.setAttribute('stroke-width', '1.6');
+        bootA.style.color = cable.color;
+        bootA.style.setProperty('--cable-color', cable.color);
         bootA.setAttribute('class', 'cable-boot');
         bootA.setAttribute('data-cable-id', cable.id);
         bootA.addEventListener('click', (e) => {
@@ -720,12 +1148,13 @@
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
         bootA.addEventListener('mouseenter', (e) => {
+          if (STATE.pendingConnection) return;
           setCableHover(cable.id, true);
           showCableTooltip(e);
         });
         bootA.addEventListener('mouseleave', () => {
           setCableHover(cable.id, false);
-          if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
+          if (dom.tooltip) dom.tooltip.style.display = 'none';
         });
 
         const pinA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -743,6 +1172,8 @@
         bootB.setAttribute('fill', '#090d16');
         bootB.setAttribute('stroke', cable.color);
         bootB.setAttribute('stroke-width', '1.6');
+        bootB.style.color = cable.color;
+        bootB.style.setProperty('--cable-color', cable.color);
         bootB.setAttribute('class', 'cable-boot');
         bootB.setAttribute('data-cable-id', cable.id);
         bootB.addEventListener('click', (e) => {
@@ -757,12 +1188,13 @@
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
         bootB.addEventListener('mouseenter', (e) => {
+          if (STATE.pendingConnection) return;
           setCableHover(cable.id, true);
           showCableTooltip(e);
         });
         bootB.addEventListener('mouseleave', () => {
           setCableHover(cable.id, false);
-          if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
+          if (dom.tooltip) dom.tooltip.style.display = 'none';
         });
 
         const pinB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -779,6 +1211,22 @@
         dom.connectorsGroup.appendChild(pinB);
       }
     });
+
+    if (STATE.highlightedCableId) {
+      const hlPath = document.getElementById(`svg-cable-${STATE.highlightedCableId}`);
+      const hlCasing = document.getElementById(`svg-cable-casing-${STATE.highlightedCableId}`);
+      const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
+      if (cablesGroup && hlCasing && hlPath) {
+        cablesGroup.appendChild(hlCasing);
+        cablesGroup.appendChild(hlPath);
+      }
+      const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
+      if (connectorsGroup) {
+        document.querySelectorAll(`.cable-boot[data-cable-id="${STATE.highlightedCableId}"], .cable-boot-pin[data-cable-id="${STATE.highlightedCableId}"]`).forEach(b => {
+          connectorsGroup.appendChild(b);
+        });
+      }
+    }
 
     renderDRingOverlays(activeRack, clientToSvg);
   }
@@ -850,12 +1298,23 @@
     hud.style.left = `${left}px`;
     hud.style.top = `${top}px`;
 
+    const currentDuct = cable.ductSide || 'auto';
+    const ductIcon = currentDuct === 'left' ? '⬅️ Sol' : (currentDuct === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductTitle = `Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
+
     hud.innerHTML = `
       <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)}</span>
+      <button type="button" class="hud-btn-duct" title="${escapeHtml(ductTitle)}">${escapeHtml(ductIcon)}</button>
       <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
       <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
       <button type="button" class="hud-btn-close" title="Kapat">✕</button>
     `;
+
+    hud.querySelector('.hud-btn-duct').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleCableDuctSide(cableId);
+      showCableQuickHud(cableId, left, top);
+    });
 
     hud.querySelector('.hud-btn-disconnect').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -869,6 +1328,7 @@
       cable.color = colors[(currentIdx + 1) % colors.length];
       renderAllCables();
       renderScheduleTable();
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
       showCableQuickHud(cableId, left, top);
     });
 
@@ -889,6 +1349,8 @@
     const cable = STATE.cables.find(c => c.id === cableId);
     if (!cable) return;
 
+    const currentDuct = cable.ductSide || 'auto';
+
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu';
     menu.id = 'cable-context-menu';
@@ -901,6 +1363,16 @@
       <div style="padding: 4px 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #1e293b;">
         <span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} (${cable.lengthMeters || 1.5}m)
       </div>
+      <div class="menu-item ${currentDuct === 'auto' ? 'active' : ''}" id="ctx-duct-auto">
+        ⚖️ Kanal: Otomatik Dengeli
+      </div>
+      <div class="menu-item ${currentDuct === 'left' ? 'active' : ''}" id="ctx-duct-left">
+        ⬅️ Kanal: Sol Dikey Tava
+      </div>
+      <div class="menu-item ${currentDuct === 'right' ? 'active' : ''}" id="ctx-duct-right">
+        ➡️ Kanal: Sağ Dikey Tava
+      </div>
+      <div class="menu-divider"></div>
       <div class="menu-item danger" id="ctx-disconnect">
         ✂️ Kabloyu Sök (Delete)
       </div>
@@ -915,6 +1387,31 @@
         ✕ Kapat
       </div>
     `;
+
+    const setDuct = (side) => {
+      cable.ductSide = side;
+      renderAllCables();
+      renderScheduleTable();
+      hideCableContextMenu();
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    };
+
+    menu.querySelector('#ctx-duct-auto').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setDuct('auto');
+    });
+
+    menu.querySelector('#ctx-duct-left').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setDuct('left');
+    });
+
+    menu.querySelector('#ctx-duct-right').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setDuct('right');
+    });
 
     menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1079,6 +1576,161 @@
     }
   }
 
+  function bulkColorizeSwitchCables(instanceId, newColor) {
+    if (!instanceId || !newColor) return 0;
+    const targetCables = (STATE.cables || []).filter(c =>
+      (c.from && c.from.instanceId === instanceId) || (c.to && c.to.instanceId === instanceId)
+    );
+    if (!targetCables.length) return 0;
+
+    targetCables.forEach(c => {
+      c.color = newColor;
+    });
+
+    renderAllCables();
+    renderScheduleTable();
+
+    if (dom.connectionStatusHint) {
+      dom.connectionStatusHint.innerHTML = `<span style="color:${escapeHtml(newColor)}; font-weight:700;">🎨 ${targetCables.length} kablo rengi güncellendi (${escapeHtml(newColor)}).</span>`;
+      setTimeout(() => {
+        if (dom.connectionStatusHint && !STATE.pendingConnection) {
+          dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
+        }
+      }, 3000);
+    }
+
+    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.syncCables === 'function') {
+      window.__STUDIO3D__.syncCables(STATE.cables);
+    }
+
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    return targetCables.length;
+  }
+
+  function openSwitchBulkColorPopover(triggerBtn, instanceId) {
+    document.querySelectorAll('.switch-bulk-color-popover, .role-picker-popover').forEach(p => p.remove());
+
+    const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
+    const dev = allDevices.find(d => d.instanceId === instanceId);
+    const cat = dev ? HARDWARE_CATALOG[dev.catalogKey] : null;
+    const devName = dev?.panelLabel ? `Panel ${dev.panelLabel}` : (dev?.hostname || cat?.modelTag || cat?.name || 'Cihaz');
+
+    const swCables = (STATE.cables || []).filter(c =>
+      (c.from && c.from.instanceId === instanceId) || (c.to && c.to.instanceId === instanceId)
+    );
+
+    const popover = document.createElement('div');
+    popover.className = 'switch-bulk-color-popover';
+
+    const colors = [
+      { hex: '#0070d2', label: 'Cisco Mavi', role: 'Cat6 Data' },
+      { hex: '#00d2ff', label: 'Neon Cyan', role: 'Uplink' },
+      { hex: '#10b981', label: 'Zümrüt Yeşil', role: 'MGMT / Güvenlik' },
+      { hex: '#f59e0b', label: 'Kehribar Turuncu', role: 'PoE / AP' },
+      { hex: '#ef4444', label: 'Sinyal Kırmızı', role: 'Kritik / DMZ' },
+      { hex: '#7c3aed', label: 'Elektrik Mor', role: '802.1Q Trunk' },
+      { hex: '#ec4899', label: 'Canlı Pembe', role: 'Wi-Fi Trunk' },
+      { hex: '#facc15', label: 'Fiber Sarı', role: 'Single-Mode LC' },
+      { hex: '#06b6d4', label: 'Aqua Camgöbeği', role: 'OM4 Multi-Mode' },
+      { hex: '#64748b', label: 'Çelik Gri', role: 'Standart Hat' },
+      { hex: '#f8fafc', label: 'Temiz Beyaz', role: 'Yedek Hat' },
+      { hex: '#1e293b', label: 'Koyu Grafit', role: 'Konsol / L2' },
+    ];
+
+    const swatchesHtml = colors.map(c => `
+      <button type="button" class="bulk-color-swatch" data-color="${c.hex}" title="${escapeHtml(c.label)} (${escapeHtml(c.role)})" style="--swatch-color: ${c.hex};">
+        <span class="swatch-circle" style="background: ${c.hex};"></span>
+        <span class="swatch-name">${escapeHtml(c.label)}</span>
+      </button>
+    `).join('');
+
+    popover.innerHTML = `
+      <div class="bulk-color-header">
+        <div class="bulk-color-title-group">
+          <span class="bulk-color-icon">🎨</span>
+          <div class="bulk-color-text">
+            <div class="bulk-color-title">${escapeHtml(devName)}</div>
+            <div class="bulk-color-subtitle">Tüm Kabloları Renklendir (${swCables.length} Bağlantı)</div>
+          </div>
+        </div>
+        <button type="button" class="bulk-color-close" title="Kapat">✕</button>
+      </div>
+      <div class="bulk-color-grid">
+        ${swatchesHtml}
+      </div>
+      <div class="bulk-color-custom-row">
+        <label for="switch-custom-color-input" class="bulk-color-custom-label">Özel Renk:</label>
+        <div class="bulk-color-custom-input-wrap">
+          <input type="color" id="switch-custom-color-input" class="bulk-color-native-picker" value="#00d2ff">
+          <span class="bulk-color-hex-display">#00D2FF</span>
+          <button type="button" class="bulk-color-apply-btn">Uygula</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popover);
+
+    // Positioning
+    const rect = triggerBtn.getBoundingClientRect();
+    let top = rect.bottom + 6;
+    let left = rect.left;
+
+    if (left + 270 > window.innerWidth) {
+      left = window.innerWidth - 280;
+    }
+    if (top + 280 > window.innerHeight && rect.top > 290) {
+      top = rect.top - 280;
+    }
+    top = Math.max(10, Math.min(top, window.innerHeight - 290));
+    left = Math.max(10, Math.min(left, window.innerWidth - 280));
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+
+    // Events
+    popover.querySelector('.bulk-color-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      popover.remove();
+    });
+
+    popover.querySelectorAll('.bulk-color-swatch').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const color = btn.dataset.color;
+        bulkColorizeSwitchCables(instanceId, color);
+        popover.remove();
+      });
+    });
+
+    const customInput = popover.querySelector('.bulk-color-native-picker');
+    const hexDisplay = popover.querySelector('.bulk-color-hex-display');
+    const applyBtn = popover.querySelector('.bulk-color-apply-btn');
+
+    if (customInput && hexDisplay) {
+      customInput.addEventListener('input', () => {
+        hexDisplay.textContent = customInput.value.toUpperCase();
+      });
+    }
+
+    if (applyBtn && customInput) {
+      applyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        bulkColorizeSwitchCables(instanceId, customInput.value);
+        popover.remove();
+      });
+    }
+
+    const outsideClick = (e) => {
+      if (!popover.contains(e.target) && e.target !== triggerBtn) {
+        popover.remove();
+        document.removeEventListener('click', outsideClick);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', outsideClick), 0);
+  }
+
   RS.cancelPendingConnection = cancelPendingConnection;
   RS.getNextCableId = getNextCableId;
   RS.getCableEndpointInfo = getCableEndpointInfo;
@@ -1088,7 +1740,8 @@
   RS.getActiveOrganizers = getActiveOrganizers;
   RS.findDeviceOrganizer = findDeviceOrganizer;
   RS.getDRingBracketCoords = getDRingBracketCoords;
-  RS.renderDRingOverlays = renderDRingOverlays;
+  RS.renderDRingOverlays = renderOrganizerOverlays;
+  RS.renderOrganizerOverlays = renderOrganizerOverlays;
   RS.buildStructuredCablePath = buildStructuredCablePath;
   RS.renderAllCables = renderAllCables;
   RS.hideCableQuickHud = hideCableQuickHud;
@@ -1098,7 +1751,11 @@
   RS.showCableContextMenu = showCableContextMenu;
   RS.highlightCable = highlightCable;
   RS.setCableHover = setCableHover;
-  RS.getActiveHoveredCableId = () => activeHoveredCableId;
+  RS.setDeviceCablesHover = setDeviceCablesHover;
+  RS.toggleCableDuctSide = toggleCableDuctSide;
+  RS.resolveCableDuctSide = resolveCableDuctSide;
   RS.addDirectCable = addDirectCable;
   RS.highlightDropSlots = highlightDropSlots;
+  RS.bulkColorizeSwitchCables = bulkColorizeSwitchCables;
+  RS.openSwitchBulkColorPopover = openSwitchBulkColorPopover;
 })();

@@ -250,22 +250,28 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       uHeight: cat.u
     };
     targetRack.devices.push(devObj);
+    if (window.SoundFX) window.SoundFX.playDeviceMount();
     return devObj;
   }
 
   function removeDevice(instanceId) {
-    const activeRack = getActiveRack();
-    if (!activeRack) return;
+    const targetRack = (STATE.racks && STATE.racks.find(r => r.devices && r.devices.some(d => d.instanceId === instanceId))) || getActiveRack();
+    if (!targetRack) return;
 
-    STATE.cables = STATE.cables.filter(c => c.from.instanceId !== instanceId && c.to.instanceId !== instanceId);
+    if (window.SoundFX) window.SoundFX.playCableCut();
+    STATE.cables = (STATE.cables || []).filter(c => c.from?.instanceId !== instanceId && c.to?.instanceId !== instanceId);
 
-    for (let u = 1; u <= (activeRack.heightU || 42); u++) {
-      if (activeRack.units[u] === instanceId) {
-        activeRack.units[u] = null;
-      }
+    if (targetRack.devices) {
+      targetRack.devices = targetRack.devices.filter(d => d.instanceId !== instanceId);
+      targetRack.units = Array((targetRack.heightU || 42) + 1).fill(null);
+      targetRack.devices.forEach(d => {
+        for (let u = d.topU - d.uHeight + 1; u <= d.topU; u++) {
+          if (u > 0 && u <= (targetRack.heightU || 42)) {
+            targetRack.units[u] = d.instanceId;
+          }
+        }
+      });
     }
-
-    activeRack.devices = activeRack.devices.filter(d => d.instanceId !== instanceId);
 
     if (STATE.pendingConnection && STATE.pendingConnection.instanceId === instanceId) {
       cancelPendingConnection();
@@ -275,6 +281,16 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     renderMountedDevices();
     renderScheduleTable();
     renderAllCables();
+
+    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeDevice === 'function') {
+      try { window.__STUDIO3D__.removeDevice(instanceId); } catch (_) {}
+    }
+
+    // CRITICAL: Dispatch change & refresh events for persistence (editor.js, indexedDB, localStorage)
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('rackstudio:change', { detail: { immediate: true } }));
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
   function updateDeviceMetadata(instanceId, metadata) {
@@ -292,6 +308,257 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     renderAllCables();
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     return true;
+  }
+
+  function showInlineDeleteConfirm(targetBtn, deviceName, optionsOrConfirm, maybeConfirm) {
+    const onConfirm = typeof optionsOrConfirm === 'function' ? optionsOrConfirm : maybeConfirm;
+    const options = typeof optionsOrConfirm === 'object' && optionsOrConfirm !== null ? optionsOrConfirm : {};
+
+    document.querySelectorAll('.inline-delete-popover').forEach(el => el.remove());
+
+    const popover = document.createElement('div');
+    popover.className = 'inline-delete-popover';
+
+    let title = '⚠️ CİHAZI SİL?';
+    let msg = `<strong>${escapeHtml(deviceName)}</strong> ve bağlı tüm kablolar kaldırılacaktır.`;
+
+    if (options.category === 'organizer') {
+      title = '🗑️ DÜZENLEYİCİYİ KALDIR?';
+      msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
+    } else if (options.category === 'blank') {
+      title = '🗑️ KÖR PANELİ KALDIR?';
+      msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
+    } else if (typeof options.cableCount === 'number') {
+      if (options.cableCount > 0) {
+        title = '⚠️ CİHAZI SİL?';
+        msg = `<strong>${escapeHtml(deviceName)}</strong> ve bu cihaza bağlı <strong>${options.cableCount} kablo</strong> sökülecektir.`;
+      } else {
+        title = '⚠️ CİHAZI SİL?';
+        msg = `<strong>${escapeHtml(deviceName)}</strong> kabinden kaldırılacaktır (bağlı kablo yok).`;
+      }
+    }
+
+    popover.innerHTML = `
+      <div class="inline-delete-title">${title}</div>
+      <div class="inline-delete-msg">${msg}</div>
+      <div class="inline-delete-actions">
+        <button type="button" class="inline-del-btn-cancel">İptal</button>
+        <button type="button" class="inline-del-btn-confirm">✕ Sil</button>
+      </div>
+    `;
+
+    document.body.appendChild(popover);
+
+    const rect = targetBtn.getBoundingClientRect();
+    const popoverWidth = 230;
+    const popoverHeight = 100;
+
+    let left = rect.left - popoverWidth - 8;
+    if (left < 10) {
+      left = rect.right + 8;
+    }
+    let top = rect.top + (rect.height / 2) - (popoverHeight / 2);
+    if (top < 10) top = 10;
+    if (top + popoverHeight > window.innerHeight - 10) {
+      top = window.innerHeight - popoverHeight - 10;
+    }
+
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+
+    const close = () => {
+      popover.remove();
+      document.removeEventListener('click', onOutsideClick);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+
+    const onOutsideClick = (e) => {
+      if (!popover.contains(e.target) && e.target !== targetBtn) {
+        close();
+      }
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') close();
+      if (e.key === 'Enter') {
+        close();
+        onConfirm();
+      }
+    };
+
+    popover.querySelector('.inline-del-btn-confirm').addEventListener('click', (e) => {
+      e.stopPropagation();
+      close();
+      onConfirm();
+    });
+
+    popover.querySelector('.inline-del-btn-cancel').addEventListener('click', (e) => {
+      e.stopPropagation();
+      close();
+    });
+
+    setTimeout(() => {
+      document.addEventListener('click', onOutsideClick);
+      document.addEventListener('keydown', onKeyDown);
+    }, 20);
+  }
+
+  function showConnectionErrorToast(x, y, msg) {
+    document.querySelectorAll('.connection-error-toast').forEach(el => el.remove());
+
+    const toast = document.createElement('div');
+    toast.className = 'connection-error-toast';
+    toast.innerHTML = `
+      <div class="error-toast-icon">⛔</div>
+      <div class="error-toast-body">
+        <div class="error-toast-title">BAĞLANTI ENGELLENDİ</div>
+        <div class="error-toast-msg">${escapeHtml(msg)}</div>
+      </div>
+      <button type="button" class="error-toast-close" title="Kapat">✕</button>
+    `;
+
+    document.body.appendChild(toast);
+
+    const toastWidth = 320;
+    const toastHeight = 70;
+    let left = x - (toastWidth / 2);
+    let top = y - toastHeight - 12;
+
+    if (left < 10) left = 10;
+    if (left + toastWidth > window.innerWidth - 10) left = window.innerWidth - toastWidth - 10;
+    if (top < 10) top = y + 25;
+
+    toast.style.left = `${left}px`;
+    toast.style.top = `${top}px`;
+
+    const close = () => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-6px)';
+      setTimeout(() => toast.remove(), 200);
+    };
+
+    toast.querySelector('.error-toast-close').addEventListener('click', close);
+
+    setTimeout(() => {
+      if (toast.isConnected) close();
+    }, 4500);
+  }
+
+  function showUplinkVisualConfirmModal(options, onDecision) {
+    document.querySelectorAll('.uplink-modal-backdrop').forEach(el => el.remove());
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'uplink-modal-backdrop';
+
+    const isSwitchToSwitch = !!(options.isSwitchToSwitch || options.disallowStandard);
+    const roleName = (options.role || (isSwitchToSwitch ? 'trunk' : 'uplink')).toUpperCase();
+    const isUplink = options.role === 'uplink';
+    const roleColor = options.color || (isSwitchToSwitch ? '#7c3aed' : (isUplink ? '#00d2ff' : '#7c3aed'));
+
+    const headerBadgeHtml = isSwitchToSwitch
+      ? `<span style="font-size:15px;">⚠️</span> DİKKAT: SWİTCHLER ARASI BAĞLANTI (LOOP RİSKİ)`
+      : `<span style="font-size:14px;">⚡</span> OTOMATİK ${roleName} / TRUNK ALGILANDI`;
+
+    const descriptionHtml = isSwitchToSwitch
+      ? `İki switch arasında doğrudan bağlantı algılandı. Standart erişim (Access) portu bağlantısı ağ döngülerine (Broadcast Storm / STP Loop) yol açabileceğinden bu hat <b>yalnızca 802.1Q TRUNK</b> olarak yapılandırılabilir. Standart access moda izin verilmez.`
+      : `${escapeHtml(options.reason || 'İki switch / omurga portu arasında doğrudan bağlantı algılandı.')} Bu bağlantının ağ rolünü otomatik olarak tanımlamak istiyor musunuz?`;
+
+    const choiceCardsHtml = isSwitchToSwitch
+      ? `
+        <div class="uplink-choice-card recommended" id="opt-uplink-recommend" style="border-color: rgba(124, 58, 237, 0.65); background: linear-gradient(180deg, rgba(124, 58, 237, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%);">
+          <span class="choice-tag" style="background: rgba(124, 58, 237, 0.25); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.5);">ZORUNLU AĞ STANDARDI</span>
+          <div class="choice-title" style="color:#c084fc;">✨ 802.1Q TRUNK Olarak Yapılandır</div>
+          <div class="choice-desc">
+            Tüm VLAN trafiği güvenle taşınır, STP / Loop koruması aktif tutulur, omurga portu rozeti atanır ve mor/neon kablo rengi uygulanır.
+          </div>
+        </div>
+      `
+      : `
+        <div class="uplink-choice-card recommended" id="opt-uplink-recommend">
+          <span class="choice-tag cyan">ÖNERİLEN STANDART</span>
+          <div class="choice-title" style="color:${roleColor};">✨ Otomatik ${roleName} Ata</div>
+          <div class="choice-desc">
+            802.1Q omurga port rozeti atanır, kablo ${roleName === 'UPLINK' ? 'Neon Cyan' : 'Mor'} rengine bürünür ve port konfigürasyonu kaydedilir.
+          </div>
+        </div>
+        <div class="uplink-choice-card" id="opt-uplink-standard">
+          <span class="choice-tag gray">MANUEL / ACCESS</span>
+          <div class="choice-title">Standart Kablo Olarak Bağla</div>
+          <div class="choice-desc">
+            Özel rol veya rozet atanmaz, mevcut seçili kablo rengi ve standart erişim portu ayarları korunur.
+          </div>
+        </div>
+      `;
+
+    const footerButtonsHtml = isSwitchToSwitch
+      ? `
+        <button type="button" class="btn-secondary" id="btn-uplink-cancel">İptal</button>
+        <button type="button" class="btn-primary" id="btn-uplink-approve" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #a855f7; box-shadow: 0 2px 14px rgba(124, 58, 237, 0.5);">✨ 802.1Q TRUNK Olarak Yapılandır</button>
+      `
+      : `
+        <button type="button" class="btn-secondary" id="btn-uplink-standard">Standart Kablo Olarak Bağla</button>
+        <button type="button" class="btn-primary" id="btn-uplink-approve">✨ ${roleName} Olarak Yapılandır</button>
+      `;
+
+    backdrop.innerHTML = `
+      <div class="uplink-modal-card" role="dialog" aria-modal="true" style="${isSwitchToSwitch ? 'border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(239, 68, 68, 0.2);' : ''}">
+        <div class="uplink-modal-header" style="${isSwitchToSwitch ? 'background: rgba(45, 10, 10, 0.7);' : ''}">
+          <div class="header-badge" style="${isSwitchToSwitch ? 'color: #f87171;' : ''}">
+            ${headerBadgeHtml}
+          </div>
+          <button type="button" class="close-btn" title="Kapat (İptal)">✕</button>
+        </div>
+        <div class="uplink-modal-body">
+          <div class="uplink-connection-strip">
+            <span>${escapeHtml(options.srcDeviceName)} (${escapeHtml(options.srcPortName)})</span>
+            <span class="arrow" style="${isSwitchToSwitch ? 'color: #c084fc;' : ''}">➔</span>
+            <span>${escapeHtml(options.tgtDeviceName)} (${escapeHtml(options.tgtPortName)})</span>
+          </div>
+          <p class="uplink-modal-desc">
+            ${descriptionHtml}
+          </p>
+          <div class="uplink-choices-grid" style="${isSwitchToSwitch ? 'grid-template-columns: 1fr;' : ''}">
+            ${choiceCardsHtml}
+          </div>
+        </div>
+        <div class="uplink-modal-footer">
+          ${footerButtonsHtml}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(backdrop);
+
+    let resolved = false;
+    const close = (approved) => {
+      if (resolved) return;
+      resolved = true;
+      backdrop.remove();
+      document.removeEventListener('keydown', handleKey);
+      onDecision(approved);
+    };
+
+    const handleKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      if (e.key === 'Enter') close(true);
+    };
+
+    document.addEventListener('keydown', handleKey);
+
+    backdrop.querySelector('.close-btn').addEventListener('click', () => close(false));
+    const btnCancel = backdrop.querySelector('#btn-uplink-cancel');
+    if (btnCancel) btnCancel.addEventListener('click', () => close(false));
+    const btnStandard = backdrop.querySelector('#btn-uplink-standard');
+    if (btnStandard) btnStandard.addEventListener('click', () => close(false));
+    backdrop.querySelector('#btn-uplink-approve').addEventListener('click', () => close(true));
+
+    backdrop.querySelector('#opt-uplink-recommend').addEventListener('click', () => close(true));
+    const optStandard = backdrop.querySelector('#opt-uplink-standard');
+    if (optStandard) optStandard.addEventListener('click', () => close(false));
+
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close(false);
+    });
   }
 
   function renderMountedDevices() {
@@ -344,7 +611,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
         if (!['organizer', 'blank'].includes(cat.category)) {
           devEl.addEventListener('dblclick', (e) => {
-            if (e.target.closest('.port, .del-device-btn')) return;
+            if (e.target.closest('.port, .del-device-btn, .color-device-cables-btn')) return;
             window.DeviceMetadataEditor?.open2D(dev.instanceId);
           });
           const bezel = devEl.querySelector('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
@@ -354,13 +621,38 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           });
         }
 
+        const colorBtn = devEl.querySelector('.color-device-cables-btn');
+        if (colorBtn) {
+          colorBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.openSwitchBulkColorPopover) {
+              RS.openSwitchBulkColorPopover(colorBtn, dev.instanceId);
+            }
+          });
+        }
+
         const delBtn = devEl.querySelector('.del-device-btn');
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm(`${escapeHtml(cat.name)} cihazını ve bağlı kablolarını kaldırmak istiyor musunuz?`)) {
+            const devCables = (STATE.cables || []).filter(c => c.from.instanceId === dev.instanceId || c.to.instanceId === dev.instanceId);
+            const devName = dev.hostname || dev.name || dev.panelLabel || cat.name || 'Cihaz';
+            showInlineDeleteConfirm(delBtn, devName, { category: cat.category, cableCount: devCables.length }, () => {
               removeDevice(dev.instanceId);
+            });
+          });
+        }
+
+        const toggleCoverBtn = devEl.querySelector('.finger-toggle-btn');
+        if (toggleCoverBtn) {
+          toggleCoverBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dev.coverOpen = !dev.coverOpen;
+            renderMountedDevices();
+            if (typeof RS.renderAllCables === 'function') {
+              RS.renderAllCables();
             }
+            document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
           });
         }
       });
@@ -388,9 +680,11 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
     });
 
+    const hasCables = (STATE.cables || []).some(c => c.from?.instanceId === dev.instanceId || c.to?.instanceId === dev.instanceId);
     return `
       <div class="device-faceplate" style="background:linear-gradient(90deg, #131b2c 0%, #1e293b 100%);">
         <div class="device-controls">
+          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
         <div class="bezel-badge">
@@ -430,7 +724,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `).join('');
 
       return `
-        <div class="organizer-faceplate dring-faceplate">
+        <div class="organizer-faceplate dring-faceplate" data-instance-id="${dev.instanceId}">
           <div class="device-controls">
             <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
           </div>
@@ -441,15 +735,58 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
     }
 
+    const isFingerDuct = is2U || (cat && (cat.id === 'organizer-2u' ||
+                         (cat.modelTag && cat.modelTag.includes('FINGER')) ||
+                         (cat.name && (cat.name.toLowerCase().includes('parmak') || cat.name.toLowerCase().includes('finger'))))) ||
+                         (dev && dev.catalogKey && (dev.catalogKey.includes('organizer-2u') || dev.catalogKey.includes('finger')));
+
+    if (isFingerDuct) {
+      const isCoverOpen = Boolean(dev.coverOpen);
+      const tineCount = 24;
+      const topTines = Array.from({ length: tineCount }, (_, i) => `<div class="finger-tine" data-tine="${i}"></div>`).join('');
+      const bottomTines = Array.from({ length: tineCount }, (_, i) => `<div class="finger-tine" data-tine="${i}"></div>`).join('');
+
+      return `
+        <div class="organizer-faceplate finger-duct-faceplate" data-instance-id="${dev.instanceId}">
+          <div class="device-controls">
+            <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+          </div>
+          <div class="finger-duct-tines-row top">
+            ${topTines}
+          </div>
+          <div class="finger-duct-cover ${isCoverOpen ? 'open' : ''}" data-instance-id="${dev.instanceId}">
+            <div class="finger-cover-info">
+              <span class="finger-cover-tag">${escapeHtml(cat.modelTag || '2U FINGER-DUCT ORGANIZER')}</span>
+            </div>
+            <div class="finger-cover-grip">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <button class="finger-toggle-btn" data-action="toggle-finger-cover" data-instance-id="${dev.instanceId}" title="${isCoverOpen ? 'Kapağı Kapat' : 'Kapağı Aç'}">
+              ${isCoverOpen ? '🔓 Kapak Açık' : '🔒 Kapak Kapalı'}
+            </button>
+          </div>
+          <div class="finger-duct-tines-row bottom">
+            ${bottomTines}
+          </div>
+        </div>
+      `;
+    }
+
+    // Default: 1U Brush Organizer (organizer-1u)
     return `
-      <div class="organizer-faceplate" style="${is2U ? 'background: #0d121c;' : ''}">
+      <div class="organizer-faceplate brush-faceplate" data-instance-id="${dev.instanceId}">
         <div class="device-controls">
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
-        <div style="font-size:0.6rem; color:#64748b; font-family:monospace; font-weight:700; padding:0 8px;">
-          ${escapeHtml(cat.modelTag)}
+        <div class="brush-tag">
+          <span class="brush-tag-icon"></span>
+          ${escapeHtml(cat.modelTag || '1U BRUSH PASS-THROUGH')}
         </div>
-        <div class="organizer-brush" style="${is2U ? 'height:24px;' : ''}"></div>
+        <div class="brush-slot">
+          <div class="brush-bristles-top"></div>
+          <div class="brush-slit"></div>
+          <div class="brush-bristles-bottom"></div>
+        </div>
       </div>
     `;
   }
@@ -465,14 +802,52 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     `;
   }
 
+  function getShortModelName(modelTag, name) {
+    const raw = String(modelTag || name || '').trim();
+    if (!raw) return 'Cisco';
+    let clean = raw.replace(/^Cisco\s+(?:Catalyst\s+)?/i, '');
+    clean = clean.replace(/^WS-/i, '');
+    const parts = clean.split('-');
+    if (parts.length > 1 && /^\d+/.test(parts[1])) {
+      return parts[0];
+    }
+    const isrMatch = clean.match(/^(ISR\s*\d+|ASR\s*\d+)/i);
+    if (isrMatch) {
+      return isrMatch[1].toUpperCase();
+    }
+    if (/^N9K/i.test(clean)) {
+      return 'N9K';
+    }
+    const firstToken = clean.split(/[-/\s]/)[0];
+    if (firstToken && firstToken.length >= 3 && firstToken.length <= 8) {
+      return firstToken;
+    }
+    return clean.slice(0, 8);
+  }
+
+  function getContrastColor(hexColor) {
+    if (!hexColor || typeof hexColor !== 'string') return '#ffffff';
+    let hex = hexColor.trim().replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    if (hex.length !== 6) return '#ffffff';
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#ffffff';
+    // ITU-R BT.709 perceived luminance
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return lum > 0.52 ? '#020617' : '#ffffff';
+  }
+
   function renderSwitchOrPatchFaceplate(cat, dev) {
     const isRouter = cat.category === 'router';
-    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || isRouter;
+    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact' || isRouter;
     const isFiberPanel = cat.category === 'fiber';
+    const isPdu = cat.category === 'pdu' || cat.category === 'power';
     const isPatchPanel = cat.category === 'patch' || isFiberPanel;
-    const typeLabel = isRouter ? 'ROUTER' : isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : 'PATCH PANEL';
-    const typeClass = isSwitch ? 'faceplate-switch' : isFiberPanel ? 'faceplate-fiber-panel' : 'faceplate-patch-panel';
-    const configuredLabel = isPatchPanel
+    const typeLabel = isRouter ? 'ROUTER' : isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : isPdu ? 'PDU' : 'PATCH PANEL';
+    const typeClass = isSwitch ? 'faceplate-switch' : isFiberPanel ? 'faceplate-fiber-panel' : isPdu ? 'faceplate-pdu' : 'faceplate-patch-panel';
+    const configuredLabel = (isPatchPanel || isPdu)
       ? (dev.panelLabel || dev.name || '')
       : (dev.hostname || dev.name || '');
     const isCisco = isSwitch && (/cisco/i.test(cat.logo || '') || /cisco/i.test(cat.name || '') || /cisco/i.test(dev.catalogKey || ''));
@@ -488,7 +863,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const groupPorts = groups[gId];
       const isTwoRows = groupPorts.some(p => p.row === 1);
       const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
-      const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : 'cisco-port-bay');
+      const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : (isPdu ? 'pdu-port-bay' : 'cisco-port-bay'));
 
       let bayHeader = '';
       if (isPatchPanel && groupPorts.length > 0) {
@@ -537,7 +912,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const bezelClass = seriesKey ? `bezel-${seriesKey}` : '';
       const beaconHtml = (seriesKey === 'cat9k') ? '<span class="cisco-beacon-led" title="Cisco Blue Locator Beacon (Cat9K Signature)"></span>' : '';
 
-      const modelText = cat.modelTag || cat.name || 'Cisco';
+      const shortModel = getShortModelName(cat.modelTag, cat.name);
       leftSection = `
         <div class="cisco-integrated-bezel ${bezelClass}" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, 'Cisco Catalyst Managed Switch'].filter(Boolean).join(' · '))}">
           <div class="cisco-bezel-top">
@@ -545,32 +920,59 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             <div class="cisco-bezel-leds">
               ${beaconHtml}
               <span class="cisco-mini-mode" title="Mode Button"></span>
-              <span class="cisco-mini-led" title="SYST: Normal"><i></i></span>
-              <span class="cisco-mini-led" title="STAT: Active"><i></i></span>
+              <span class="cisco-mini-led" title="SYST: Normal"></span>
+              <span class="cisco-mini-led" title="STAT: Active"></span>
             </div>
           </div>
           <div class="cisco-bezel-bot">
-            <span class="cisco-model-code" title="${escapeHtml(modelText)}">${escapeHtml(modelText)}</span>
-            <span class="cisco-console-mini" title="Cisco RJ45 Console Port">CONS</span>
+            <span class="cisco-model-code" title="${escapeHtml([cat.name, cat.modelTag].filter(Boolean).join(' · '))}">${escapeHtml(shortModel)}</span>
           </div>
         </div>
       `;
     } else if (isPatchPanel) {
       // Integrated Compact Patch Panel Bezel (~74px width, perfectly aligned with Cisco switches)
-      const modelText = cat.modelTag || cat.name || 'Patch Panel';
-      const brandText = isFiberPanel ? (cat.logo || 'FIBER') : (cat.logo && cat.logo !== 'PANEL' ? cat.logo : 'PATCH');
-      const badgeText = isFiberPanel ? 'FIBER' : (cat.category === 'patch' && /cat6a/i.test(cat.name || cat.modelTag || '') ? 'CAT6A' : 'CAT6');
-      const typeMini = isFiberPanel ? 'LC-DPX' : '110 IDC';
+      const isSc = /sc/i.test(cat.modelTag || cat.name || '') || cat.ports?.some(p => p.type === 'sc');
+      const isOs2 = /os2/i.test(cat.modelTag || cat.name || '');
+      const isOm4 = /om4/i.test(cat.modelTag || cat.name || '');
+      const isCat6A = /cat6a/i.test(cat.name || cat.modelTag || '');
+      const totalPorts = cat.ports?.length || 24;
+
+      let titleText = configuredLabel;
+      let badgeText = '';
+      let specBadge = '';
+
+      if (isFiberPanel) {
+        if (!titleText) titleText = 'Fiber Patch';
+        badgeText = isSc ? 'SC Duplex' : 'LC Duplex';
+        specBadge = isOs2 ? 'OS2' : (isOm4 ? 'OM4' : '');
+      } else {
+        if (!titleText) titleText = 'Patch Panel';
+        badgeText = isCat6A ? 'Cat6A' : 'Cat6';
+        specBadge = `${totalPorts}P`;
+      }
 
       leftSection = `
         <div class="patch-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, isFiberPanel ? 'Fiber Dağıtım Paneli' : 'Pasif Patch Panel'].filter(Boolean).join(' · '))}">
           <div class="patch-bezel-top">
-            <span class="patch-brand-logo">${escapeHtml(brandText)}</span>
+            <span class="patch-brand-logo" title="${escapeHtml(titleText)}">${escapeHtml(titleText)}</span>
+          </div>
+          <div class="patch-bezel-bot">
             <span class="patch-kind-badge">${escapeHtml(badgeText)}</span>
+            ${specBadge ? `<span class="patch-spec-badge">${escapeHtml(specBadge)}</span>` : ''}
+          </div>
+        </div>
+      `;
+    } else if (isPdu) {
+      const modelText = cat.modelTag || cat.name || 'PDU';
+      leftSection = `
+        <div class="patch-integrated-bezel pdu-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, '16A Rack Montajlı PDU'].filter(Boolean).join(' · '))}">
+          <div class="patch-bezel-top">
+            <span class="patch-brand-logo" style="color:#22c55e;">230V</span>
+            <span class="patch-kind-badge" style="background:rgba(34,197,94,0.15); color:#22c55e; border-color:rgba(34,197,94,0.4);">16A</span>
           </div>
           <div class="patch-bezel-bot">
             <span class="patch-model-code" title="${escapeHtml(configuredLabel || modelText)}">${escapeHtml(configuredLabel || modelText)}</span>
-            <span class="patch-type-mini" title="${isFiberPanel ? 'LC Duplex Adaptör Yuvası' : '110 IDC Punch Down Bloğu'}">${escapeHtml(typeMini)}</span>
+            <span class="patch-type-mini" style="color:#38bdf8;" title="1U PDU Güç Dağıtım">POWER</span>
           </div>
         </div>
       `;
@@ -597,9 +999,11 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
     }
 
+    const hasCables = (STATE.cables || []).some(c => c.from?.instanceId === dev.instanceId || c.to?.instanceId === dev.instanceId);
     return `
       <div class="device-faceplate ${typeClass}">
         <div class="device-controls">
+          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
         ${leftSection}
@@ -617,13 +1021,45 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       typeClass = 'port-sfp';
     } else if (port.type === 'lc') {
       typeClass = 'port-lc';
-      inner = '<div class="port-lc-inner"></div><div class="port-lc-inner"></div>';
+      inner = '<div class="port-lc-inner"><span class="lc-ferrule"></span></div><div class="port-lc-inner"><span class="lc-ferrule"></span></div>';
+    } else if (port.type === 'sc') {
+      typeClass = 'port-sc';
+      inner = '<div class="port-sc-inner"><span class="sc-ferrule"></span></div><div class="port-sc-inner"><span class="sc-ferrule"></span></div>';
+    } else if (port.type === 'power') {
+      typeClass = 'port-power';
+      inner = '<div class="port-power-pin"></div><div class="port-power-pin"></div>';
     }
 
     const isConnected = occupiedPortKeys.has(portKey(instanceId, port.id));
     const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
     const dev = allDevices.find(d => d.instanceId === instanceId);
-    const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
+    const pIdStr = String(port.id || '');
+    const pNumStr = pIdStr.replace(/^p/i, '');
+    let portCfg = dev && dev.portsConfig && (
+      dev.portsConfig[port.id] ||
+      dev.portsConfig[pNumStr] ||
+      dev.portsConfig['p' + pNumStr] ||
+      dev.portsConfig[port.name]
+    );
+
+    // Fallback: If port is connected but dev.portsConfig has no role set, derive from connected cable
+    if (!portCfg && isConnected && Array.isArray(STATE.cables)) {
+      const connCable = STATE.cables.find(c =>
+        (c.from && c.from.instanceId === instanceId && (c.from.portId === port.id || String(c.from.portId).replace(/^p/i, '') === pNumStr)) ||
+        (c.to && c.to.instanceId === instanceId && (c.to.portId === port.id || String(c.to.portId).replace(/^p/i, '') === pNumStr))
+      );
+      if (connCable) {
+        if (connCable.color === '#facc15' || connCable.name?.includes('[FIBER]') || connCable.role === 'fiber' || port.type === 'sfp' || port.type === 'lc' || port.type === 'sc') {
+          portCfg = { role: 'fiber', color: '#facc15' };
+        } else if (connCable.role) {
+          portCfg = { role: connCable.role, color: connCable.color };
+        } else if (connCable.name?.includes('[UPLINK]')) {
+          portCfg = { role: 'uplink', color: connCable.color || '#00d2ff' };
+        } else if (connCable.name?.includes('[TRUNK]')) {
+          portCfg = { role: 'trunk', color: connCable.color || '#7c3aed' };
+        }
+      }
+    }
 
     let specialClass = '';
     let specialStyle = '';
@@ -635,37 +1071,55 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
       if (role === 'trunk' || portCfg.isTrunk) {
         const color = customColor || '#7c3aed';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-trunk';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --trunk-color: ${color}; --port-badge-text: 'T';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --trunk-color: ${color}; --port-badge-text: 'T'; --port-badge-color: ${badgeColor};"`;
       } else if (role === 'uplink') {
         const color = customColor || '#00d2ff';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-uplink';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '▲';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '▲'; --port-badge-color: ${badgeColor};"`;
       } else if (role === 'trunk-ap') {
         const color = customColor || '#ec4899';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-trunk-ap';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'W';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'W'; --port-badge-color: ${badgeColor};"`;
       } else if (role === 'routed') {
         const color = customColor || '#b91c1c';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-routed';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'R';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'R'; --port-badge-color: ${badgeColor};"`;
       } else if (role === 'poe') {
         const color = customColor || '#f59e0b';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-poe';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '⚡';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '⚡'; --port-badge-color: ${badgeColor};"`;
       } else if (role === 'management' || role === 'mgmt') {
         const color = customColor || '#059669';
+        const badgeColor = getContrastColor(color);
         specialClass = 'port-special port-mgmt';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'M';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'M'; --port-badge-color: ${badgeColor};"`;
+      } else if (role === 'console') {
+        const color = customColor || '#00bceb';
+        const badgeColor = getContrastColor(color);
+        specialClass = 'port-special port-console';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'C'; --port-badge-color: ${badgeColor};"`;
+      } else if (role === 'fiber') {
+        const color = customColor || '#facc15';
+        const badgeColor = getContrastColor(color);
+        specialClass = 'port-special port-fiber';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'F'; --port-badge-color: ${badgeColor};"`;
       } else if (hasVlan || (role === 'access' && hasVlan)) {
         const color = customColor || '#38bdf8';
+        const badgeColor = getContrastColor(color);
         const vlanLabel = String(portCfg.vlan).trim().split(/[, ]+/)[0];
         const badgeText = vlanLabel ? `V${vlanLabel.slice(0, 3)}` : 'V';
         specialClass = 'port-special port-vlan';
-        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '${badgeText}';"`;
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '${badgeText}'; --port-badge-color: ${badgeColor};"`;
       } else if (customColor) {
+        const badgeColor = getContrastColor(customColor);
         specialClass = 'port-special';
-        specialStyle = `style="--port-role-color: ${customColor}; --custom-color: ${customColor}; --port-badge-text: '●';"`;
+        specialStyle = `style="--port-role-color: ${customColor}; --custom-color: ${customColor}; --port-badge-text: '●'; --port-badge-color: ${badgeColor};"`;
       }
 
       if (portCfg.poeState === 'never') {
@@ -751,17 +1205,29 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       </span>`;
     }
 
-    const portCfg = dev.portsConfig && (dev.portsConfig[portId] || dev.portsConfig[portId.replace('p', '')] || dev.portsConfig[portName]);
-    const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
-    const trunkColor = (portCfg && portCfg.color) || '#a855f7';
-    let trunkDetail = '';
-    if (isTrunk && portCfg) {
+    const pIdStr = String(portId || '');
+    const pNumStr = pIdStr.replace(/^p/i, '');
+    const portCfg = dev.portsConfig && (
+      dev.portsConfig[portId] ||
+      dev.portsConfig[pNumStr] ||
+      dev.portsConfig['p' + pNumStr] ||
+      dev.portsConfig[portName]
+    );
+
+    const isTrunk = Boolean(portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk));
+    const trunkColor = (portCfg && portCfg.color) || '#7c3aed';
+
+    let configDetail = '';
+    if (portCfg) {
+      const role = (portCfg.role || (portCfg.isTrunk ? 'trunk' : 'access')).toUpperCase();
+      const cfgColor = portCfg.color || '#38bdf8';
       const cName = portCfg.ciscoName ? ` · ${escapeHtml(portCfg.ciscoName)}` : '';
       const vText = portCfg.vlan ? ` | VLAN: ${escapeHtml(portCfg.vlan)}` : '';
+      const poeText = portCfg.poeState === 'never' ? ' | PoE: Kapalı' : '';
       const dText = portCfg.description ? `<div style="color:#94a3b8; font-size:10px; font-style:italic;">"${escapeHtml(portCfg.description)}"</div>` : '';
-      trunkDetail = `
-        <div style="background:rgba(168,85,247,0.2); border-left:3px solid ${trunkColor}; padding:2px 6px; margin:4px 0; border-radius:2px;">
-          <span style="color:${trunkColor}; font-weight:700;">⚡ 802.1Q TRUNK${cName}${vText}</span>
+      configDetail = `
+        <div style="background:rgba(15,23,42,0.6); border-left:3px solid ${cfgColor}; padding:2px 6px; margin:4px 0; border-radius:2px;">
+          <span style="color:${cfgColor}; font-weight:700;">⚡ ${role}${cName}${vText}${poeText}</span>
           ${dText}
         </div>
       `;
@@ -772,7 +1238,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         <div style="font-weight:700; color:#fff; margin-bottom:3px;">${escapeHtml(cat.name)} (${escapeHtml(activeRack.name)} - U${dev.topU})</div>
         <div><b>Port:</b> ${escapeHtml(portName)} (${escapeHtml(portSpeed)})</div>
         <div><b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
-        ${trunkDetail}
+        ${configDetail}
         <div><b>Durum:</b> ${connectionInfo}</div>
       `;
     }
@@ -782,6 +1248,72 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       dom.tooltip.style.display = 'block';
       dom.tooltip.style.left = `${rect.right + 12}px`;
       dom.tooltip.style.top = `${rect.top - 6}px`;
+
+      // If currently connecting a cable, show connection validation & target status
+      if (STATE.pendingConnection) {
+        const src = STATE.pendingConnection;
+        const isSelf = src.instanceId === instanceId && src.portId === portId;
+        if (isSelf) {
+          dom.tooltip.innerHTML = `
+            <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; padding-bottom:3px; margin-bottom:4px;">
+              ⚠️ Kaynak Port Seçildi
+            </div>
+            <div style="color:#cbd5e1; font-size:0.68rem;">Bağlantıyı iptal etmek için bu porta tekrar tıklayın.</div>
+          `;
+          return;
+        }
+
+        const isOccupied = STATE.cables.some(c =>
+          (c.from.instanceId === instanceId && c.from.portId === portId) ||
+          (c.to.instanceId === instanceId && c.to.portId === portId)
+        );
+
+        if (isOccupied) {
+          dom.tooltip.innerHTML = `
+            <div style="font-weight:800; font-size:0.75rem; color:#ef4444; padding-bottom:3px; margin-bottom:4px;">
+              ⛔ Port Dolu
+            </div>
+            <div style="color:#cbd5e1; font-size:0.68rem;">Bu porta zaten başka bir kablo bağlı.</div>
+          `;
+          return;
+        }
+
+        const validation = window.NetworkRules && typeof window.NetworkRules.validateConnection === 'function'
+          ? window.NetworkRules.validateConnection(src, { instanceId, portId }, STATE, HARDWARE_CATALOG, false)
+          : { allowed: true };
+
+        if (!validation.allowed) {
+          dom.tooltip.innerHTML = `
+            <div style="font-weight:800; font-size:0.75rem; color:#ef4444; border-bottom:1px solid #7f1d1d; padding-bottom:3px; margin-bottom:4px;">
+              ⛔ Bağlantı Uyumsuz
+            </div>
+            <div style="color:#f87171; font-size:0.68rem; line-height:1.3;">${escapeHtml(validation.reason || 'Bu porta bağlanamaz')}</div>
+          `;
+          return;
+        }
+
+        if (validation.warning) {
+          dom.tooltip.innerHTML = `
+            <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid #78350f; padding-bottom:3px; margin-bottom:4px;">
+              ⚠️ Bağlantı Uyarısı
+            </div>
+            <div style="color:#fde68a; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+            <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+            <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+          `;
+          return;
+        }
+
+        dom.tooltip.innerHTML = `
+          <div style="font-weight:800; font-size:0.75rem; color:#22c55e; border-bottom:1px solid #14532d; padding-bottom:3px; margin-bottom:4px;">
+            🔗 Bağlantıyı Tamamla
+          </div>
+          <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+          <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+        `;
+        return;
+      }
+
       const trunkBadge = isTrunk ? `<span style="background:${trunkColor}; color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:2px; margin-left:6px;">802.1Q TRUNK</span>` : '';
       const vlanInfo = portCfg?.vlan ? `<div style="color:#38bdf8; font-size:0.68rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
       const connInfo = connectedCable ? `<div style="color:#22c55e; font-size:0.68rem; margin-top:3px;">🔗 ${connectionInfo}</div>` : `<div style="color:#64748b; font-size:0.68rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
@@ -846,6 +1378,9 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const dev = devRack.devices.find(d => d.instanceId === instanceId);
       const cat = dev ? HARDWARE_CATALOG[dev.catalogKey] : null;
       const port = cat ? cat.ports.find(p => p.id === portId) : null;
+      if (window.SoundFX) {
+        window.SoundFX.playPortClick(port?.type || 'copper');
+      }
 
       if (dom.connectionStatusHint && cat && port) {
         dom.connectionStatusHint.innerHTML = `Kaynak: <span style="color:#38bdf8;">[${escapeHtml(devRack.name)}] ${escapeHtml(cat.modelTag)} (${escapeHtml(port.name)})</span> &rarr; <b>Hedef Porta Tıklayın (Kabin değiştirebilirsiniz)</b>`;
@@ -869,11 +1404,37 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       }
 
       const isInterRack = source.rackId !== devRack.id;
+
+      // Validate connection against network engineering rules (Loop prevention, Media compatibility)
+      if (RS.NetworkRules && typeof RS.NetworkRules.validateConnection === 'function') {
+        const validation = RS.NetworkRules.validateConnection(source, { rackId: devRack.id, instanceId, portId });
+        if (!validation.allowed) {
+          if (window.SoundFX && typeof window.SoundFX.playError === 'function') {
+            window.SoundFX.playError();
+          }
+          if (dom.connectionStatusHint) {
+            dom.connectionStatusHint.innerHTML = `<span style="color:#ef4444; font-weight:bold;">⛔ ${escapeHtml(validation.reason || 'Kural İhlali!')}</span>`;
+          }
+          const rect = portEl.getBoundingClientRect();
+          showConnectionErrorToast(rect.left + rect.width / 2, rect.top, validation.reason || 'Bağlantı kuralı ihlali!');
+          cancelPendingConnection();
+          return;
+        }
+        if (validation.warning && dom.connectionStatusHint) {
+          dom.connectionStatusHint.innerHTML = `<span style="color:#f59e0b; font-weight:600;">${escapeHtml(validation.warning)}</span>`;
+        }
+      }
+
       const cableId = getNextCableId();
 
       // Find source and target devices
       const sourceDev = STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId);
       const targetDev = devRack.devices?.find(d => d.instanceId === instanceId);
+
+      const sourceCat = sourceDev ? HARDWARE_CATALOG[sourceDev.catalogKey] : null;
+      const targetCat = targetDev ? HARDWARE_CATALOG[targetDev.catalogKey] : null;
+      const srcPort = sourceCat?.ports?.find(p => p.id === source.portId);
+      const tgtPort = targetCat?.ports?.find(p => p.id === portId);
 
       const getCfg = (dev, pId) => {
         if (!dev || !dev.portsConfig || !pId) return null;
@@ -893,12 +1454,31 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         mgmt: '#059669',
         management: '#059669',
         access: '#38bdf8',
-        poe: '#f59e0b'
+        poe: '#f59e0b',
+        fiber: '#facc15'
       };
 
       // Check if source or target port is marked/configured
       const isSourceConfigured = Boolean(sourcePortCfg && (sourcePortCfg.color || sourcePortCfg.role || sourcePortCfg.isTrunk || sourcePortCfg.vlan || sourcePortCfg.description));
       const isTargetConfigured = Boolean(targetPortCfg && (targetPortCfg.color || targetPortCfg.role || targetPortCfg.isTrunk || targetPortCfg.vlan || targetPortCfg.description));
+
+      // Intelligent Auto-Uplink & Fiber Detection
+      let detectedUplink = null;
+      if (RS.NetworkRules && typeof RS.NetworkRules.detectUplinkConnection === 'function') {
+        detectedUplink = RS.NetworkRules.detectUplinkConnection(sourceDev, srcPort, targetDev, tgtPort);
+      }
+
+      let detectedFiber = null;
+      if (RS.NetworkRules && typeof RS.NetworkRules.detectFiberConnection === 'function') {
+        detectedFiber = RS.NetworkRules.detectFiberConnection(sourceDev, srcPort, targetDev, tgtPort);
+      } else {
+        const isOptic = (srcPort?.type === 'lc' || srcPort?.type === 'sc' || srcPort?.type === 'fiber') &&
+                        (tgtPort?.type === 'lc' || tgtPort?.type === 'sc' || tgtPort?.type === 'fiber') &&
+                        srcPort?.type !== 'rj45' && tgtPort?.type !== 'rj45';
+        if (isOptic) {
+          detectedFiber = { isFiber: true, color: '#facc15', role: 'fiber', prefix: '[FIBER]', reason: 'Single-Mode OS2 Fiber Optik' };
+        }
+      }
 
       let effectiveRole = 'standard';
       let effectiveColor = STATE.selectedCableColor;
@@ -908,7 +1488,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         // Master is source: target inherits configuration, marking, and cable color
         effectiveRole = sourcePortCfg.role || (sourcePortCfg.isTrunk ? 'trunk' : 'access');
         isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!sourcePortCfg.isTrunk;
-        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || (detectedFiber ? '#facc15' : STATE.selectedCableColor);
 
         if (targetDev) {
           if (!targetDev.portsConfig) targetDev.portsConfig = {};
@@ -929,7 +1509,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         // Master is target: source inherits configuration, marking, and cable color
         effectiveRole = targetPortCfg.role || (targetPortCfg.isTrunk ? 'trunk' : 'access');
         isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!targetPortCfg.isTrunk;
-        effectiveColor = targetPortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+        effectiveColor = targetPortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || (detectedFiber ? '#facc15' : STATE.selectedCableColor);
 
         if (sourceDev) {
           if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
@@ -950,72 +1530,252 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         // Both already configured: prioritize source for cable attributes
         effectiveRole = sourcePortCfg.role || (sourcePortCfg.isTrunk ? 'trunk' : 'standard');
         isTrunk = effectiveRole === 'trunk' || effectiveRole === 'uplink' || effectiveRole === 'trunk-ap' || !!sourcePortCfg.isTrunk;
-        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || STATE.selectedCableColor;
+        effectiveColor = sourcePortCfg.color || ROLE_DEFAULT_COLORS[effectiveRole] || (detectedFiber ? '#facc15' : STATE.selectedCableColor);
+      } else if (detectedFiber) {
+        // Single-Mode OS2 Fiber connection auto-recognized
+        effectiveRole = 'fiber';
+        effectiveColor = detectedFiber.color || '#facc15';
       } else {
         effectiveRole = 'standard';
         effectiveColor = STATE.selectedCableColor;
       }
 
-      let rolePrefix = '';
-      if (effectiveRole === 'trunk') rolePrefix = '[TRUNK] ';
-      else if (effectiveRole === 'uplink') rolePrefix = '[UPLINK] ';
-      else if (effectiveRole === 'trunk-ap') rolePrefix = '[AP-TRUNK] ';
-      else if (effectiveRole === 'routed') rolePrefix = '[ROUTED] ';
-      else if (effectiveRole === 'poe') rolePrefix = '[POE] ';
-      else if (effectiveRole === 'mgmt' || effectiveRole === 'management') rolePrefix = '[MGMT] ';
-      else if (isTrunk) rolePrefix = '[TRUNK] ';
+      function commitConnection(userApproved) {
+        if (detectedUplink) {
+          if (userApproved) {
+            effectiveRole = detectedUplink.role;
+            effectiveColor = detectedUplink.color;
+            isTrunk = detectedUplink.role === 'trunk' || detectedUplink.role === 'uplink' || !!detectedUplink.isTrunk;
 
-      const newCable = {
-        id: cableId,
-        name: rolePrefix + cableId,
-        role: effectiveRole,
-        from: { rackId: source.rackId, instanceId: source.instanceId, portId: source.portId },
-        to: { rackId: devRack.id, instanceId, portId },
-        color: effectiveColor,
-        lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId, isInterRack)
-      };
+            const autoCfg = {
+              role: effectiveRole,
+              isTrunk: isTrunk,
+              color: effectiveColor,
+              description: detectedUplink.reason,
+              autoCableColor: true
+            };
 
-      // Sync to 3D engine if active
-      if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-        try {
-          const pIdxSrc = parseInt(String(source.portId).replace(/^p/i, ''), 10) || 1;
-          const pIdxTgt = parseInt(String(portId).replace(/^p/i, ''), 10) || 1;
-          const dev3DSrc = sourceDev?.id || sourceDev?.instanceId;
-          const dev3DTgt = targetDev?.id || targetDev?.instanceId;
-          if (isSourceConfigured && !isTargetConfigured && dev3DTgt) {
-            window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
-          } else if (!isSourceConfigured && isTargetConfigured && dev3DSrc) {
-            window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
+            if (sourceDev) {
+              if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
+              sourceDev.portsConfig[source.portId] = autoCfg;
+              sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = autoCfg;
+            }
+            if (targetDev) {
+              if (!targetDev.portsConfig) targetDev.portsConfig = {};
+              targetDev.portsConfig[portId] = autoCfg;
+              targetDev.portsConfig[String(portId).replace(/^p/i, '')] = autoCfg;
+            }
+          } else {
+            if (detectedUplink.disallowStandard || detectedUplink.isSwitchToSwitch) {
+              cancelPendingConnection();
+              return;
+            }
+            effectiveRole = 'standard';
+            effectiveColor = STATE.selectedCableColor;
+            isTrunk = false;
           }
-        } catch (e) {
-          console.warn('3D port sync warning:', e);
+        } else if (detectedFiber) {
+          effectiveRole = 'fiber';
+          effectiveColor = detectedFiber.color || '#facc15';
+          isTrunk = false;
+
+          const autoFiberCfg = {
+            role: 'fiber',
+            isTrunk: false,
+            color: effectiveColor,
+            description: detectedFiber.reason || 'Single-Mode OS2 Fiber Optik',
+            autoCableColor: true
+          };
+
+          if (sourceDev) {
+            if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
+            sourceDev.portsConfig[source.portId] = autoFiberCfg;
+            sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = autoFiberCfg;
+          }
+          if (targetDev) {
+            if (!targetDev.portsConfig) targetDev.portsConfig = {};
+            targetDev.portsConfig[portId] = autoFiberCfg;
+            targetDev.portsConfig[String(portId).replace(/^p/i, '')] = autoFiberCfg;
+          }
         }
+
+        let rolePrefix = '';
+        if (effectiveRole === 'trunk') rolePrefix = '[TRUNK] ';
+        else if (effectiveRole === 'uplink') rolePrefix = '[UPLINK] ';
+        else if (effectiveRole === 'trunk-ap') rolePrefix = '[AP-TRUNK] ';
+        else if (effectiveRole === 'routed') rolePrefix = '[ROUTED] ';
+        else if (effectiveRole === 'poe') rolePrefix = '[POE] ';
+        else if (effectiveRole === 'mgmt' || effectiveRole === 'management') rolePrefix = '[MGMT] ';
+        else if (effectiveRole === 'fiber') rolePrefix = '[FIBER] ';
+        else if (isTrunk) rolePrefix = '[TRUNK] ';
+
+        const newCable = {
+          id: cableId,
+          name: rolePrefix + cableId,
+          role: effectiveRole,
+          from: { rackId: source.rackId, instanceId: source.instanceId, portId: source.portId },
+          to: { rackId: devRack.id, instanceId, portId },
+          color: effectiveColor,
+          lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId, isInterRack)
+        };
+
+        // Sync to 3D engine if active
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          try {
+            const pIdxSrc = parseInt(String(source.portId).replace(/^p/i, ''), 10) || 1;
+            const pIdxTgt = parseInt(String(portId).replace(/^p/i, ''), 10) || 1;
+            const dev3DSrc = sourceDev?.id || sourceDev?.instanceId;
+            const dev3DTgt = targetDev?.id || targetDev?.instanceId;
+            if (isSourceConfigured && !isTargetConfigured && dev3DTgt) {
+              window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
+            } else if (!isSourceConfigured && isTargetConfigured && dev3DSrc) {
+              window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
+            } else if (detectedUplink && userApproved) {
+              if (dev3DSrc) window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
+              if (dev3DTgt) window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
+            } else if (detectedFiber && dev3DSrc && dev3DTgt) {
+              window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
+              window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
+            }
+          } catch (e) {
+            console.warn('3D port sync warning:', e);
+          }
+        }
+
+        STATE.cables.push(newCable);
+        cancelPendingConnection();
+
+        if (window.SoundFX) {
+          const tgtPort = targetCat?.ports?.find(p => p.id === portId);
+          window.SoundFX.playPortClick(tgtPort?.type || 'copper');
+        }
+
+        renderMountedDevices();
+        renderScheduleTable();
+        renderAllCables();
+
+        if (typeof window.sync2Dto3D === 'function') {
+          window.sync2Dto3D();
+        }
+        window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
       }
 
-      STATE.cables.push(newCable);
-      cancelPendingConnection();
-
-      renderMountedDevices();
-      renderScheduleTable();
-      renderAllCables();
-
-      if (typeof window.sync2Dto3D === 'function') {
-        window.sync2Dto3D();
+      if (detectedUplink && detectedUplink.requiresPrompt) {
+        const isSwitchToSwitch = !!(detectedUplink.isSwitchToSwitch || detectedUplink.disallowStandard);
+        const modalColor = detectedUplink.color || (detectedFiber ? (detectedFiber.color || '#facc15') : '#7c3aed');
+        const modalReason = detectedUplink.reason;
+        showUplinkVisualConfirmModal({
+          role: detectedUplink.role,
+          color: modalColor,
+          reason: modalReason,
+          isSwitchToSwitch: isSwitchToSwitch,
+          disallowStandard: detectedUplink.disallowStandard,
+          srcDeviceName: sourceDev?.hostname || sourceDev?.name || sourceCat?.name || 'Kaynak',
+          srcPortName: srcPort?.name || source.portId,
+          tgtDeviceName: targetDev?.hostname || targetDev?.name || targetCat?.name || 'Hedef',
+          tgtPortName: tgtPort?.name || portId
+        }, (approved) => {
+          if (isSwitchToSwitch && !approved) {
+            cancelPendingConnection();
+            return;
+          }
+          commitConnection(approved);
+        });
+      } else if (detectedUplink && !detectedUplink.requiresPrompt) {
+        // Dedicated hardware uplink / SFP port: connect automatically without blocking modal
+        commitConnection(true);
+      } else if (detectedFiber && !detectedFiber.requiresPrompt) {
+        commitConnection(true);
+      } else {
+        commitConnection(false);
       }
-      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     }
   }
 
+  function findRoutingOrganizers(rack, devA, devB) {
+    if (!rack || !rack.devices || !devA || !devB) return [];
+    const minU = Math.min(devA.topU, devB.topU);
+    const maxU = Math.max(devA.topU, devB.topU);
+
+    return rack.devices.filter(d => {
+      const cat = HARDWARE_CATALOG[d.catalogKey];
+      if (!cat || cat.category !== 'organizer') return false;
+      const u = Number(d.topU);
+      return (u >= minU && u <= maxU) || Math.abs(u - devA.topU) <= 1 || Math.abs(u - devB.topU) <= 1;
+    }).sort((a, b) => {
+      return devA.topU > devB.topU ? (b.topU - a.topU) : (a.topU - b.topU);
+    });
+  }
+
   function calculateCableLengthMeters(instA, instB, isInterRack) {
-    if (isInterRack) return 15.0; // Inter-rack structured tie cable
+    if (isInterRack) {
+      if (STATE.cableRoutingMode === 'direct') {
+        return 3.0; // Direct aerial jumper between adjacent cabinets
+      }
+      // Inter-rack structured tie cable (overhead ladder rack + vertical drops + service loops)
+      const baseTieRun = 14.0;
+      return parseFloat((baseTieRun * 1.10).toFixed(2)); // 15.40m
+    }
     const activeRack = getActiveRack();
     if (!activeRack) return 1.5;
     const devA = activeRack.devices.find(d => d.instanceId === instA);
     const devB = activeRack.devices.find(d => d.instanceId === instB);
     if (!devA || !devB) return 1.5;
+
     const uDiff = Math.abs(devA.topU - devB.topU);
-    const length = 0.5 + (uDiff * 0.045) + (uDiff > 5 ? 0.8 : 0.2);
-    return parseFloat(length.toFixed(2));
+    const catA = HARDWARE_CATALOG[devA.catalogKey];
+    const catB = HARDWARE_CATALOG[devB.catalogKey];
+    const isFiber = (catA && catA.category === 'fiber') || (catB && catB.category === 'fiber') ||
+                    (devA.portsConfig && Object.values(devA.portsConfig).some(c => c.role === 'fiber')) ||
+                    (devB.portsConfig && Object.values(devB.portsConfig).some(c => c.role === 'fiber'));
+
+    // Routing Mode: Direct (Sıkı Doğrudan) vs Structured (Yapısal Kanal)
+    const isDirect = STATE.cableRoutingMode === 'direct';
+    if (isDirect) {
+      // Sıkı Doğrudan: Point-to-Point direct patch cord between adjacent patch panels and switches.
+      // 1. Direct vertical distance between ports: uDiff * 0.0445m (1U = 44.45mm EIA-310-D)
+      // 2. Direct horizontal span / curve allowance: 0.12m
+      // 3. Connector & bend radius allowance: 0.08m (copper) / 0.12m (fiber)
+      // For adjacent devices (uDiff <= 1): (1 * 0.0445) + 0.12 + 0.08 = ~0.25m -> standard 30cm short patch cord!
+      const directVertical = uDiff * 0.0445;
+      const directHorizontal = 0.12;
+      const directBend = isFiber ? 0.12 : 0.08;
+      const rawDirect = directVertical + directHorizontal + directBend;
+      const withMargin = rawDirect * 1.05;
+      return Math.max(0.25, parseFloat(withMargin.toFixed(2)));
+    }
+
+    const routingOrganizers = findRoutingOrganizers(activeRack, devA, devB);
+    const hasOrganizer = routingOrganizers.length > 0;
+
+    // Field Metrology Standard (Yapısal Yan Kanal):
+    // 1. Horizontal duct traverse: 2x 0.25m = 0.50m (port to vertical wire manager)
+    // 2. Vertical duct traverse: uDiff * 0.0445m (1U = 44.45mm EIA-310-D)
+    // 3. Horizontal wire manager / brush organizer traversal: 0.25m
+    // 4. Bend radius & dressing allowance: 0.15m copper / 0.20m fiber
+    // 5. Field Service Loop (Servis Halkası Payı): +10% standard margin
+    const horizontalToDuct = 0.50;
+    const verticalDuct = uDiff * 0.0445;
+    let organizerAllowance = 0.0;
+    if (hasOrganizer) {
+      const hasBrush = routingOrganizers.some(d => {
+        const c = HARDWARE_CATALOG[d.catalogKey];
+        return d.catalogKey === 'organizer-1u' || (c?.modelTag && c.modelTag.includes('BRUSH')) || (c?.name && c.name.toLowerCase().includes('fırça'));
+      });
+      const hasFinger = routingOrganizers.some(d => {
+        const c = HARDWARE_CATALOG[d.catalogKey];
+        return d.catalogKey === 'organizer-2u' || (c?.modelTag && c.modelTag.includes('FINGER')) || (c?.name && c.name.toLowerCase().includes('parmak'));
+      });
+      if (hasBrush) organizerAllowance = 0.35; // Front-to-rear brush pass-through traverse
+      else if (hasFinger) organizerAllowance = 0.25; // 2U internal slotted duct channel traverse
+      else organizerAllowance = 0.20; // D-Ring hoop loop traverse
+    }
+    const bendRadiusAllowance = isFiber ? 0.20 : 0.15;
+
+    const rawLength = horizontalToDuct + verticalDuct + organizerAllowance + bendRadiusAllowance;
+    const withServiceLoop = rawLength * 1.10;
+
+    return Math.max(0.5, parseFloat(withServiceLoop.toFixed(2)));
   }
 
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
@@ -1032,5 +1792,6 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   RS.handlePortHover = handlePortHover;
   RS.handlePortLeave = handlePortLeave;
   RS.handlePortClick = handlePortClick;
+  RS.findRoutingOrganizers = findRoutingOrganizers;
   RS.calculateCableLengthMeters = calculateCableLengthMeters;
 })();

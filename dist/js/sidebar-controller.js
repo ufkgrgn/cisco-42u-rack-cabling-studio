@@ -165,13 +165,25 @@
 
     // 2D Cable Routing Mode Toggle
     const btnRouting2D = document.getElementById('btn-2d-routing-mode');
+    try {
+      const savedRouting = localStorage.getItem('rack-studio-cable-routing-mode');
+      if (savedRouting && window.RackStudio && window.RackStudio.STATE) {
+        window.RackStudio.STATE.cableRoutingMode = savedRouting;
+        if (btnRouting2D) btnRouting2D.textContent = savedRouting === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
+      }
+    } catch (e) {}
+
     btnRouting2D?.addEventListener('click', () => {
       if (window.RackStudio && window.RackStudio.STATE) {
         const cur = window.RackStudio.STATE.cableRoutingMode || 'structured';
         const next = cur === 'structured' ? 'direct' : 'structured';
         window.RackStudio.STATE.cableRoutingMode = next;
         btnRouting2D.textContent = next === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
+        try { localStorage.setItem('rack-studio-cable-routing-mode', next); } catch (e) {}
         if (window.RackStudio.renderAllCables) window.RackStudio.renderAllCables();
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+        document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+        window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
       }
     });
 

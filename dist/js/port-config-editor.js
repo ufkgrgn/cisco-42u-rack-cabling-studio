@@ -11,6 +11,7 @@
     routed: '#b91c1c',
     mgmt: '#059669',
     management: '#059669',
+    console: '#00bceb',
     access: '#38bdf8',
     poe: '#f59e0b'
   };
@@ -57,7 +58,30 @@
         this.activePortIdx = portIdx;
         this.activePortId = (pObj && pObj.id) || (typeof portIdxOrId === 'string' ? portIdxOrId : 'p' + portIdx);
         if (dev) {
-          portCfg = (dev.portsConfig && (dev.portsConfig[this.activePortId] || dev.portsConfig[portIdx])) || null;
+          const pIdStr = String(this.activePortId || '');
+          const pNumStr = pIdStr.replace(/^p/i, '');
+          portCfg = (dev.portsConfig && (
+            dev.portsConfig[this.activePortId] ||
+            dev.portsConfig[pNumStr] ||
+            dev.portsConfig[portIdx] ||
+            dev.portsConfig['p' + portIdx] ||
+            (pObj && dev.portsConfig[pObj.name])
+          )) || null;
+
+          if (!portCfg && window.RackStudio && window.RackStudio.STATE) {
+            const connectedCable = (window.RackStudio.STATE.cables || []).find(c =>
+              (c.from.instanceId === devId && (c.from.portId === this.activePortId || String(c.from.portId).replace(/^p/i, '') === pNumStr)) ||
+              (c.to.instanceId === devId && (c.to.portId === this.activePortId || String(c.to.portId).replace(/^p/i, '') === pNumStr))
+            );
+            if (connectedCable && connectedCable.role) {
+              portCfg = {
+                role: connectedCable.role,
+                isTrunk: connectedCable.role === 'trunk' || connectedCable.role === 'uplink' || connectedCable.role === 'trunk-ap',
+                color: connectedCable.color,
+                autoCableColor: true
+              };
+            }
+          }
           portName = pObj ? (pObj.name || `Port #${portIdx}`) : `Port #${portIdx}`;
           portType = (pObj && pObj.type) || 'rj45';
         }
@@ -150,6 +174,12 @@
       }
 
       this.close();
+
+      // Dispatch global change events to persist state and update undo stack
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+
       if (window.is3DMode) {
         if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
       } else {
@@ -166,6 +196,12 @@
         window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
       }
       this.close();
+
+      // Dispatch global change events to persist reset state and update undo stack
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+
       if (window.is3DMode) {
         if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
       } else {

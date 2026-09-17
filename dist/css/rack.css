@@ -313,41 +313,63 @@
 .cisco-bezel-leds {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 2.5px;
+  height: 10px;
+}
+
+.cisco-beacon-led {
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 2px #00e5ff, 0 0 4px rgba(0, 229, 255, 0.7);
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .cisco-mini-mode {
-  width: 3.5px;
-  height: 3.5px;
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
   border-radius: 50%;
-  background: #334155;
+  background: #1e293b;
   border: 0.5px solid #64748b;
   display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .cisco-mini-led {
-  display: flex;
-  align-items: center;
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 2px rgba(34, 197, 94, 0.8);
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .cisco-mini-led i {
-  width: 2.5px;
-  height: 2.5px;
-  border-radius: 50%;
-  background: #22c55e;
-  display: inline-block;
+  display: none;
 }
 
 .cisco-model-code {
   font-family: ui-monospace, Consolas, monospace;
-  font-size: 0.44rem;
-  font-weight: 700;
-  color: #94a3b8;
+  font-size: 0.52rem;
+  font-weight: 800;
+  color: #e2e8f0;
   letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 48px;
+  max-width: 100%;
   line-height: 1;
 }
 
@@ -397,22 +419,7 @@
   border-left: 2.5px solid #f97316;
 }
 
-/* Cisco Blue Beacon / UID Locator LED (Catalyst 9000 Signature) */
-.cisco-beacon-led {
-  width: 3.5px;
-  height: 3.5px;
-  border-radius: 50%;
-  background: #00d2ff;
-  box-shadow: 0 0 4px #00d2ff, 0 0 7px rgba(0, 210, 255, 0.6);
-  display: inline-block;
-  flex-shrink: 0;
-  animation: ciscoBeaconPulse 2s infinite alternate;
-}
 
-@keyframes ciscoBeaconPulse {
-  0% { opacity: 0.7; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 6px #00e5ff, 0 0 10px rgba(0, 229, 255, 0.8); }
-}
 
 /* Cisco Status Cluster: Mode Button, Micro LEDs, Console Port (Fallback) */
 .cisco-status-cluster {
@@ -500,7 +507,7 @@
   position: relative;
 }
 
-/* Cisco RJ45 Port Enhancement: Link Status LED */
+/* Cisco RJ45 Port Enhancement: Link Status LED & Realistic Pin Dot */
 .faceplate-switch .port-rj45 {
   background: #080c14;
   border: 1px solid #334155;
@@ -511,14 +518,16 @@
 .faceplate-switch .port-rj45::before {
   content: "";
   position: absolute;
-  top: 1.5px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: 2px;
   height: 2px;
   border-radius: 50%;
-  background: #1e2a3a;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
   z-index: 3;
+  pointer-events: none;
 }
 
 /* Link LED: green indicator inside port body, with glow */
@@ -528,8 +537,8 @@
 }
 
 .faceplate-switch .port-rj45.connected::before {
-  background: #22c55e;
-  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.5);
+  background: #22c55e !important;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6) !important;
 }
 
 /* ============================================================================
@@ -552,8 +561,9 @@
   height: 24px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 2px 4px;
+  justify-content: center;
+  gap: 2.5px;
+  padding: 2px 5px;
   background: #14100c;
   border: 1px solid rgba(249, 115, 22, 0.38);
   border-left: 2.5px solid #f97316;
@@ -568,32 +578,48 @@
 .patch-bezel-bot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 4px;
   width: 100%;
   line-height: 1;
 }
 
 .patch-brand-logo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
-  font-size: 0.58rem;
-  font-weight: 900;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.54rem;
+  font-weight: 800;
   color: #f97316;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.3px;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 42px;
+  max-width: 64px;
 }
 
 .patch-kind-badge {
   background: #ea580c;
   color: #ffffff;
-  font: 800 0.38rem/1.2 Consolas, monospace;
-  padding: 1px 3px;
+  font: 800 0.38rem/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 1px 4px;
   border-radius: 2px;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
   line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.patch-spec-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.15);
+  border-radius: 1.5px;
+  padding: 0.5px 3px;
+  line-height: 1;
+  letter-spacing: 0.3px;
   flex-shrink: 0;
 }
 
@@ -716,10 +742,20 @@
   background: #d97706;
 }
 
+.faceplate-fiber-panel .patch-spec-badge {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.15);
+}
+
 .faceplate-fiber-panel .patch-type-mini {
   color: #f59e0b;
   border-color: rgba(245, 158, 11, 0.5);
   background: rgba(245, 158, 11, 0.12);
+}
+
+.faceplate-fiber-panel .ports-area {
+  gap: 2px;
 }
 
 .faceplate-fiber-panel .port-group {
@@ -727,11 +763,53 @@
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-top: 2px solid #f59e0b;
   box-shadow: inset 0 1px 0 rgba(245, 158, 11, 0.2);
+  padding: 1px 2px;
+  gap: 1px;
+}
+
+.faceplate-fiber-panel .port-row {
+  gap: 1px;
 }
 
 .faceplate-fiber-panel .patch-id-strip {
   border-color: rgba(245, 158, 11, 0.45);
   border-left-color: #d97706;
+}
+
+/* Power Distribution Unit (PDU) Faceplate */
+.faceplate-pdu {
+  background: linear-gradient(90deg, #09130d 0%, #101a14 74px, #0a110d 100%);
+  border-left: 4px solid #22c55e;
+  border-top: 1.5px solid rgba(34, 197, 94, 0.45);
+  border-bottom: 1.5px solid #04080e;
+  box-shadow: none;
+}
+
+.faceplate-pdu .patch-integrated-bezel {
+  border-color: rgba(34, 197, 94, 0.38);
+  border-left-color: #22c55e;
+  background: #08140c;
+}
+
+.faceplate-pdu .patch-brand-logo {
+  color: #22c55e;
+}
+
+.faceplate-pdu .patch-kind-badge {
+  background: #15803d;
+}
+
+.faceplate-pdu .patch-type-mini {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.faceplate-pdu .port-group {
+  background: #0c150f;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-top: 2px solid #22c55e;
+  box-shadow: inset 0 1px 0 rgba(34, 197, 94, 0.2);
 }
 
 .device-status-leds {
@@ -756,13 +834,32 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 3px;
+  gap: 4px;
   height: 100%;
   overflow: hidden !important;
-  padding: 0;
+  padding: 0 4px;
   box-sizing: border-box;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+}
+
+.faceplate-switch .ports-area {
+  justify-content: flex-start;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.faceplate-switch .cisco-uplink-bay {
+  margin-left: 12px;
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.35);
+  border-top: 2px solid #00d2ff;
+}
+
+.faceplate-patch-panel .ports-area {
+  justify-content: flex-start;
+  gap: 5px;
+  padding-left: 4px;
 }
 
 .ports-area::-webkit-scrollbar,
@@ -778,7 +875,7 @@
   flex-direction: column;
   gap: 1.5px;
   background: rgba(0, 0, 0, 0.4);
-  padding: 1px 2px;
+  padding: 1px 2.5px;
   border-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
@@ -804,14 +901,38 @@
   box-sizing: border-box;
 }
 
-/* RJ45 Port */
+/* RJ45 Port (Copper / Gigabit / FastEthernet) */
 .port-rj45 {
   width: 10px;
   height: 9.5px;
-  background: #090d14;
-  border: 1px solid #475569;
-  border-radius: 1px;
-  box-shadow: none;
+  background: #080c14;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.port-rj45::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.port-rj45.connected::before {
+  background: #22c55e !important;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6) !important;
 }
 
 .port-rj45::after {
@@ -822,10 +943,34 @@
 .port-sfp {
   width: 11px;
   height: 10px;
-  background: #141b27;
-  border: 1px solid #64748b;
+  background: #0d131f;
+  border: 1px solid #475569;
   border-radius: 1.5px;
-  box-shadow: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.port-sfp::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.port-sfp:not(.port-special).connected::before {
+  background: #00d2ff !important;
+  box-shadow: 0 0 3px #00d2ff, 0 0 6px rgba(0, 210, 255, 0.6) !important;
 }
 
 .port-sfp::after {
@@ -834,22 +979,126 @@
 
 /* Fiber LC Duplex Port */
 .port-lc {
-  width: 10.5px;
-  height: 10px;
+  width: 12px;
+  height: 11px;
   background: #0284c7;
   border: 1px solid #38bdf8;
-  border-radius: 2px;
+  border-radius: 1.5px;
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 1px;
-  padding: 1px;
-  box-shadow: none;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
 }
 
 .port-lc-inner {
-  width: 3px;
-  height: 6.5px;
-  background: #0c4a6e;
+  width: 4px;
+  height: 7px;
+  background: #082f49;
+  border: 0.5px solid #0369a1;
   border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.lc-ferrule,
+.port-lc-inner:empty::after {
+  content: '';
+  display: block;
+  width: 1.5px;
+  height: 1.5px;
+  min-width: 1.5px;
+  min-height: 1.5px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 1px #ffffff;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Fiber SC Duplex Port */
+.port-sc {
+  width: 14px;
+  height: 11px;
+  background: #0369a1;
+  border: 1px solid #38bdf8;
+  border-radius: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.port-sc-inner {
+  width: 5px;
+  height: 7px;
+  background: #082f49;
+  border: 0.5px solid #0284c7;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.sc-ferrule,
+.port-sc-inner:empty::after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 2px;
+  min-width: 2px;
+  min-height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 1px #ffffff;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.port-lc.connected .lc-ferrule,
+.port-sc.connected .sc-ferrule {
+  background: #facc15 !important;
+  box-shadow: 0 0 3px #facc15, 0 0 6px rgba(250, 204, 21, 0.85) !important;
+}
+
+/* 1U PDU Power Socket (Schuko / Round Earth Socket) */
+.port-power {
+  width: 13px;
+  height: 13px;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 50%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 2px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+.port-power:hover {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6) !important;
+}
+
+.port-power-pin {
+  width: 2px;
+  height: 2px;
+  background: #020617;
+  border-radius: 50%;
+  box-shadow: inset 0 0 1px #000;
 }
 
 .port:hover {
@@ -859,8 +1108,10 @@
 
 .port.selected {
   outline: 2px solid #00e5ff !important;
-  box-shadow: 0 0 8px #00e5ff;
-  animation: pulse-border 1s infinite alternate;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 8px #00e5ff, inset 0 0 3px #00e5ff !important;
+  animation: pulse-border 1.2s infinite alternate !important;
+  z-index: 10 !important;
 }
 
 .port.connected {
@@ -873,15 +1124,21 @@
 }
 
 @keyframes pulse-border {
-  from { transform: scale(1); }
-  to { transform: scale(1.2); }
+  from {
+    outline-color: #00e5ff;
+    box-shadow: 0 0 6px #00e5ff, inset 0 0 2px #00e5ff;
+  }
+  to {
+    outline-color: #ffffff;
+    box-shadow: 0 0 12px #00e5ff, 0 0 4px #ffffff, inset 0 0 4px #00e5ff;
+  }
 }
 
 /* 802.1Q TRUNK & SPECIAL PORT STYLES */
 .port.port-special,
 .port.port-trunk {
   border-color: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
-  box-shadow: 0 0 6px var(--port-role-color, var(--trunk-color, #a855f7)), inset 0 0 3px var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  box-shadow: 0 0 5px var(--port-role-color, var(--trunk-color, #a855f7)), inset 0 0 2px var(--port-role-color, var(--trunk-color, #a855f7)) !important;
   z-index: 4;
 }
 
@@ -889,55 +1146,92 @@
 .port.port-trunk::before {
   content: var(--port-badge-text, "T") !important;
   position: absolute !important;
-  font-size: 7px !important;
+  inset: 1px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  font-size: 5.5px !important;
   font-weight: 900 !important;
-  font-family: Consolas, monospace !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   line-height: 1 !important;
-  color: #ffffff !important;
+  color: var(--port-badge-color, #ffffff) !important;
   background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
-  border-radius: 2px !important;
-  padding: 0 2px !important;
-  top: -4.5px !important;
-  left: -2px !important;
+  border-radius: 1px !important;
+  padding: 0 0 0.5px 0 !important;
+  margin: 0 !important;
   width: auto !important;
   height: auto !important;
+  min-width: unset !important;
+  text-align: center !important;
+  transform: none !important;
   z-index: 6 !important;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9) !important;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 0.5px 1.5px rgba(0, 0, 0, 0.4) !important;
+  pointer-events: none !important;
 }
 
 .port.port-trunk {
   --port-role-color: var(--custom-color, var(--trunk-color, #7c3aed));
   --port-badge-text: "T";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
 }
 
 .port.port-uplink {
   --port-role-color: var(--custom-color, #00d2ff);
   --port-badge-text: "▲";
+  --port-badge-color: var(--custom-badge-color, #020617);
 }
 
 .port.port-poe {
   --port-role-color: var(--custom-color, #f59e0b);
   --port-badge-text: "⚡";
+  --port-badge-color: var(--custom-badge-color, #020617);
 }
 
 .port.port-mgmt {
   --port-role-color: var(--custom-color, #059669);
   --port-badge-text: "M";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
 }
 
 .port.port-vlan {
   --port-role-color: var(--custom-color, #3b82f6);
   --port-badge-text: var(--vlan-badge, "V");
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-vlan::before {
+  font-size: 4.2px !important;
+  letter-spacing: -0.3px !important;
+  padding: 0 0 0.3px 0 !important;
 }
 
 .port.port-trunk-ap {
   --port-role-color: var(--custom-color, #ec4899);
   --port-badge-text: "W";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
 }
 
 .port.port-routed {
   --port-role-color: var(--custom-color, #b91c1c);
   --port-badge-text: "R";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-fiber {
+  --port-role-color: var(--custom-color, #facc15);
+  --port-badge-text: "F";
+  --port-badge-color: var(--custom-badge-color, #000000);
+}
+
+.port.port-fiber::before {
+  color: var(--port-badge-color, #000000) !important;
+}
+
+.port.port-console {
+  --port-role-color: var(--custom-color, #00bceb);
+  --port-badge-text: "C";
+  --port-badge-color: var(--custom-badge-color, #020617);
 }
 
 .port.port-poe-disabled {
@@ -979,23 +1273,228 @@
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
 }
 
-.organizer-brush {
-  height: 14px;
+/* --- REALISTIC BRUSH PASS-THROUGH ORGANIZER (1U) --- */
+.brush-faceplate {
+  background: linear-gradient(180deg, #131720 0%, #0c0f16 50%, #07090e 100%) !important;
+  border-top: 1px solid #232d3f !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #475569 !important;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.7) !important;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.brush-tag {
+  font-size: 0.58rem;
+  color: #64748b;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brush-tag-icon {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.6);
+}
+
+.brush-slot {
   flex: 1;
+  height: 18px;
+  background: #020406;
+  border-radius: 3px;
+  border: 1.5px solid #1e293b;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Top and bottom opposing nylon bristles */
+.brush-bristles-top,
+.brush-bristles-bottom {
+  height: 8px;
+  width: 100%;
   background: repeating-linear-gradient(
     90deg,
-    #030508 0px,
-    #030508 8px,
-    #161a22 8px,
-    #272f3d 10px,
-    #161a22 12px,
-    #030508 12px,
-    #030508 20px
+    #05080e 0px,
+    #05080e 1.5px,
+    #111622 1.5px,
+    #1e2636 2px,
+    #0b0f17 2.5px,
+    #05080e 3px
   );
-  border-radius: 3px;
-  border: 1px solid #181d26;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
+  opacity: 0.92;
 }
+
+.brush-bristles-top {
+  border-bottom: 1px solid #000;
+}
+
+.brush-bristles-bottom {
+  border-top: 1px solid #000;
+}
+
+.brush-slit {
+  height: 2px;
+  width: 100%;
+  background: #000;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 1);
+  z-index: 2;
+}
+
+/* --- ENTERPRISE 2U PANDUIT-STYLE FINGER DUCT ORGANIZER WITH SNAP COVER --- */
+.finger-duct-faceplate {
+  background: #080b11 !important;
+  border-top: 1px solid #1e2533 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #3b82f6 !important;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 8px;
+  box-sizing: border-box;
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9), 0 3px 8px rgba(0, 0, 0, 0.8) !important;
+}
+
+.finger-duct-tines-row {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  gap: 3px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+}
+
+.finger-tine {
+  flex: 1;
+  height: 100%;
+  max-width: 14px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.finger-duct-tines-row.top .finger-tine {
+  border-top: none;
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.finger-duct-tines-row.bottom .finger-tine {
+  border-bottom: none;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+/* Middle Snap-on Duct Cover */
+.finger-duct-cover {
+  flex: 1;
+  min-height: 32px;
+  background: linear-gradient(180deg, #1e2533 0%, #111622 40%, #0d121c 60%, #0a0d14 100%);
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  position: relative;
+  z-index: 2;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.finger-duct-cover.open {
+  background: linear-gradient(180deg, #070a10 0%, #030508 100%);
+  border-color: #3b82f6;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.95), 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.finger-cover-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finger-cover-tag {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.finger-duct-cover.open .finger-cover-tag {
+  color: #60a5fa;
+}
+
+.finger-cover-grip {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.finger-cover-grip span {
+  width: 2px;
+  height: 14px;
+  background: #334155;
+  border-radius: 1px;
+}
+
+.finger-toggle-btn {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #475569;
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.finger-toggle-btn:hover {
+  background: #334155;
+  color: #fff;
+  border-color: #64748b;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.finger-duct-cover.open .finger-toggle-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
 
 /* --- CLEAN MODERN ENTERPRISE D-RING CABLE ORGANIZER (1U / 2U) --- */
 .dring-faceplate {
@@ -1145,6 +1644,12 @@
   color: #ef4444;
 }
 
+.dev-btn.color-device-cables-btn:hover {
+  color: #38bdf8;
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.6));
+}
+
 /* ==========================================================================
    2D LOD (LEVEL OF DETAIL) SYSTEM FOR MULTI-RACK SCALE & PERFORMANCE
    ========================================================================== */
@@ -1257,6 +1762,316 @@
 .rack-stage.multi-rack-stage > #cables-svg .cable-path {
   pointer-events: stroke !important;
   cursor: pointer;
+}
+
+/* Visual Uplink / Trunk Confirmation Dialog */
+.uplink-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uplink-modal-card {
+  background: #090d16;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 210, 255, 0.18);
+  border-radius: 12px;
+  width: 500px;
+  max-width: 95vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uplink-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.uplink-modal-header .header-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.5px;
+}
+
+.uplink-modal-header .close-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.uplink-modal-header .close-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.uplink-modal-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uplink-connection-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.uplink-connection-strip .arrow {
+  color: #00d2ff;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.uplink-modal-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.uplink-choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.uplink-choice-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: none;
+}
+
+.uplink-choice-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 210, 255, 0.18);
+}
+
+.uplink-choice-card.recommended {
+  border-color: rgba(0, 210, 255, 0.55);
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.09) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.uplink-choice-card .choice-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.uplink-choice-card .choice-tag.cyan {
+  background: rgba(0, 210, 255, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 210, 255, 0.45);
+}
+
+.uplink-choice-card .choice-tag.gray {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.uplink-choice-card .choice-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+
+.uplink-choice-card .choice-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.uplink-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.uplink-modal-footer .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.uplink-modal-footer .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.uplink-modal-footer .btn-primary {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.uplink-modal-footer .btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 2px 14px rgba(56, 189, 248, 0.5);
+}
+
+/* Inline Delete Popover (Anchored right at X button) */
+.inline-delete-popover {
+  position: fixed;
+  width: 230px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 16px rgba(239, 68, 68, 0.25);
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInModal 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+.inline-delete-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.inline-delete-msg {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.inline-delete-msg strong {
+  color: #f87171;
+}
+
+.inline-delete-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.inline-del-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inline-del-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.inline-del-btn-confirm {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid #f87171;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.inline-del-btn-confirm:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 

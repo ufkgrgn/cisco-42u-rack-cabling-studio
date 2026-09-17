@@ -131,6 +131,20 @@ body, html {
 .telemetry-badge.power {
   color: #22c55e;
   border-color: rgba(34, 197, 94, 0.3);
+  transition: all 0.2s ease;
+}
+
+.telemetry-badge.power.overload {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6) !important;
+  animation: pulse-overload 1s infinite alternate;
+}
+
+@keyframes pulse-overload {
+  from { transform: scale(1); filter: drop-shadow(0 0 4px #ef4444); }
+  to { transform: scale(1.04); filter: drop-shadow(0 0 10px #ef4444); }
 }
 
 .telemetry-badge.heat {

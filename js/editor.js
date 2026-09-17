@@ -40,7 +40,16 @@
         bytes -= entry.length * 2;
       }
     }
-    const snapshot = () => JSON.stringify({racks: state.racks, cables: state.cables, rackCounter: state.rackCounter, cableCounter: state.cableCounter, customCatalog: state.customCatalog || {}, activeRackId: state.activeRackId});
+    const snapshot = () => JSON.stringify({
+      racks: state.racks,
+      cables: state.cables,
+      rackCounter: state.rackCounter,
+      cableCounter: state.cableCounter,
+      customCatalog: state.customCatalog || {},
+      activeRackId: state.activeRackId,
+      viewMode: state.viewMode || 'single',
+      cableRoutingMode: state.cableRoutingMode || 'structured'
+    });
     const status = (message, error = false) => { field('save').textContent = message; field('save').classList.toggle('error', error); };
     const selection = () => {
       for (const rack of state.racks) {
@@ -81,13 +90,34 @@
       queued = false;
       if (restoring) return;
       const next = snapshot();
-      if (last && next !== last) { undo.push(last); redo = []; capHistory(); last = next; revision++; status('Kaydediliyor…'); clearTimeout(saveTimer); saveTimer = setTimeout(save, 350); sync(); }
+      if (last && next !== last) {
+        undo.push(last);
+        redo = [];
+        capHistory();
+        last = next;
+        revision++;
+        status('Kaydediliyor…');
+        try { localStorage.setItem(KEY, next); localStorage.setItem('cisco-rack-studio-project', next); } catch (_) {}
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(save, 350);
+        sync();
+      }
       else if (!last) { last = next; sync(); }
     }
     function scheduleRecord() { if (!queued && !restoring) { queued = true; queueMicrotask(record); } }
     function restore(value) {
       restoring = true;
-      try { api.loadCustomTopology(JSON.parse(value)); last = snapshot(); selected = null; revision++; }
+      try {
+        const data = JSON.parse(value);
+        if (data.cableRoutingMode) state.cableRoutingMode = data.cableRoutingMode;
+        if (data.viewMode && api.setViewMode) {
+          api.setViewMode(data.viewMode, true);
+        }
+        api.loadCustomTopology(data);
+        last = snapshot();
+        selected = null;
+        revision++;
+      }
       finally { restoring = false; }
       sync(); save();
     }
@@ -195,9 +225,16 @@
     }, true);
     document.addEventListener('change', e => { if (!e.target.closest('.studio-editor')) scheduleRecord(); }, true);
     document.addEventListener('drop', scheduleRecord, true);
-    document.addEventListener('rackstudio:change', scheduleRecord);
+    const handleImmediateChange = (e) => {
+      if (e?.detail?.immediate) { record(); save(); }
+      else scheduleRecord();
+    };
+    document.addEventListener('rackstudio:change', handleImmediateChange);
     document.addEventListener('rackstudio:refresh', () => { sync(); scheduleRecord(); });
+    window.addEventListener('rackstudio:change', handleImmediateChange);
+    window.addEventListener('rackstudio:refresh', () => { sync(); scheduleRecord(); });
     window.addEventListener('pagehide', save);
+    window.addEventListener('beforeunload', () => { if (last) { try { localStorage.setItem(KEY, last); } catch (_) {} save(); } });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { record(); save(); } });
     last = snapshot(); sync();
     (async () => {

@@ -45,6 +45,12 @@
 
   function init() {
     initDomReferences();
+    const savedViewMode = (typeof localStorage !== 'undefined') ? localStorage.getItem('rack_studio_view_mode') : null;
+    if (savedViewMode === 'multi' || savedViewMode === 'single') {
+      STATE.viewMode = savedViewMode;
+    }
+    dom.btnViewModeSingle?.classList.toggle('active', STATE.viewMode === 'single');
+    dom.btnViewModeMulti?.classList.toggle('active', STATE.viewMode === 'multi');
     renderRackRailsAndSlots(handleSlotClick);
     bindCatalogEvents();
     bindColorSwatchEvents();
@@ -86,7 +92,10 @@
     renderRackTabs();
     renderMountedDevices();
     renderAllCables();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
     if (window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent('rackstudio:change', { detail: { immediate: true } }));
       window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     }
     return !!mounted;
@@ -159,14 +168,30 @@
         dom.btnRouteStructured.classList.add('active');
         dom.btnRouteDirect.classList.remove('active');
         STATE.cableRoutingMode = 'structured';
+        if (Array.isArray(STATE.cables)) {
+          STATE.cables.forEach(c => {
+            if (c.from && c.to && RS.calculateCableLengthMeters) {
+              c.lengthMeters = RS.calculateCableLengthMeters(c.from.instanceId, c.to.instanceId, c.from.rackId !== c.to.rackId);
+            }
+          });
+        }
         renderAllCables();
+        if (RS.renderScheduleTable) RS.renderScheduleTable();
       });
 
       dom.btnRouteDirect.addEventListener('click', () => {
         dom.btnRouteDirect.classList.add('active');
         dom.btnRouteStructured.classList.remove('active');
         STATE.cableRoutingMode = 'direct';
+        if (Array.isArray(STATE.cables)) {
+          STATE.cables.forEach(c => {
+            if (c.from && c.to && RS.calculateCableLengthMeters) {
+              c.lengthMeters = RS.calculateCableLengthMeters(c.from.instanceId, c.to.instanceId, c.from.rackId !== c.to.rackId);
+            }
+          });
+        }
         renderAllCables();
+        if (RS.renderScheduleTable) RS.renderScheduleTable();
       });
     }
 
@@ -184,14 +209,20 @@
     }
   }
 
-  function setViewMode(mode) {
+  function setViewMode(mode, skipSave = false) {
     STATE.viewMode = mode;
+    if (!skipSave) {
+      try {
+        localStorage.setItem('rack_studio_view_mode', mode);
+      } catch (_) {}
+    }
     dom.btnViewModeSingle?.classList.toggle('active', mode === 'single');
     dom.btnViewModeMulti?.classList.toggle('active', mode === 'multi');
     renderRackRailsAndSlots(handleSlotClick);
     renderMountedDevices();
     renderAllCables();
     requestAnimationFrame(() => fitRackToScreen(false));
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
   }
 
   function bindHeaderActionEvents() {
@@ -346,73 +377,161 @@
   }
 
   function updatePortConfig(instanceId, portId, config) {
-    const activeRack = getActiveRack();
-    if (!activeRack) return false;
-    const dev = activeRack.devices.find(d => d.instanceId === instanceId);
+    let dev = null;
+    for (const r of (STATE.racks || [])) {
+      const found = r.devices?.find(d => d.instanceId === instanceId);
+      if (found) { dev = found; break; }
+    }
     if (!dev) return false;
     if (!dev.portsConfig) dev.portsConfig = {};
-    if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description && !config.color)) {
-      delete dev.portsConfig[portId];
-      delete dev.portsConfig[String(portId).replace('p', '')];
+
+    const pIdStr = String(portId || '');
+    const isNumericPort = /^p\d+$/i.test(pIdStr) || /^\d+$/.test(pIdStr);
+    const pNumStr = isNumericPort ? pIdStr.replace(/^p/i, '') : pIdStr;
+    const cat = HARDWARE_CATALOG[dev.catalogKey];
+    const portObj = cat?.ports?.find(p => p.id === portId || p.name === portId || (isNumericPort && String(p.id).replace(/^p/i, '') === pNumStr));
+    const portName = portObj?.name;
+
+    const isReset = !config || (
+      config.role === 'access' &&
+      !config.ciscoName &&
+      !config.vlan &&
+      !config.description &&
+      (!config.color || config.color === '#38bdf8' || config.color === '#3b82f6') &&
+      (!config.poeState || config.poeState === 'auto')
+    );
+
+    if (isReset) {
+      delete dev.portsConfig[pIdStr];
+      if (isNumericPort) {
+        delete dev.portsConfig[pNumStr];
+        delete dev.portsConfig['p' + pNumStr];
+      }
+      delete dev.portsConfig['p' + pIdStr];
+      if (portName) delete dev.portsConfig[portName];
+
+      const connectedCable = STATE.cables.find(c =>
+        (c.from.instanceId === instanceId && (c.from.portId === portId || (isNumericPort && String(c.from.portId).replace(/^p/i, '') === pNumStr))) ||
+        (c.to.instanceId === instanceId && (c.to.portId === portId || (isNumericPort && String(c.to.portId).replace(/^p/i, '') === pNumStr)))
+      );
+
+      if (connectedCable) {
+        connectedCable.role = null;
+        connectedCable.color = STATE.selectedCableColor || '#2563eb';
+        const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT|AP-TRUNK|ROUTED|FIBER)\]\s*/i, '');
+        connectedCable.name = cleanName;
+
+        const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
+        let otherDev = null;
+        for (const r of (STATE.racks || [])) {
+          const found = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId);
+          if (found) { otherDev = found; break; }
+        }
+        if (otherDev && otherDev.portsConfig) {
+          const oIdStr = String(otherEndpoint.portId || '');
+          const oIsNumeric = /^p\d+$/i.test(oIdStr) || /^\d+$/.test(oIdStr);
+          const oNumStr = oIsNumeric ? oIdStr.replace(/^p/i, '') : oIdStr;
+          const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
+          const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oIsNumeric && String(p.id).replace(/^p/i, '') === oNumStr));
+          delete otherDev.portsConfig[oIdStr];
+          if (oIsNumeric) {
+            delete otherDev.portsConfig[oNumStr];
+            delete otherDev.portsConfig['p' + oNumStr];
+          }
+          delete otherDev.portsConfig['p' + oIdStr];
+          if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
+        }
+
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          try {
+            const pIdxA = parseInt(pNumStr, 10) || 1;
+            const pIdxB = parseInt(String(otherEndpoint.portId).replace(/^p/i, ''), 10) || 1;
+            window.__STUDIO3D__.updatePortConfig(dev.id || dev.instanceId, pIdxA, null);
+            if (otherDev) window.__STUDIO3D__.updatePortConfig(otherDev.id || otherDev.instanceId, pIdxB, null);
+          } catch (e) {}
+        }
+      }
     } else {
-      const role = config.role || 'trunk';
+      const role = config.role || 'access';
       const defaultRoleColors = {
-        trunk: '#a855f7',
+        trunk: '#7c3aed',
         uplink: '#00d2ff',
+        'trunk-ap': '#ec4899',
         poe: '#f59e0b',
-        mgmt: '#10b981',
-        management: '#10b981',
-        access: '#3b82f6'
+        mgmt: '#059669',
+        management: '#059669',
+        routed: '#b91c1c',
+        access: '#38bdf8',
+        fiber: '#facc15'
       };
-      const resolvedColor = config.color || defaultRoleColors[role] || '#a855f7';
-      dev.portsConfig[portId] = {
+      const resolvedColor = config.color || defaultRoleColors[role] || '#38bdf8';
+      const isTrunk = role === 'trunk' || role === 'uplink' || role === 'trunk-ap' || config.isTrunk === true;
+      const cleanCfg = {
         role: role,
-        isTrunk: role === 'trunk' || config.isTrunk === true,
+        isTrunk: isTrunk,
         color: resolvedColor,
         ciscoName: config.ciscoName || '',
         vlan: config.vlan || '',
         description: config.description || '',
-        autoCableColor: config.autoCableColor !== false
+        autoCableColor: config.autoCableColor !== false,
+        poeState: config.poeState || 'auto'
       };
-      dev.portsConfig[String(portId).replace('p', '')] = dev.portsConfig[portId];
+
+      delete dev.portsConfig['p' + pIdStr];
+      if (portName) delete dev.portsConfig[portName];
+
+      dev.portsConfig[pIdStr] = cleanCfg;
+      if (isNumericPort) {
+        dev.portsConfig[pNumStr] = cleanCfg;
+        dev.portsConfig['p' + pNumStr] = cleanCfg;
+      }
 
       if (config.autoCableColor !== false) {
         const connectedCable = STATE.cables.find(c =>
-          (c.from.instanceId === instanceId && (c.from.portId === portId || String(c.from.portId).replace('p','') === String(portId).replace('p',''))) ||
-          (c.to.instanceId === instanceId && (c.to.portId === portId || String(c.to.portId).replace('p','') === String(portId).replace('p','')))
+          (c.from.instanceId === instanceId && (c.from.portId === portId || (isNumericPort && String(c.from.portId).replace(/^p/i, '') === pNumStr))) ||
+          (c.to.instanceId === instanceId && (c.to.portId === portId || (isNumericPort && String(c.to.portId).replace(/^p/i, '') === pNumStr)))
         );
         if (connectedCable) {
           connectedCable.color = resolvedColor;
           connectedCable.role = role;
-          const rolePrefixes = { trunk: '[TRUNK]', uplink: '[UPLINK]', poe: '[POE]', mgmt: '[MGMT]', management: '[MGMT]' };
+          const rolePrefixes = { trunk: '[TRUNK]', uplink: '[UPLINK]', 'trunk-ap': '[AP-TRUNK]', poe: '[POE]', mgmt: '[MGMT]', management: '[MGMT]', routed: '[ROUTED]', fiber: '[FIBER]', console: '[CONSOLE]' };
           const prefix = rolePrefixes[role] ? rolePrefixes[role] + ' ' : '';
-          const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT)\]\s*/i, '');
+          const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT|AP-TRUNK|ROUTED|FIBER|CONSOLE)\]\s*/i, '');
           connectedCable.name = prefix + cleanName;
 
           const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
           let otherDev = null;
-          (STATE.racks || []).forEach(r => {
-            if (!otherDev) otherDev = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId);
-          });
+          for (const r of (STATE.racks || [])) {
+            const found = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId);
+            if (found) { otherDev = found; break; }
+          }
           if (otherDev) {
             if (!otherDev.portsConfig) otherDev.portsConfig = {};
-            otherDev.portsConfig[otherEndpoint.portId] = {
-              role: role,
-              isTrunk: role === 'trunk' || config.isTrunk === true,
-              color: resolvedColor,
-              vlan: config.vlan || '',
-              description: config.description || '',
-              ciscoName: config.ciscoName || '',
-              autoCableColor: true
-            };
-            otherDev.portsConfig[String(otherEndpoint.portId).replace('p','')] = otherDev.portsConfig[otherEndpoint.portId];
+            const oIdStr = String(otherEndpoint.portId || '');
+            const oIsNumeric = /^p\d+$/i.test(oIdStr) || /^\d+$/.test(oIdStr);
+            const oNumStr = oIsNumeric ? oIdStr.replace(/^p/i, '') : oIdStr;
+            const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
+            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oIsNumeric && String(p.id).replace(/^p/i, '') === oNumStr));
+
+            delete otherDev.portsConfig['p' + oIdStr];
+            if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
+
+            otherDev.portsConfig[oIdStr] = cleanCfg;
+            if (oIsNumeric) {
+              otherDev.portsConfig[oNumStr] = cleanCfg;
+              otherDev.portsConfig['p' + oNumStr] = cleanCfg;
+            }
           }
         }
       }
     }
+
     renderMountedDevices();
     renderScheduleTable();
     renderAllCables();
+
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     return true;
   }

@@ -119,12 +119,14 @@ export function initCableModals(studio) {
             studio.state.cables.forEach((c, idx) => {
               const dFrom = studio.state.devices.find(d => d.id === c.from.devId);
               const dTo = studio.state.devices.find(d => d.id === c.to.devId);
+              const rFrom = (studio.state.racks || []).find(r => r.id === (c.from.rackId || (dFrom && dFrom.rackId))) || { name: 'MDF' };
+              const rTo = (studio.state.racks || []).find(r => r.id === (c.to.rackId || (dTo && dTo.rackId))) || { name: 'MDF' };
               const tr = document.createElement('tr');
               tr.innerHTML = `
                 <td>#${idx + 1}</td>
                 <td><strong style="color:#38bdf8;cursor:pointer;" class="schedule-cable-name" title="İsmi düzenlemek için tıklayın">${c.name || 'İsimsiz Kablo'}</strong></td>
-                <td><strong>${dFrom ? dFrom.name : 'Bilinmeyen'}</strong> (P${c.from.portIdx})</td>
-                <td><strong>${dTo ? dTo.name : 'Bilinmeyen'}</strong> (P${c.to.portIdx})</td>
+                <td><span style="font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(2,132,199,0.2);color:#38bdf8;margin-right:4px;">${rFrom.name}</span><strong>${dFrom ? dFrom.name : 'Bilinmeyen'}</strong> (P${c.from.portIdx})</td>
+                <td><span style="font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(2,132,199,0.2);color:#38bdf8;margin-right:4px;">${rTo.name}</span><strong>${dTo ? dTo.name : 'Bilinmeyen'}</strong> (P${c.to.portIdx})</td>
                 <td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background-color:#${c.color.toString(16).padStart(6, '0')};margin-right:6px;vertical-align:middle;"></span>#${c.color.toString(16).padStart(6, '0')}</td>
                 <td><strong>${c.lengthM} Metre</strong></td>
                 <td>

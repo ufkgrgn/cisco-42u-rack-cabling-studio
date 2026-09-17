@@ -152,26 +152,34 @@
         return candidate ? candidate.id : ports[0].id;
       }
 
+      const defaultRackId = (s.racks && s.racks[0] && s.racks[0].id) || 'rack-1';
+
       const validCables = [];
       (s.cables || []).forEach(c => {
         if (!c.from || !c.to) return;
         const pFrom = resolvePortId(c.from.devId, c.from.portIdx, c.from.portId);
         const pTo = resolvePortId(c.to.devId, c.to.portIdx, c.to.portId);
         if (!pFrom || !pTo) return;
+        const devFrom = s.devices.find(d => d.id === c.from.devId);
+        const devTo = s.devices.find(d => d.id === c.to.devId);
+        const rackFrom = c.from.rackId || (devFrom && devFrom.rackId) || defaultRackId;
+        const rackTo = c.to.rackId || (devTo && devTo.rackId) || defaultRackId;
         const hex = typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff');
         validCables.push({
           id: c.id,
           name: c.name || 'Kablo',
+          role: c.role || '',
+          ductSide: c.ductSide || 'auto',
           color: hex,
           lengthMeters: c.lengthM || 1.5,
           from: {
-            rackId: 'rack-1',
+            rackId: rackFrom,
             instanceId: c.from.devId,
             portId: pFrom,
             face: 'front'
           },
           to: {
-            rackId: 'rack-1',
+            rackId: rackTo,
             instanceId: c.to.devId,
             portId: pTo,
             face: 'front'
@@ -179,28 +187,51 @@
         });
       });
 
+      const racksData = (Array.isArray(s.racks) && s.racks.length > 0)
+        ? s.racks.map(r => ({
+            id: r.id,
+            name: r.name,
+            heightU: r.heightU || s.rackHeightU || 42,
+            devices: s.devices.filter(d => (d.rackId || defaultRackId) === r.id).map(d => ({
+              instanceId: d.id,
+              catalogKey: d.catalogId,
+              topU: d.startU + (d.uHeight || 1) - 1,
+              uHeight: d.uHeight || 1,
+              name: d.name,
+              hostname: d.hostname || d.name,
+              ipAddress: d.ipAddress || '',
+              macAddress: d.macAddress || '',
+              serialNumber: d.serialNumber || '',
+              panelLabel: d.panelLabel || '',
+              portsConfig: d.portsConfig || {},
+              face: 'front'
+            }))
+          }))
+        : [{
+            id: 'rack-1',
+            name: 'MDF - Dağıtım Kabini',
+            heightU: s.rackHeightU || 42,
+            devices: s.devices.map(d => ({
+              instanceId: d.id,
+              catalogKey: d.catalogId,
+              topU: d.startU + (d.uHeight || 1) - 1,
+              uHeight: d.uHeight || 1,
+              name: d.name,
+              hostname: d.hostname || d.name,
+              ipAddress: d.ipAddress || '',
+              macAddress: d.macAddress || '',
+              serialNumber: d.serialNumber || '',
+              panelLabel: d.panelLabel || '',
+              portsConfig: d.portsConfig || {},
+              face: 'front'
+            }))
+          }];
+
       const legacyProj = {
         version: '3.0.0',
         doorOpen: s.doorOpen === true,
-        activeRackId: 'rack-1',
-        racks: [{
-          id: 'rack-1',
-          name: 'MDF - Dağıtım Kabini',
-          heightU: s.rackHeightU || 42,
-          devices: s.devices.map(d => ({
-            instanceId: d.id,
-            catalogKey: d.catalogId,
-            topU: d.startU + (d.uHeight || 1) - 1,
-            uHeight: d.uHeight || 1,
-            name: d.name,
-            ipAddress: d.ipAddress || '',
-            macAddress: d.macAddress || '',
-            serialNumber: d.serialNumber || '',
-            panelLabel: d.panelLabel || '',
-            portsConfig: d.portsConfig || {},
-            face: 'front'
-          }))
-        }],
+        activeRackId: s.activeRackId || defaultRackId,
+        racks: racksData,
         cables: validCables
       };
       localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
@@ -219,6 +250,8 @@
       let proj = null;
       if (window.RackStudio && window.RackStudio.STATE && window.RackStudio.STATE.racks) {
         proj = {
+          activeRackId: window.RackStudio.STATE.activeRackId,
+          doorOpen: window.RackStudio.STATE.doorOpen === true,
           racks: window.RackStudio.STATE.racks,
           cables: window.RackStudio.STATE.cables || []
         };
