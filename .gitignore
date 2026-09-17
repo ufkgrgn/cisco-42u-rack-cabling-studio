@@ -3,6 +3,8 @@ tests/*.png
 test-results/
 *.exe
 *.zip
+*.apk
+dist-android/
 
 # Local build caches and generated metadata
 *.tsbuildinfo

@@ -1,4 +1,4 @@
-import { ZOOM_STATE, dom } from './state.js';
+import { ZOOM_STATE, dom, STATE, getActiveRack } from './state.js';
 import { renderAllCables } from './cabling.js';
 
 let stageTransitionBound = false;
@@ -11,6 +11,9 @@ function ensureStageTransitionListener() {
   });
   stageTransitionBound = true;
 }
+
+let lastLodLevel = '';
+let lastDispatchedScale = -1;
 
 export function updateStageTransform(smooth = false) {
   if (!dom.rackStage) return;
@@ -26,10 +29,20 @@ export function updateStageTransform(smooth = false) {
     dom.zoomBadge.textContent = `${Math.round(ZOOM_STATE.scale * 100)}%`;
   }
 
-  // Dispatch custom zoom event for high-DPI re-rendering
-  window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
-    detail: { scale: ZOOM_STATE.scale, panX: ZOOM_STATE.panX, panY: ZOOM_STATE.panY }
-  }));
+  // Dynamic 2D Level of Detail (LOD) tiering
+  const currentLod = ZOOM_STATE.scale < 0.42 ? 'macro' : (ZOOM_STATE.scale < 0.78 ? 'medium' : 'detail');
+  if (currentLod !== lastLodLevel) {
+    dom.rackStage.setAttribute('data-lod', currentLod);
+    lastLodLevel = currentLod;
+  }
+
+  // Only dispatch rack-zoom-changed when scale actually changes (not during pure panning!)
+  if (Math.abs(ZOOM_STATE.scale - lastDispatchedScale) > 0.005) {
+    lastDispatchedScale = ZOOM_STATE.scale;
+    window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
+      detail: { scale: ZOOM_STATE.scale, panX: ZOOM_STATE.panX, panY: ZOOM_STATE.panY }
+    }));
+  }
 }
 
 export function fitRackToScreen(smooth = true) {
@@ -39,8 +52,17 @@ export function fitRackToScreen(smooth = true) {
   const ch = canvas.clientHeight;
   if (cw <= 0 || ch <= 0) return;
 
-  const rackW = 634; // 618px content + 16px border
-  const rackH = 1360; // 1344px content + 16px border
+  const activeRack = getActiveRack ? getActiveRack() : null;
+  let rackW = 634; // 618px content + 16px border
+  let rackH = (activeRack?.heightU || 42) * 32 + 16;
+
+  const isMulti = STATE && STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
+  if (isMulti) {
+    const numRacks = STATE.racks.length;
+    rackW = numRacks * 634 + (numRacks - 1) * 64 + 120;
+    const maxU = Math.max(...STATE.racks.map(r => r.heightU || 42));
+    rackH = maxU * 32 + 16 + 140;
+  }
 
   const padX = 24;
   const padY = 20;
@@ -137,6 +159,7 @@ export function bindZoomAndPanEvents() {
     ZOOM_STATE.startY = e.clientY - ZOOM_STATE.panY;
     ZOOM_STATE.hasMoved = false;
     canvas.classList.add('panning');
+    if (dom.rackStage) dom.rackStage.classList.add('panning-active');
   });
 
   window.addEventListener('mousemove', (e) => {
@@ -156,6 +179,7 @@ export function bindZoomAndPanEvents() {
     if (ZOOM_STATE.isPanning) {
       ZOOM_STATE.isPanning = false;
       canvas.classList.remove('panning');
+      if (dom.rackStage) dom.rackStage.classList.remove('panning-active');
     }
   });
 

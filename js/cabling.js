@@ -70,87 +70,165 @@ function getDRingBracketCoords(organizer, contRect, curScale) {
   return coords;
 }
 
-function renderDRingOverlays(activeRack, contRect, curScale) {
+function renderDRingOverlays(activeRack) {
   if (!dom.dringOverlayGroup) return;
   dom.dringOverlayGroup.innerHTML = '';
   const drings = getActiveOrganizers(activeRack).filter(dev => {
     const cat = HARDWARE_CATALOG[dev.catalogKey];
-    return dev.catalogKey === 'organizer-dring-1u' || (cat && cat.modelTag && cat.modelTag.includes('D-RING')) || (cat && cat.name && cat.name.toLowerCase().includes('d-ring'));
+    return dev.catalogKey === 'organizer-dring-1u' ||
+      (cat && cat.modelTag && cat.modelTag.includes('D-RING')) ||
+      (cat && cat.name && cat.name.toLowerCase().includes('d-ring')) ||
+      (dev.catalogKey && dev.catalogKey.includes('dring'));
   });
   if (!drings.length) return;
 
+  const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+  const svgRect = svgEl ? svgEl.getBoundingClientRect() : null;
+  if (!svgRect || svgRect.width <= 0) return;
+
+  const activeRackForSize = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
+  const totalU = Number(activeRackForSize?.heightU || 42);
+  const rackHeight = totalU * 32;
+  const scaleX = svgRect.width / 618;
+  const scaleY = svgRect.height / rackHeight;
+
   drings.forEach(org => {
-    const coords = getDRingBracketCoords(org, contRect, curScale);
-    coords.forEach(bracket => {
-      const loopW = 38;
-      const loopH = 27;
-      const loopX = bracket.x - loopW / 2;
-      const loopY = bracket.y - loopH / 2;
+    const orgEl = document.getElementById(org.instanceId);
+    if (!orgEl) return;
 
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('class', 'dring-svg-bracket');
-      g.setAttribute('style', 'pointer-events:none;');
+    // Try to read bracket positions dynamically from DOM
+    const brackets = orgEl.querySelectorAll('.dring-loop');
+    if (brackets && brackets.length > 0) {
+      // Dynamic path: use actual DOM element bounding boxes
+      brackets.forEach(loopEl => {
+        const loopRect = loopEl.getBoundingClientRect();
+        if (loopRect.width === 0) return;
 
-      // Left vertical pillar of D-Ring hoop
-      const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      leftPillar.setAttribute('x', loopX);
-      leftPillar.setAttribute('y', loopY);
-      leftPillar.setAttribute('width', '5.5');
-      leftPillar.setAttribute('height', loopH);
-      leftPillar.setAttribute('rx', '2.5');
-      leftPillar.setAttribute('fill', 'url(#dring-front-grad)');
-      leftPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
-      g.appendChild(leftPillar);
+        const cx = (loopRect.left + loopRect.width / 2 - svgRect.left) / scaleX;
+        const cy = (loopRect.top + loopRect.height / 2 - svgRect.top) / scaleY;
+        const w = loopRect.width / scaleX;
+        const h = loopRect.height / scaleY;
+        const loopX = cx - w / 2;
+        const loopY = cy - h / 2;
+        const pillarW = Math.max(3.5, w * 0.115);
 
-      // Right vertical pillar of D-Ring hoop
-      const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rightPillar.setAttribute('x', loopX + loopW - 5.5);
-      rightPillar.setAttribute('y', loopY);
-      rightPillar.setAttribute('width', '5.5');
-      rightPillar.setAttribute('height', loopH);
-      rightPillar.setAttribute('rx', '2.5');
-      rightPillar.setAttribute('fill', 'url(#dring-front-grad)');
-      rightPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
-      g.appendChild(rightPillar);
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'dring-svg-bracket');
+        g.setAttribute('style', 'pointer-events:none;');
 
-      // Top retention clip
-      const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      clip.setAttribute('x', loopX + 14);
-      clip.setAttribute('y', loopY - 1.5);
-      clip.setAttribute('width', '10');
-      clip.setAttribute('height', '2.5');
-      clip.setAttribute('rx', '1');
-      clip.setAttribute('fill', 'url(#dring-clip-grad)');
-      g.appendChild(clip);
+        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftPillar.setAttribute('x', loopX);
+        leftPillar.setAttribute('y', loopY);
+        leftPillar.setAttribute('width', pillarW);
+        leftPillar.setAttribute('height', h);
+        leftPillar.setAttribute('rx', '1.5');
+        leftPillar.setAttribute('fill', '#334155');
+        leftPillar.setAttribute('stroke', '#475569');
+        leftPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(leftPillar);
 
-      // Subtle metallic highlight across top
-      const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      highlight.setAttribute('x', loopX + 2);
-      highlight.setAttribute('y', loopY);
-      highlight.setAttribute('width', loopW - 4);
-      highlight.setAttribute('height', '1.2');
-      highlight.setAttribute('rx', '0.6');
-      highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.55)');
-      g.appendChild(highlight);
+        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rightPillar.setAttribute('x', loopX + w - pillarW);
+        rightPillar.setAttribute('y', loopY);
+        rightPillar.setAttribute('width', pillarW);
+        rightPillar.setAttribute('height', h);
+        rightPillar.setAttribute('rx', '1.5');
+        rightPillar.setAttribute('fill', '#334155');
+        rightPillar.setAttribute('stroke', '#475569');
+        rightPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(rightPillar);
 
-      dom.dringOverlayGroup.appendChild(g);
-    });
+        const clipW = Math.max(10, w * 0.37);
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clip.setAttribute('x', cx - clipW / 2);
+        clip.setAttribute('y', loopY - 1.2);
+        clip.setAttribute('width', clipW);
+        clip.setAttribute('height', '2.5');
+        clip.setAttribute('rx', '1');
+        clip.setAttribute('fill', '#64748b');
+        g.appendChild(clip);
+
+        dom.dringOverlayGroup.appendChild(g);
+      });
+    } else {
+      // Fallback: use U-position arithmetic (original behaviour)
+      const topU = Number(org.topU || 1);
+      const uH = Number(org.uHeight || 1);
+      const centerY = (42 - topU) * 32 + (uH * 32) / 2;
+      const ringXs = [111.4, 210.2, 309.0, 407.8, 506.6];
+      const ringW = 38;
+      const ringH = 24;
+
+      ringXs.forEach(rx => {
+        const loopX = rx - ringW / 2;
+        const loopY = centerY - ringH / 2;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'dring-svg-bracket');
+        g.setAttribute('style', 'pointer-events:none;');
+
+        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftPillar.setAttribute('x', loopX);
+        leftPillar.setAttribute('y', loopY);
+        leftPillar.setAttribute('width', '4.5');
+        leftPillar.setAttribute('height', ringH);
+        leftPillar.setAttribute('rx', '1.5');
+        leftPillar.setAttribute('fill', '#334155');
+        leftPillar.setAttribute('stroke', '#475569');
+        leftPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(leftPillar);
+
+        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rightPillar.setAttribute('x', loopX + ringW - 4.5);
+        rightPillar.setAttribute('y', loopY);
+        rightPillar.setAttribute('width', '4.5');
+        rightPillar.setAttribute('height', ringH);
+        rightPillar.setAttribute('rx', '1.5');
+        rightPillar.setAttribute('fill', '#334155');
+        rightPillar.setAttribute('stroke', '#475569');
+        rightPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(rightPillar);
+
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clip.setAttribute('x', loopX + 12);
+        clip.setAttribute('y', loopY - 1);
+        clip.setAttribute('width', '14');
+        clip.setAttribute('height', '2.5');
+        clip.setAttribute('rx', '1');
+        clip.setAttribute('fill', '#64748b');
+        g.appendChild(clip);
+
+        dom.dringOverlayGroup.appendChild(g);
+      });
+    }
   });
 }
+
 
 export function renderAllCables() {
   if (!dom.cablesGroup) return;
   dom.cablesGroup.innerHTML = '';
   if (dom.connectorsGroup) dom.connectorsGroup.innerHTML = '';
 
-  const contRect = dom.rackContainer.getBoundingClientRect();
-  const curScale = ZOOM_STATE.scale || 1.0;
+  const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+  const svgRect = svgEl ? svgEl.getBoundingClientRect() : (dom.rackContainer ? dom.rackContainer.getBoundingClientRect() : null);
+  if (!svgRect || svgRect.width <= 0) return;
+
+  const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
+  const totalU = Number(activeRack?.heightU || 42);
+  const rackHeight = totalU * 32;
+
+  if (svgEl) {
+    svgEl.setAttribute('viewBox', `0 0 618 ${rackHeight}`);
+  }
+
+  const scaleX = svgRect.width / 618;
+  const scaleY = svgRect.height / rackHeight;
 
   // Counters to space parallel cables in left and right vertical channels
   let leftChannelUsage = 0;
   let rightChannelUsage = 0;
   const dringUsageMap = new Map();
-  const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
 
   STATE.cables.forEach((cable) => {
     const instA = cable.from.instanceId || cable.from.deviceId;
@@ -177,11 +255,11 @@ export function renderAllCables() {
     if (!rectA || !rectB) return;
     if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
 
-    // 8px is rack-container outer border
-    const x1 = (rectA.left + rectA.width / 2 - (contRect.left + 8 * curScale)) / curScale;
-    const y1 = (rectA.top + rectA.height / 2 - (contRect.top + 8 * curScale)) / curScale;
-    const x2 = (rectB.left + rectB.width / 2 - (contRect.left + 8 * curScale)) / curScale;
-    const y2 = (rectB.top + rectB.height / 2 - (contRect.top + 8 * curScale)) / curScale;
+    // Exact unscaled SVG user coordinate calculation (invariant across zoom levels and transitions)
+    const x1 = (rectA.left + rectA.width / 2 - svgRect.left) / scaleX;
+    const y1 = (rectA.top + rectA.height / 2 - svgRect.top) / scaleY;
+    const x2 = (rectB.left + rectB.width / 2 - svgRect.left) / scaleX;
+    const y2 = (rectB.top + rectB.height / 2 - svgRect.top) / scaleY;
 
     const dy = Math.abs(y2 - y1);
     const dx = Math.abs(x2 - x1);
@@ -212,7 +290,7 @@ export function renderAllCables() {
             const orgEl = document.getElementById(org.instanceId);
             if (orgEl) {
               const r = orgEl.getBoundingClientRect();
-              return (r.top + r.height / 2 - (contRect.top + 8 * curScale)) / curScale;
+              return (r.top + r.height / 2 - svgRect.top) / scaleY;
             }
           }
           return fallbackY + (otherY >= fallbackY ? 14 : -14);
@@ -236,12 +314,13 @@ export function renderAllCables() {
         const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
         // Space parallel cables neatly within vertical rail duct (44px rail width)
-        const railOffset = ((bundleIdx % 7) - 3) * 2.8;
+        // Increased from 2.8 to 4.2px so overlapping cables don't visually merge
+        const railOffset = ((bundleIdx % 7) - 3) * 4.2;
         const channelX = channelBase + railOffset;
 
-        // Minor vertical jitter inside horizontal tray to form parallel wire bundles
-        const trayOffsetA = ((bundleIdx % 5) - 2) * 1.5;
-        const trayOffsetB = ((bundleIdx % 5) - 2) * 1.5;
+        // Wider vertical jitter inside horizontal tray to keep cables separated
+        const trayOffsetA = ((bundleIdx % 5) - 2) * 2.5;
+        const trayOffsetB = ((bundleIdx % 5) - 2) * 2.5;
         const actualTrayYA = trayYA + trayOffsetA;
         const actualTrayYB = trayYB + trayOffsetB;
 
@@ -285,6 +364,13 @@ export function renderAllCables() {
       const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
       pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
     }
+
+    // Dark casing path drawn BEHIND the colored cable for visual separation
+    // This gives a crisp dark outline when cables overlap - zero extra render cost
+    const casing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    casing.setAttribute('d', pathD);
+    casing.setAttribute('class', 'cable-casing');
+    dom.cablesGroup.appendChild(casing);
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', pathD);
@@ -419,39 +505,55 @@ export function renderAllCables() {
       const bootA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bootA.setAttribute('cx', x1);
       bootA.setAttribute('cy', y1);
-      bootA.setAttribute('r', '3');
-      bootA.setAttribute('fill', '#0c101a');
+      bootA.setAttribute('r', '3.4');
+      bootA.setAttribute('fill', '#090d16');
       bootA.setAttribute('stroke', cable.color);
       bootA.setAttribute('stroke-width', '1.6');
       bootA.setAttribute('class', 'cable-boot');
-      bootA.style.cursor = 'pointer';
+      bootA.setAttribute('data-cable-id', cable.id);
       bootA.addEventListener('click', (e) => {
         e.stopPropagation();
         highlightCable(cable.id);
         showCableQuickHud(cable.id, e.clientX, e.clientY);
       });
 
+      const pinA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pinA.setAttribute('cx', x1);
+      pinA.setAttribute('cy', y1);
+      pinA.setAttribute('r', '1.2');
+      pinA.setAttribute('fill', cable.color);
+      pinA.setAttribute('class', 'cable-boot-pin');
+
       const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bootB.setAttribute('cx', x2);
       bootB.setAttribute('cy', y2);
-      bootB.setAttribute('r', '3');
-      bootB.setAttribute('fill', '#0c101a');
+      bootB.setAttribute('r', '3.4');
+      bootB.setAttribute('fill', '#090d16');
       bootB.setAttribute('stroke', cable.color);
       bootB.setAttribute('stroke-width', '1.6');
       bootB.setAttribute('class', 'cable-boot');
-      bootB.style.cursor = 'pointer';
+      bootB.setAttribute('data-cable-id', cable.id);
       bootB.addEventListener('click', (e) => {
         e.stopPropagation();
         highlightCable(cable.id);
         showCableQuickHud(cable.id, e.clientX, e.clientY);
       });
 
+      const pinB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pinB.setAttribute('cx', x2);
+      pinB.setAttribute('cy', y2);
+      pinB.setAttribute('r', '1.2');
+      pinB.setAttribute('fill', cable.color);
+      pinB.setAttribute('class', 'cable-boot-pin');
+
       dom.connectorsGroup.appendChild(bootA);
+      dom.connectorsGroup.appendChild(pinA);
       dom.connectorsGroup.appendChild(bootB);
+      dom.connectorsGroup.appendChild(pinB);
     }
   });
 
-  renderDRingOverlays(activeRack, contRect, curScale);
+  renderDRingOverlays(activeRack);
 }
 
 let quickHudEl = null;

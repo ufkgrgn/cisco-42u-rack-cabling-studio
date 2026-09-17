@@ -5,6 +5,11 @@ description = "Enterprise Cisco 42U Rack & Cabling Studio"
 authors = ["Cisco Studio Team"]
 edition = "2021"
 
+[lib]
+name = "cisco_rack_cabling_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+
 [build-dependencies]
 tauri-build = { version = "2.0", features = [] }
 

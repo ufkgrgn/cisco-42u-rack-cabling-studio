@@ -1,8 +1,24 @@
-import { ZOOM_STATE, dom } from './state.js';
+import { ZOOM_STATE, dom, STATE, getActiveRack } from './state.js';
 import { renderAllCables } from './cabling.js';
+
+let stageTransitionBound = false;
+function ensureStageTransitionListener() {
+  if (stageTransitionBound || !dom.rackStage) return;
+  dom.rackStage.addEventListener('transitionend', (e) => {
+    if (e.propertyName === 'transform') {
+      renderAllCables();
+    }
+  });
+  stageTransitionBound = true;
+}
+
+let lastLodLevel = '';
+let lastDispatchedScale = -1;
 
 export function updateStageTransform(smooth = false) {
   if (!dom.rackStage) return;
+  ensureStageTransitionListener();
+
   if (smooth) {
     dom.rackStage.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)';
   } else {
@@ -13,10 +29,20 @@ export function updateStageTransform(smooth = false) {
     dom.zoomBadge.textContent = `${Math.round(ZOOM_STATE.scale * 100)}%`;
   }
 
-  // Dispatch custom zoom event for high-DPI re-rendering
-  window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
-    detail: { scale: ZOOM_STATE.scale, panX: ZOOM_STATE.panX, panY: ZOOM_STATE.panY }
-  }));
+  // Dynamic 2D Level of Detail (LOD) tiering
+  const currentLod = ZOOM_STATE.scale < 0.42 ? 'macro' : (ZOOM_STATE.scale < 0.78 ? 'medium' : 'detail');
+  if (currentLod !== lastLodLevel) {
+    dom.rackStage.setAttribute('data-lod', currentLod);
+    lastLodLevel = currentLod;
+  }
+
+  // Only dispatch rack-zoom-changed when scale actually changes (not during pure panning!)
+  if (Math.abs(ZOOM_STATE.scale - lastDispatchedScale) > 0.005) {
+    lastDispatchedScale = ZOOM_STATE.scale;
+    window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
+      detail: { scale: ZOOM_STATE.scale, panX: ZOOM_STATE.panX, panY: ZOOM_STATE.panY }
+    }));
+  }
 }
 
 export function fitRackToScreen(smooth = true) {
@@ -26,15 +52,24 @@ export function fitRackToScreen(smooth = true) {
   const ch = canvas.clientHeight;
   if (cw <= 0 || ch <= 0) return;
 
-  const rackW = 634; // 618px content + 16px border
-  const rackH = 1360; // 1344px content + 16px border
+  const activeRack = getActiveRack ? getActiveRack() : null;
+  let rackW = 634; // 618px content + 16px border
+  let rackH = (activeRack?.heightU || 42) * 32 + 16;
+
+  const isMulti = STATE && STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
+  if (isMulti) {
+    const numRacks = STATE.racks.length;
+    rackW = numRacks * 634 + (numRacks - 1) * 64 + 120;
+    const maxU = Math.max(...STATE.racks.map(r => r.heightU || 42));
+    rackH = maxU * 32 + 16 + 140;
+  }
 
   const padX = 24;
   const padY = 20;
 
   const scaleX = (cw - padX * 2) / rackW;
   const scaleY = (ch - padY * 2) / rackH;
-  const fitScale = Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25));
+  const fitScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25)).toFixed(4));
 
   ZOOM_STATE.scale = fitScale;
   ZOOM_STATE.panX = Math.round((cw - rackW * fitScale) / 2);
@@ -42,14 +77,14 @@ export function fitRackToScreen(smooth = true) {
   ZOOM_STATE.isFit = true;
 
   updateStageTransform(smooth);
-  setTimeout(renderAllCables, 30);
+  scheduleCableRender(smooth ? 260 : 20);
 }
 
 export function setZoom(newScale, screenX, screenY, smooth = false) {
   const canvas = dom.viewportCanvas;
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
-  const clampedScale = Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale));
+  const clampedScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale)).toFixed(4));
 
   const cx = (screenX !== undefined) ? screenX - rect.left : canvas.clientWidth / 2;
   const cy = (screenY !== undefined) ? screenY - rect.top : canvas.clientHeight / 2;
@@ -64,8 +99,16 @@ export function setZoom(newScale, screenX, screenY, smooth = false) {
   ZOOM_STATE.isFit = false;
 
   updateStageTransform(smooth);
-  // Re-render cables immediately so labels and paths stay razor sharp
-  renderAllCables();
+  scheduleCableRender(smooth ? 260 : 30);
+}
+
+let cableRenderTimer = null;
+export function scheduleCableRender(delay = 40) {
+  if (cableRenderTimer) clearTimeout(cableRenderTimer);
+  cableRenderTimer = setTimeout(() => {
+    cableRenderTimer = null;
+    requestAnimationFrame(renderAllCables);
+  }, delay);
 }
 
 export function jumpToSection(section) {
@@ -75,7 +118,7 @@ export function jumpToSection(section) {
   const ch = canvas.clientHeight;
   const rackW = 634;
 
-  const targetScale = Math.min(1.3, Math.max(0.9, (cw - 40) / rackW));
+  const targetScale = parseFloat(Math.min(1.3, Math.max(0.9, (cw - 40) / rackW)).toFixed(4));
   ZOOM_STATE.scale = targetScale;
   ZOOM_STATE.panX = Math.round((cw - rackW * targetScale) / 2);
   ZOOM_STATE.isFit = false;
@@ -92,6 +135,7 @@ export function jumpToSection(section) {
   }
 
   updateStageTransform(true);
+  scheduleCableRender(260);
 }
 
 export function bindZoomAndPanEvents() {
@@ -115,6 +159,7 @@ export function bindZoomAndPanEvents() {
     ZOOM_STATE.startY = e.clientY - ZOOM_STATE.panY;
     ZOOM_STATE.hasMoved = false;
     canvas.classList.add('panning');
+    if (dom.rackStage) dom.rackStage.classList.add('panning-active');
   });
 
   window.addEventListener('mousemove', (e) => {
@@ -134,6 +179,7 @@ export function bindZoomAndPanEvents() {
     if (ZOOM_STATE.isPanning) {
       ZOOM_STATE.isPanning = false;
       canvas.classList.remove('panning');
+      if (dom.rackStage) dom.rackStage.classList.remove('panning-active');
     }
   });
 
@@ -182,4 +228,6 @@ export function bindZoomAndPanEvents() {
   if (dom.navJumpTop) dom.navJumpTop.addEventListener('click', () => jumpToSection('top'));
   if (dom.navJumpMid) dom.navJumpMid.addEventListener('click', () => jumpToSection('mid'));
   if (dom.navJumpBot) dom.navJumpBot.addEventListener('click', () => jumpToSection('bot'));
+
+  window.addEventListener('rack-zoom-changed', () => scheduleCableRender(30));
 }

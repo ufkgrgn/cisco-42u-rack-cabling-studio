@@ -82,61 +82,128 @@ function renderDRingOverlays(activeRack) {
   });
   if (!drings.length) return;
 
-  const ringXs = [111.4, 210.2, 309.0, 407.8, 506.6];
-  const ringW = 38;
-  const ringH = 24;
+  const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+  const svgRect = svgEl ? svgEl.getBoundingClientRect() : null;
+  if (!svgRect || svgRect.width <= 0) return;
+
+  const activeRackForSize = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
+  const totalU = Number(activeRackForSize?.heightU || 42);
+  const rackHeight = totalU * 32;
+  const scaleX = svgRect.width / 618;
+  const scaleY = svgRect.height / rackHeight;
 
   drings.forEach(org => {
-    const topU = Number(org.topU || 1);
-    const uH = Number(org.uHeight || 1);
-    const centerY = (42 - topU) * 32 + (uH * 32) / 2;
+    const orgEl = document.getElementById(org.instanceId);
+    if (!orgEl) return;
 
-    ringXs.forEach(rx => {
-      const loopX = rx - ringW / 2;
-      const loopY = centerY - ringH / 2;
+    // Try to read bracket positions dynamically from DOM
+    const brackets = orgEl.querySelectorAll('.dring-loop');
+    if (brackets && brackets.length > 0) {
+      // Dynamic path: use actual DOM element bounding boxes
+      brackets.forEach(loopEl => {
+        const loopRect = loopEl.getBoundingClientRect();
+        if (loopRect.width === 0) return;
 
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('class', 'dring-svg-bracket');
-      g.setAttribute('style', 'pointer-events:none;');
+        const cx = (loopRect.left + loopRect.width / 2 - svgRect.left) / scaleX;
+        const cy = (loopRect.top + loopRect.height / 2 - svgRect.top) / scaleY;
+        const w = loopRect.width / scaleX;
+        const h = loopRect.height / scaleY;
+        const loopX = cx - w / 2;
+        const loopY = cy - h / 2;
+        const pillarW = Math.max(3.5, w * 0.115);
 
-      // Left vertical retaining post (draws in front of cable)
-      const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      leftPillar.setAttribute('x', loopX);
-      leftPillar.setAttribute('y', loopY);
-      leftPillar.setAttribute('width', '4.5');
-      leftPillar.setAttribute('height', ringH);
-      leftPillar.setAttribute('rx', '1.5');
-      leftPillar.setAttribute('fill', '#334155');
-      leftPillar.setAttribute('stroke', '#475569');
-      leftPillar.setAttribute('stroke-width', '0.6');
-      g.appendChild(leftPillar);
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'dring-svg-bracket');
+        g.setAttribute('style', 'pointer-events:none;');
 
-      // Right vertical retaining post (draws in front of cable)
-      const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rightPillar.setAttribute('x', loopX + ringW - 4.5);
-      rightPillar.setAttribute('y', loopY);
-      rightPillar.setAttribute('width', '4.5');
-      rightPillar.setAttribute('height', ringH);
-      rightPillar.setAttribute('rx', '1.5');
-      rightPillar.setAttribute('fill', '#334155');
-      rightPillar.setAttribute('stroke', '#475569');
-      rightPillar.setAttribute('stroke-width', '0.6');
-      g.appendChild(rightPillar);
+        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftPillar.setAttribute('x', loopX);
+        leftPillar.setAttribute('y', loopY);
+        leftPillar.setAttribute('width', pillarW);
+        leftPillar.setAttribute('height', h);
+        leftPillar.setAttribute('rx', '1.5');
+        leftPillar.setAttribute('fill', '#334155');
+        leftPillar.setAttribute('stroke', '#475569');
+        leftPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(leftPillar);
 
-      // Top retention clip
-      const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      clip.setAttribute('x', loopX + 12);
-      clip.setAttribute('y', loopY - 1);
-      clip.setAttribute('width', '14');
-      clip.setAttribute('height', '2.5');
-      clip.setAttribute('rx', '1');
-      clip.setAttribute('fill', '#64748b');
-      g.appendChild(clip);
+        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rightPillar.setAttribute('x', loopX + w - pillarW);
+        rightPillar.setAttribute('y', loopY);
+        rightPillar.setAttribute('width', pillarW);
+        rightPillar.setAttribute('height', h);
+        rightPillar.setAttribute('rx', '1.5');
+        rightPillar.setAttribute('fill', '#334155');
+        rightPillar.setAttribute('stroke', '#475569');
+        rightPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(rightPillar);
 
-      dom.dringOverlayGroup.appendChild(g);
-    });
+        const clipW = Math.max(10, w * 0.37);
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clip.setAttribute('x', cx - clipW / 2);
+        clip.setAttribute('y', loopY - 1.2);
+        clip.setAttribute('width', clipW);
+        clip.setAttribute('height', '2.5');
+        clip.setAttribute('rx', '1');
+        clip.setAttribute('fill', '#64748b');
+        g.appendChild(clip);
+
+        dom.dringOverlayGroup.appendChild(g);
+      });
+    } else {
+      // Fallback: use U-position arithmetic (original behaviour)
+      const topU = Number(org.topU || 1);
+      const uH = Number(org.uHeight || 1);
+      const centerY = (42 - topU) * 32 + (uH * 32) / 2;
+      const ringXs = [111.4, 210.2, 309.0, 407.8, 506.6];
+      const ringW = 38;
+      const ringH = 24;
+
+      ringXs.forEach(rx => {
+        const loopX = rx - ringW / 2;
+        const loopY = centerY - ringH / 2;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'dring-svg-bracket');
+        g.setAttribute('style', 'pointer-events:none;');
+
+        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftPillar.setAttribute('x', loopX);
+        leftPillar.setAttribute('y', loopY);
+        leftPillar.setAttribute('width', '4.5');
+        leftPillar.setAttribute('height', ringH);
+        leftPillar.setAttribute('rx', '1.5');
+        leftPillar.setAttribute('fill', '#334155');
+        leftPillar.setAttribute('stroke', '#475569');
+        leftPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(leftPillar);
+
+        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rightPillar.setAttribute('x', loopX + ringW - 4.5);
+        rightPillar.setAttribute('y', loopY);
+        rightPillar.setAttribute('width', '4.5');
+        rightPillar.setAttribute('height', ringH);
+        rightPillar.setAttribute('rx', '1.5');
+        rightPillar.setAttribute('fill', '#334155');
+        rightPillar.setAttribute('stroke', '#475569');
+        rightPillar.setAttribute('stroke-width', '0.6');
+        g.appendChild(rightPillar);
+
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clip.setAttribute('x', loopX + 12);
+        clip.setAttribute('y', loopY - 1);
+        clip.setAttribute('width', '14');
+        clip.setAttribute('height', '2.5');
+        clip.setAttribute('rx', '1');
+        clip.setAttribute('fill', '#64748b');
+        g.appendChild(clip);
+
+        dom.dringOverlayGroup.appendChild(g);
+      });
+    }
   });
 }
+
 
 export function renderAllCables() {
   if (!dom.cablesGroup) return;
@@ -247,12 +314,13 @@ export function renderAllCables() {
         const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
         // Space parallel cables neatly within vertical rail duct (44px rail width)
-        const railOffset = ((bundleIdx % 7) - 3) * 2.8;
+        // Increased from 2.8 to 4.2px so overlapping cables don't visually merge
+        const railOffset = ((bundleIdx % 7) - 3) * 4.2;
         const channelX = channelBase + railOffset;
 
-        // Minor vertical jitter inside horizontal tray to form parallel wire bundles
-        const trayOffsetA = ((bundleIdx % 5) - 2) * 1.5;
-        const trayOffsetB = ((bundleIdx % 5) - 2) * 1.5;
+        // Wider vertical jitter inside horizontal tray to keep cables separated
+        const trayOffsetA = ((bundleIdx % 5) - 2) * 2.5;
+        const trayOffsetB = ((bundleIdx % 5) - 2) * 2.5;
         const actualTrayYA = trayYA + trayOffsetA;
         const actualTrayYB = trayYB + trayOffsetB;
 
@@ -296,6 +364,13 @@ export function renderAllCables() {
       const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
       pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
     }
+
+    // Dark casing path drawn BEHIND the colored cable for visual separation
+    // This gives a crisp dark outline when cables overlap - zero extra render cost
+    const casing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    casing.setAttribute('d', pathD);
+    casing.setAttribute('class', 'cable-casing');
+    dom.cablesGroup.appendChild(casing);
 
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', pathD);

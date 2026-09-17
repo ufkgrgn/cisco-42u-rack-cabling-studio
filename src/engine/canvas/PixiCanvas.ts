@@ -163,6 +163,9 @@ export class PixiCanvas {
   private setupTicker(): void {
     if (!this.app) return;
 
+    // Detach PixiJS v8 default ticker render callback to prevent redundant 60fps rendering & double rendering
+    this.app.ticker.remove(this.app.render, this.app);
+
     this.app.ticker.add((ticker) => {
       if (this._destroyed) return;
 
@@ -299,7 +302,12 @@ export class PixiCanvas {
       }
     });
 
-    this._unsubEvents.push(unsubFit, unsubToggleFace, unsubDragMove, unsubDragEnd);
+    // 5. Viewport transform changes (Camera pan/zoom triggers re-render)
+    const unsubViewportChange = engineBridge.on('viewport:change', () => {
+      this.markDirty();
+    });
+
+    this._unsubEvents.push(unsubFit, unsubToggleFace, unsubDragMove, unsubDragEnd, unsubViewportChange);
   }
 
   private syncRacks(racks: RackModel[]): void {

@@ -15,11 +15,23 @@ export class CameraController {
   // Interaction state
   private _isMiddlePanning = false;
   private _isSpacePanning = false;
+  private _isTouchPanning = false;
   private _isSpacePressed = false;
   private _isPointerDown = false;
   private _activePointerId: number | null = null;
   private _lastPointerX = 0;
   private _lastPointerY = 0;
+
+  // Multi-touch tracking
+  private _activePointers: Map<number, { x: number; y: number; pointerType: string }> = new Map();
+  private _lastPinchDistance: number | null = null;
+  private _lastPinchCenter: { x: number; y: number } | null = null;
+  private _isPinching = false;
+
+  // Tap / Double-tap detection
+  private _lastTapTime = 0;
+  private _lastTapPosition: { x: number; y: number } | null = null;
+  private _pointerDownStart: { x: number; y: number; time: number } | null = null;
 
   // Cached DOM Rect (Zero-DOM reading during motion)
   private _cachedRect: DOMRectReadOnly | null = null;
@@ -99,6 +111,7 @@ export class CameraController {
     }
 
     this._stopInertia();
+    this._activePointers.clear();
     this._unsubBridge.forEach((unsub) => unsub());
     this._unsubBridge = [];
   }
@@ -156,6 +169,13 @@ export class CameraController {
   private _onPointerDown = (e: PointerEvent): void => {
     this._stopInertia();
 
+    this._activePointers.set(e.pointerId, {
+      x: e.clientX,
+      y: e.clientY,
+      pointerType: e.pointerType,
+    });
+
+    const isTouchOrPen = e.pointerType === 'touch' || e.pointerType === 'pen';
     const isMiddle = e.button === 1;
     const isLeftWithSpace = e.button === 0 && this._isSpacePressed;
 
@@ -174,11 +194,91 @@ export class CameraController {
       try {
         this._element?.setPointerCapture(e.pointerId);
       } catch {}
+    } else if (isTouchOrPen) {
+      // Touch interaction
+      if (this._activePointers.size === 1) {
+        // First touch: prepare for pan and tap tracking
+        this._pointerDownStart = {
+          x: e.clientX,
+          y: e.clientY,
+          time: typeof performance !== 'undefined' ? performance.now() : Date.now(),
+        };
+        this._isPointerDown = true;
+        this._isTouchPanning = true;
+        this._activePointerId = e.pointerId;
+        this._lastPointerX = e.clientX;
+        this._lastPointerY = e.clientY;
+        this._velocityHistory = [];
+
+        try {
+          this._element?.setPointerCapture(e.pointerId);
+        } catch {}
+      } else if (this._activePointers.size === 2) {
+        // Second touch: initialize pinch-to-zoom & two-finger pan
+        this._isTouchPanning = false;
+        this._isPinching = true;
+        const pts = Array.from(this._activePointers.values());
+        const p1 = pts[0];
+        const p2 = pts[1];
+        if (p1 && p2) {
+          this._lastPinchDistance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+          this._lastPinchCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+        }
+        this._velocityHistory = [];
+
+        try {
+          this._element?.setPointerCapture(e.pointerId);
+        } catch {}
+      }
     }
   };
 
   private _onPointerMove = (e: PointerEvent): void => {
-    if (!this._isMiddlePanning && !this._isSpacePanning) return;
+    if (this._activePointers.has(e.pointerId)) {
+      this._activePointers.set(e.pointerId, {
+        x: e.clientX,
+        y: e.clientY,
+        pointerType: e.pointerType,
+      });
+    }
+
+    // Pinch-to-zoom & 2-finger pan handling
+    if (this._activePointers.size >= 2) {
+      e.preventDefault();
+      const pts = Array.from(this._activePointers.values());
+      const p1 = pts[0];
+      const p2 = pts[1];
+      if (!p1 || !p2) return;
+
+      const currentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      const currentCenter = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+
+      if (this._lastPinchDistance && this._lastPinchDistance > 0 && currentDist > 0) {
+        const factor = Math.min(1.4, Math.max(0.7, currentDist / this._lastPinchDistance));
+        const rect = this._cachedRect;
+        const anchorX = rect ? currentCenter.x - rect.left : currentCenter.x;
+        const anchorY = rect ? currentCenter.y - rect.top : currentCenter.y;
+
+        if (Number.isFinite(anchorX) && Number.isFinite(anchorY) && Number.isFinite(factor)) {
+          this._camera.zoomAt(anchorX, anchorY, factor);
+        }
+
+        if (this._lastPinchCenter) {
+          const panDx = currentCenter.x - this._lastPinchCenter.x;
+          const panDy = currentCenter.y - this._lastPinchCenter.y;
+          if (Number.isFinite(panDx) && Number.isFinite(panDy)) {
+            this._camera.panBy(panDx, panDy);
+          }
+        }
+      }
+
+      this._lastPinchDistance = currentDist;
+      this._lastPinchCenter = currentCenter;
+      return;
+    }
+
+    // Single-pointer panning (Middle, Space+Left, or Single Touch)
+    if (!this._isMiddlePanning && !this._isSpacePanning && !this._isTouchPanning) return;
     if (this._activePointerId !== null && e.pointerId !== this._activePointerId) return;
 
     if (!Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) return;
@@ -206,13 +306,11 @@ export class CameraController {
   };
 
   private _onPointerUp = (e: PointerEvent): void => {
-    if (this._activePointerId !== null && e.pointerId !== this._activePointerId) return;
+    const wasTouch = e.pointerType === 'touch' || e.pointerType === 'pen';
+    const wasPinching = this._isPinching;
+    const wasPanning = this._isMiddlePanning || this._isSpacePanning || this._isTouchPanning;
 
-    const wasPanning = this._isMiddlePanning || this._isSpacePanning;
-    this._isMiddlePanning = false;
-    this._isSpacePanning = false;
-    this._isPointerDown = false;
-    this._activePointerId = null;
+    this._activePointers.delete(e.pointerId);
 
     try {
       if (this._element?.hasPointerCapture(e.pointerId)) {
@@ -220,15 +318,87 @@ export class CameraController {
       }
     } catch {}
 
-    this._updateCursorState();
+    if (this._activePointers.size === 1) {
+      // Transition from pinch back to 1-finger pan smoothly
+      this._isPinching = false;
+      this._lastPinchDistance = null;
+      this._lastPinchCenter = null;
+      const remaining = Array.from(this._activePointers.entries())[0];
+      if (remaining) {
+        const [remId, remData] = remaining;
+        this._activePointerId = remId;
+        this._lastPointerX = remData.x;
+        this._lastPointerY = remData.y;
+        this._velocityHistory = [];
+        if (remData.pointerType === 'touch' || remData.pointerType === 'pen') {
+          this._isTouchPanning = true;
+        }
+      }
+      return;
+    }
 
-    if (wasPanning) {
-      this._startInertia();
+    if (this._activePointers.size === 0) {
+      this._isMiddlePanning = false;
+      this._isSpacePanning = false;
+      this._isTouchPanning = false;
+      this._isPinching = false;
+      this._isPointerDown = false;
+      this._activePointerId = null;
+      this._lastPinchDistance = null;
+      this._lastPinchCenter = null;
+
+      this._updateCursorState();
+
+      // Tap / Double-tap detection for touches
+      if (wasTouch && this._pointerDownStart && !wasPinching) {
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const duration = now - this._pointerDownStart.time;
+        const dist = Math.hypot(
+          e.clientX - this._pointerDownStart.x,
+          e.clientY - this._pointerDownStart.y
+        );
+
+        if (dist < 15 && duration < 300) {
+          const timeSinceLastTap = now - this._lastTapTime;
+          if (timeSinceLastTap < 350 && this._lastTapPosition) {
+            const distFromLastTap = Math.hypot(
+              e.clientX - this._lastTapPosition.x,
+              e.clientY - this._lastTapPosition.y
+            );
+            if (distFromLastTap < 30) {
+              this._handleDoubleTap(e.clientX, e.clientY);
+              this._lastTapTime = 0;
+              this._lastTapPosition = null;
+              this._pointerDownStart = null;
+              return;
+            }
+          }
+          this._lastTapTime = now;
+          this._lastTapPosition = { x: e.clientX, y: e.clientY };
+        }
+      }
+      this._pointerDownStart = null;
+
+      if (wasPanning && !wasPinching) {
+        this._startInertia();
+      }
     }
   };
 
   private _onPointerCancel = (e: PointerEvent): void => {
     this._onPointerUp(e);
+  };
+
+  private _handleDoubleTap(clientX: number, clientY: number): void {
+    const currentZoom = this._camera.zoom;
+    if (currentZoom > 0.85) {
+      this._bridge.emit('camera:fit-all', undefined);
+    } else {
+      const rect = this._cachedRect;
+      const anchorX = rect ? clientX - rect.left : clientX;
+      const anchorY = rect ? clientY - rect.top : clientY;
+      this._camera.zoomAt(anchorX, anchorY, 1.4);
+    }
   };
 
   // --- Wheel Handling (Zoom & Pan) ---
@@ -300,7 +470,12 @@ export class CameraController {
     this._isSpacePressed = false;
     this._isMiddlePanning = false;
     this._isSpacePanning = false;
+    this._isTouchPanning = false;
     this._isPointerDown = false;
+    this._isPinching = false;
+    this._activePointers.clear();
+    this._lastPinchDistance = null;
+    this._lastPinchCenter = null;
     this._stopInertia();
     this._updateCursorState();
   };

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PixiCanvas } from '../../engine/canvas/PixiCanvas';
 import { engineBridge } from '../../engine/bridge/EngineBridge';
 import { EngineStatus, SupportedRendererType } from '../../engine/canvas/types';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
 
 export const Viewport: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -10,8 +10,8 @@ export const Viewport: React.FC = () => {
 
   const [status, setStatus] = useState<EngineStatus>('initializing');
   const [rendererType, setRendererType] = useState<SupportedRendererType>('webgl');
-  const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const zoomBadgeRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -52,9 +52,11 @@ export const Viewport: React.FC = () => {
       if (!isCancelled) setRendererType(renderer);
     });
 
-    // Listen to camera viewport updates for HUD display
+    // Listen to camera viewport updates for HUD display (Direct DOM mutation: zero React re-render overhead)
     const unsubViewport = engineBridge.on('viewport:change', ({ zoom }) => {
-      if (!isCancelled) setZoomPercent(Math.round(zoom * 100));
+      if (zoomBadgeRef.current) {
+        zoomBadgeRef.current.textContent = `${Math.round(zoom * 100)}%`;
+      }
     });
 
     return () => {
@@ -106,14 +108,71 @@ export const Viewport: React.FC = () => {
         </div>
       )}
 
+      {/* Floating Touch Controls HUD (Optimized 44x44px touch targets for tablets) */}
+      {status === 'ready' && (
+        <div className="absolute bottom-11 right-3 flex flex-col gap-1.5 z-10 select-none">
+          <div className="flex flex-col bg-[#111827]/90 backdrop-blur-md rounded-lg border border-[#374151]/80 shadow-xl overflow-hidden p-0.5 gap-0.5">
+            <button
+              onClick={() => {
+                const rect = containerRef.current?.getBoundingClientRect();
+                const cx = rect ? rect.width / 2 : 500;
+                const cy = rect ? rect.height / 2 : 400;
+                engineBridge.emit('camera:zoom', { factor: 1.25, screenAnchorX: cx, screenAnchorY: cy });
+              }}
+              title="Zoom In"
+              aria-label="Zoom In"
+              className="w-11 h-11 flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1f293d] active:bg-[#049fd9] active:text-white rounded transition-colors cursor-pointer"
+            >
+              <ZoomIn className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                const rect = containerRef.current?.getBoundingClientRect();
+                const cx = rect ? rect.width / 2 : 500;
+                const cy = rect ? rect.height / 2 : 400;
+                engineBridge.emit('camera:zoom', { factor: 0.8, screenAnchorX: cx, screenAnchorY: cy });
+              }}
+              title="Zoom Out"
+              aria-label="Zoom Out"
+              className="w-11 h-11 flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1f293d] active:bg-[#049fd9] active:text-white rounded transition-colors cursor-pointer"
+            >
+              <ZoomOut className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                engineBridge.emit('camera:fit-all', undefined);
+              }}
+              title="Fit to Screen"
+              aria-label="Fit to Screen"
+              className="w-11 h-11 flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1f293d] active:bg-[#049fd9] active:text-white rounded transition-colors cursor-pointer"
+            >
+              <Maximize2 className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                const rect = containerRef.current?.getBoundingClientRect();
+                const cx = rect ? rect.width / 2 : 500;
+                const cy = rect ? rect.height / 2 : 400;
+                engineBridge.emit('camera:zoom-to', { factor: 1.0, screenX: cx, screenY: cy });
+              }}
+              title="Reset Zoom (100%)"
+              aria-label="Reset Zoom"
+              className="w-11 h-11 flex items-center justify-center text-gray-300 hover:text-white hover:bg-[#1f293d] active:bg-[#049fd9] active:text-white rounded transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Floating HUD (Non-interactive overlay with zero React canvas overhead) */}
       {status === 'ready' && (
         <div className="absolute bottom-3 right-3 flex items-center gap-2 pointer-events-none z-10 font-mono text-[10px]">
           <span className="px-2 py-0.5 rounded bg-[#111827]/80 text-gray-400 border border-[#374151]">
             {rendererType.toUpperCase()}
           </span>
-          <span className="px-2 py-0.5 rounded bg-[#111827]/80 text-[#38bdf8] border border-[#374151]">
-            {zoomPercent}%
+          <span ref={zoomBadgeRef} className="px-2 py-0.5 rounded bg-[#111827]/80 text-[#38bdf8] border border-[#374151]">
+            100%
           </span>
         </div>
       )}

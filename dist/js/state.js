@@ -15,6 +15,7 @@ export const STATE = {
   selectedLibraryItem: null,
   selectedCableColor: '#2563eb',
   cableRoutingMode: 'structured', // 'structured' (side channel) or 'direct' (tight patch)
+  viewMode: 'multi', // 'multi' (side-by-side all racks) or 'single' (focused on active rack)
   pendingConnection: null,
   highlightedCableId: null
 };

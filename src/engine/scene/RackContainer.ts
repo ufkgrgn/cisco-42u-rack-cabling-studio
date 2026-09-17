@@ -218,19 +218,21 @@ export class RackContainer extends Container {
     g.clear();
 
     // Vertical Left & Right Rails
-    g.rect(53, 32, 24, this.totalU * 32).fill({ color: 0x111722 });
-    g.rect(557, 32, 24, this.totalU * 32).fill({ color: 0x111722 });
+    g.rect(53, 32, 24, this.totalU * 32);
+    g.rect(557, 32, 24, this.totalU * 32);
+    g.fill({ color: 0x111722 });
 
-    // EIA-310-D standard 3-hole pattern per 1U
+    // EIA-310-D standard 3-hole pattern per 1U (Batched into a single fill)
     // Centers at 0.25", 0.875", 1.50" relative to U top (offsets: [4.57, 16.0, 27.43] px)
     const holeOffsets = [4.57, 16.0, 27.43];
     for (let u = 0; u < this.totalU; u++) {
       const yBase = 32 + u * 32;
       holeOffsets.forEach((offset) => {
-        g.rect(62, yBase + offset - 1.5, 4, 3).fill({ color: 0x1e293b });
-        g.rect(566, yBase + offset - 1.5, 4, 3).fill({ color: 0x1e293b });
+        g.rect(62, yBase + offset - 1.5, 4, 3);
+        g.rect(566, yBase + offset - 1.5, 4, 3);
       });
     }
+    g.fill({ color: 0x1e293b });
   }
 
   private renderUSlots(): void {
@@ -243,22 +245,23 @@ export class RackContainer extends Container {
     }
     const g = new Graphics();
 
+    // Batched slot divider lines (Single fill call for all U slots)
     for (let u = 1; u <= this.totalU; u++) {
       const slotY = 32 + (this.totalU - u) * 32;
-
-      // Slot divider line
-      g.rect(77, slotY, 480, 1).fill({ color: 0x161f2c });
+      g.rect(77, slotY, 480, 1);
 
       // U Number Label (on left rail)
       if (u === 1 || u === this.totalU || u % 5 === 0) {
         const uLabel = new Text({
           text: `U${u}`,
           style: { fill: 0x64748b, fontSize: 9, fontFamily: 'monospace' },
+          resolution: 1,
         });
         uLabel.position.set(56, slotY + 11);
         this.uSlotsContainer.addChild(uLabel);
       }
     }
+    g.fill({ color: 0x161f2c });
     this.uSlotsContainer.addChildAt(g, 0);
   }
 
