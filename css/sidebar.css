@@ -274,13 +274,15 @@ details.collapsible-section:not([open]) summary.section-title::after {
 }
 
 .hw-mini-bezel.bezel-switch {
-  background: linear-gradient(180deg, #1c2430 0%, #0b1017 100%);
-  border-color: #38bdf8;
+  background: linear-gradient(180deg, #1d3554 0%, #102137 100%);
+  border-color: #00bceb;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.4), 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .hw-mini-bezel.bezel-core-2u {
-  background: linear-gradient(180deg, #242f48 0%, #0f172a 100%);
-  border-color: #818cf8;
+  background: linear-gradient(180deg, #243e66 0%, #122540 100%);
+  border-color: #38bdf8;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.4), 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .hw-mini-bezel.bezel-patch {
@@ -294,13 +296,13 @@ details.collapsible-section:not([open]) summary.section-title::after {
 }
 
 .hw-mini-bezel.bezel-dring {
-  background: linear-gradient(180deg, #141b26 0%, #090d15 100%);
+  background: linear-gradient(180deg, #0f131a 0%, #06080c 100%);
   border-color: #475569;
 }
 
 .hw-mini-bezel.bezel-blank {
-  background: repeating-linear-gradient(90deg, #16202e, #16202e 2px, #1e293b 2px, #1e293b 4px);
-  border-color: #334155;
+  background: repeating-linear-gradient(90deg, #090c10, #090c10 3px, #141820 3px, #141820 6px);
+  border-color: #27313f;
 }
 
 .hw-mini-bezel.bezel-custom {

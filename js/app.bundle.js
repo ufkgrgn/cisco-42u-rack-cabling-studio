@@ -912,68 +912,68 @@
     return coords;
   }
 
-  function renderDRingOverlays(activeRack, contRect, curScale) {
+  function renderDRingOverlays(activeRack) {
     if (!dom.dringOverlayGroup) return;
     dom.dringOverlayGroup.innerHTML = '';
     const drings = getActiveOrganizers(activeRack).filter(dev => {
       const cat = HARDWARE_CATALOG[dev.catalogKey];
-      return dev.catalogKey === 'organizer-dring-1u' || (cat && cat.modelTag && cat.modelTag.includes('D-RING')) || (cat && cat.name && cat.name.toLowerCase().includes('d-ring'));
+      return dev.catalogKey === 'organizer-dring-1u' ||
+        (cat && cat.modelTag && cat.modelTag.includes('D-RING')) ||
+        (cat && cat.name && cat.name.toLowerCase().includes('d-ring')) ||
+        (dev.catalogKey && dev.catalogKey.includes('dring'));
     });
     if (!drings.length) return;
 
+    const ringXs = [111.4, 210.2, 309.0, 407.8, 506.6];
+    const ringW = 38;
+    const ringH = 24;
+
     drings.forEach(org => {
-      const coords = getDRingBracketCoords(org, contRect, curScale);
-      coords.forEach(bracket => {
-        const loopW = 38;
-        const loopH = 27;
-        const loopX = bracket.x - loopW / 2;
-        const loopY = bracket.y - loopH / 2;
+      const topU = Number(org.topU || 1);
+      const uH = Number(org.uHeight || 1);
+      const centerY = (42 - topU) * 32 + (uH * 32) / 2;
+
+      ringXs.forEach(rx => {
+        const loopX = rx - ringW / 2;
+        const loopY = centerY - ringH / 2;
 
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'dring-svg-bracket');
         g.setAttribute('style', 'pointer-events:none;');
 
-        // Left vertical pillar of D-Ring hoop
+        // Left vertical retaining post (draws in front of cable)
         const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         leftPillar.setAttribute('x', loopX);
         leftPillar.setAttribute('y', loopY);
-        leftPillar.setAttribute('width', '5.5');
-        leftPillar.setAttribute('height', loopH);
-        leftPillar.setAttribute('rx', '2.5');
-        leftPillar.setAttribute('fill', 'url(#dring-front-grad)');
-        leftPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
+        leftPillar.setAttribute('width', '4.5');
+        leftPillar.setAttribute('height', ringH);
+        leftPillar.setAttribute('rx', '1.5');
+        leftPillar.setAttribute('fill', '#334155');
+        leftPillar.setAttribute('stroke', '#475569');
+        leftPillar.setAttribute('stroke-width', '0.6');
         g.appendChild(leftPillar);
 
-        // Right vertical pillar of D-Ring hoop
+        // Right vertical retaining post (draws in front of cable)
         const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rightPillar.setAttribute('x', loopX + loopW - 5.5);
+        rightPillar.setAttribute('x', loopX + ringW - 4.5);
         rightPillar.setAttribute('y', loopY);
-        rightPillar.setAttribute('width', '5.5');
-        rightPillar.setAttribute('height', loopH);
-        rightPillar.setAttribute('rx', '2.5');
-        rightPillar.setAttribute('fill', 'url(#dring-front-grad)');
-        rightPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
+        rightPillar.setAttribute('width', '4.5');
+        rightPillar.setAttribute('height', ringH);
+        rightPillar.setAttribute('rx', '1.5');
+        rightPillar.setAttribute('fill', '#334155');
+        rightPillar.setAttribute('stroke', '#475569');
+        rightPillar.setAttribute('stroke-width', '0.6');
         g.appendChild(rightPillar);
 
-        // Top retention clip / chrome locking notch
+        // Top retention clip
         const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        clip.setAttribute('x', loopX + 14);
-        clip.setAttribute('y', loopY - 1.5);
-        clip.setAttribute('width', '10');
+        clip.setAttribute('x', loopX + 12);
+        clip.setAttribute('y', loopY - 1);
+        clip.setAttribute('width', '14');
         clip.setAttribute('height', '2.5');
         clip.setAttribute('rx', '1');
-        clip.setAttribute('fill', 'url(#dring-clip-grad)');
+        clip.setAttribute('fill', '#64748b');
         g.appendChild(clip);
-
-        // Specular highlight line along top bar
-        const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        highlight.setAttribute('x', loopX + 2);
-        highlight.setAttribute('y', loopY);
-        highlight.setAttribute('width', loopW - 4);
-        highlight.setAttribute('height', '1.2');
-        highlight.setAttribute('rx', '0.6');
-        highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.55)');
-        g.appendChild(highlight);
 
         dom.dringOverlayGroup.appendChild(g);
       });
@@ -1002,13 +1002,24 @@
   }
 
   function renderAllCables() {
-    if (!dom.cablesGroup || !dom.rackContainer) return;
+    if (!dom.cablesGroup) return;
     dom.cablesGroup.innerHTML = '';
     if (dom.connectorsGroup) dom.connectorsGroup.innerHTML = '';
 
-    const contRect = dom.rackContainer.getBoundingClientRect();
-    const curScale = ZOOM_STATE.scale || 1.0;
-    if (curScale <= 0) return;
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    const svgRect = svgEl ? svgEl.getBoundingClientRect() : (dom.rackContainer ? dom.rackContainer.getBoundingClientRect() : null);
+    if (!svgRect || svgRect.width <= 0) return;
+
+    const activeRack = getActiveRack();
+    const totalU = Number(activeRack?.heightU || 42);
+    const rackHeight = totalU * 32;
+
+    if (svgEl) {
+      svgEl.setAttribute('viewBox', `0 0 618 ${rackHeight}`);
+    }
+
+    const scaleX = svgRect.width / 618;
+    const scaleY = svgRect.height / rackHeight;
 
     const portRects = new Map();
     function getPortRect(el) {
@@ -1024,8 +1035,6 @@
     let leftChannelUsage = 0;
     let rightChannelUsage = 0;
     const dringUsageMap = new Map();
-
-    const activeRack = getActiveRack();
 
     STATE.cables.forEach((cable) => {
       // If cable is inter-rack and only one endpoint is in current rack, show port as connected
@@ -1056,11 +1065,11 @@
       if (!rectA || !rectB) return;
       if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
 
-      // 8px is rack-container outer border
-      const x1 = (rectA.left + rectA.width / 2 - (contRect.left + 8 * curScale)) / curScale;
-      const y1 = (rectA.top + rectA.height / 2 - (contRect.top + 8 * curScale)) / curScale;
-      const x2 = (rectB.left + rectB.width / 2 - (contRect.left + 8 * curScale)) / curScale;
-      const y2 = (rectB.top + rectB.height / 2 - (contRect.top + 8 * curScale)) / curScale;
+      // Exact unscaled SVG user coordinate calculation (invariant across zoom levels and transitions)
+      const x1 = (rectA.left + rectA.width / 2 - svgRect.left) / scaleX;
+      const y1 = (rectA.top + rectA.height / 2 - svgRect.top) / scaleY;
+      const x2 = (rectB.left + rectB.width / 2 - svgRect.left) / scaleX;
+      const y2 = (rectB.top + rectB.height / 2 - svgRect.top) / scaleY;
 
       const dy = Math.abs(y2 - y1);
       const dx = Math.abs(x2 - x1);
@@ -1091,7 +1100,7 @@
               const orgEl = document.getElementById(org.instanceId);
               if (orgEl) {
                 const r = orgEl.getBoundingClientRect();
-                return (r.top + r.height / 2 - (contRect.top + 8 * curScale)) / curScale;
+                return (r.top + r.height / 2 - svgRect.top) / scaleY;
               }
             }
             return fallbackY + (otherY >= fallbackY ? 14 : -14);
@@ -1228,12 +1237,12 @@
         const bootA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         bootA.setAttribute('cx', x1);
         bootA.setAttribute('cy', y1);
-        bootA.setAttribute('r', '3');
-        bootA.setAttribute('fill', '#0c101a');
+        bootA.setAttribute('r', '3.4');
+        bootA.setAttribute('fill', '#090d16');
         bootA.setAttribute('stroke', cable.color);
         bootA.setAttribute('stroke-width', '1.6');
         bootA.setAttribute('class', 'cable-boot');
-        bootA.style.cursor = 'pointer';
+        bootA.setAttribute('data-cable-id', cable.id);
         bootA.addEventListener('click', (e) => {
           e.stopPropagation();
           highlightCable(cable.id);
@@ -1246,15 +1255,22 @@
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
 
+        const pinA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pinA.setAttribute('cx', x1);
+        pinA.setAttribute('cy', y1);
+        pinA.setAttribute('r', '1.2');
+        pinA.setAttribute('fill', cable.color);
+        pinA.setAttribute('class', 'cable-boot-pin');
+
         const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         bootB.setAttribute('cx', x2);
         bootB.setAttribute('cy', y2);
-        bootB.setAttribute('r', '3');
-        bootB.setAttribute('fill', '#0c101a');
+        bootB.setAttribute('r', '3.4');
+        bootB.setAttribute('fill', '#090d16');
         bootB.setAttribute('stroke', cable.color);
         bootB.setAttribute('stroke-width', '1.6');
         bootB.setAttribute('class', 'cable-boot');
-        bootB.style.cursor = 'pointer';
+        bootB.setAttribute('data-cable-id', cable.id);
         bootB.addEventListener('click', (e) => {
           e.stopPropagation();
           highlightCable(cable.id);
@@ -1267,12 +1283,21 @@
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
 
+        const pinB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pinB.setAttribute('cx', x2);
+        pinB.setAttribute('cy', y2);
+        pinB.setAttribute('r', '1.2');
+        pinB.setAttribute('fill', cable.color);
+        pinB.setAttribute('class', 'cable-boot-pin');
+
         dom.connectorsGroup.appendChild(bootA);
+        dom.connectorsGroup.appendChild(pinA);
         dom.connectorsGroup.appendChild(bootB);
+        dom.connectorsGroup.appendChild(pinB);
       }
     });
 
-    renderDRingOverlays(activeRack, contRect, curScale);
+    renderDRingOverlays(activeRack);
   }
 
   let quickHudEl = null;
@@ -1792,11 +1817,7 @@
     if (isDring) {
       const rings = [1, 2, 3, 4, 5].map(idx => `
         <div class="dring-bracket" data-ring="${idx}">
-          <div class="dring-mount-base"></div>
-          <div class="dring-loop">
-            <div class="dring-aperture"></div>
-            <div class="dring-front-face"></div>
-          </div>
+          <div class="dring-loop"></div>
         </div>
       `).join('');
 
@@ -1827,7 +1848,7 @@
 
   function renderBlankFaceplate(cat, dev) {
     return `
-      <div style="width:100%; height:100%; background:#141720; border-top:1px solid #2d3340; display:flex; align-items:center; justify-content:center; position:relative;">
+      <div class="blank-faceplate" style="width:100%; height:100%; background:#0b0d13; border-top:1px solid #1c212b; border-bottom:1px solid #030406; border-left:4px solid #334155; display:flex; align-items:center; justify-content:center; position:relative;">
         <div class="device-controls">
           <button class="dev-btn del-device-btn" title="Paneli Kaldır">✕</button>
         </div>
@@ -1837,14 +1858,17 @@
   }
 
   function renderSwitchOrPatchFaceplate(cat, dev) {
-    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch';
+    const isRouter = cat.category === 'router';
+    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || isRouter;
     const isFiberPanel = cat.category === 'fiber';
     const isPatchPanel = cat.category === 'patch' || isFiberPanel;
-    const typeLabel = isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : 'PATCH PANEL';
+    const typeLabel = isRouter ? 'ROUTER' : isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : 'PATCH PANEL';
     const typeClass = isSwitch ? 'faceplate-switch' : isFiberPanel ? 'faceplate-fiber-panel' : 'faceplate-patch-panel';
     const configuredLabel = isPatchPanel
       ? (dev.panelLabel || dev.name || '')
       : (dev.hostname || dev.name || '');
+    const isCisco = isSwitch && (/cisco/i.test(cat.logo || '') || /cisco/i.test(cat.name || '') || /cisco/i.test(dev.catalogKey || ''));
+
     const groups = {};
     cat.ports.forEach(p => {
       if (!groups[p.group]) groups[p.group] = [];
@@ -1855,13 +1879,23 @@
     Object.keys(groups).forEach(gId => {
       const groupPorts = groups[gId];
       const isTwoRows = groupPorts.some(p => p.row === 1);
+      const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
+      const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : 'cisco-port-bay');
+
+      let patchStrip = '';
+      if (isPatchPanel && groupPorts.length > 0) {
+        const firstPortName = groupPorts[0]?.name || '1';
+        const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
+        patchStrip = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+      }
 
       if (isTwoRows) {
         const row0 = groupPorts.filter(p => p.row === 0);
         const row1 = groupPorts.filter(p => p.row === 1);
 
         portsHtml += `
-          <div class="port-group">
+          <div class="port-group ${bayClass}">
+            ${patchStrip}
             <div class="port-row">
               ${row0.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>
@@ -1872,7 +1906,8 @@
         `;
       } else {
         portsHtml += `
-          <div class="port-group">
+          <div class="port-group ${bayClass}">
+            ${patchStrip}
             <div class="port-row">
               ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>
@@ -1881,11 +1916,54 @@
       }
     });
 
-    return `
-      <div class="device-faceplate ${typeClass}">
-        <div class="device-controls">
-          <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+    let leftSection = '';
+    if (isCisco) {
+      // Option A: Integrated Compact Cisco Bezel (~74px width, zero overflow)
+      const modelText = cat.modelTag || cat.name || 'Cisco';
+      leftSection = `
+        <div class="cisco-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, 'Cisco Catalyst Managed Switch'].filter(Boolean).join(' · '))}">
+          <div class="cisco-bezel-top">
+            <span class="cisco-brand-logo">CISCO</span>
+            <div class="cisco-bezel-leds">
+              <span class="cisco-mini-mode" title="Mode Button"></span>
+              <span class="cisco-mini-led" title="SYST: Normal"><i></i></span>
+              <span class="cisco-mini-led" title="STAT: Active"><i></i></span>
+            </div>
+          </div>
+          <div class="cisco-bezel-bot">
+            <span class="cisco-model-code" title="${escapeHtml(modelText)}">${escapeHtml(modelText)}</span>
+            <span class="cisco-console-mini" title="Cisco RJ45 Console Port">CONS</span>
+          </div>
         </div>
+      `;
+    } else if (isPatchPanel) {
+      // Integrated Compact Patch Panel Bezel (~74px width, perfectly aligned with Cisco switches)
+      const modelText = cat.modelTag || cat.name || 'Patch Panel';
+      const brandText = isFiberPanel ? (cat.logo || 'FIBER') : (cat.logo && cat.logo !== 'PANEL' ? cat.logo : 'PATCH');
+      const badgeText = isFiberPanel ? 'FIBER' : (cat.category === 'patch' && /cat6a/i.test(cat.name || cat.modelTag || '') ? 'CAT6A' : 'CAT6');
+      const typeMini = isFiberPanel ? 'LC-DPX' : '110 IDC';
+
+      leftSection = `
+        <div class="patch-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, isFiberPanel ? 'Fiber Dağıtım Paneli' : 'Pasif Patch Panel'].filter(Boolean).join(' · '))}">
+          <div class="patch-bezel-top">
+            <span class="patch-brand-logo">${escapeHtml(brandText)}</span>
+            <span class="patch-kind-badge">${escapeHtml(badgeText)}</span>
+          </div>
+          <div class="patch-bezel-bot">
+            <span class="patch-model-code" title="${escapeHtml(configuredLabel || modelText)}">${escapeHtml(configuredLabel || modelText)}</span>
+            <span class="patch-type-mini" title="${isFiberPanel ? 'LC Duplex Adaptör Yuvası' : '110 IDC Punch Down Bloğu'}">${escapeHtml(typeMini)}</span>
+          </div>
+        </div>
+      `;
+    } else {
+      const statusSection = `
+        <div class="device-status-leds">
+          <div class="status-led" title="Power: OK"></div>
+          <div class="status-led" style="background:#38bdf8;" title="Status: Active"></div>
+        </div>
+      `;
+
+      leftSection = `
         <div class="bezel-badge" title="${escapeHtml([cat.logo, cat.modelTag, typeLabel, configuredLabel].filter(Boolean).join(' · '))}">
           <div class="bezel-primary-row">
             <span class="bezel-logo">${escapeHtml(cat.logo)}</span>
@@ -1896,10 +1974,16 @@
             ${configuredLabel ? `<span class="device-config-label">${escapeHtml(configuredLabel)}</span>` : ''}
           </div>
         </div>
-        ${isPatchPanel ? '<div class="passive-panel-mark" title="Pasif sonlandırma paneli">PASSIVE</div>' : `<div class="device-status-leds">
-          <div class="status-led" title="Power: OK"></div>
-          <div class="status-led" style="background:#38bdf8; box-shadow:0 0 4px #38bdf8;" title="Status: Active"></div>
-        </div>`}
+        ${statusSection}
+      `;
+    }
+
+    return `
+      <div class="device-faceplate ${typeClass}">
+        <div class="device-controls">
+          <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+        </div>
+        ${leftSection}
         <div class="ports-area">
           ${portsHtml}
         </div>
@@ -2182,17 +2266,35 @@
   }
 
   // --- PAN & ZOOM MODULE ---
+  let stageTransitionBound = false;
+  function ensureStageTransitionListener() {
+    if (stageTransitionBound || !dom.rackStage) return;
+    dom.rackStage.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'transform') {
+        renderAllCables();
+      }
+    });
+    stageTransitionBound = true;
+  }
+
   function updateStageTransform(smooth = false) {
     if (!dom.rackStage) return;
+    ensureStageTransitionListener();
+
     if (smooth) {
       dom.rackStage.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)';
     } else {
       dom.rackStage.style.transition = 'none';
     }
-    dom.rackStage.style.transform = `translate3d(${ZOOM_STATE.panX}px, ${ZOOM_STATE.panY}px, 0) scale(${ZOOM_STATE.scale})`;
+    dom.rackStage.style.transform = `translate(${ZOOM_STATE.panX}px, ${ZOOM_STATE.panY}px) scale(${ZOOM_STATE.scale})`;
     if (dom.zoomBadge) {
       dom.zoomBadge.textContent = `${Math.round(ZOOM_STATE.scale * 100)}%`;
     }
+
+    // Dispatch custom zoom event for high-DPI re-rendering
+    window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
+      detail: { scale: ZOOM_STATE.scale, panX: ZOOM_STATE.panX, panY: ZOOM_STATE.panY }
+    }));
   }
 
   function fitRackToScreen(smooth = true) {
@@ -2210,7 +2312,7 @@
 
     const scaleX = (cw - padX * 2) / rackW;
     const scaleY = (ch - padY * 2) / rackH;
-    const fitScale = Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25));
+    const fitScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25)).toFixed(4));
 
     ZOOM_STATE.scale = fitScale;
     ZOOM_STATE.panX = Math.round((cw - rackW * fitScale) / 2);
@@ -2218,14 +2320,14 @@
     ZOOM_STATE.isFit = true;
 
     updateStageTransform(smooth);
-    setTimeout(renderAllCables, 40);
+    scheduleCableRender(smooth ? 260 : 20);
   }
 
   function setZoom(newScale, screenX, screenY, smooth = false) {
     const canvas = dom.viewportCanvas;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const clampedScale = Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale));
+    const clampedScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale)).toFixed(4));
 
     const cx = (screenX !== undefined) ? screenX - rect.left : canvas.clientWidth / 2;
     const cy = (screenY !== undefined) ? screenY - rect.top : canvas.clientHeight / 2;
@@ -2239,11 +2341,11 @@
     ZOOM_STATE.isFit = false;
 
     updateStageTransform(smooth);
-    scheduleCableRender();
+    scheduleCableRender(smooth ? 260 : 30);
   }
 
   let cableRenderTimer = null;
-  function scheduleCableRender(delay = 50) {
+  function scheduleCableRender(delay = 40) {
     if (cableRenderTimer) clearTimeout(cableRenderTimer);
     cableRenderTimer = setTimeout(() => {
       cableRenderTimer = null;
@@ -2258,7 +2360,7 @@
     const ch = canvas.clientHeight;
     const rackW = 634;
 
-    const targetScale = Math.min(1.3, Math.max(0.9, (cw - 40) / rackW));
+    const targetScale = parseFloat(Math.min(1.3, Math.max(0.9, (cw - 40) / rackW)).toFixed(4));
     ZOOM_STATE.scale = targetScale;
     ZOOM_STATE.panX = Math.round((cw - rackW * targetScale) / 2);
     ZOOM_STATE.isFit = false;
@@ -2272,6 +2374,7 @@
     }
 
     updateStageTransform(true);
+    scheduleCableRender(260);
   }
 
   let panFrame = 0;
@@ -2351,6 +2454,8 @@
     if (dom.navJumpTop) dom.navJumpTop.addEventListener('click', () => jumpToSection('top'));
     if (dom.navJumpMid) dom.navJumpMid.addEventListener('click', () => jumpToSection('mid'));
     if (dom.navJumpBot) dom.navJumpBot.addEventListener('click', () => jumpToSection('bot'));
+
+    window.addEventListener('rack-zoom-changed', () => scheduleCableRender(30));
   }
 
   // --- SCHEDULE TABLE MODULE ---

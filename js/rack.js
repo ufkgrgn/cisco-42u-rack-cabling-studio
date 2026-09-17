@@ -130,11 +130,7 @@ function renderOrganizerFaceplate(cat, dev) {
   if (isDring) {
     const rings = [1, 2, 3, 4, 5].map(idx => `
       <div class="dring-bracket" data-ring="${idx}">
-        <div class="dring-mount-base"></div>
-        <div class="dring-loop">
-          <div class="dring-aperture"></div>
-          <div class="dring-front-face"></div>
-        </div>
+        <div class="dring-loop"></div>
       </div>
     `).join('');
 
@@ -165,7 +161,7 @@ function renderOrganizerFaceplate(cat, dev) {
 
 function renderBlankFaceplate(cat, dev) {
   return `
-    <div style="width:100%; height:100%; background:#141720; border-top:1px solid #2d3340; display:flex; align-items:center; justify-content:center; position:relative;">
+    <div class="blank-faceplate" style="width:100%; height:100%; background:#0b0d13; border-top:1px solid #1c212b; border-bottom:1px solid #030406; border-left:4px solid #334155; display:flex; align-items:center; justify-content:center; position:relative;">
       <div class="device-controls">
         <button class="dev-btn del-device-btn" title="Paneli Kaldır">✕</button>
       </div>
@@ -174,7 +170,20 @@ function renderBlankFaceplate(cat, dev) {
   `;
 }
 
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
 function renderSwitchOrPatchFaceplate(cat, dev) {
+  const isRouter = cat.category === 'router';
+  const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || isRouter;
+  const isFiberPanel = cat.category === 'fiber';
+  const isPatchPanel = cat.category === 'patch' || isFiberPanel;
+  const typeLabel = isRouter ? 'ROUTER' : isSwitch ? 'SWITCH' : isFiberPanel ? 'FIBER PANEL' : 'PATCH PANEL';
+  const typeClass = isSwitch ? 'faceplate-switch' : isFiberPanel ? 'faceplate-fiber-panel' : 'faceplate-patch-panel';
+  const configuredLabel = isPatchPanel
+    ? (dev.panelLabel || dev.name || '')
+    : (dev.hostname || dev.name || '');
+  const isCisco = isSwitch && (/cisco/i.test(cat.logo || '') || /cisco/i.test(cat.name || '') || /cisco/i.test(dev.catalogKey || ''));
+
   const groups = {};
   cat.ports.forEach(p => {
     if (!groups[p.group]) groups[p.group] = [];
@@ -185,13 +194,23 @@ function renderSwitchOrPatchFaceplate(cat, dev) {
   Object.keys(groups).forEach(gId => {
     const groupPorts = groups[gId];
     const isTwoRows = groupPorts.some(p => p.row === 1);
+    const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
+    const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : 'cisco-port-bay');
+
+    let patchStrip = '';
+    if (isPatchPanel && groupPorts.length > 0) {
+      const firstPortName = groupPorts[0]?.name || '1';
+      const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
+      patchStrip = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+    }
 
     if (isTwoRows) {
       const row0 = groupPorts.filter(p => p.row === 0);
       const row1 = groupPorts.filter(p => p.row === 1);
 
       portsHtml += `
-        <div class="port-group">
+        <div class="port-group ${bayClass}">
+          ${patchStrip}
           <div class="port-row">
             ${row0.map(p => renderPortIcon(dev.instanceId, p)).join('')}
           </div>
@@ -202,7 +221,8 @@ function renderSwitchOrPatchFaceplate(cat, dev) {
       `;
     } else {
       portsHtml += `
-        <div class="port-group">
+        <div class="port-group ${bayClass}">
+          ${patchStrip}
           <div class="port-row">
             ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
           </div>
@@ -211,19 +231,74 @@ function renderSwitchOrPatchFaceplate(cat, dev) {
     }
   });
 
+  let leftSection = '';
+  if (isCisco) {
+    // Option A: Integrated Compact Cisco Bezel (~74px width, zero overflow)
+    const modelText = cat.modelTag || cat.name || 'Cisco';
+    leftSection = `
+      <div class="cisco-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, 'Cisco Catalyst Managed Switch'].filter(Boolean).join(' · '))}">
+        <div class="cisco-bezel-top">
+          <span class="cisco-brand-logo">CISCO</span>
+          <div class="cisco-bezel-leds">
+            <span class="cisco-mini-mode" title="Mode Button"></span>
+            <span class="cisco-mini-led" title="SYST: Normal"><i></i></span>
+            <span class="cisco-mini-led" title="STAT: Active"><i></i></span>
+          </div>
+        </div>
+        <div class="cisco-bezel-bot">
+          <span class="cisco-model-code" title="${escapeHtml(modelText)}">${escapeHtml(modelText)}</span>
+          <span class="cisco-console-mini" title="Cisco RJ45 Console Port">CONS</span>
+        </div>
+      </div>
+    `;
+  } else if (isPatchPanel) {
+    // Integrated Compact Patch Panel Bezel (~74px width, perfectly aligned with Cisco switches)
+    const modelText = cat.modelTag || cat.name || 'Patch Panel';
+    const brandText = isFiberPanel ? (cat.logo || 'FIBER') : (cat.logo && cat.logo !== 'PANEL' ? cat.logo : 'PATCH');
+    const badgeText = isFiberPanel ? 'FIBER' : (cat.category === 'patch' && /cat6a/i.test(cat.name || cat.modelTag || '') ? 'CAT6A' : 'CAT6');
+    const typeMini = isFiberPanel ? 'LC-DPX' : '110 IDC';
+
+    leftSection = `
+      <div class="patch-integrated-bezel" title="${escapeHtml([cat.name, cat.modelTag, configuredLabel, isFiberPanel ? 'Fiber Dağıtım Paneli' : 'Pasif Patch Panel'].filter(Boolean).join(' · '))}">
+        <div class="patch-bezel-top">
+          <span class="patch-brand-logo">${escapeHtml(brandText)}</span>
+          <span class="patch-kind-badge">${escapeHtml(badgeText)}</span>
+        </div>
+        <div class="patch-bezel-bot">
+          <span class="patch-model-code" title="${escapeHtml(configuredLabel || modelText)}">${escapeHtml(configuredLabel || modelText)}</span>
+          <span class="patch-type-mini" title="${isFiberPanel ? 'LC Duplex Adaptör Yuvası' : '110 IDC Punch Down Bloğu'}">${escapeHtml(typeMini)}</span>
+        </div>
+      </div>
+    `;
+  } else {
+    const statusSection = `
+      <div class="device-status-leds">
+        <div class="status-led" title="Power: OK"></div>
+        <div class="status-led" style="background:#38bdf8;" title="Status: Active"></div>
+      </div>
+    `;
+
+    leftSection = `
+      <div class="bezel-badge" title="${escapeHtml([cat.logo, cat.modelTag, typeLabel, configuredLabel].filter(Boolean).join(' · '))}">
+        <div class="bezel-primary-row">
+          <span class="bezel-logo">${escapeHtml(cat.logo)}</span>
+          <span class="device-kind-badge">${typeLabel}</span>
+        </div>
+        <div class="bezel-secondary-row">
+          <span class="bezel-model">${escapeHtml(cat.modelTag)}</span>
+          ${configuredLabel ? `<span class="device-config-label">${escapeHtml(configuredLabel)}</span>` : ''}
+        </div>
+      </div>
+      ${statusSection}
+    `;
+  }
+
   return `
-    <div class="device-faceplate">
+    <div class="device-faceplate ${typeClass}">
       <div class="device-controls">
         <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
       </div>
-      <div class="bezel-badge">
-        <span class="bezel-logo">${cat.logo}</span>
-        <span class="bezel-model">${cat.modelTag}</span>
-      </div>
-      <div class="device-status-leds">
-        <div class="status-led" title="Power: OK"></div>
-        <div class="status-led" style="background:#38bdf8; box-shadow:0 0 4px #38bdf8;" title="Status: Active"></div>
-      </div>
+      ${leftSection}
       <div class="ports-area">
         ${portsHtml}
       </div>

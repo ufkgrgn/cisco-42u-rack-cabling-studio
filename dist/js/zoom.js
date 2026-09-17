@@ -1,8 +1,21 @@
 import { ZOOM_STATE, dom } from './state.js';
 import { renderAllCables } from './cabling.js';
 
+let stageTransitionBound = false;
+function ensureStageTransitionListener() {
+  if (stageTransitionBound || !dom.rackStage) return;
+  dom.rackStage.addEventListener('transitionend', (e) => {
+    if (e.propertyName === 'transform') {
+      renderAllCables();
+    }
+  });
+  stageTransitionBound = true;
+}
+
 export function updateStageTransform(smooth = false) {
   if (!dom.rackStage) return;
+  ensureStageTransitionListener();
+
   if (smooth) {
     dom.rackStage.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)';
   } else {
@@ -34,7 +47,7 @@ export function fitRackToScreen(smooth = true) {
 
   const scaleX = (cw - padX * 2) / rackW;
   const scaleY = (ch - padY * 2) / rackH;
-  const fitScale = Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25));
+  const fitScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(scaleX, scaleY, 1.25)).toFixed(4));
 
   ZOOM_STATE.scale = fitScale;
   ZOOM_STATE.panX = Math.round((cw - rackW * fitScale) / 2);
@@ -42,14 +55,14 @@ export function fitRackToScreen(smooth = true) {
   ZOOM_STATE.isFit = true;
 
   updateStageTransform(smooth);
-  setTimeout(renderAllCables, 30);
+  scheduleCableRender(smooth ? 260 : 20);
 }
 
 export function setZoom(newScale, screenX, screenY, smooth = false) {
   const canvas = dom.viewportCanvas;
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
-  const clampedScale = Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale));
+  const clampedScale = parseFloat(Math.max(ZOOM_STATE.minScale, Math.min(ZOOM_STATE.maxScale, newScale)).toFixed(4));
 
   const cx = (screenX !== undefined) ? screenX - rect.left : canvas.clientWidth / 2;
   const cy = (screenY !== undefined) ? screenY - rect.top : canvas.clientHeight / 2;
@@ -64,11 +77,11 @@ export function setZoom(newScale, screenX, screenY, smooth = false) {
   ZOOM_STATE.isFit = false;
 
   updateStageTransform(smooth);
-  scheduleCableRender();
+  scheduleCableRender(smooth ? 260 : 30);
 }
 
 let cableRenderTimer = null;
-function scheduleCableRender(delay = 50) {
+export function scheduleCableRender(delay = 40) {
   if (cableRenderTimer) clearTimeout(cableRenderTimer);
   cableRenderTimer = setTimeout(() => {
     cableRenderTimer = null;
@@ -83,7 +96,7 @@ export function jumpToSection(section) {
   const ch = canvas.clientHeight;
   const rackW = 634;
 
-  const targetScale = Math.min(1.3, Math.max(0.9, (cw - 40) / rackW));
+  const targetScale = parseFloat(Math.min(1.3, Math.max(0.9, (cw - 40) / rackW)).toFixed(4));
   ZOOM_STATE.scale = targetScale;
   ZOOM_STATE.panX = Math.round((cw - rackW * targetScale) / 2);
   ZOOM_STATE.isFit = false;
@@ -100,6 +113,7 @@ export function jumpToSection(section) {
   }
 
   updateStageTransform(true);
+  scheduleCableRender(260);
 }
 
 export function bindZoomAndPanEvents() {
@@ -190,4 +204,6 @@ export function bindZoomAndPanEvents() {
   if (dom.navJumpTop) dom.navJumpTop.addEventListener('click', () => jumpToSection('top'));
   if (dom.navJumpMid) dom.navJumpMid.addEventListener('click', () => jumpToSection('mid'));
   if (dom.navJumpBot) dom.navJumpBot.addEventListener('click', () => jumpToSection('bot'));
+
+  window.addEventListener('rack-zoom-changed', () => scheduleCableRender(30));
 }

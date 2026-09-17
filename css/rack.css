@@ -1,22 +1,22 @@
-/* 42U Rack Container (Heavy Duty Industrial Metal Frame) */
+/* 42U Rack Container (Clean Modern Enterprise Frame) */
 .rack-container {
   position: relative;
   width: 634px;
   background: #0b0f17;
-  border: 9px solid #1a2230;
-  border-radius: 8px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 0, 0, 0.8), inset 0 0 50px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: 8px solid #1a2230;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
 }
 
 .rack-rail {
   width: 44px;
-  background: linear-gradient(90deg, #111622 0%, #1e2636 35%, #253043 50%, #1a2230 75%, #0f141e 100%);
+  background: #111723;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #2d3a4e;
-  border-right: 1px solid #0d121a;
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08), inset -1px 0 3px rgba(0, 0, 0, 0.7);
+  border-left: 1px solid #1e293b;
+  border-right: 1px solid #1e293b;
+  box-shadow: none;
 }
 
 .rack-rail.left {
@@ -32,12 +32,12 @@
   position: relative;
   background: repeating-linear-gradient(
     0deg,
-    #080b11,
-    #080b11 31px,
-    #0f141e 31px,
-    #0f141e 32px
+    #0a0e17,
+    #0a0e17 31px,
+    #131a28 31px,
+    #131a28 32px
   );
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+  box-shadow: none;
 }
 
 /* U Slots */
@@ -78,7 +78,7 @@
   background: #04060a;
   border: 1px solid #334155;
   border-radius: 1.5px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: none;
 }
 
 .rack-slot {
@@ -124,21 +124,21 @@
   position: absolute;
   left: 0;
   width: 100%;
-  background: #181e2b;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-  border-bottom: 1.5px solid #06090e;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: #141b27;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #06090e;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   z-index: 2;
-  transition: outline 0.15s, box-shadow 0.15s;
+  transition: outline 0.15s;
   overflow: visible;
   box-sizing: border-box;
 }
 
 .mounted-device:hover {
   outline: 1.5px solid #38bdf8;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.9), 0 0 12px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .device-faceplate {
@@ -146,34 +146,16 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 14px 0 14px;
+  padding: 0 8px 0 8px;
   gap: 5px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
 }
 
-/* Realistic Skeuomorphic Torx Rack Screws on Left & Right Ears */
 .device-faceplate::before,
 .device-faceplate::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 35%, #64748b 70%, #334155 100%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), inset 0 0 1px #fff;
-  border: 1px solid #1e293b;
-  z-index: 6;
-  pointer-events: none;
-}
-.device-faceplate::before {
-  left: 3px;
-}
-.device-faceplate::after {
-  right: 3px;
+  display: none;
 }
 
 .bezel-badge {
@@ -266,80 +248,440 @@
   background: rgba(146, 64, 14, 0.18);
 }
 
-/* High-Tech Industrial Switch Faceplate */
+/* ============================================================================
+   CISCO SWITCH vs PATCH PANEL VISUAL REALISM (Clean Enterprise, High-Tech)
+   ============================================================================ */
+
+/* Cisco Managed Switch Chassis */
 .faceplate-switch {
-  background: linear-gradient(180deg, #2b374a 0%, #1c2534 45%, #121924 100%);
-  border-left: 3px solid #22d3ee;
-  border-top: 1px solid rgba(255, 255, 255, 0.22);
-  border-bottom: 2px solid #05080e;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 8px rgba(0, 0, 0, 0.75);
+  background: linear-gradient(180deg, #1b2f4a 0%, #15253b 50%, #0e1a2b 100%);
+  border-left: 3.5px solid #00d2ff;
+  border-top: 1px solid #335985;
+  border-bottom: 1.5px solid #08101a;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
 }
 
-/* High-Contrast Skeuomorphic Orange Patch Panel */
-.faceplate-patch-panel {
-  background: linear-gradient(180deg, #1e2430 0%, #131722 55%, #0a0d14 100%);
-  border-left: 3px solid #ff7a00;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-bottom: 2px solid #000;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 3px 8px rgba(0, 0, 0, 0.85);
-}
-
-.faceplate-patch-panel .device-kind-badge {
-  background: linear-gradient(135deg, #ff7a00, #ea580c);
-  color: #fff;
+.faceplate-switch .bezel-logo {
+  color: #00d2ff;
   font-weight: 900;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.8px;
 }
 
-.faceplate-fiber-panel {
-  background: linear-gradient(180deg, #10243a, #09131f 60%, #0b1e31);
-  border-left: 3px solid #38bdf8;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  border-bottom: 2px solid #04080e;
+.faceplate-switch .device-kind-badge {
+  background: #0284c7;
+  color: #ffffff;
 }
 
-.faceplate-fiber-panel .device-kind-badge {
-  background: #38bdf8;
+/* Cisco Catalyst Integrated Compact Front Bezel (Option A) */
+.cisco-integrated-bezel {
+  flex: 0 0 74px;
+  width: 74px;
+  max-width: 74px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: #091322;
+  border: 1px solid #1e3654;
+  border-left: 2.5px solid #00d2ff;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.passive-panel-mark {
+.cisco-bezel-top,
+.cisco-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1;
+}
+
+.cisco-brand-logo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #00bceb;
+  letter-spacing: 0.6px;
+  line-height: 1;
+}
+
+.cisco-bezel-leds {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cisco-mini-mode {
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #334155;
+  border: 0.5px solid #64748b;
+  display: inline-block;
+}
+
+.cisco-mini-led {
+  display: flex;
+  align-items: center;
+}
+
+.cisco-mini-led i {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+}
+
+.cisco-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48px;
+  line-height: 1;
+}
+
+.cisco-console-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 4px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 0.5px solid rgba(0, 188, 235, 0.5);
+  background: rgba(0, 188, 235, 0.1);
+  border-radius: 1px;
+  padding: 0 1.5px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+/* Cisco Status Cluster: Mode Button, Micro LEDs, Console Port (Fallback) */
+.cisco-status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
   padding: 1px 4px;
-  border: 1px solid #ff7a0066;
-  background: #ff7a001a;
+  background: #0b111a;
+  border: 1px solid #1e2a3c;
   border-radius: 2px;
-  color: #ff9a3c;
-  font: 800 0.38rem/1 Consolas, monospace;
-  letter-spacing: 0.4px;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  height: 22px;
 }
 
+.cisco-mode-btn {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #334155;
+  border: 1px solid #64748b;
+  flex-shrink: 0;
+}
+
+.cisco-led-bank {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.cisco-led-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cisco-micro-led {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1;
+}
+
+.cisco-micro-led i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.cisco-micro-led.led-amber i {
+  background: #f59e0b;
+}
+
+.cisco-console-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  background: rgba(0, 188, 235, 0.08);
+  border-radius: 1.5px;
+  padding: 1px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+}
+
+/* Cisco RJ45 Bay (Modular 12-port blocks) */
 .faceplate-switch .port-group {
-  background: linear-gradient(180deg, #0a0f18 0%, #121a28 100%);
-  border-color: rgba(34, 211, 238, 0.35);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.1);
-  border-radius: 2.5px;
-  padding: 1.5px 2.5px;
-}
-
-/* The Concept Showstopper: Vivid Industrial Amber/Orange Patch Panel Inserts */
-.faceplate-patch-panel .port-group {
-  background: linear-gradient(180deg, #ff7a00 0%, #ea580c 45%, #c2410c 100%);
-  border: 1px solid #fb923c;
-  border-radius: 3px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: #090e16;
+  border: 1px solid #1e2a3c;
+  border-radius: 2px;
   padding: 1.5px 3px;
   gap: 2px;
 }
 
-.faceplate-patch-panel .port-group::before {
-  content: "";
+/* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
+.faceplate-switch .port-group.cisco-uplink-bay {
+  background: #0f1826;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  position: relative;
+}
+
+.faceplate-switch .port-group.cisco-uplink-bay::before {
+  content: "UPLINK";
   display: block;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 1.5px;
+}
+
+/* Cisco RJ45 Port Enhancement: Link Status LED */
+.faceplate-switch .port-rj45 {
+  background: #080c14;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  position: relative;
+}
+
+.faceplate-switch .port-rj45::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #1e293b;
+}
+
+.faceplate-switch .port-rj45.connected::before {
+  background: #22c55e;
+}
+
+/* ============================================================================
+   PASSIVE PATCH PANEL STYLING (Distinct Industrial Orange & Compact 74px Bezel)
+   ============================================================================ */
+
+.faceplate-patch-panel {
+  background: linear-gradient(90deg, #17110c 0%, #12151d 74px, #0f1219 100%);
+  border-left: 4px solid #f97316;
+  border-top: 1.5px solid rgba(249, 115, 22, 0.45);
+  border-bottom: 1.5px solid #05070a;
+  box-shadow: none;
+}
+
+/* Compact Integrated Patch Panel Front Bezel (74px width, perfectly aligned with Cisco switches) */
+.patch-integrated-bezel {
+  flex: 0 0 74px;
+  width: 74px;
+  max-width: 74px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: #14100c;
+  border: 1px solid rgba(249, 115, 22, 0.38);
+  border-left: 2.5px solid #f97316;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.patch-bezel-top,
+.patch-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
-  height: 2.5px;
-  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  line-height: 1;
+}
+
+.patch-brand-logo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #f97316;
+  letter-spacing: 0.6px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42px;
+}
+
+.patch-kind-badge {
+  background: #ea580c;
+  color: #ffffff;
+  font: 800 0.38rem/1.2 Consolas, monospace;
+  padding: 1px 3px;
+  border-radius: 2px;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.patch-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: #fed7aa;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+}
+
+.patch-type-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.12);
+  border-radius: 1.5px;
+  padding: 0.5px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* Patch Panel Port Group (Matte IDC punch-down block with top orange bank header) */
+.faceplate-patch-panel .port-group {
+  background: #11151e;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-top: 2px solid #f97316;
+  border-radius: 2px;
+  padding: 1.5px 2px 2px 2px;
+  gap: 1.5px;
+  box-shadow: inset 0 1px 0 rgba(249, 115, 22, 0.2);
+}
+
+/* The signature white write-on identification label strip with orange accent tab */
+.patch-id-strip {
+  height: 4.5px;
+  width: 100%;
+  background: #fff7ed;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-left: 3px solid #ea580c;
   border-radius: 1px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+  margin-bottom: 1.5px;
+  box-sizing: border-box;
+}
+
+.patch-id-strip span {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 4px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+}
+
+/* Patch Panel RJ45 Keystones (Orange Accent Bezel) */
+.faceplate-patch-panel .port-rj45 {
+  background: #090c13;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.faceplate-patch-panel .port-rj45:hover {
+  border-color: #f97316;
+  box-shadow: 0 0 4px rgba(249, 115, 22, 0.5);
+}
+
+.faceplate-patch-panel .port-rj45.connected {
+  border-color: #fb923c;
+}
+
+.faceplate-patch-panel .port-rj45.connected::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #f97316;
+}
+
+.faceplate-patch-panel .port-group::before {
+  display: none;
+}
+
+/* Fiber Patch Panel (ODF / LC Duplex) - Harmonized Warm Amber/Orange Theme */
+.faceplate-fiber-panel {
+  background: linear-gradient(90deg, #181309 0%, #101622 74px, #0a111a 100%);
+  border-left: 4px solid #f59e0b;
+  border-top: 1.5px solid rgba(245, 158, 11, 0.45);
+  border-bottom: 1.5px solid #04080e;
+  box-shadow: none;
+}
+
+.faceplate-fiber-panel .patch-integrated-bezel {
+  border-color: rgba(245, 158, 11, 0.38);
+  border-left-color: #f59e0b;
+  background: #141108;
+}
+
+.faceplate-fiber-panel .patch-brand-logo {
+  color: #f59e0b;
+}
+
+.faceplate-fiber-panel .patch-kind-badge {
+  background: #d97706;
+}
+
+.faceplate-fiber-panel .patch-type-mini {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.faceplate-fiber-panel .port-group {
+  background: #10141d;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-top: 2px solid #f59e0b;
+  box-shadow: inset 0 1px 0 rgba(245, 158, 11, 0.2);
+}
+
+.faceplate-fiber-panel .patch-id-strip {
+  border-color: rgba(245, 158, 11, 0.45);
+  border-left-color: #d97706;
 }
 
 .device-status-leds {
@@ -354,7 +696,7 @@
   height: 4px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 5px #22c55e, 0 0 2px #86efac;
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -400,7 +742,7 @@
   align-items: center;
 }
 
-/* Port Visuals */
+/* Port Visuals (Clean Enterprise) */
 .port {
   position: relative;
   cursor: pointer;
@@ -412,25 +754,18 @@
   box-sizing: border-box;
 }
 
-/* RJ45 Port with Metal Shielding & Gold Contact Pins */
+/* RJ45 Port */
 .port-rj45 {
   width: 10px;
   height: 9.5px;
   background: #090d14;
-  border: 1px solid #64748b;
+  border: 1px solid #475569;
   border-radius: 1px;
-  box-shadow: inset 0 1px 2px #000, 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: none;
 }
 
 .port-rj45::after {
-  content: "";
-  width: 5px;
-  height: 2.5px;
-  background: linear-gradient(180deg, #fef08a 0%, #eab308 60%, #ca8a04 100%);
-  position: absolute;
-  bottom: 1px;
-  border-radius: 0.5px;
-  box-shadow: 0 0 1px #ca8a04;
+  display: none;
 }
 
 /* SFP / SFP+ Optical Cage Port */
@@ -438,18 +773,13 @@
   width: 11px;
   height: 10px;
   background: #141b27;
-  border: 1px solid #94a3b8;
+  border: 1px solid #64748b;
   border-radius: 1.5px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: none;
 }
 
 .port-sfp::after {
-  content: "";
-  width: 6px;
-  height: 3.5px;
-  background: linear-gradient(180deg, #f1f5f9 0%, #cbd5e1 50%, #64748b 100%);
-  opacity: 0.85;
-  border-radius: 1px;
+  display: none;
 }
 
 /* Fiber LC Duplex Port */
@@ -462,7 +792,7 @@
   display: flex;
   gap: 1px;
   padding: 1px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: none;
 }
 
 .port-lc-inner {
@@ -565,9 +895,10 @@
 
 /* 3D Skeuomorphic Cable Management Panel (Panduit Finger Duct System) */
 .organizer-faceplate {
-  background: linear-gradient(180deg, #151a24 0%, #0d111a 100%);
-  border-top: 1px solid #334155;
-  border-bottom: 2px solid #05080e;
+  background: linear-gradient(180deg, #101319 0%, #06080c 100%) !important;
+  border-top: 1px solid #1e2430 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #334155 !important;
   width: 100%;
   height: 100%;
   display: flex;
@@ -583,24 +914,25 @@
   flex: 1;
   background: repeating-linear-gradient(
     90deg,
-    #05080e 0px,
-    #05080e 8px,
-    #1e293b 8px,
-    #334155 10px,
-    #1e293b 12px,
-    #05080e 12px,
-    #05080e 20px
+    #030508 0px,
+    #030508 8px,
+    #161a22 8px,
+    #272f3d 10px,
+    #161a22 12px,
+    #030508 12px,
+    #030508 20px
   );
   border-radius: 3px;
-  border: 1px solid #1e293b;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid #181d26;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* --- SKEUOMORPHIC 3D D-RING CABLE ORGANIZER (Matching Hardware Reference Photo) --- */
+/* --- CLEAN MODERN ENTERPRISE D-RING CABLE ORGANIZER --- */
 .dring-faceplate {
-  background: linear-gradient(180deg, #18202d 0%, #101520 45%, #080b12 100%) !important;
-  border-top: 1px solid #3b4759 !important;
-  border-bottom: 2px solid #04060a !important;
+  background: #0b0e14 !important;
+  border-top: 1px solid #1a202c !important;
+  border-bottom: 1.5px solid #020305 !important;
+  border-left: 4px solid #475569 !important;
   position: relative;
   width: 100%;
   height: 100%;
@@ -608,7 +940,7 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 2px 6px rgba(0, 0, 0, 0.9);
+  box-shadow: none !important;
   overflow: visible !important;
 }
 
@@ -623,113 +955,57 @@
   z-index: 2;
 }
 
-/* Individual 3D D-Ring Bracket */
+/* Individual D-Ring Bracket */
 .dring-bracket {
   position: relative;
-  width: 48px;
-  height: 28px;
+  width: 44px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: default;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .dring-bracket:hover {
-  transform: translateY(-1px) scale(1.04);
-  filter: brightness(1.2);
+  transform: translateY(-1px);
 }
 
-/* Heavy-duty steel mounting base plate bolted to panel */
-.dring-mount-base {
-  position: absolute;
-  width: 46px;
-  height: 24px;
-  background: linear-gradient(180deg, #141a26 0%, #090d14 100%);
-  border: 1px solid #1e293b;
-  border-radius: 3px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* Silver Torx/rivet dots on mounting base */
-.dring-mount-base::before,
-.dring-mount-base::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #e2e8f0 0%, #64748b 60%, #1e293b 100%);
-  box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.9), inset 0 0.5px 0.5px #fff;
-}
-.dring-mount-base::before { left: 2px; }
-.dring-mount-base::after { right: 2px; }
-
-/* The 3D Protruding Heavy-Duty D-Ring Loop (C-Bracket / Hoop) */
+/* Clean Modern Enterprise Cable Retention Loop Base */
 .dring-loop {
   position: relative;
   width: 38px;
-  height: 27px;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #64748b 0%, #334155 25%, #1e293b 65%, #0f172a 100%);
-  border: 1.5px solid #334155;
-  border-top-color: #94a3b8;
-  border-bottom-color: #070b12;
+  height: 24px;
+  border-radius: 4px;
+  background: #141720 !important;
+  border: 1.5px solid #64748b !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow:
-    0 6px 10px rgba(0, 0, 0, 0.95),
-    0 2px 4px rgba(0, 0, 0, 0.85),
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1.5px 0 rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.6) !important;
   z-index: 3;
 }
 
-/* Deep Inner Aperture (Hollow Pass-Through Opening for Cables) */
-.dring-aperture {
-  position: absolute;
-  width: 25px;
-  height: 16px;
-  border-radius: 3px;
-  background: radial-gradient(ellipse at 50% 30%, #0d121c 0%, #04060a 100%);
-  border: 1px solid #080c14;
-  box-shadow:
-    inset 0 3px 7px rgba(0, 0, 0, 0.98),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.05),
-    0 1px 0 rgba(255, 255, 255, 0.15);
+/* Inner aperture (pass-through opening for cables) */
+.dring-loop::before {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 14px;
+  border-radius: 2px;
+  background: #080c14;
+  border: 1px solid #1e293b;
 }
 
-/* Front Vertical Cylindrical Face Bar with metallic reflection */
+.dring-bracket:hover .dring-loop {
+  border-color: #38bdf8;
+  background: #1e293b;
+}
+
+.dring-mount-base,
+.dring-aperture,
 .dring-front-face {
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0) 25%,
-    rgba(0, 0, 0, 0.4) 50%,
-    rgba(255, 255, 255, 0) 75%,
-    rgba(255, 255, 255, 0.12) 100%
-  );
-}
-
-/* Top cable insertion notch / flexible retention clip */
-.dring-front-face::before {
-  content: '';
-  position: absolute;
-  top: -1.5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 2px;
-  background: linear-gradient(90deg, #94a3b8 0%, #ffffff 50%, #94a3b8 100%);
-  border-radius: 1px;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+  display: none !important;
 }
 
 /* Device Controls Overlay */
