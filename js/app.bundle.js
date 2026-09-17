@@ -853,39 +853,44 @@
     return Number.isFinite(fromY) && Number.isFinite(toY) ? [fromY, toY] : [];
   }
 
-  function getActiveDRingOrganizers(activeRack) {
+  function getActiveOrganizers(activeRack) {
     if (!activeRack || !activeRack.devices) return [];
     return activeRack.devices.filter(dev => {
       const cat = HARDWARE_CATALOG[dev.catalogKey];
-      return cat && (dev.catalogKey === 'organizer-dring-1u' || (cat.modelTag && cat.modelTag.includes('D-RING')) || (cat.name && cat.name.toLowerCase().includes('d-ring')));
+      return cat && (
+        dev.catalogKey.includes('organizer') ||
+        (cat.modelTag && (cat.modelTag.includes('D-RING') || cat.modelTag.includes('ORGANIZER') || cat.modelTag.includes('DUCT') || cat.modelTag.includes('BRUSH'))) ||
+        (cat.name && (cat.name.toLowerCase().includes('organizer') || cat.name.toLowerCase().includes('d-ring')))
+      );
     });
   }
 
-  function findInterveningDRing(activeRack, devA, devB) {
-    const drings = getActiveDRingOrganizers(activeRack);
-    if (!drings.length || !devA || !devB) return null;
+  function findDeviceOrganizer(activeRack, dev) {
+    const orgs = getActiveOrganizers(activeRack);
+    if (!orgs.length || !dev) return null;
+    const devTop = Number(dev.topU);
+    const devBot = devTop - Number(dev.uHeight || 1) + 1;
 
-    const topA = Number(devA.topU);
-    const botA = topA - Number(devA.uHeight || 1) + 1;
-    const topB = Number(devB.topU);
-    const botB = topB - Number(devB.uHeight || 1) + 1;
-
-    const minU = Math.min(botA, botB);
-    const maxU = Math.max(topA, topB);
-
-    // Check if any D-Ring is strictly between them
-    const between = drings.find(org => {
-      const orgTop = Number(org.topU);
-      return orgTop < maxU && orgTop >= minU;
-    });
-    if (between) return between;
-
-    // Or directly below the higher device
-    const higherDev = topA >= topB ? devA : devB;
-    const directlyBelow = drings.find(org => Number(org.topU) === Number(higherDev.topU) - Number(higherDev.uHeight || 1));
+    // 1. Directly adjacent below
+    const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
     if (directlyBelow) return directlyBelow;
 
-    return null;
+    // 2. Directly adjacent above
+    const directlyAbove = orgs.find(org => Number(org.topU) === devTop + 1);
+    if (directlyAbove) return directlyAbove;
+
+    // 3. Nearest organizer within 3U
+    let nearest = null;
+    let minDiff = Infinity;
+    orgs.forEach(org => {
+      const orgTop = Number(org.topU);
+      const diff = Math.min(Math.abs(orgTop - devTop), Math.abs(orgTop - devBot));
+      if (diff < minDiff && diff <= 3) {
+        minDiff = diff;
+        nearest = org;
+      }
+    });
+    return nearest;
   }
 
   function getDRingBracketCoords(organizer, contRect, curScale) {
@@ -910,7 +915,10 @@
   function renderDRingOverlays(activeRack, contRect, curScale) {
     if (!dom.dringOverlayGroup) return;
     dom.dringOverlayGroup.innerHTML = '';
-    const drings = getActiveDRingOrganizers(activeRack);
+    const drings = getActiveOrganizers(activeRack).filter(dev => {
+      const cat = HARDWARE_CATALOG[dev.catalogKey];
+      return dev.catalogKey === 'organizer-dring-1u' || (cat && cat.modelTag && cat.modelTag.includes('D-RING')) || (cat && cat.name && cat.name.toLowerCase().includes('d-ring'));
+    });
     if (!drings.length) return;
 
     drings.forEach(org => {
@@ -925,18 +933,27 @@
         g.setAttribute('class', 'dring-svg-bracket');
         g.setAttribute('style', 'pointer-events:none;');
 
-        // Front metal loop frame (fill="none" so cables inside opening stay visible)
-        const rectLoop = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rectLoop.setAttribute('x', loopX);
-        rectLoop.setAttribute('y', loopY);
-        rectLoop.setAttribute('width', loopW);
-        rectLoop.setAttribute('height', loopH);
-        rectLoop.setAttribute('rx', '5');
-        rectLoop.setAttribute('fill', 'none');
-        rectLoop.setAttribute('stroke', 'url(#dring-front-grad)');
-        rectLoop.setAttribute('stroke-width', '4.5');
-        rectLoop.setAttribute('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.85))');
-        g.appendChild(rectLoop);
+        // Left vertical pillar of D-Ring hoop
+        const leftPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        leftPillar.setAttribute('x', loopX);
+        leftPillar.setAttribute('y', loopY);
+        leftPillar.setAttribute('width', '5.5');
+        leftPillar.setAttribute('height', loopH);
+        leftPillar.setAttribute('rx', '2.5');
+        leftPillar.setAttribute('fill', 'url(#dring-front-grad)');
+        leftPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
+        g.appendChild(leftPillar);
+
+        // Right vertical pillar of D-Ring hoop
+        const rightPillar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rightPillar.setAttribute('x', loopX + loopW - 5.5);
+        rightPillar.setAttribute('y', loopY);
+        rightPillar.setAttribute('width', '5.5');
+        rightPillar.setAttribute('height', loopH);
+        rightPillar.setAttribute('rx', '2.5');
+        rightPillar.setAttribute('fill', 'url(#dring-front-grad)');
+        rightPillar.setAttribute('filter', 'drop-shadow(0 3px 5px rgba(0,0,0,0.85))');
+        g.appendChild(rightPillar);
 
         // Top retention clip / chrome locking notch
         const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -1040,99 +1057,90 @@
       let pathD = '';
 
       if (STATE.cableRoutingMode === 'structured') {
-        const devA = activeRack.devices.find(d => d.instanceId === instA);
-        const devB = activeRack.devices.find(d => d.instanceId === instB);
-        const dringOrg = findInterveningDRing(activeRack, devA, devB);
-        const brackets = dringOrg ? getDRingBracketCoords(dringOrg, contRect, curScale) : [];
+        const devA = activeRack?.devices?.find(d => d.instanceId === instA);
+        const devB = activeRack?.devices?.find(d => d.instanceId === instB);
 
-        if (brackets.length) {
-          // Find closest D-Ring bracket for tracking & bundle spacing
-          const targetX = (x1 + x2) / 2;
-          let closestBracket = brackets[0];
-          let minDist = Math.abs(brackets[0].x - targetX);
-          brackets.forEach(b => {
-            const dist = Math.abs(b.x - targetX);
-            if (dist < minDist) {
-              minDist = dist;
-              closestBracket = b;
-            }
-          });
-
-          const ringKey = `${dringOrg.instanceId}_${closestBracket.index}`;
-          if (!dringUsageMap.has(ringKey)) dringUsageMap.set(ringKey, 0);
-          const usageIdx = dringUsageMap.get(ringKey);
-          dringUsageMap.set(ringKey, usageIdx + 1);
-          // Parallel horizontal track offset within the 16px aperture height
-          const bundleYOffset = ((usageIdx % 5) - 2) * 1.8;
-
-          const isY1Top = y1 <= y2;
-          const topX = isY1Top ? x1 : x2;
-          const topY = isY1Top ? y1 : y2;
-          const botX = isY1Top ? x2 : x1;
-          const botY = isY1Top ? y2 : y1;
-          const trayY = closestBracket.y + bundleYOffset;
-
-          const dxCols = Math.abs(botX - topX);
-          if (dxCols < 6) {
-            // Same vertical column: straight vertical drop through the D-ring
-            pathD = `M ${topX} ${topY} L ${botX} ${botY}`;
-          } else {
-            // Drop vertically from port into D-Ring channel, traverse horizontally through the ring, and drop vertically into port
-            const dirX = botX > topX ? 1 : -1;
-            const r = Math.min(8, dxCols / 2, Math.abs(trayY - topY) / 2, Math.abs(botY - trayY) / 2);
-
-            pathD = `M ${topX} ${topY} ` +
-                    `L ${topX} ${trayY - r} ` +
-                    `Q ${topX} ${trayY} ${topX + dirX * r} ${trayY} ` +
-                    `L ${botX - dirX * r} ${trayY} ` +
-                    `Q ${botX} ${trayY} ${botX} ${trayY + r} ` +
-                    `L ${botX} ${botY}`;
-          }
+        if (instA === instB) {
+          // Same device loopback
+          const loopSide = x1 > 300 ? 12 : -12;
+          pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
         } else {
-          const organizerYs = getEndpointOrganizerChannelYs(activeRack, cable, contRect, curScale);
-          if (organizerYs.length) {
-            const useRightChannel = ((x1 + x2) / 2) > 309;
-            const channelBase = useRightChannel ? 595 : 23;
-            const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
-            const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
-            pathD = buildStructuredCablePath(x1, y1, x2, y2, channelX, organizerYs);
-          } else if (dy <= 45) {
-            const ymid = (y1 + y2) / 2;
-            if (dx < 10) {
-              const loopSide = x1 > 300 ? 12 : -12;
-              pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
-            } else {
-              pathD = `M ${x1} ${y1} C ${x1} ${ymid}, ${x2} ${ymid}, ${x2} ${y2}`;
-            }
-          } else {
-            const useRightChannel = ((x1 + x2) / 2) > 309;
-            const channelBase = useRightChannel ? 595 : 23;
-            const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
-            const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
+          // Structured datacenter cabling:
+          // 1. Port A drops/rises vertically to Organizer A level
+          // 2. Traverses horizontally through Organizer A to closest side rail
+          // 3. Runs vertically in side rail duct to Organizer B level
+          // 4. Traverses horizontally through Organizer B from side rail to Port B column
+          // 5. Connects vertically into Port B
 
-            const r = 12;
-            const isY1Top = y1 <= y2;
-            const topY = isY1Top ? y1 : y2;
-            const botY = isY1Top ? y2 : y1;
-            const topX = isY1Top ? x1 : x2;
-            const botX = isY1Top ? x2 : x1;
+          const orgA = findDeviceOrganizer(activeRack, devA);
+          const orgB = findDeviceOrganizer(activeRack, devB);
 
-            if (useRightChannel) {
-              pathD = `M ${topX} ${topY} ` +
-                      `L ${channelX - r} ${topY} ` +
-                      `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
-                      `L ${channelX} ${botY - r} ` +
-                      `Q ${channelX} ${botY} ${channelX - r} ${botY} ` +
-                      `L ${botX} ${botY}`;
-            } else {
-              pathD = `M ${topX} ${topY} ` +
-                      `L ${channelX + r} ${topY} ` +
-                      `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
-                      `L ${channelX} ${botY - r} ` +
-                      `Q ${channelX} ${botY} ${channelX + r} ${botY} ` +
-                      `L ${botX} ${botY}`;
+          const getOrgY = (org, fallbackY, otherY) => {
+            if (org) {
+              const orgEl = document.getElementById(org.instanceId);
+              if (orgEl) {
+                const r = orgEl.getBoundingClientRect();
+                return (r.top + r.height / 2 - (contRect.top + 8 * curScale)) / curScale;
+              }
             }
+            return fallbackY + (otherY >= fallbackY ? 14 : -14);
+          };
+
+          let trayYA = getOrgY(orgA, y1, y2);
+          let trayYB = getOrgY(orgB, y2, y1);
+
+          // If both devices share the exact same organizer between them, split into upper and lower lanes
+          if (orgA && orgB && orgA.instanceId === orgB.instanceId) {
+            const orgCenterY = trayYA;
+            const isATop = Number(devA?.topU || 0) >= Number(devB?.topU || 0);
+            trayYA = orgCenterY + (isATop ? -6 : 6);
+            trayYB = orgCenterY + (isATop ? 6 : -6);
           }
+
+          // Side rail selection: left rail if on left half, right rail if on right half
+          const avgX = (x1 + x2) / 2;
+          const useRightChannel = (x1 >= 309 && x2 >= 309) || (avgX >= 309);
+          const channelBase = useRightChannel ? 595 : 23;
+          const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
+
+          // Space parallel cables neatly within vertical rail duct (44px rail width)
+          const railOffset = ((bundleIdx % 7) - 3) * 2.8;
+          const channelX = channelBase + railOffset;
+
+          // Minor vertical jitter inside horizontal tray to form parallel wire bundles
+          const trayOffsetA = ((bundleIdx % 5) - 2) * 1.5;
+          const trayOffsetB = ((bundleIdx % 5) - 2) * 1.5;
+          const actualTrayYA = trayYA + trayOffsetA;
+          const actualTrayYB = trayYB + trayOffsetB;
+
+          // 1. Vertical from (x1, y1) to (x1, actualTrayYA), then turn towards channelX
+          const dirY1 = actualTrayYA >= y1 ? 1 : -1;
+          const dirX1 = channelX >= x1 ? 1 : -1;
+          const r1 = Math.min(8, Math.abs(channelX - x1) / 2, Math.abs(actualTrayYA - y1) / 2);
+
+          // 2. From (channelX, actualTrayYA) turn into vertical side rail towards actualTrayYB
+          const dirY_rail = actualTrayYB >= actualTrayYA ? 1 : -1;
+          const distRailY = Math.abs(actualTrayYB - actualTrayYA);
+          const rRail1 = Math.min(10, Math.abs(channelX - x1) / 2, distRailY / 2 || 6);
+
+          // 3. From side rail at actualTrayYB, turn towards x2
+          const dirX2 = x2 >= channelX ? 1 : -1;
+          const rRail2 = Math.min(10, Math.abs(x2 - channelX) / 2, distRailY / 2 || 6);
+
+          // 4. From actualTrayYB at x2, turn towards y2
+          const dirY2 = y2 >= actualTrayYB ? 1 : -1;
+          const r2 = Math.min(8, Math.abs(x2 - channelX) / 2, Math.abs(y2 - actualTrayYB) / 2);
+
+          pathD = `M ${x1} ${y1} ` +
+                  `L ${x1} ${actualTrayYA - dirY1 * r1} ` +
+                  `Q ${x1} ${actualTrayYA} ${x1 + dirX1 * r1} ${actualTrayYA} ` +
+                  `L ${channelX - dirX1 * rRail1} ${actualTrayYA} ` +
+                  `Q ${channelX} ${actualTrayYA} ${channelX} ${actualTrayYA + dirY_rail * rRail1} ` +
+                  `L ${channelX} ${actualTrayYB - dirY_rail * rRail2} ` +
+                  `Q ${channelX} ${actualTrayYB} ${channelX + dirX2 * rRail2} ${actualTrayYB} ` +
+                  `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
+                  `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
+                  `L ${x2} ${y2}`;
         }
       } else {
         const ymid = (y1 + y2) / 2;
