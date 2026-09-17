@@ -166,9 +166,30 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 78px;
+  max-width: 68px;
   display: inline-block;
   vertical-align: middle;
+}
+
+/* Combined Route Flow Cell (Source ➔ Target) */
+.route-flow-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.route-arrow {
+  color: #38bdf8;
+  font-size: 9px;
+  font-weight: 900;
+  opacity: 0.85;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0 1px;
 }
 
 .endpoint-cell {
@@ -190,25 +211,42 @@
   border-radius: 4px;
   overflow: hidden;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   border: 1px solid #334155;
   background: #0f172a;
   box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 95px;
+}
+
+.endpoint-badge.clickable-endpoint {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.endpoint-badge.clickable-endpoint:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  transform: translateY(-0.5px);
 }
 
 .badge-u {
   background: #1e293b;
   color: #38bdf8;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-right: 1px solid #334155;
+  flex-shrink: 0;
 }
 
 .badge-port {
   color: #f1f5f9;
   font-weight: 600;
-  padding: 1px 5px;
+  padding: 1px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge-port.fiber {
@@ -223,6 +261,16 @@
   color: #c084fc;
 }
 
+.inter-rack-tag {
+  background: rgba(2, 132, 199, 0.3);
+  color: #38bdf8;
+  font-size: 8.5px;
+  font-weight: 800;
+  padding: 1px 3px;
+  border-right: 1px solid rgba(2, 132, 199, 0.5);
+  flex-shrink: 0;
+}
+
 .inter-rack-badge {
   background: rgba(2, 132, 199, 0.2);
   border: 1px solid #0284c7;
@@ -232,6 +280,186 @@
   padding: 1px 4px;
   border-radius: 3px;
   white-space: nowrap;
+}
+
+/* Interactive Role Selector Trigger Button */
+.role-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.role-select-trigger:hover {
+  transform: translateY(-0.5px);
+  filter: brightness(1.2);
+}
+
+.role-select-trigger.trunk {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: #a855f7;
+  color: #d8b4fe;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.25);
+}
+
+.role-select-trigger.uplink {
+  background: rgba(0, 210, 255, 0.18);
+  border-color: #00d2ff;
+  color: #67e8f9;
+  box-shadow: 0 0 6px rgba(0, 210, 255, 0.25);
+}
+
+.role-select-trigger.poe {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fcd34d;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.25);
+}
+
+.role-select-trigger.mgmt {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #6ee7b7;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.25);
+}
+
+.role-select-trigger.standard {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+.role-select-trigger.standard:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent-blue);
+  color: #f1f5f9;
+}
+
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  font-size: 8px;
+  font-weight: 900;
+  font-family: Consolas, monospace;
+}
+
+.role-select-trigger.trunk .role-tag { background: #a855f7; color: #fff; }
+.role-select-trigger.uplink .role-tag { background: #00d2ff; color: #000; }
+.role-select-trigger.poe .role-tag { background: #f59e0b; color: #000; }
+.role-select-trigger.mgmt .role-tag { background: #10b981; color: #fff; }
+.role-select-trigger.standard .role-tag { background: #334155; color: #cbd5e1; }
+
+/* Role Picker Popover (Floating Dropdown) */
+.role-picker-popover {
+  position: fixed;
+  z-index: 10050;
+  min-width: 190px;
+  background: #0f172af8;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 229, 255, 0.2);
+  user-select: none;
+  animation: rolePopoverFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rolePopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.role-picker-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 6px 3px;
+}
+
+.role-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.role-picker-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.role-picker-item.active {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.role-picker-sep {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 3px 0;
+}
+
+.role-badge-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 900;
+  font-family: Consolas, monospace;
+  flex-shrink: 0;
+}
+
+.role-badge-preview.trunk { background: #a855f7; color: #fff; box-shadow: 0 0 6px #a855f7; }
+.role-badge-preview.uplink { background: #00d2ff; color: #000; box-shadow: 0 0 6px #00d2ff; }
+.role-badge-preview.poe { background: #f59e0b; color: #000; box-shadow: 0 0 6px #f59e0b; }
+.role-badge-preview.mgmt { background: #10b981; color: #fff; box-shadow: 0 0 6px #10b981; }
+.role-badge-preview.standard { background: #334155; color: #cbd5e1; }
+
+.role-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.role-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.role-hint {
+  font-size: 9px;
+  color: #94a3b8;
 }
 
 .role-pill {
