@@ -188,23 +188,29 @@ export function renderAllCables() {
         if (!dringUsageMap.has(ringKey)) dringUsageMap.set(ringKey, 0);
         const usageIdx = dringUsageMap.get(ringKey);
         dringUsageMap.set(ringKey, usageIdx + 1);
-        const bundleSpread = ((usageIdx % 5) - 2) * 2.2;
-
-        const rx = closestBracket.x + bundleSpread;
-        const ry = closestBracket.y;
+        const bundleYOffset = ((usageIdx % 5) - 2) * 1.8;
 
         const isY1Top = y1 <= y2;
         const topX = isY1Top ? x1 : x2;
         const topY = isY1Top ? y1 : y2;
         const botX = isY1Top ? x2 : x1;
         const botY = isY1Top ? y2 : y1;
+        const trayY = closestBracket.y + bundleYOffset;
 
-        const dyTop = Math.abs(ry - topY);
-        const dyBot = Math.abs(botY - ry);
+        const dxCols = Math.abs(botX - topX);
+        if (dxCols < 6) {
+          pathD = `M ${topX} ${topY} L ${botX} ${botY}`;
+        } else {
+          const dirX = botX > topX ? 1 : -1;
+          const r = Math.min(8, dxCols / 2, Math.abs(trayY - topY) / 2, Math.abs(botY - trayY) / 2);
 
-        pathD = `M ${topX} ${topY} ` +
-                `C ${topX} ${topY + dyTop * 0.45}, ${rx} ${ry - dyTop * 0.45}, ${rx} ${ry} ` +
-                `C ${rx} ${ry + dyBot * 0.45}, ${botX} ${botY - dyBot * 0.45}, ${botX} ${botY}`;
+          pathD = `M ${topX} ${topY} ` +
+                  `L ${topX} ${trayY - r} ` +
+                  `Q ${topX} ${trayY} ${topX + dirX * r} ${trayY} ` +
+                  `L ${botX - dirX * r} ${trayY} ` +
+                  `Q ${botX} ${trayY} ${botX} ${trayY + r} ` +
+                  `L ${botX} ${botY}`;
+        }
       } else if (dy <= 45) {
         // 1. Adjacent / near units (<= 45px vertical delta, within ~1U/2U):
         const ymid = (y1 + y2) / 2;

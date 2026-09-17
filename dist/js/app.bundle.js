@@ -1046,6 +1046,7 @@
         const brackets = dringOrg ? getDRingBracketCoords(dringOrg, contRect, curScale) : [];
 
         if (brackets.length) {
+          // Find closest D-Ring bracket for tracking & bundle spacing
           const targetX = (x1 + x2) / 2;
           let closestBracket = brackets[0];
           let minDist = Math.abs(brackets[0].x - targetX);
@@ -1061,23 +1062,32 @@
           if (!dringUsageMap.has(ringKey)) dringUsageMap.set(ringKey, 0);
           const usageIdx = dringUsageMap.get(ringKey);
           dringUsageMap.set(ringKey, usageIdx + 1);
-          const bundleSpread = ((usageIdx % 5) - 2) * 2.2;
-
-          const rx = closestBracket.x + bundleSpread;
-          const ry = closestBracket.y;
+          // Parallel horizontal track offset within the 16px aperture height
+          const bundleYOffset = ((usageIdx % 5) - 2) * 1.8;
 
           const isY1Top = y1 <= y2;
           const topX = isY1Top ? x1 : x2;
           const topY = isY1Top ? y1 : y2;
           const botX = isY1Top ? x2 : x1;
           const botY = isY1Top ? y2 : y1;
+          const trayY = closestBracket.y + bundleYOffset;
 
-          const dyTop = Math.abs(ry - topY);
-          const dyBot = Math.abs(botY - ry);
+          const dxCols = Math.abs(botX - topX);
+          if (dxCols < 6) {
+            // Same vertical column: straight vertical drop through the D-ring
+            pathD = `M ${topX} ${topY} L ${botX} ${botY}`;
+          } else {
+            // Drop vertically from port into D-Ring channel, traverse horizontally through the ring, and drop vertically into port
+            const dirX = botX > topX ? 1 : -1;
+            const r = Math.min(8, dxCols / 2, Math.abs(trayY - topY) / 2, Math.abs(botY - trayY) / 2);
 
-          pathD = `M ${topX} ${topY} ` +
-                  `C ${topX} ${topY + dyTop * 0.45}, ${rx} ${ry - dyTop * 0.45}, ${rx} ${ry} ` +
-                  `C ${rx} ${ry + dyBot * 0.45}, ${botX} ${botY - dyBot * 0.45}, ${botX} ${botY}`;
+            pathD = `M ${topX} ${topY} ` +
+                    `L ${topX} ${trayY - r} ` +
+                    `Q ${topX} ${trayY} ${topX + dirX * r} ${trayY} ` +
+                    `L ${botX - dirX * r} ${trayY} ` +
+                    `Q ${botX} ${trayY} ${botX} ${trayY + r} ` +
+                    `L ${botX} ${botY}`;
+          }
         } else {
           const organizerYs = getEndpointOrganizerChannelYs(activeRack, cable, contRect, curScale);
           if (organizerYs.length) {
