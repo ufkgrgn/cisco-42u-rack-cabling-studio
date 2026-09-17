@@ -54,6 +54,7 @@ export const dom = {
   cablesSvg: null,
   cablesGroup: null,
   connectorsGroup: null,
+  dringOverlayGroup: null,
   scheduleTbody: null,
   cableCountLabel: null,
   connectionStatusHint: null,
@@ -95,6 +96,7 @@ export function initDomReferences() {
   dom.cablesSvg = document.getElementById('cables-svg');
   dom.cablesGroup = document.getElementById('cables-group');
   dom.connectorsGroup = document.getElementById('connectors-group');
+  dom.dringOverlayGroup = document.getElementById('dring-overlay-group');
   dom.scheduleTbody = document.getElementById('schedule-tbody');
   dom.cableCountLabel = document.getElementById('cable-count-label');
   dom.connectionStatusHint = document.getElementById('connection-status-hint');

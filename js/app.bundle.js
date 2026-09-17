@@ -606,6 +606,7 @@
     cablesSvg: null,
     cablesGroup: null,
     connectorsGroup: null,
+    dringOverlayGroup: null,
     scheduleTbody: null,
     cableCountLabel: null,
     connectionStatusHint: null,
@@ -647,6 +648,7 @@
     dom.cablesSvg = document.getElementById('cables-svg');
     dom.cablesGroup = document.getElementById('cables-group');
     dom.connectorsGroup = document.getElementById('connectors-group');
+    dom.dringOverlayGroup = document.getElementById('dring-overlay-group');
     dom.scheduleTbody = document.getElementById('schedule-tbody');
     dom.cableCountLabel = document.getElementById('cable-count-label');
     dom.connectionStatusHint = document.getElementById('connection-status-hint');
@@ -851,6 +853,116 @@
     return Number.isFinite(fromY) && Number.isFinite(toY) ? [fromY, toY] : [];
   }
 
+  function getActiveDRingOrganizers(activeRack) {
+    if (!activeRack || !activeRack.devices) return [];
+    return activeRack.devices.filter(dev => {
+      const cat = HARDWARE_CATALOG[dev.catalogKey];
+      return cat && (dev.catalogKey === 'organizer-dring-1u' || (cat.modelTag && cat.modelTag.includes('D-RING')) || (cat.name && cat.name.toLowerCase().includes('d-ring')));
+    });
+  }
+
+  function findInterveningDRing(activeRack, devA, devB) {
+    const drings = getActiveDRingOrganizers(activeRack);
+    if (!drings.length || !devA || !devB) return null;
+
+    const topA = Number(devA.topU);
+    const botA = topA - Number(devA.uHeight || 1) + 1;
+    const topB = Number(devB.topU);
+    const botB = topB - Number(devB.uHeight || 1) + 1;
+
+    const minU = Math.min(botA, botB);
+    const maxU = Math.max(topA, topB);
+
+    // Check if any D-Ring is strictly between them
+    const between = drings.find(org => {
+      const orgTop = Number(org.topU);
+      return orgTop < maxU && orgTop >= minU;
+    });
+    if (between) return between;
+
+    // Or directly below the higher device
+    const higherDev = topA >= topB ? devA : devB;
+    const directlyBelow = drings.find(org => Number(org.topU) === Number(higherDev.topU) - Number(higherDev.uHeight || 1));
+    if (directlyBelow) return directlyBelow;
+
+    return null;
+  }
+
+  function getDRingBracketCoords(organizer, contRect, curScale) {
+    const el = document.getElementById(organizer.instanceId);
+    if (!el) return [];
+    const brackets = el.querySelectorAll('.dring-bracket');
+    if (!brackets || !brackets.length) return [];
+    const coords = [];
+    brackets.forEach((bEl, idx) => {
+      const rect = bEl.getBoundingClientRect();
+      coords.push({
+        index: idx,
+        x: (rect.left + rect.width / 2 - (contRect.left + 8 * curScale)) / curScale,
+        y: (rect.top + rect.height / 2 - (contRect.top + 8 * curScale)) / curScale,
+        width: rect.width / curScale,
+        height: rect.height / curScale
+      });
+    });
+    return coords;
+  }
+
+  function renderDRingOverlays(activeRack, contRect, curScale) {
+    if (!dom.dringOverlayGroup) return;
+    dom.dringOverlayGroup.innerHTML = '';
+    const drings = getActiveDRingOrganizers(activeRack);
+    if (!drings.length) return;
+
+    drings.forEach(org => {
+      const coords = getDRingBracketCoords(org, contRect, curScale);
+      coords.forEach(bracket => {
+        const loopW = 38;
+        const loopH = 27;
+        const loopX = bracket.x - loopW / 2;
+        const loopY = bracket.y - loopH / 2;
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'dring-svg-bracket');
+        g.setAttribute('style', 'pointer-events:none;');
+
+        // Front metal loop frame (fill="none" so cables inside opening stay visible)
+        const rectLoop = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rectLoop.setAttribute('x', loopX);
+        rectLoop.setAttribute('y', loopY);
+        rectLoop.setAttribute('width', loopW);
+        rectLoop.setAttribute('height', loopH);
+        rectLoop.setAttribute('rx', '5');
+        rectLoop.setAttribute('fill', 'none');
+        rectLoop.setAttribute('stroke', 'url(#dring-front-grad)');
+        rectLoop.setAttribute('stroke-width', '4.5');
+        rectLoop.setAttribute('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.85))');
+        g.appendChild(rectLoop);
+
+        // Top retention clip / chrome locking notch
+        const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        clip.setAttribute('x', loopX + 14);
+        clip.setAttribute('y', loopY - 1.5);
+        clip.setAttribute('width', '10');
+        clip.setAttribute('height', '2.5');
+        clip.setAttribute('rx', '1');
+        clip.setAttribute('fill', 'url(#dring-clip-grad)');
+        g.appendChild(clip);
+
+        // Specular highlight line along top bar
+        const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        highlight.setAttribute('x', loopX + 2);
+        highlight.setAttribute('y', loopY);
+        highlight.setAttribute('width', loopW - 4);
+        highlight.setAttribute('height', '1.2');
+        highlight.setAttribute('rx', '0.6');
+        highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.55)');
+        g.appendChild(highlight);
+
+        dom.dringOverlayGroup.appendChild(g);
+      });
+    });
+  }
+
   function buildStructuredCablePath(x1, y1, x2, y2, channelX, organizerYs) {
     const ordered = organizerYs;
     const firstOrganizerY = ordered[0];
@@ -885,6 +997,7 @@
     document.querySelectorAll('.port').forEach(el => portRects.set(el.id, el.getBoundingClientRect()));
     let leftChannelUsage = 0;
     let rightChannelUsage = 0;
+    const dringUsageMap = new Map();
 
     const activeRack = getActiveRack();
 
@@ -907,7 +1020,7 @@
       }
       if (!portToEl) {
         portToEl = document.querySelector(`.port[data-instance-id="${instB}"][data-port-id="${portIdB}"]`) ||
-                   document.querySelector(`.port[data-instance-id="${instB}"]`);
+                    document.querySelector(`.port[data-instance-id="${instB}"]`);
       }
 
       if (!portFromEl || !portToEl) return;
@@ -927,48 +1040,88 @@
       let pathD = '';
 
       if (STATE.cableRoutingMode === 'structured') {
-        const organizerYs = getEndpointOrganizerChannelYs(activeRack, cable, contRect, curScale);
-        if (organizerYs.length) {
-          const useRightChannel = ((x1 + x2) / 2) > 309;
-          const channelBase = useRightChannel ? 595 : 23;
-          const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
-          const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
-          pathD = buildStructuredCablePath(x1, y1, x2, y2, channelX, organizerYs);
-        } else if (dy <= 45) {
-          const ymid = (y1 + y2) / 2;
-          if (dx < 10) {
-            const loopSide = x1 > 300 ? 12 : -12;
-            pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
-          } else {
-            pathD = `M ${x1} ${y1} C ${x1} ${ymid}, ${x2} ${ymid}, ${x2} ${y2}`;
-          }
-        } else {
-          const useRightChannel = ((x1 + x2) / 2) > 309;
-          const channelBase = useRightChannel ? 595 : 23;
-          const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
-          const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
+        const devA = activeRack.devices.find(d => d.instanceId === instA);
+        const devB = activeRack.devices.find(d => d.instanceId === instB);
+        const dringOrg = findInterveningDRing(activeRack, devA, devB);
+        const brackets = dringOrg ? getDRingBracketCoords(dringOrg, contRect, curScale) : [];
 
-          const r = 12;
+        if (brackets.length) {
+          const targetX = (x1 + x2) / 2;
+          let closestBracket = brackets[0];
+          let minDist = Math.abs(brackets[0].x - targetX);
+          brackets.forEach(b => {
+            const dist = Math.abs(b.x - targetX);
+            if (dist < minDist) {
+              minDist = dist;
+              closestBracket = b;
+            }
+          });
+
+          const ringKey = `${dringOrg.instanceId}_${closestBracket.index}`;
+          if (!dringUsageMap.has(ringKey)) dringUsageMap.set(ringKey, 0);
+          const usageIdx = dringUsageMap.get(ringKey);
+          dringUsageMap.set(ringKey, usageIdx + 1);
+          const bundleSpread = ((usageIdx % 5) - 2) * 2.2;
+
+          const rx = closestBracket.x + bundleSpread;
+          const ry = closestBracket.y;
+
           const isY1Top = y1 <= y2;
-          const topY = isY1Top ? y1 : y2;
-          const botY = isY1Top ? y2 : y1;
           const topX = isY1Top ? x1 : x2;
+          const topY = isY1Top ? y1 : y2;
           const botX = isY1Top ? x2 : x1;
+          const botY = isY1Top ? y2 : y1;
 
-          if (useRightChannel) {
-            pathD = `M ${topX} ${topY} ` +
-                    `L ${channelX - r} ${topY} ` +
-                    `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
-                    `L ${channelX} ${botY - r} ` +
-                    `Q ${channelX} ${botY} ${channelX - r} ${botY} ` +
-                    `L ${botX} ${botY}`;
+          const dyTop = Math.abs(ry - topY);
+          const dyBot = Math.abs(botY - ry);
+
+          pathD = `M ${topX} ${topY} ` +
+                  `C ${topX} ${topY + dyTop * 0.45}, ${rx} ${ry - dyTop * 0.45}, ${rx} ${ry} ` +
+                  `C ${rx} ${ry + dyBot * 0.45}, ${botX} ${botY - dyBot * 0.45}, ${botX} ${botY}`;
+        } else {
+          const organizerYs = getEndpointOrganizerChannelYs(activeRack, cable, contRect, curScale);
+          if (organizerYs.length) {
+            const useRightChannel = ((x1 + x2) / 2) > 309;
+            const channelBase = useRightChannel ? 595 : 23;
+            const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
+            const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
+            pathD = buildStructuredCablePath(x1, y1, x2, y2, channelX, organizerYs);
+          } else if (dy <= 45) {
+            const ymid = (y1 + y2) / 2;
+            if (dx < 10) {
+              const loopSide = x1 > 300 ? 12 : -12;
+              pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
+            } else {
+              pathD = `M ${x1} ${y1} C ${x1} ${ymid}, ${x2} ${ymid}, ${x2} ${y2}`;
+            }
           } else {
-            pathD = `M ${topX} ${topY} ` +
-                    `L ${channelX + r} ${topY} ` +
-                    `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
-                    `L ${channelX} ${botY - r} ` +
-                    `Q ${channelX} ${botY} ${channelX + r} ${botY} ` +
-                    `L ${botX} ${botY}`;
+            const useRightChannel = ((x1 + x2) / 2) > 309;
+            const channelBase = useRightChannel ? 595 : 23;
+            const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
+            const channelX = channelBase + ((bundleIdx % 6) - 2.5) * 3.4;
+
+            const r = 12;
+            const isY1Top = y1 <= y2;
+            const topY = isY1Top ? y1 : y2;
+            const botY = isY1Top ? y2 : y1;
+            const topX = isY1Top ? x1 : x2;
+            const botX = isY1Top ? x2 : x1;
+
+            if (useRightChannel) {
+              pathD = `M ${topX} ${topY} ` +
+                      `L ${channelX - r} ${topY} ` +
+                      `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
+                      `L ${channelX} ${botY - r} ` +
+                      `Q ${channelX} ${botY} ${channelX - r} ${botY} ` +
+                      `L ${botX} ${botY}`;
+            } else {
+              pathD = `M ${topX} ${topY} ` +
+                      `L ${channelX + r} ${topY} ` +
+                      `Q ${channelX} ${topY} ${channelX} ${topY + r} ` +
+                      `L ${channelX} ${botY - r} ` +
+                      `Q ${channelX} ${botY} ${channelX + r} ${botY} ` +
+                      `L ${botX} ${botY}`;
+            }
           }
         }
       } else {
@@ -1058,6 +1211,8 @@
         dom.connectorsGroup.appendChild(bootB);
       }
     });
+
+    renderDRingOverlays(activeRack, contRect, curScale);
   }
 
   function highlightCable(cableId) {

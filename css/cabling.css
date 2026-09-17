@@ -86,3 +86,9 @@
   fill: #ffffff !important;
   font-weight: 800;
 }
+
+/* 3D Skeuomorphic D-Ring Cable Retention Overlay (Occlusion Layer) */
+.dring-svg-bracket {
+  pointer-events: none;
+}
+

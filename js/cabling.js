@@ -1,4 +1,4 @@
-import { STATE, ZOOM_STATE, dom } from './state.js';
+import { STATE, ZOOM_STATE, dom, getActiveRack } from './state.js';
 import { HARDWARE_CATALOG } from './catalog.js';
 
 export function cancelPendingConnection() {
@@ -9,6 +9,111 @@ export function cancelPendingConnection() {
   if (dom.connectionStatusHint) {
     dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
   }
+}
+
+function getActiveDRingOrganizers(activeRack) {
+  if (!activeRack || !activeRack.devices) return [];
+  return activeRack.devices.filter(dev => {
+    const cat = HARDWARE_CATALOG[dev.catalogKey];
+    return cat && (dev.catalogKey === 'organizer-dring-1u' || (cat.modelTag && cat.modelTag.includes('D-RING')) || (cat.name && cat.name.toLowerCase().includes('d-ring')));
+  });
+}
+
+function findInterveningDRing(activeRack, devA, devB) {
+  const drings = getActiveDRingOrganizers(activeRack);
+  if (!drings.length || !devA || !devB) return null;
+
+  const topA = Number(devA.topU);
+  const botA = topA - Number(devA.uHeight || 1) + 1;
+  const topB = Number(devB.topU);
+  const botB = topB - Number(devB.uHeight || 1) + 1;
+
+  const minU = Math.min(botA, botB);
+  const maxU = Math.max(topA, topB);
+
+  const between = drings.find(org => {
+    const orgTop = Number(org.topU);
+    return orgTop < maxU && orgTop >= minU;
+  });
+  if (between) return between;
+
+  const higherDev = topA >= topB ? devA : devB;
+  const directlyBelow = drings.find(org => Number(org.topU) === Number(higherDev.topU) - Number(higherDev.uHeight || 1));
+  if (directlyBelow) return directlyBelow;
+
+  return null;
+}
+
+function getDRingBracketCoords(organizer, contRect, curScale) {
+  const el = document.getElementById(organizer.instanceId);
+  if (!el) return [];
+  const brackets = el.querySelectorAll('.dring-bracket');
+  if (!brackets || !brackets.length) return [];
+  const coords = [];
+  brackets.forEach((bEl, idx) => {
+    const rect = bEl.getBoundingClientRect();
+    coords.push({
+      index: idx,
+      x: (rect.left + rect.width / 2 - (contRect.left + 8 * curScale)) / curScale,
+      y: (rect.top + rect.height / 2 - (contRect.top + 8 * curScale)) / curScale,
+      width: rect.width / curScale,
+      height: rect.height / curScale
+    });
+  });
+  return coords;
+}
+
+function renderDRingOverlays(activeRack, contRect, curScale) {
+  if (!dom.dringOverlayGroup) return;
+  dom.dringOverlayGroup.innerHTML = '';
+  const drings = getActiveDRingOrganizers(activeRack);
+  if (!drings.length) return;
+
+  drings.forEach(org => {
+    const coords = getDRingBracketCoords(org, contRect, curScale);
+    coords.forEach(bracket => {
+      const loopW = 38;
+      const loopH = 27;
+      const loopX = bracket.x - loopW / 2;
+      const loopY = bracket.y - loopH / 2;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'dring-svg-bracket');
+      g.setAttribute('style', 'pointer-events:none;');
+
+      const rectLoop = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rectLoop.setAttribute('x', loopX);
+      rectLoop.setAttribute('y', loopY);
+      rectLoop.setAttribute('width', loopW);
+      rectLoop.setAttribute('height', loopH);
+      rectLoop.setAttribute('rx', '5');
+      rectLoop.setAttribute('fill', 'none');
+      rectLoop.setAttribute('stroke', 'url(#dring-front-grad)');
+      rectLoop.setAttribute('stroke-width', '4.5');
+      rectLoop.setAttribute('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.85))');
+      g.appendChild(rectLoop);
+
+      const clip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      clip.setAttribute('x', loopX + 14);
+      clip.setAttribute('y', loopY - 1.5);
+      clip.setAttribute('width', '10');
+      clip.setAttribute('height', '2.5');
+      clip.setAttribute('rx', '1');
+      clip.setAttribute('fill', 'url(#dring-clip-grad)');
+      g.appendChild(clip);
+
+      const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      highlight.setAttribute('x', loopX + 2);
+      highlight.setAttribute('y', loopY);
+      highlight.setAttribute('width', loopW - 4);
+      highlight.setAttribute('height', '1.2');
+      highlight.setAttribute('rx', '0.6');
+      highlight.setAttribute('fill', 'rgba(255, 255, 255, 0.55)');
+      g.appendChild(highlight);
+
+      dom.dringOverlayGroup.appendChild(g);
+    });
+  });
 }
 
 export function renderAllCables() {
@@ -22,6 +127,8 @@ export function renderAllCables() {
   // Counters to space parallel cables in left and right vertical channels
   let leftChannelUsage = 0;
   let rightChannelUsage = 0;
+  const dringUsageMap = new Map();
+  const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
 
   STATE.cables.forEach((cable) => {
     const instA = cable.from.instanceId || cable.from.deviceId;
@@ -60,9 +167,46 @@ export function renderAllCables() {
     let pathD = '';
 
     if (STATE.cableRoutingMode === 'structured') {
-      // STRUCTURED ENTERPRISE CABLING
-      // 1. Adjacent / near units (<= 45px vertical delta, within ~1U/2U):
-      if (dy <= 45) {
+      const devA = activeRack?.devices.find(d => d.instanceId === instA);
+      const devB = activeRack?.devices.find(d => d.instanceId === instB);
+      const dringOrg = findInterveningDRing(activeRack, devA, devB);
+      const brackets = dringOrg ? getDRingBracketCoords(dringOrg, contRect, curScale) : [];
+
+      if (brackets.length) {
+        const targetX = (x1 + x2) / 2;
+        let closestBracket = brackets[0];
+        let minDist = Math.abs(brackets[0].x - targetX);
+        brackets.forEach(b => {
+          const dist = Math.abs(b.x - targetX);
+          if (dist < minDist) {
+            minDist = dist;
+            closestBracket = b;
+          }
+        });
+
+        const ringKey = `${dringOrg.instanceId}_${closestBracket.index}`;
+        if (!dringUsageMap.has(ringKey)) dringUsageMap.set(ringKey, 0);
+        const usageIdx = dringUsageMap.get(ringKey);
+        dringUsageMap.set(ringKey, usageIdx + 1);
+        const bundleSpread = ((usageIdx % 5) - 2) * 2.2;
+
+        const rx = closestBracket.x + bundleSpread;
+        const ry = closestBracket.y;
+
+        const isY1Top = y1 <= y2;
+        const topX = isY1Top ? x1 : x2;
+        const topY = isY1Top ? y1 : y2;
+        const botX = isY1Top ? x2 : x1;
+        const botY = isY1Top ? y2 : y1;
+
+        const dyTop = Math.abs(ry - topY);
+        const dyBot = Math.abs(botY - ry);
+
+        pathD = `M ${topX} ${topY} ` +
+                `C ${topX} ${topY + dyTop * 0.45}, ${rx} ${ry - dyTop * 0.45}, ${rx} ${ry} ` +
+                `C ${rx} ${ry + dyBot * 0.45}, ${botX} ${botY - dyBot * 0.45}, ${botX} ${botY}`;
+      } else if (dy <= 45) {
+        // 1. Adjacent / near units (<= 45px vertical delta, within ~1U/2U):
         const ymid = (y1 + y2) / 2;
         if (dx < 10) {
           // Same vertical column: neat outward side loop
@@ -251,6 +395,8 @@ export function renderAllCables() {
       dom.connectorsGroup.appendChild(bootB);
     }
   });
+
+  renderDRingOverlays(activeRack, contRect, curScale);
 }
 
 export function highlightCable(cableId) {
