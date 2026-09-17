@@ -5,9 +5,10 @@
 (function () {
   'use strict';
 
-  window.addEventListener('DOMContentLoaded', () => {
+  function initStudio3DUI() {
     const container = document.getElementById('studio3d-container');
     if (!container || !window.Studio3D) return;
+    if (window.__STUDIO3D__) return;
 
     // Instantiate 3D Studio Engine
     const studio = new window.Studio3D(container);
@@ -833,5 +834,11 @@
         btnDoor && btnDoor.click();
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initStudio3DUI);
+  } else {
+    initStudio3DUI();
+  }
 })();

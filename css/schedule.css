@@ -32,9 +32,10 @@
 }
 
 .sidebar-right.collapsed {
-  width: 44px;
-  min-width: 44px;
-  overflow: hidden;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  overflow: hidden !important;
 }
 
 .sidebar-right.collapsed .sidebar-right-resizer {
@@ -46,6 +47,14 @@
 .sidebar-right.collapsed #btn-clear-cables,
 .sidebar-right.collapsed .schedule-header-content {
   display: none !important;
+}
+
+.sidebar-right.collapsed .schedule-header {
+  padding: 56px 0 10px 0 !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 44px !important;
 }
 
 .schedule-header {

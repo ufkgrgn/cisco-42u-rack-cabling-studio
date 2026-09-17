@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- 3D Studio & HUD Styles -->
-  <link rel="stylesheet" href="css/studio3d.css">
-  
-  <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
+  <!-- Modular Stylesheets (2D Workspace) -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/viewport.css">
@@ -45,8 +42,8 @@
     <!-- Center: Segmented View Switcher & Contextual Controls -->
     <div class="hud-center-cluster">
       <div class="view-switch-segmented">
-        <button type="button" class="segmented-btn" id="btn-view-2d">📐 2D Görünüm</button>
-        <button type="button" class="segmented-btn active" id="btn-view-3d">🎮 3D Stüdyo</button>
+        <button type="button" class="segmented-btn active" id="btn-view-2d">📐 2D Görünüm</button>
+        <button type="button" class="segmented-btn" id="btn-view-3d">🎮 3D Stüdyo</button>
       </div>
 
       <label class="device-label-control" for="device-label-mode">
@@ -61,7 +58,7 @@
       </label>
 
       <!-- 3D Camera & Scene Controls Group -->
-      <div id="controls-3d-group" class="context-toolbar">
+      <div id="controls-3d-group" class="context-toolbar" style="display:none;">
         <div class="hud-btn-group" title="3D Kamera Bakış Açıları">
           <button class="hud-btn cam-btn active" id="cam-iso" title="İzometrik 3D Sinematik Açı (1)">🎮 İzo</button>
           <button class="hud-btn cam-btn" id="cam-front" title="Ön Panel Doğrudan Bakış (2)">🎯 Ön</button>
@@ -77,7 +74,7 @@
       </div>
 
       <!-- 2D Controls Group -->
-      <div id="controls-2d-group" class="context-toolbar" style="display:none;">
+      <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
         <div class="hud-btn-group">
           <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin Ön/Arka Yüzü Değiştir">🔄 Ön / Arka</button>
         </div>
@@ -93,7 +90,7 @@
         <span id="rack-u-val">42U</span>
       </div>
 
-      <label class="device-label-control" for="performance-mode">
+      <label class="device-label-control" for="performance-mode" style="display:none;">
         <span>3D Kalite:</span>
         <select id="performance-mode" title="3D performans ve görüntü kalitesi dengesi">
           <option value="eco">Ekonomi</option>
@@ -112,7 +109,7 @@
       <!-- Tools Group -->
       <div class="hud-btn-group">
         <button class="hud-btn" id="btn-3d-schedule-modal" title="Metraj & Kablo Çizelgesi">📋 Metraj</button>
-        <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret">🧙‍♂️ Donanım</button>
+        <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret" style="display:none;">🧙‍♂️ Donanım</button>
         <button class="hud-btn" id="btn-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">📊 Visio</button>
       </div>
 
@@ -130,12 +127,13 @@
       </div>
 
       <!-- Performance FPS Counter -->
-      <span class="hud-badge fps" id="fps-counter">60 FPS</span>
+      <span class="hud-badge fps" id="fps-counter" style="display:none;">60 FPS</span>
     </div>
   </header>
 
-  <!-- ==================== 3D GAME-LIKE DATACENTER STUDIO ==================== -->
-  <div id="studio3d-wrapper">
+  <!-- ==================== 3D DATACENTER STUDIO (ON-DEMAND LAZY LOADED TEMPLATE) ==================== -->
+  <template id="studio3d-template">
+  <div id="studio3d-wrapper" style="display:none;">
     <!-- WebGL 3D Canvas Mount -->
     <div id="studio3d-container"></div>
 
@@ -324,7 +322,70 @@
       <span>|</span>
       <span>🖱️ <b>Tekerlek:</b> Yakınlaş / Uzaklaş</span>
     </div>
+
+    <!-- CUSTOM DEVICE WIZARD MODAL -->
+    <div class="studio-modal" id="modal-wizard" style="display:none; z-index:230;">
+      <div class="studio-modal-card" style="width:520px;">
+        <div class="modal-header">
+          <h2>ÖZEL 3D DONANIM TASARLAMA SİHİRBAZI</h2>
+          <button class="hud-btn" id="btn-close-wizard">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Donanım Model Adı</label>
+            <input type="text" id="wiz-name" class="form-input" placeholder="Örn: Sanallaştırma Sunucusu 01" value="Custom Server Node">
+          </div>
+          <div class="form-group">
+            <label>Üretici Firma</label>
+            <input type="text" id="wiz-manuf" class="form-input" placeholder="Örn: Cisco, Dell, Custom" value="Kurumsal Özel">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Kategori</label>
+              <select id="wiz-cat" class="form-input">
+                <option value="server">Sunucu (Server)</option>
+                <option value="switch">Ağ Anahtarı (Switch)</option>
+                <option value="router">Yönlendirici (Router)</option>
+                <option value="patch-panel">Patch Panel</option>
+                <option value="accessory">Kablo Düzenleyici / Kör Panel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Kabin Yüksekliği (U)</label>
+              <select id="wiz-u" class="form-input">
+                <option value="1">1U</option>
+                <option value="2" selected>2U</option>
+                <option value="3">3U</option>
+                <option value="4">4U</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label>Port Sayısı</label>
+              <input type="number" id="wiz-ports" class="form-input" min="0" max="96" value="24">
+            </div>
+            <div class="form-group">
+              <label>Port Tipi</label>
+              <select id="wiz-port-type" class="form-input">
+                <option value="rj45">RJ45 Bakır (Cat6/Cat6A)</option>
+                <option value="qsfp28">SFP / QSFP Optik Fiber</option>
+                <option value="c13">C13 Güç Çıkışı</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Şasi Derinliği (mm)</label>
+            <input type="number" id="wiz-depth" class="form-input" min="100" max="1000" value="650">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="hud-btn btn-primary" id="btn-create-custom-device">⚡ 3D Donanımı Üret ve Kataloğa Ekle</button>
+        </div>
+      </div>
+    </div>
   </div>
+  </template>
 
   <!-- DEVICE NAME & IP CONFIGURATION MODAL -->
   <div class="studio-modal" id="modal-device-edit" style="display:none;">
@@ -451,70 +512,7 @@
     </div>
   </div>
 
-    <!-- CUSTOM DEVICE WIZARD MODAL -->
-    <div class="studio-modal" id="modal-wizard">
-      <div class="studio-modal-card" style="width:520px;">
-        <div class="modal-header">
-          <h2>ÖZEL 3D DONANIM TASARLAMA SİHİRBAZI</h2>
-          <button class="hud-btn" id="btn-close-wizard">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Donanım Model Adı</label>
-            <input type="text" id="wiz-name" class="form-input" placeholder="Örn: Sanallaştırma Sunucusu 01" value="Custom Server Node">
-          </div>
-          <div class="form-group">
-            <label>Üretici Firma</label>
-            <input type="text" id="wiz-manuf" class="form-input" placeholder="Örn: Cisco, Dell, Custom" value="Kurumsal Özel">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="form-group">
-              <label>Kategori</label>
-              <select id="wiz-cat" class="form-input">
-                <option value="server">Sunucu (Server)</option>
-                <option value="switch">Ağ Anahtarı (Switch)</option>
-                <option value="router">Yönlendirici (Router)</option>
-                <option value="patch-panel">Patch Panel</option>
-                <option value="accessory">Kablo Düzenleyici / Kör Panel</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Kabin Yüksekliği (U)</label>
-              <select id="wiz-u" class="form-input">
-                <option value="1">1U</option>
-                <option value="2" selected>2U</option>
-                <option value="3">3U</option>
-                <option value="4">4U</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="form-group">
-              <label>Port Sayısı</label>
-              <input type="number" id="wiz-ports" class="form-input" min="0" max="96" value="24">
-            </div>
-            <div class="form-group">
-              <label>Port Tipi</label>
-              <select id="wiz-port-type" class="form-input">
-                <option value="rj45">RJ45 Bakır (Cat6/Cat6A)</option>
-                <option value="qsfp28">SFP / QSFP Optik Fiber</option>
-                <option value="c13">C13 Güç Çıkışı</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Şasi Derinliği (mm)</label>
-            <input type="number" id="wiz-depth" class="form-input" min="100" max="1000" value="650">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="hud-btn btn-primary" id="btn-create-custom-device">⚡ 3D Donanımı Üret ve Kataloğa Ekle</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== LEGACY 2D DOM (Preserved for test suites & fallback) ==================== -->
+  <!-- ==================== 2D WORKSPACE ==================== -->
   <div id="legacy-wrapper">
     <div id="legacy-root">
 
@@ -571,6 +569,11 @@
     <aside class="sidebar-left" id="sidebar-left">
       <!-- Activity Rail (Vertical Category Icon Strip) -->
       <nav class="sidebar-activity-rail" id="sidebar-activity-rail" aria-label="Donanım Kategori Şeridi">
+        <button class="rail-btn rail-toggle-btn" id="rail-btn-toggle" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
+          <span class="rail-icon">☰</span>
+          <span class="rail-label">Menü</span>
+        </button>
+        <div class="rail-divider"></div>
         <button class="rail-btn active" data-category="" title="Tüm Donanımlar">
           <span class="rail-icon">🗄️</span>
           <span class="rail-label">Tümü</span>
@@ -619,10 +622,6 @@
           <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
             ◀
           </button>
-        </div>
-
-        <div class="drawer-hint">
-          <span>💡 Seç veya Kabin <b>U Seviyesine</b> sürükle</span>
         </div>
 
         <!-- Scrollable Cards Stream -->
@@ -1456,24 +1455,118 @@
   <!-- Standalone Application Entry Point (Supports both file:/// and web servers) -->
   </div>
 
-  <!-- 3D Three.js Standalone Engine Bundle -->
-  <script src="js/three-bundle.min.js"></script>
-
-  <!-- 3D Datacenter Studio Scripts -->
-  <script src="js/studio3d.js"></script>
-  <script src="js/studio3d-ui.js"></script>
-
-  <!-- Legacy Studio Scripts (Preserved for compatibility) -->
+  <!-- 2D Workspace Scripts (Instant Startup, Zero 3D Overhead) -->
   <script src="js/app.bundle.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/catalog-ui.js"></script>
 
   <script>
-    // --- INTELLIGENT 2D / 3D MODE SELECTOR & BIDIRECTIONAL SYNC ---
+    // --- ON-DEMAND LAZY LOADED 3D ENGINE & BIDIRECTIONAL SYNC ---
     const btnToggleHeader = document.getElementById('btn-toggle-view-mode');
     const btnSwitchTo3D = document.getElementById('btn-switch-to-3d');
-    const wrapper3D = document.getElementById('studio3d-wrapper');
     const legacyWrapper = document.getElementById('legacy-wrapper');
+
+    function getWrapper3D() {
+      return document.getElementById('studio3d-wrapper');
+    }
+
+    let is3DLoading = false;
+    let is3DLoaded = false;
+
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+          resolve();
+          return;
+        }
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        s.onload = () => resolve();
+        s.onerror = (err) => reject(new Error(`Script yüklenemedi: ${src}`));
+        document.body.appendChild(s);
+      });
+    }
+
+    function loadStylesheet(href) {
+      return new Promise((resolve) => {
+        if (document.querySelector(`link[href="${href}"]`)) {
+          resolve();
+          return;
+        }
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = href;
+        l.onload = () => resolve();
+        l.onerror = () => resolve();
+        document.head.appendChild(l);
+      });
+    }
+
+    async function ensure3DStudioLoaded() {
+      if (is3DLoaded) return true;
+      if (is3DLoading) return false;
+      is3DLoading = true;
+
+      // Modern loading overlay
+      let loader = document.getElementById('studio3d-loader-overlay');
+      if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'studio3d-loader-overlay';
+        loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,17,0.92);backdrop-filter:blur(8px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#38bdf8;font-family:system-ui,-apple-system,sans-serif;';
+        loader.innerHTML = `
+          <div style="width:48px;height:48px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin3d 0.8s linear infinite;margin-bottom:16px;"></div>
+          <div style="font-size:1.1rem;font-weight:700;letter-spacing:0.5px;color:#f8fafc;margin-bottom:6px;">🎮 3D Datacenter Stüdyosu Yükleniyor...</div>
+          <div style="font-size:0.8rem;color:#94a3b8;">WebGL & Three.js motoru başlatılıyor</div>
+          <style>@keyframes spin3d { to { transform: rotate(360deg); } }</style>
+        `;
+        document.body.appendChild(loader);
+      } else {
+        loader.style.display = 'flex';
+      }
+
+      try {
+        // 1. Inject 3D stylesheet
+        await loadStylesheet('css/studio3d.css');
+
+        // 2. Clone & Mount 3D DOM template into document
+        if (!document.getElementById('studio3d-wrapper')) {
+          const template = document.getElementById('studio3d-template');
+          if (template) {
+            const clone = template.content.cloneNode(true);
+            const legacyWrap = document.getElementById('legacy-wrapper');
+            if (legacyWrap) {
+              document.body.insertBefore(clone, legacyWrap);
+            } else {
+              document.body.appendChild(clone);
+            }
+          }
+        }
+
+        // 3. Sequentially load Three.js and 3D Studio scripts
+        await loadScript('js/three-bundle.min.js');
+        await loadScript('js/studio3d.js');
+        await loadScript('js/studio3d-ui.js');
+
+        // Ensure Studio3D engine instance is bound
+        if (!window.__STUDIO3D__ && window.Studio3D) {
+          const container = document.getElementById('studio3d-container');
+          if (container) {
+            window.__STUDIO3D__ = new window.Studio3D(container);
+          }
+        }
+
+        is3DLoaded = true;
+        return true;
+      } catch (err) {
+        console.error('3D Stüdyo yüklenirken hata oluştu:', err);
+        alert('3D Stüdyo motoru yüklenemedi: ' + err.message);
+        return false;
+      } finally {
+        is3DLoading = false;
+        if (loader) loader.style.display = 'none';
+      }
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     // Every fresh load starts in the lightweight 2D workspace.
@@ -1974,6 +2067,7 @@
     }
 
     function applyMode() {
+      const wrapper3D = getWrapper3D();
       const perfControl = document.querySelector('label[for="performance-mode"]');
       const btnWizard = document.getElementById('btn-3d-wizard-modal');
       const fpsCounter = document.getElementById('fps-counter');
@@ -2017,9 +2111,11 @@
 
     applyMode();
 
-    function setMode(to3D) {
+    async function setMode(to3D) {
       if (is3DMode === to3D) return;
       if (to3D) {
+        const loaded = await ensure3DStudioLoaded();
+        if (!loaded) return;
         sync2Dto3D();
         is3DMode = true;
         applyMode();
@@ -2185,6 +2281,20 @@
     function setRightSidebarCollapsed(collapsed) {
       if (!sidebarRight) return;
       sidebarRight.classList.toggle('collapsed', collapsed);
+      if (collapsed) {
+        sidebarRight.style.width = '44px';
+        sidebarRight.style.minWidth = '44px';
+        sidebarRight.style.maxWidth = '44px';
+      } else {
+        let savedW = '450';
+        try {
+          const raw = localStorage.getItem('rack_studio_right_sidebar_width');
+          if (raw && Number(raw) >= 360 && Number(raw) <= 750) savedW = raw;
+        } catch(e) {}
+        sidebarRight.style.width = savedW + 'px';
+        sidebarRight.style.minWidth = '360px';
+        sidebarRight.style.maxWidth = '750px';
+      }
       if (btnToggleRight) {
         btnToggleRight.textContent = collapsed ? '◀' : '▶';
         btnToggleRight.title = collapsed ? 'Çizelgeyi Aç' : 'Çizelgeyi Katla';
@@ -2194,6 +2304,7 @@
         window.dispatchEvent(new Event('resize'));
       }, 260);
     }
+    window.setRightSidebarCollapsed = setRightSidebarCollapsed;
     btnToggleRight?.addEventListener('click', () => {
       const isCollapsed = sidebarRight?.classList.contains('collapsed');
       setRightSidebarCollapsed(!isCollapsed);
@@ -2215,14 +2326,11 @@
       }
       if (localStorage.getItem('rack_studio_right_sidebar_collapsed') === '1') {
         setRightSidebarCollapsed(true);
-      }
-    } catch(e) {}
-
-    // Restore right sidebar custom width from localStorage
-    try {
-      const savedRightW = localStorage.getItem('rack_studio_right_sidebar_width');
-      if (savedRightW && Number(savedRightW) >= 360 && Number(savedRightW) <= 750 && sidebarRight) {
-        sidebarRight.style.width = savedRightW + 'px';
+      } else {
+        const savedRightW = localStorage.getItem('rack_studio_right_sidebar_width');
+        if (savedRightW && Number(savedRightW) >= 360 && Number(savedRightW) <= 750 && sidebarRight) {
+          sidebarRight.style.width = savedRightW + 'px';
+        }
       }
     } catch(e) {}
 

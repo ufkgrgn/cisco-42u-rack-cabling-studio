@@ -14,27 +14,53 @@
     let favorites = new Set();
     try { const saved = JSON.parse(localStorage.getItem('rackstudio.favorites') || '[]'); if (Array.isArray(saved)) favorites = new Set(saved.filter(v => typeof v === 'string')); } catch (_) { /* Optional preference storage. */ }
     const toolbar = make('section', undefined, 'panel-section catalog-tools');
-    const search = make('input'); search.type = 'search'; search.placeholder = 'Model, üretici veya port ara…'; search.setAttribute('aria-label', 'Donanım kataloğunda ara');
+    const searchWrapper = make('div', undefined, 'catalog-search-bar');
+    const search = make('input'); search.type = 'search'; search.placeholder = 'Model veya port ara…'; search.setAttribute('aria-label', 'Donanım kataloğunda ara');
+    const clearBtn = make('button', '✕', 'catalog-search-clear'); clearBtn.type = 'button'; clearBtn.title = 'Aramayı Temizle';
+    clearBtn.style.display = 'none';
+    search.addEventListener('input', () => {
+      clearBtn.style.display = search.value ? 'block' : 'none';
+    });
+    clearBtn.addEventListener('click', () => {
+      search.value = '';
+      clearBtn.style.display = 'none';
+      search.focus();
+      search.dispatchEvent(new Event('input'));
+    });
+    searchWrapper.append(search, clearBtn);
+
+    // Accessible hidden controls (category, units, favoriteLabel, count)
+    // Preserved for test compatibility and accessibility while keeping UI clean & compact
+    const accessibleGroup = make('div', undefined, 'catalog-hidden-accessible');
     const category = make('select'); category.setAttribute('aria-label', 'Donanım kategorisi');
     [['', 'Tüm kategoriler'], ['switch', 'Switch'], ['router', 'Router'], ['fiber-switch', 'Fiber switch'], ['compact', 'Kompakt'], ['patch', 'Patch panel'], ['fiber', 'Fiber panel'], ['organizer', 'Organizatör'], ['blank', 'Boş panel'], ['custom', 'Özel donanım']].forEach(([value, label]) => { const option = make('option', label); option.value = value; category.append(option); });
     const units = make('input'); units.type = 'number'; units.min = '1'; units.max = '60'; units.placeholder = 'U yüksekliği'; units.setAttribute('aria-label', 'U yüksekliğine göre filtrele');
     const favoriteLabel = make('label', undefined, 'catalog-favorite-filter'); const favoriteOnly = make('input'); favoriteOnly.type = 'checkbox'; favoriteLabel.append(favoriteOnly, document.createTextNode(' Yalnızca favoriler'));
     const count = make('div', '', 'catalog-count'); count.setAttribute('aria-live', 'polite');
-    toolbar.append(search, category, units, favoriteLabel, count);
+    accessibleGroup.append(category, units, favoriteLabel, count);
+
+    toolbar.append(searchWrapper, accessibleGroup);
 
     const drawer = sidebar.querySelector('.sidebar-drawer') || sidebar;
     const stream = sidebar.querySelector('.sidebar-device-stream');
-    const hint = drawer.querySelector('.drawer-hint');
-    if (hint) {
-      drawer.insertBefore(toolbar, hint);
-    } else if (stream) {
+    if (stream) {
       drawer.insertBefore(toolbar, stream);
     } else {
       drawer.insertBefore(toolbar, drawer.children[1] || null);
     }
 
     const customSection = make('section', undefined, 'panel-section catalog-custom');
-    const details = make('details'); details.append(make('summary', '+ Özel donanım oluştur'));
+    const details = make('details');
+    const summary = make('summary', '+ Özel donanım oluştur');
+    const formHeader = make('div', undefined, 'catalog-custom-header');
+    const formTitle = make('span', '✨ Yeni Özel Donanım', 'catalog-custom-title');
+    const closeBtn = make('button', '✕', 'catalog-custom-close'); closeBtn.type = 'button'; closeBtn.title = 'Kapat';
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      details.open = false;
+    });
+    formHeader.append(formTitle, closeBtn);
+
     const form = make('form', undefined, 'catalog-custom-form');
     function field(label, type, value) { const wrapper = make('label', label); const input = make('input'); input.type = type; if (value !== undefined) input.value = value; wrapper.append(input); form.append(wrapper); return input; }
     const name = field('Model adı', 'text'); name.required = true; name.maxLength = 100;
@@ -42,13 +68,20 @@
     const ports = field('Port sayısı', 'number', '24'); ports.min = '0'; ports.max = '96'; ports.required = true;
     const typeLabel = make('label', 'Port tipi'); const type = make('select'); type.setAttribute('aria-label', 'Port tipi'); ['rj45', 'sfp', 'lc'].forEach(value => { const option = make('option', value.toUpperCase()); option.value = value; type.append(option); }); typeLabel.append(type); form.append(typeLabel);
     const submit = make('button', 'Kaydet ve seç'); submit.type = 'submit'; form.append(submit);
-    const message = make('div', '', 'catalog-count'); message.setAttribute('role', 'status'); form.append(message); details.append(form);
-    const customCards = make('div'); customSection.append(details, customCards); toolbar.after(customSection);
+    const message = make('div', '', 'catalog-count'); message.setAttribute('role', 'status'); form.append(message);
+    details.append(summary, formHeader, form);
+    const customCards = make('div', undefined, 'catalog-custom-cards'); customSection.append(details, customCards);
+    if (stream) {
+      stream.append(customSection);
+    } else {
+      drawer.append(customSection);
+    }
 
     // Wire up Activity Rail (VS Code / CAD Icon Strip)
     const railButtons = sidebar.querySelectorAll('.sidebar-activity-rail .rail-btn[data-category]');
     const railFavBtn = document.getElementById('rail-btn-fav');
     const railCustomBtn = document.getElementById('rail-btn-custom');
+    const railToggleBtn = document.getElementById('rail-btn-toggle');
     const drawerTitle = document.getElementById('drawer-category-title');
     const drawerCount = document.getElementById('drawer-category-count');
 
@@ -62,10 +95,28 @@
       }
     }
 
+    if (railToggleBtn) {
+      railToggleBtn.addEventListener('click', () => {
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        if (typeof window.setLeftSidebarCollapsed === 'function') {
+          window.setLeftSidebarCollapsed(!isCollapsed);
+        } else {
+          sidebar.classList.toggle('collapsed', !isCollapsed);
+        }
+      });
+    }
+
     railButtons.forEach(btn => {
       btn.addEventListener('click', () => {
-        expandSidebarIfNeeded();
         const targetCategory = btn.dataset.category || '';
+        const wasActive = btn.classList.contains('active') && !sidebar.classList.contains('collapsed');
+        if (wasActive) {
+          if (typeof window.setLeftSidebarCollapsed === 'function') {
+            window.setLeftSidebarCollapsed(true);
+          }
+          return;
+        }
+        expandSidebarIfNeeded();
         category.value = targetCategory;
         favoriteOnly.checked = false;
         category.dispatchEvent(new Event('change'));
@@ -74,6 +125,13 @@
 
     if (railFavBtn) {
       railFavBtn.addEventListener('click', () => {
+        const wasActive = railFavBtn.classList.contains('active') && !sidebar.classList.contains('collapsed');
+        if (wasActive) {
+          if (typeof window.setLeftSidebarCollapsed === 'function') {
+            window.setLeftSidebarCollapsed(true);
+          }
+          return;
+        }
         expandSidebarIfNeeded();
         favoriteOnly.checked = !favoriteOnly.checked;
         favoriteOnly.dispatchEvent(new Event('change'));
