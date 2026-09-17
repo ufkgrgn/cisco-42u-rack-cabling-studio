@@ -80,9 +80,16 @@
       if (next !== signature) {
         signature = next; customCards.replaceChildren();
         Object.entries(custom).forEach(([key, item]) => {
-          const card = make('div', undefined, 'device-card'); card.dataset.deviceId = key;
-          const header = make('div', undefined, 'device-header'); header.append(make('span', item.name, 'device-name'), make('span', `${item.u}U`, 'device-u-badge'));
-          card.append(header, make('div', `${item.ports.length} port · Özel donanım`, 'device-desc'));
+          const card = make('div', undefined, 'device-card ' + (item.u >= 2 ? 'hw-item-2u' : 'hw-item-1u')); card.dataset.deviceId = key;
+          card.title = `${item.name} (${item.u}U) - ${item.ports.length} Port Özel Donanım`;
+          const bezel = make('div', undefined, 'hw-mini-bezel bezel-custom');
+          bezel.innerHTML = '<div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div><div class="mini-bezel-face"><span class="mini-cisco-text" style="color:#10b981;">CUSTOM</span><span class="mini-led-dot mini-led-green"></span></div><div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>';
+          const info = make('div', undefined, 'hw-info');
+          info.append(make('span', item.name, 'device-name'));
+          const badge = make('span', `${item.u}U`, 'device-u-badge');
+          const desc = make('div', `${item.ports.length} port · Özel donanım`, 'device-desc');
+          desc.style.display = 'none';
+          card.append(bezel, info, badge, desc);
           card.addEventListener('click', () => selectCustom(key)); customCards.append(card);
         });
       }

@@ -2408,20 +2408,52 @@
       tr.dataset.cableId = c.id;
       if (c.id === STATE.highlightedCableId) tr.className = 'active';
 
-      const rackShortA = rackA ? (rackA.name.length > 12 ? rackA.name.slice(0, 12) + '…' : rackA.name) : 'Kabin';
-      const rackShortB = rackB ? (rackB.name.length > 12 ? rackB.name.slice(0, 12) + '…' : rackB.name) : 'Kabin';
+      const rackShortA = rackA ? (rackA.name.length > 10 ? rackA.name.slice(0, 10) + '…' : rackA.name) : 'Kabin';
+      const rackShortB = rackB ? (rackB.name.length > 10 ? rackB.name.slice(0, 10) + '…' : rackB.name) : 'Kabin';
+
+      let roleBadge = '';
+      const portRole = (c.role || (portA && portA.role) || (portB && portB.role) || '').toLowerCase();
+      if (portRole === 'trunk') {
+        roleBadge = '<span class="role-pill trunk">TRUNK</span>';
+      } else if (portRole === 'poe') {
+        roleBadge = '<span class="role-pill poe">PoE</span>';
+      } else if (portRole === 'uplink') {
+        roleBadge = '<span class="role-pill uplink">UPLINK</span>';
+      }
+
+      const portTypeA = portA?.type === 'fiber' || portA?.type === 'lc' || portA?.type === 'sfp' ? 'fiber' : 'copper';
+      const portTypeB = portB?.type === 'fiber' || portB?.type === 'lc' || portB?.type === 'sfp' ? 'fiber' : 'copper';
 
       tr.innerHTML = `
         <td>
-          <span class="cable-color-dot" style="background:${c.color};"></span>
-          <b>${escapeHtml(c.name || c.id)}</b>
-          ${isInterRack ? `<span style="font-size:0.6rem; background:#0284c7; color:#fff; padding:1px 4px; border-radius:3px; margin-left:3px;" title="Kabinler Arası Bağlantı">INTER</span>` : ''}
+          <div class="cable-pill-cell">
+            <span class="cable-color-dot" style="background:${c.color};box-shadow:0 0 6px ${c.color};"></span>
+            <span class="cable-id-badge">${escapeHtml(c.name || c.id)}</span>
+            ${roleBadge}
+          </div>
         </td>
-        <td title="${escapeHtml(rackA ? rackA.name : '')}">[${escapeHtml(rackShortA)}] U${devA ? devA.topU : '?'}-${escapeHtml(portA ? portA.name : c.from.portId)}</td>
-        <td title="${escapeHtml(rackB ? rackB.name : '')}">[${escapeHtml(rackShortB)}] U${devB ? devB.topU : '?'}-${escapeHtml(portB ? portB.name : c.to.portId)}</td>
-        <td>${c.lengthMeters}m</td>
         <td>
-          <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sil">&#10005;</button>
+          <div class="endpoint-cell">
+            ${isInterRack && rackA ? `<span class="inter-rack-badge" title="${escapeHtml(rackA.name)}">${escapeHtml(rackShortA)}</span>` : ''}
+            <div class="endpoint-badge" title="${escapeHtml(catA ? catA.name : '')} - ${escapeHtml(portA ? portA.name : '')}">
+              <span class="badge-u">U${devA ? devA.topU : '?'}</span>
+              <span class="badge-port ${portTypeA}">${escapeHtml(portA ? portA.name : c.from.portId)}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="endpoint-cell">
+            <span class="endpoint-arrow" aria-hidden="true">→</span>
+            ${isInterRack && rackB ? `<span class="inter-rack-badge" title="${escapeHtml(rackB.name)}">${escapeHtml(rackShortB)}</span>` : ''}
+            <div class="endpoint-badge" title="${escapeHtml(catB ? catB.name : '')} - ${escapeHtml(portB ? portB.name : '')}">
+              <span class="badge-u">U${devB ? devB.topU : '?'}</span>
+              <span class="badge-port ${portTypeB}">${escapeHtml(portB ? portB.name : c.to.portId)}</span>
+            </div>
+          </div>
+        </td>
+        <td><span class="metraj-badge">${c.lengthMeters}m</span></td>
+        <td>
+          <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök (Delete)">✂️</button>
         </td>
       `;
 

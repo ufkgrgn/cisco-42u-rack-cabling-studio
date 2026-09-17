@@ -203,66 +203,279 @@ details.collapsible-section:not([open]) summary.section-title::after {
 }
 
 .device-card {
-  background: rgba(11, 15, 25, 0.6);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 0 8px;
+  margin-bottom: 5px;
   cursor: pointer;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  transition: all 0.16s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.device-card.hw-item-1u {
+  height: 36px;
+  min-height: 36px;
+}
+
+.device-card.hw-item-2u {
+  height: 58px;
+  min-height: 58px;
 }
 
 .device-card:hover {
-  border-color: var(--accent-blue);
-  background: rgba(56, 189, 248, 0.08);
+  background: rgba(30, 41, 59, 0.85);
+  border-color: #38bdf8;
+  transform: translateX(2px);
 }
 
 .device-card.active {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 1px var(--accent-blue);
-  background: rgba(56, 189, 248, 0.15);
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  background: rgba(14, 165, 233, 0.15);
 }
 
-.device-header {
+/* 2D Mini Bezel (Realistic Flat Front View) */
+.hw-mini-bezel {
+  width: 52px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  border: 1px solid #475569;
+  background: linear-gradient(180deg, #1e2532 0%, #0d121c 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.5);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.hw-item-2u .hw-mini-bezel {
+  height: 34px;
+}
+
+/* Bezel themes */
+.hw-mini-bezel.bezel-router {
+  background: linear-gradient(180deg, #1a2233 0%, #0b111c 100%);
+  border-color: #0284c7;
+}
+
+.hw-mini-bezel.bezel-fiber {
+  background: linear-gradient(180deg, #162436 0%, #091522 100%);
+  border-color: #00d2ff;
+}
+
+.hw-mini-bezel.bezel-switch {
+  background: linear-gradient(180deg, #1c2430 0%, #0b1017 100%);
+  border-color: #38bdf8;
+}
+
+.hw-mini-bezel.bezel-core-2u {
+  background: linear-gradient(180deg, #242f48 0%, #0f172a 100%);
+  border-color: #818cf8;
+}
+
+.hw-mini-bezel.bezel-patch {
+  background: linear-gradient(180deg, #1c1d24 0%, #0a0a0f 100%);
+  border-color: #ea580c;
+}
+
+.hw-mini-bezel.bezel-odf {
+  background: linear-gradient(180deg, #13242e 0%, #07151c 100%);
+  border-color: #06b6d4;
+}
+
+.hw-mini-bezel.bezel-dring {
+  background: linear-gradient(180deg, #141b26 0%, #090d15 100%);
+  border-color: #475569;
+}
+
+.hw-mini-bezel.bezel-blank {
+  background: repeating-linear-gradient(90deg, #16202e, #16202e 2px, #1e293b 2px, #1e293b 4px);
+  border-color: #334155;
+}
+
+.hw-mini-bezel.bezel-custom {
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+  border-color: #10b981;
+}
+
+/* 2D Mini Bezel Internal Elements */
+.mini-bezel-ear {
+  width: 3px;
+  height: 100%;
+  background: #334155;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 1px 0;
+  flex-shrink: 0;
+}
+
+.mini-screw-hole {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #090d14;
+}
+
+.mini-bezel-face {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+  overflow: hidden;
+}
+
+.mini-cisco-text {
+  font-size: 5px;
+  font-weight: 900;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  line-height: 1;
+}
+
+.mini-led-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mini-led-green { background: #22c55e; box-shadow: 0 0 3px #22c55e; }
+.mini-led-amber { background: #f59e0b; box-shadow: 0 0 3px #f59e0b; }
+.mini-led-cyan  { background: #00e5ff; box-shadow: 0 0 3px #00e5ff; }
+
+.mini-ports-row {
+  display: flex;
+  gap: 1px;
+  margin-left: auto;
+  align-items: center;
+}
+
+.mini-rj45-pin {
+  width: 3px;
+  height: 5px;
+  background: #090d14;
+  border: 0.5px solid #64748b;
+  border-radius: 0.5px;
+}
+
+.mini-sfp-cage {
+  width: 4px;
+  height: 6px;
+  background: #040810;
+  border: 0.5px solid #38bdf8;
+  border-radius: 0.5px;
+}
+
+.mini-keystone-block {
+  width: 7px;
+  height: 6px;
+  background: #ea580c;
+  border-radius: 0.5px;
+}
+
+.mini-odf-block {
+  width: 6px;
+  height: 6px;
+  background: #0891b2;
+  border-radius: 0.5px;
+}
+
+.mini-dring-bars {
+  display: flex;
+  gap: 2px;
+  margin: 0 auto;
+}
+
+.mini-dring-bar {
+  width: 1.5px;
+  height: 10px;
+  background: #cbd5e1;
+  border-radius: 1px;
+  box-shadow: 0 0 1px #fff;
+}
+
+.mini-blank-lines {
+  width: 100%;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
-
-.device-name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: #fff;
-}
-
-.device-u-badge {
-  font-size: 0.7rem;
-  background: #243048;
-  padding: 1px 6px;
-  border-radius: 3px;
-  color: var(--accent-blue);
+  padding: 0 4px;
+  font-size: 5px;
   font-weight: 700;
+  color: #475569;
+  letter-spacing: 1px;
 }
 
-.device-desc {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.3;
-}
-
-.device-ports-tag {
-  margin-top: 6px;
+/* Card Information */
+.device-card .hw-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.tag {
+.device-card .device-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.device-card .device-name {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-card .device-u-badge {
   font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(36, 48, 72, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--accent-blue);
   padding: 1px 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.device-card .device-desc,
+.device-card .device-ports-tag {
+  display: none !important;
+}
+
+.sidebar-left .device-card {
+  position: relative;
+  padding-right: 28px;
+}
+
+.catalog-star {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #fbbf24;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
 }
