@@ -751,6 +751,81 @@
     let leftChannelUsage = 0;
     let rightChannelUsage = 0;
 
+    // ── Physical scale: SVG user-units → real metres ──────────────────────
+    // 1 rack unit (U) = 44.45 mm in real life; SVG height assigns 32 px/U.
+    // Standard 19-inch rack usable width = 482.6 mm; single-rack SVG width = 618 px.
+    const MM_PER_U       = 44.45;                         // mm  (EIA-310)
+    const RACK_WIDTH_MM  = 482.6;                         // mm  (19" standard)
+    const SVG_PX_PER_U   = 32;                            // px  (design constant)
+    const MM_PER_SVG_Y   = MM_PER_U / SVG_PX_PER_U;      // ≈ 1.389 mm / svg-px
+    const MM_PER_SVG_X   = RACK_WIDTH_MM / 618;           // ≈ 0.781 mm / svg-px
+    const SLACK_FACTOR   = 1.05;                          // 5% slack for dress & bend radius
+    const CONNECTOR_MM   = 150;                           // 150 mm each end (connector + strain relief)
+
+    /**
+     * Compute physical cable length (metres) from SVG-space geometry.
+     * Accepts a mode string and a geometry object with the waypoints that
+     * were already computed during path-building, so no extra DOM access needed.
+     *
+     * Rounding: up to nearest 0.5 m to match standard patch-cable sizing.
+     */
+    function computeCableLength(mode, geo) {
+      let totalMm = CONNECTOR_MM * 2; // both ends
+
+      if (mode === 'direct') {
+        // Cubic Bézier catenary: chord + parabolic arc correction for sag
+        const { x1, y1, x2, y2, sag } = geo;
+        const chordMmX = Math.abs(x2 - x1) * MM_PER_SVG_X;
+        const chordMmY = Math.abs(y2 - y1) * MM_PER_SVG_Y;
+        const chordMm  = Math.sqrt(chordMmX * chordMmX + chordMmY * chordMmY);
+        const sagMm    = (sag || 0) * MM_PER_SVG_Y;
+        // L ≈ chord + 8*sag²/(3*chord)
+        totalMm += chordMm > 0
+          ? chordMm + (8 * sagMm * sagMm) / (3 * Math.max(chordMm, 1))
+          : sagMm * 2;
+
+      } else if (mode === 'structured') {
+        // Same-rack structured path (port → tray → channel → tray → port)
+        const { x1, y1, x2, y2, channelX, trayYA, trayYB, hasOrganizer } = geo;
+        if (hasOrganizer) {
+          totalMm += Math.abs(y1  - trayYA)   * MM_PER_SVG_Y;  // port A → tray A (vertical)
+          totalMm += Math.abs(x1  - channelX) * MM_PER_SVG_X;  // tray A → channel (horizontal)
+          totalMm += Math.abs(trayYA - trayYB) * MM_PER_SVG_Y; // channel rail A↔B (vertical)
+          totalMm += Math.abs(channelX - x2)  * MM_PER_SVG_X;  // channel → tray B (horizontal)
+          totalMm += Math.abs(trayYB - y2)    * MM_PER_SVG_Y;  // tray B → port B (vertical)
+        } else {
+          // No organizer: port → channel → port (L-shape via rail)
+          totalMm += Math.abs(x1 - channelX) * MM_PER_SVG_X;
+          totalMm += Math.abs(y1 - y2)       * MM_PER_SVG_Y;
+          totalMm += Math.abs(channelX - x2) * MM_PER_SVG_X;
+        }
+
+      } else if (mode === 'interrack-direct') {
+        // Aerial Bézier arc above cabinets
+        const { x1, y1, x2, y2, overheadY } = geo;
+        const chordMmX = Math.abs(x2 - x1) * MM_PER_SVG_X;
+        const chordMmY = Math.abs(y2 - y1) * MM_PER_SVG_Y;
+        const chord    = Math.sqrt(chordMmX * chordMmX + chordMmY * chordMmY);
+        const liftMm   = Math.abs(Math.min(y1, y2) - overheadY) * MM_PER_SVG_Y;
+        totalMm += chord + liftMm * 1.5;
+
+      } else if (mode === 'interrack-structured') {
+        // 7-segment overhead tray: portA→trayA→railA→overhead→railB→trayB→portB
+        const { x1, y1, x2, y2, channelXA, channelXB, trayYA, trayYB, overheadTrayY } = geo;
+        totalMm += Math.abs(y1         - trayYA)       * MM_PER_SVG_Y; // portA → trayA
+        totalMm += Math.abs(x1         - channelXA)    * MM_PER_SVG_X; // trayA → railA
+        totalMm += Math.abs(trayYA     - overheadTrayY) * MM_PER_SVG_Y; // railA → overhead
+        totalMm += Math.abs(channelXA  - channelXB)    * MM_PER_SVG_X; // overhead span
+        totalMm += Math.abs(overheadTrayY - trayYB)    * MM_PER_SVG_Y; // overhead → railB
+        totalMm += Math.abs(channelXB  - x2)           * MM_PER_SVG_X; // railB → trayB
+        totalMm += Math.abs(trayYB     - y2)           * MM_PER_SVG_Y; // trayB → portB
+      }
+
+      const rawM = (totalMm / 1000) * SLACK_FACTOR;
+      return Math.max(0.5, Math.round(rawM * 2) / 2); // round up to nearest 0.5 m
+    }
+    // ── End physical scale helpers ─────────────────────────────────────────
+
     STATE.cables.forEach((cable) => {
       const instA = cable.from.instanceId || cable.from.deviceId;
       const instB = cable.to.instanceId || cable.to.deviceId;
@@ -796,6 +871,7 @@
         // Inter-rack cable in DIRECT mode: aerial Bézier arc above cabinets
         const overheadY = Math.min(y1, y2) - 80 - (leftChannelUsage++ % 6) * 8;
         pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
+        cable.lengthMeters = computeCableLength('interrack-direct', { x1, y1, x2, y2, overheadY });
       } else if (isInterRack && STATE.cableRoutingMode === 'structured') {
         // Inter-rack cable in STRUCTURED mode:
         // Follows datacenter pathway: Organizer A -> Vertical Channel A (UP) -> Overhead Cable Tray (across) -> Vertical Channel B (DOWN) -> Organizer B -> Port B
@@ -933,6 +1009,12 @@
                 `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
                 `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
                 `L ${x2} ${y2}`;
+        cable.lengthMeters = computeCableLength('interrack-structured', {
+          x1, y1, x2, y2,
+          channelXA, channelXB,
+          trayYA: actualTrayYA, trayYB: actualTrayYB,
+          overheadTrayY
+        });
       } else if (STATE.cableRoutingMode === 'structured') {
         // Find devices: check all racks, not just active rack
         const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
@@ -1035,6 +1117,12 @@
                   `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
                   `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
                   `L ${x2} ${y2}`;
+          cable.lengthMeters = computeCableLength('structured', {
+            x1, y1, x2, y2,
+            channelX,
+            trayYA: actualTrayYA, trayYB: actualTrayYB,
+            hasOrganizer: !!(orgA || orgB)
+          });
         }
       } else {
         const ymid = (y1 + y2) / 2;
@@ -1044,6 +1132,7 @@
         const cp2x = x1 + (x2 - x1) * 0.75;
         const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
         pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+        cable.lengthMeters = computeCableLength('direct', { x1, y1, x2, y2, sag: tightSag });
       }
 
       // Casing / Outline path (for clear separation between overlapping & adjacent cables)
