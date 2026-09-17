@@ -293,7 +293,105 @@
     return points.join(' ');
   }
 
+  let hoveredPlaceholder = null;
+  let activeHoveredCableId = null;
+
+  function restoreHoveredCable() {
+    if (!hoveredPlaceholder) return;
+    const { placeholder, casing, path, bootPlaceholder, boots } = hoveredPlaceholder;
+    if (placeholder && placeholder.parentNode) {
+      if (casing && casing.parentNode) placeholder.parentNode.insertBefore(casing, placeholder);
+      if (path && path.parentNode) placeholder.parentNode.insertBefore(path, placeholder);
+      placeholder.remove();
+    }
+    if (bootPlaceholder && bootPlaceholder.parentNode && boots) {
+      boots.forEach(b => {
+        if (b && b.parentNode) bootPlaceholder.parentNode.insertBefore(b, bootPlaceholder);
+      });
+      bootPlaceholder.remove();
+    }
+    hoveredPlaceholder = null;
+    activeHoveredCableId = null;
+  }
+
+  function setCableHover(cableId, isHovered) {
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
+    const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
+
+    if (!isHovered) {
+      if (activeHoveredCableId === cableId) {
+        const p = document.getElementById(`svg-cable-${cableId}`);
+        const c = document.getElementById(`svg-cable-casing-${cableId}`);
+        if (p) p.classList.remove('hovered');
+        if (c) c.classList.remove('hovered');
+        document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`).forEach(b => {
+          b.classList.remove('hovered');
+        });
+        const tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
+        if (tableRow) tableRow.classList.remove('hovered-row');
+        restoreHoveredCable();
+      }
+      if (svgEl && !activeHoveredCableId) {
+        svgEl.classList.remove('has-cable-hovered');
+      }
+      return;
+    }
+
+    if (activeHoveredCableId === cableId) return;
+
+    // Restore any previously hovered cable before promoting the new one
+    if (activeHoveredCableId) {
+      const prevP = document.getElementById(`svg-cable-${activeHoveredCableId}`);
+      const prevC = document.getElementById(`svg-cable-casing-${activeHoveredCableId}`);
+      if (prevP) prevP.classList.remove('hovered');
+      if (prevC) prevC.classList.remove('hovered');
+      document.querySelectorAll(`.cable-boot[data-cable-id="${activeHoveredCableId}"], .cable-boot-pin[data-cable-id="${activeHoveredCableId}"]`).forEach(b => {
+        b.classList.remove('hovered');
+      });
+      const prevRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${activeHoveredCableId}"]`);
+      if (prevRow) prevRow.classList.remove('hovered-row');
+      restoreHoveredCable();
+    }
+
+    if (svgEl) {
+      svgEl.classList.add('has-cable-hovered');
+    }
+
+    const p = document.getElementById(`svg-cable-${cableId}`);
+    const c = document.getElementById(`svg-cable-casing-${cableId}`);
+    if (p) p.classList.add('hovered');
+    if (c) c.classList.add('hovered');
+
+    const boots = Array.from(document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`));
+    boots.forEach(b => b.classList.add('hovered'));
+
+    const tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
+    if (tableRow) tableRow.classList.add('hovered-row');
+
+    // Temporarily bring the hovered cable & casing to the very top of cablesGroup (SVG z-order)
+    if (cablesGroup && c && p && c.parentNode === cablesGroup) {
+      const placeholder = document.createComment(`hover-placeholder-${cableId}`);
+      cablesGroup.insertBefore(placeholder, c);
+
+      let bootPlaceholder = null;
+      if (connectorsGroup && boots.length && boots[0].parentNode === connectorsGroup) {
+        bootPlaceholder = document.createComment(`boot-placeholder-${cableId}`);
+        connectorsGroup.insertBefore(bootPlaceholder, boots[0]);
+        boots.forEach(b => connectorsGroup.appendChild(b));
+      }
+
+      cablesGroup.appendChild(c);
+      cablesGroup.appendChild(p);
+
+      hoveredPlaceholder = { placeholder, casing: c, path: p, bootPlaceholder, boots, cableId };
+      activeHoveredCableId = cableId;
+    }
+  }
+
   function renderAllCables() {
+    restoreHoveredCable();
+
     // Re-acquire DOM refs in case DOM was rebuilt
     const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
     const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
@@ -304,6 +402,18 @@
     const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
     const svgRect = svgEl ? svgEl.getBoundingClientRect() : null;
     if (!svgRect || svgRect.width <= 0) return;
+
+    if (svgEl) {
+      svgEl.classList.toggle('has-cable-selected', !!STATE.highlightedCableId);
+      if (!svgEl.__HOVER_LEAVE_BOUND__) {
+        svgEl.__HOVER_LEAVE_BOUND__ = true;
+        svgEl.addEventListener('mouseleave', () => {
+          if (activeHoveredCableId) {
+            setCableHover(activeHoveredCableId, false);
+          }
+        });
+      }
+    }
 
     const isMulti = STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
     const activeRack = getActiveRack();
@@ -466,13 +576,18 @@
           const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
           const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
-          const railOffset = ((bundleIdx % 7) - 3) * 2.8;
+          // Vertical rail channel: 9 distributed lanes with 3.2px spacing inside 44px side rails
+          const railLane = (bundleIdx % 9) - 4;
+          const railTier = Math.floor(bundleIdx / 9) % 2;
+          const railOffset = railLane * 3.2 + (railTier * 1.0);
           const channelX = channelBase + railOffset;
 
-          const trayOffsetA = ((bundleIdx % 5) - 2) * 1.5;
-          const trayOffsetB = ((bundleIdx % 5) - 2) * 1.5;
-          const actualTrayYA = trayYA + trayOffsetA;
-          const actualTrayYB = trayYB + trayOffsetB;
+          // Horizontal organizer / D-ring channel: 7 distributed lanes with 2.8px spacing
+          const traySlot = (bundleIdx % 7) - 3;
+          const trayTier = Math.floor(bundleIdx / 7) % 2;
+          const trayOffset = traySlot * 2.8 + (trayTier * 0.9);
+          const actualTrayYA = trayYA + trayOffset;
+          const actualTrayYB = trayYB + trayOffset;
 
           const dirY1 = actualTrayYA >= y1 ? 1 : -1;
           const dirX1 = channelX >= x1 ? 1 : -1;
@@ -509,6 +624,14 @@
         pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
       }
 
+      // Casing / Outline path (for clear separation between overlapping & adjacent cables)
+      const casing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      casing.setAttribute('d', pathD);
+      casing.setAttribute('class', `cable-casing ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''}`);
+      casing.setAttribute('id', `svg-cable-casing-${cable.id}`);
+      casing.setAttribute('data-cable-id', cable.id);
+      dom.cablesGroup.appendChild(casing);
+
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathD);
       path.setAttribute('stroke', cable.color);
@@ -517,6 +640,7 @@
       path.setAttribute('stroke-linejoin', 'round');
       path.setAttribute('class', `cable-path ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''}`);
       path.setAttribute('id', `svg-cable-${cable.id}`);
+      path.setAttribute('data-cable-id', cable.id);
       path.setAttribute('filter', 'url(#cable-shadow)');
 
       const cableLabel = getCableLabel(activeRack, cable);
@@ -555,7 +679,10 @@
         renameCable2D(cable.id);
       });
 
-      path.addEventListener('mouseenter', showCableTooltip);
+      path.addEventListener('mouseenter', (e) => {
+        setCableHover(cable.id, true);
+        showCableTooltip(e);
+      });
 
       path.addEventListener('mousemove', (e) => {
         if (dom.tooltip.style.display !== 'none') {
@@ -565,6 +692,7 @@
       });
 
       path.addEventListener('mouseleave', () => {
+        setCableHover(cable.id, false);
         if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
       });
 
@@ -591,6 +719,14 @@
           highlightCable(cable.id);
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
+        bootA.addEventListener('mouseenter', (e) => {
+          setCableHover(cable.id, true);
+          showCableTooltip(e);
+        });
+        bootA.addEventListener('mouseleave', () => {
+          setCableHover(cable.id, false);
+          if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
+        });
 
         const pinA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         pinA.setAttribute('cx', x1);
@@ -598,6 +734,7 @@
         pinA.setAttribute('r', '1.2');
         pinA.setAttribute('fill', cable.color);
         pinA.setAttribute('class', 'cable-boot-pin');
+        pinA.setAttribute('data-cable-id', cable.id);
 
         const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         bootB.setAttribute('cx', x2);
@@ -619,6 +756,14 @@
           highlightCable(cable.id);
           showCableContextMenu(cable.id, e.clientX, e.clientY);
         });
+        bootB.addEventListener('mouseenter', (e) => {
+          setCableHover(cable.id, true);
+          showCableTooltip(e);
+        });
+        bootB.addEventListener('mouseleave', () => {
+          setCableHover(cable.id, false);
+          if (STATE.highlightedCableId !== cable.id) dom.tooltip.style.display = 'none';
+        });
 
         const pinB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         pinB.setAttribute('cx', x2);
@@ -626,6 +771,7 @@
         pinB.setAttribute('r', '1.2');
         pinB.setAttribute('fill', cable.color);
         pinB.setAttribute('class', 'cable-boot-pin');
+        pinB.setAttribute('data-cable-id', cable.id);
 
         dom.connectorsGroup.appendChild(bootA);
         dom.connectorsGroup.appendChild(pinA);
@@ -729,9 +875,7 @@
     hud.querySelector('.hud-btn-close').addEventListener('click', (e) => {
       e.stopPropagation();
       hideCableQuickHud();
-      if (STATE.highlightedCableId === cableId) {
-        highlightCable(cableId);
-      }
+      highlightCable(null);
     });
 
     document.body.appendChild(hud);
@@ -796,6 +940,7 @@
     menu.querySelector('#ctx-cancel').addEventListener('click', (e) => {
       e.stopPropagation();
       hideCableContextMenu();
+      highlightCable(null);
     });
 
     document.body.appendChild(menu);
@@ -807,13 +952,27 @@
     window.__CABLE_INTERACTIONS_BOUND__ = true;
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#cable-quick-hud') && !e.target.closest('#cable-context-menu')) {
+      if (e.target.closest('#cable-quick-hud') || e.target.closest('#cable-context-menu')) {
+        return;
+      }
+      if (e.target.closest('.cable-path') || e.target.closest('.cable-boot')) {
+        return;
+      }
+      if (quickHudEl || contextMenuEl || STATE.highlightedCableId) {
         hideCableQuickHud();
         hideCableContextMenu();
+        highlightCable(null);
       }
     });
 
     window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideCableQuickHud();
+        hideCableContextMenu();
+        highlightCable(null);
+        return;
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const activeEl = document.activeElement;
         const isEditing = activeEl && (
@@ -832,18 +991,49 @@
   }
 
   function highlightCable(cableId) {
-    STATE.highlightedCableId = (STATE.highlightedCableId === cableId) ? null : cableId;
+    STATE.highlightedCableId = (cableId && STATE.highlightedCableId !== cableId) ? cableId : null;
     if (!STATE.highlightedCableId) {
       hideCableQuickHud();
       hideCableContextMenu();
     }
 
-    document.querySelectorAll('.cable-path').forEach(p => {
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    if (svgEl) {
+      svgEl.classList.toggle('has-cable-selected', !!STATE.highlightedCableId);
+      if (!STATE.highlightedCableId) {
+        svgEl.classList.remove('has-cable-hovered');
+      }
+    }
+
+    document.querySelectorAll('.cable-path, .cable-casing').forEach(p => {
       p.classList.remove('highlighted');
     });
+
+    if (!STATE.highlightedCableId) {
+      document.querySelectorAll('.cable-path, .cable-casing, .cable-boot, .cable-boot-pin').forEach(el => {
+        el.classList.remove('hovered');
+      });
+      restoreHoveredCable();
+    }
+
     if (STATE.highlightedCableId) {
       const p = document.getElementById(`svg-cable-${STATE.highlightedCableId}`);
+      const c = document.getElementById(`svg-cable-casing-${STATE.highlightedCableId}`);
       if (p) p.classList.add('highlighted');
+      if (c) c.classList.add('highlighted');
+
+      const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
+      if (cablesGroup && c && p && c.parentNode === cablesGroup) {
+        cablesGroup.appendChild(c);
+        cablesGroup.appendChild(p);
+      }
+
+      const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
+      if (connectorsGroup) {
+        document.querySelectorAll(`.cable-boot[data-cable-id="${STATE.highlightedCableId}"], .cable-boot-pin[data-cable-id="${STATE.highlightedCableId}"]`).forEach(b => {
+          connectorsGroup.appendChild(b);
+        });
+      }
     }
 
     document.querySelectorAll('#schedule-tbody tr').forEach(row => {
@@ -907,6 +1097,8 @@
   RS.showCableQuickHud = showCableQuickHud;
   RS.showCableContextMenu = showCableContextMenu;
   RS.highlightCable = highlightCable;
+  RS.setCableHover = setCableHover;
+  RS.getActiveHoveredCableId = () => activeHoveredCableId;
   RS.addDirectCable = addDirectCable;
   RS.highlightDropSlots = highlightDropSlots;
 })();

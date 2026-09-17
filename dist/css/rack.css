@@ -1,0 +1,1264 @@
+/* 42U Rack Container (Clean Modern Enterprise Frame) */
+.rack-container {
+  position: relative;
+  width: 634px;
+  background: #0b0f17;
+  border: 8px solid #1a2230;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+}
+
+.rack-rail {
+  width: 44px;
+  background: #111723;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #1e293b;
+  border-right: 1px solid #1e293b;
+  box-shadow: none;
+}
+
+.rack-rail.left {
+  border-left: none;
+}
+
+.rack-rail.right {
+  border-right: none;
+}
+
+.rack-main-space {
+  width: 530px;
+  position: relative;
+  background: repeating-linear-gradient(
+    0deg,
+    #0a0e17,
+    #0a0e17 31px,
+    #131a28 31px,
+    #131a28 32px
+  );
+  box-shadow: none;
+}
+
+/* U Slots */
+.u-unit {
+  height: 32px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.u-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #7888a0;
+  width: 100%;
+  text-align: center;
+  line-height: 32px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  text-shadow: 0 1px 2px #000;
+  letter-spacing: 0.4px;
+}
+
+.rack-holes {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  height: 100%;
+  padding: 2px 0;
+}
+
+.hole {
+  width: 6px;
+  height: 6px;
+  background: #04060a;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: none;
+}
+
+.rack-slot {
+  height: 32px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.rack-slot:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.rack-slot.drag-valid {
+  background: rgba(16, 185, 129, 0.28) !important;
+  outline: 2px dashed #10b981 !important;
+  outline-offset: -2px;
+  z-index: 5;
+}
+
+.rack-slot.drag-invalid {
+  background: rgba(239, 68, 68, 0.28) !important;
+  outline: 2px dashed #ef4444 !important;
+  outline-offset: -2px;
+  z-index: 5;
+}
+
+.device-card[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+
+.device-card.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+/* Mounted Device */
+.mounted-device {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: #141b27;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #06090e;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+  transition: outline 0.15s;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.mounted-device:hover {
+  outline: 1.5px solid #38bdf8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.device-faceplate {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 8px;
+  gap: 5px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.device-faceplate::before,
+.device-faceplate::after {
+  display: none;
+}
+
+.bezel-badge {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 0 1 118px;
+  min-width: 82px;
+  max-width: 118px;
+  height: 100%;
+  gap: 1px;
+  user-select: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bezel-primary-row,
+.bezel-secondary-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 10px;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.bezel-logo {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.62rem;
+  font-weight: 900;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.bezel-model {
+  flex: 1 1 54%;
+  min-width: 0;
+  font-size: 0.50rem;
+  color: #94a3b8;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+}
+
+.device-kind-badge {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0;
+  padding: 0 3px;
+  border-radius: 2px;
+  font: 800 0.39rem/1.25 Consolas, monospace;
+  letter-spacing: 0.45px;
+  color: #071018;
+  background: #22d3ee;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.device-config-label {
+  display: block;
+  flex: 1 1 46%;
+  min-width: 0;
+  margin-top: 0;
+  padding: 0 2px;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 2px;
+  color: #e0f2fe;
+  background: rgba(2, 132, 199, 0.16);
+  font: 700 0.36rem/1.25 Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.faceplate-patch-panel .device-config-label,
+.faceplate-fiber-panel .device-config-label {
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #fde68a;
+  background: rgba(146, 64, 14, 0.18);
+}
+
+/* ============================================================================
+   CISCO SWITCH vs PATCH PANEL VISUAL REALISM (Clean Enterprise, High-Tech)
+   ============================================================================ */
+
+/* Cisco Managed Switch Chassis */
+.faceplate-switch {
+  background: linear-gradient(180deg, #1b2f4a 0%, #15253b 50%, #0e1a2b 100%);
+  border-left: 3.5px solid #00d2ff;
+  border-top: 1px solid #335985;
+  border-bottom: 1.5px solid #08101a;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.faceplate-switch .bezel-logo {
+  color: #00d2ff;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.faceplate-switch .device-kind-badge {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* Cisco Catalyst Integrated Compact Front Bezel (Option A) */
+.cisco-integrated-bezel {
+  flex: 0 0 74px;
+  width: 74px;
+  max-width: 74px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: #091322;
+  border: 1px solid #1e3654;
+  border-left: 2.5px solid #00d2ff;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cisco-bezel-top,
+.cisco-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1;
+}
+
+.cisco-brand-logo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #00bceb;
+  letter-spacing: 0.6px;
+  line-height: 1;
+}
+
+.cisco-bezel-leds {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cisco-mini-mode {
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #334155;
+  border: 0.5px solid #64748b;
+  display: inline-block;
+}
+
+.cisco-mini-led {
+  display: flex;
+  align-items: center;
+}
+
+.cisco-mini-led i {
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: inline-block;
+}
+
+.cisco-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.44rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48px;
+  line-height: 1;
+}
+
+.cisco-console-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 4px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 0.5px solid rgba(0, 188, 235, 0.5);
+  background: rgba(0, 188, 235, 0.1);
+  border-radius: 1px;
+  padding: 0 1.5px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+/* Cisco Series Specific Front Bezels */
+.cisco-integrated-bezel.bezel-cat9k {
+  background: linear-gradient(135deg, #09121f 0%, #0d1a2d 100%);
+  border-color: #1e3a5f;
+  border-left: 2.5px solid #00d2ff;
+  box-shadow: inset 0 1px 0 rgba(0, 210, 255, 0.15);
+}
+
+.cisco-integrated-bezel.bezel-cat2960x {
+  background: linear-gradient(135deg, #0a141a 0%, #0e1e24 100%);
+  border-color: #1a3338;
+  border-left: 2.5px solid #10b981;
+}
+
+.cisco-integrated-bezel.bezel-cat2960 {
+  background: linear-gradient(135deg, #08111a 0%, #0b1926 100%);
+  border-color: #162c42;
+  border-left: 2.5px solid #0284c7;
+}
+
+.cisco-integrated-bezel.bezel-nexus {
+  background: linear-gradient(135deg, #0c0f17 0%, #151824 100%);
+  border-color: #2b354d;
+  border-left: 2.5px solid #a855f7;
+}
+
+.cisco-integrated-bezel.bezel-isr {
+  background: linear-gradient(135deg, #13141c 0%, #1d1c24 100%);
+  border-color: #3b3a4a;
+  border-left: 2.5px solid #f97316;
+}
+
+/* Cisco Blue Beacon / UID Locator LED (Catalyst 9000 Signature) */
+.cisco-beacon-led {
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #00d2ff;
+  box-shadow: 0 0 4px #00d2ff, 0 0 7px rgba(0, 210, 255, 0.6);
+  display: inline-block;
+  flex-shrink: 0;
+  animation: ciscoBeaconPulse 2s infinite alternate;
+}
+
+@keyframes ciscoBeaconPulse {
+  0% { opacity: 0.7; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1.1); box-shadow: 0 0 6px #00e5ff, 0 0 10px rgba(0, 229, 255, 0.8); }
+}
+
+/* Cisco Status Cluster: Mode Button, Micro LEDs, Console Port (Fallback) */
+.cisco-status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  background: #0b111a;
+  border: 1px solid #1e2a3c;
+  border-radius: 2px;
+  height: 22px;
+}
+
+.cisco-mode-btn {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #334155;
+  border: 1px solid #64748b;
+  flex-shrink: 0;
+}
+
+.cisco-led-bank {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.cisco-led-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cisco-micro-led {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1;
+}
+
+.cisco-micro-led i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.cisco-micro-led.led-amber i {
+  background: #f59e0b;
+}
+
+.cisco-console-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  background: rgba(0, 188, 235, 0.08);
+  border-radius: 1.5px;
+  padding: 1px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+}
+
+/* Cisco RJ45 Bay (Modular 12-port blocks) */
+.faceplate-switch .port-group {
+  background: #090e16;
+  border: 1px solid #1e2a3c;
+  border-radius: 2px;
+  padding: 1.5px 3px;
+  gap: 1.5px;
+}
+
+/* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
+.faceplate-switch .port-group.cisco-uplink-bay {
+  background: #0f1826;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  position: relative;
+}
+
+/* Cisco RJ45 Port Enhancement: Link Status LED */
+.faceplate-switch .port-rj45 {
+  background: #080c14;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  position: relative;
+}
+
+.faceplate-switch .port-rj45::before {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #1e2a3a;
+  z-index: 3;
+}
+
+/* Link LED: green indicator inside port body, with glow */
+.faceplate-switch .port-rj45.connected {
+  border-color: #166534;
+  background: #071410;
+}
+
+.faceplate-switch .port-rj45.connected::before {
+  background: #22c55e;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+/* ============================================================================
+   PASSIVE PATCH PANEL STYLING (Distinct Industrial Orange & Compact 74px Bezel)
+   ============================================================================ */
+
+.faceplate-patch-panel {
+  background: linear-gradient(90deg, #17110c 0%, #12151d 74px, #0f1219 100%);
+  border-left: 4px solid #f97316;
+  border-top: 1.5px solid rgba(249, 115, 22, 0.45);
+  border-bottom: 1.5px solid #05070a;
+  box-shadow: none;
+}
+
+/* Compact Integrated Patch Panel Front Bezel (74px width, perfectly aligned with Cisco switches) */
+.patch-integrated-bezel {
+  flex: 0 0 74px;
+  width: 74px;
+  max-width: 74px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: #14100c;
+  border: 1px solid rgba(249, 115, 22, 0.38);
+  border-left: 2.5px solid #f97316;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.patch-bezel-top,
+.patch-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1;
+}
+
+.patch-brand-logo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #f97316;
+  letter-spacing: 0.6px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 42px;
+}
+
+.patch-kind-badge {
+  background: #ea580c;
+  color: #ffffff;
+  font: 800 0.38rem/1.2 Consolas, monospace;
+  padding: 1px 3px;
+  border-radius: 2px;
+  letter-spacing: 0.4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.patch-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: #fed7aa;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+}
+
+.patch-type-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.12);
+  border-radius: 1.5px;
+  padding: 0.5px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* Patch Panel Port Group (Matte IDC punch-down block with top orange bank header) */
+.faceplate-patch-panel .port-group {
+  background: #11151e;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-top: 2px solid #f97316;
+  border-radius: 2px;
+  padding: 1.5px 2px 2px 2px;
+  gap: 1.5px;
+  box-shadow: inset 0 1px 0 rgba(249, 115, 22, 0.2);
+}
+
+/* The signature white write-on identification label strip with orange accent tab */
+.patch-id-strip {
+  height: 4.5px;
+  width: 100%;
+  background: #fff7ed;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-left: 3px solid #ea580c;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+  margin-bottom: 1.5px;
+  box-sizing: border-box;
+}
+
+.patch-id-strip span {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 4px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+}
+
+/* Patch Panel RJ45 Keystones (Orange Accent Bezel) */
+.faceplate-patch-panel .port-rj45 {
+  background: #090c13;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.faceplate-patch-panel .port-rj45:hover {
+  border-color: #f97316;
+  box-shadow: 0 0 4px rgba(249, 115, 22, 0.5);
+}
+
+.faceplate-patch-panel .port-rj45.connected {
+  border-color: #fb923c;
+  background: #130c06;
+  box-shadow: 0 0 3px rgba(249, 115, 22, 0.4);
+}
+
+.faceplate-patch-panel .port-rj45.connected::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #fb923c;
+  box-shadow: 0 0 3px rgba(251, 146, 60, 0.7);
+  z-index: 3;
+}
+
+.faceplate-patch-panel .port-group::before {
+  display: none;
+}
+
+/* Fiber Patch Panel (ODF / LC Duplex) - Harmonized Warm Amber/Orange Theme */
+.faceplate-fiber-panel {
+  background: linear-gradient(90deg, #181309 0%, #101622 74px, #0a111a 100%);
+  border-left: 4px solid #f59e0b;
+  border-top: 1.5px solid rgba(245, 158, 11, 0.45);
+  border-bottom: 1.5px solid #04080e;
+  box-shadow: none;
+}
+
+.faceplate-fiber-panel .patch-integrated-bezel {
+  border-color: rgba(245, 158, 11, 0.38);
+  border-left-color: #f59e0b;
+  background: #141108;
+}
+
+.faceplate-fiber-panel .patch-brand-logo {
+  color: #f59e0b;
+}
+
+.faceplate-fiber-panel .patch-kind-badge {
+  background: #d97706;
+}
+
+.faceplate-fiber-panel .patch-type-mini {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.faceplate-fiber-panel .port-group {
+  background: #10141d;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-top: 2px solid #f59e0b;
+  box-shadow: inset 0 1px 0 rgba(245, 158, 11, 0.2);
+}
+
+.faceplate-fiber-panel .patch-id-strip {
+  border-color: rgba(245, 158, 11, 0.45);
+  border-left-color: #d97706;
+}
+
+.device-status-leds {
+  display: flex;
+  gap: 2.5px;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.status-led {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.ports-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  height: 100%;
+  overflow: hidden !important;
+  padding: 0;
+  box-sizing: border-box;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.ports-area::-webkit-scrollbar,
+.device-faceplate::-webkit-scrollbar,
+.mounted-device::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.port-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 2px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.port-row {
+  display: flex;
+  gap: 1.5px;
+  align-items: center;
+}
+
+/* Port Visuals (Clean Enterprise) */
+.port {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* RJ45 Port */
+.port-rj45 {
+  width: 10px;
+  height: 9.5px;
+  background: #090d14;
+  border: 1px solid #475569;
+  border-radius: 1px;
+  box-shadow: none;
+}
+
+.port-rj45::after {
+  display: none;
+}
+
+/* SFP / SFP+ Optical Cage Port */
+.port-sfp {
+  width: 11px;
+  height: 10px;
+  background: #141b27;
+  border: 1px solid #64748b;
+  border-radius: 1.5px;
+  box-shadow: none;
+}
+
+.port-sfp::after {
+  display: none;
+}
+
+/* Fiber LC Duplex Port */
+.port-lc {
+  width: 10.5px;
+  height: 10px;
+  background: #0284c7;
+  border: 1px solid #38bdf8;
+  border-radius: 2px;
+  display: flex;
+  gap: 1px;
+  padding: 1px;
+  box-shadow: none;
+}
+
+.port-lc-inner {
+  width: 3px;
+  height: 6.5px;
+  background: #0c4a6e;
+  border-radius: 1px;
+}
+
+.port:hover {
+  filter: brightness(1.7);
+  outline: 1.5px solid #facc15;
+}
+
+.port.selected {
+  outline: 2px solid #00e5ff !important;
+  box-shadow: 0 0 8px #00e5ff;
+  animation: pulse-border 1s infinite alternate;
+}
+
+.port.connected {
+  position: relative;
+}
+
+/* Generic connected indicator is suppressed - per device type rules handle it */
+.port.connected::before {
+  display: none;
+}
+
+@keyframes pulse-border {
+  from { transform: scale(1); }
+  to { transform: scale(1.2); }
+}
+
+/* 802.1Q TRUNK & SPECIAL PORT STYLES */
+.port.port-special,
+.port.port-trunk {
+  border-color: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  box-shadow: 0 0 6px var(--port-role-color, var(--trunk-color, #a855f7)), inset 0 0 3px var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  z-index: 4;
+}
+
+.port.port-special::before,
+.port.port-trunk::before {
+  content: var(--port-badge-text, "T") !important;
+  position: absolute !important;
+  font-size: 7px !important;
+  font-weight: 900 !important;
+  font-family: Consolas, monospace !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  border-radius: 2px !important;
+  padding: 0 2px !important;
+  top: -4.5px !important;
+  left: -2px !important;
+  width: auto !important;
+  height: auto !important;
+  z-index: 6 !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.9) !important;
+}
+
+.port.port-trunk {
+  --port-role-color: var(--custom-color, var(--trunk-color, #7c3aed));
+  --port-badge-text: "T";
+}
+
+.port.port-uplink {
+  --port-role-color: var(--custom-color, #00d2ff);
+  --port-badge-text: "▲";
+}
+
+.port.port-poe {
+  --port-role-color: var(--custom-color, #f59e0b);
+  --port-badge-text: "⚡";
+}
+
+.port.port-mgmt {
+  --port-role-color: var(--custom-color, #059669);
+  --port-badge-text: "M";
+}
+
+.port.port-vlan {
+  --port-role-color: var(--custom-color, #3b82f6);
+  --port-badge-text: var(--vlan-badge, "V");
+}
+
+.port.port-trunk-ap {
+  --port-role-color: var(--custom-color, #ec4899);
+  --port-badge-text: "W";
+}
+
+.port.port-routed {
+  --port-role-color: var(--custom-color, #b91c1c);
+  --port-badge-text: "R";
+}
+
+.port.port-poe-disabled {
+  position: relative;
+}
+
+.port.port-poe-disabled::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 1px !important;
+  right: 1px !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: #ef4444 !important;
+  box-shadow: 0 0 3px #ef4444 !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+}
+
+.port.port-special.connected::after,
+.port.port-trunk.connected::after {
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+}
+
+/* 3D Skeuomorphic Cable Management Panel (Panduit Finger Duct System) */
+.organizer-faceplate {
+  background: linear-gradient(180deg, #101319 0%, #06080c 100%) !important;
+  border-top: 1px solid #1e2430 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #334155 !important;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
+}
+
+.organizer-brush {
+  height: 14px;
+  flex: 1;
+  background: repeating-linear-gradient(
+    90deg,
+    #030508 0px,
+    #030508 8px,
+    #161a22 8px,
+    #272f3d 10px,
+    #161a22 12px,
+    #030508 12px,
+    #030508 20px
+  );
+  border-radius: 3px;
+  border: 1px solid #181d26;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* --- CLEAN MODERN ENTERPRISE D-RING CABLE ORGANIZER (1U / 2U) --- */
+.dring-faceplate {
+  background: linear-gradient(
+    180deg,
+    #101520 0%,
+    #0c1018 40%,
+    #0a0d14 60%,
+    #080a10 100%
+  ) !important;
+  border-top: 1px solid #222c3d !important;
+  border-bottom: 1.5px solid #020305 !important;
+  border-left: 4px solid #3d4f65 !important;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+/* Horizontal center guide line on steel faceplate */
+.dring-faceplate::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    #1e293b 0px,
+    #1e293b 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  transform: translateY(-50%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.dring-ring-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 14px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Individual D-Ring Bracket */
+.dring-bracket {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: transform 0.15s ease;
+}
+
+.dring-bracket:hover {
+  transform: translateY(-1px);
+}
+
+/* Solid Steel D-Ring Retention Hoop */
+.dring-loop {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 4px;
+  background: #141b26 !important;
+  border: 1.8px solid #56687e !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 5px rgba(0, 0, 0, 0.6) !important;
+  z-index: 3;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Inner pass-through aperture */
+.dring-loop::before {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 12px;
+  border-radius: 2px;
+  background: #06090f;
+  border: 1px solid #1a2332;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+.dring-bracket:hover .dring-loop {
+  border-color: #38bdf8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 8px rgba(56, 189, 248, 0.4) !important;
+}
+
+.dring-mount-base,
+.dring-aperture,
+.dring-front-face {
+  display: none !important;
+}
+
+
+/* Device Controls Overlay */
+.device-controls {
+  position: absolute;
+  right: 4px;
+  display: none;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  z-index: 6;
+}
+
+.mounted-device:hover .device-controls {
+  display: flex;
+}
+
+.dev-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+}
+
+.dev-btn:hover {
+  color: #ef4444;
+}
+
+/* ==========================================================================
+   2D LOD (LEVEL OF DETAIL) SYSTEM FOR MULTI-RACK SCALE & PERFORMANCE
+   ========================================================================== */
+/* LOD MACRO (< 40% Zoom): Hide subpixel port holes, screws, and micro text */
+[data-lod="macro"] .port-grid,
+[data-lod="macro"] .port,
+[data-lod="macro"] .cisco-bezel-screws,
+[data-lod="macro"] .cisco-led-dot,
+[data-lod="macro"] .port-grid-24,
+[data-lod="macro"] .port-grid-48,
+[data-lod="macro"] .fiber-adapter-ports,
+[data-lod="macro"] .hole,
+[data-lod="macro"] .dring-bracket,
+[data-lod="macro"] .organizer-brush,
+[data-lod="macro"] .device-controls {
+  display: none !important;
+}
+
+[data-lod="macro"] .cables-svg-layer {
+  opacity: 0.6;
+}
+
+/* LOD MEDIUM (40% - 75% Zoom): Hide micro labels and fine screw details */
+[data-lod="medium"] .cisco-bezel-screws,
+[data-lod="medium"] .port-number-label,
+[data-lod="medium"] .hole {
+  display: none !important;
+}
+
+/* Fast-panning class disables pointer hit-testing for 120 FPS buttery pan */
+.rack-stage.panning-active * {
+  pointer-events: none !important;
+}
+
+/* ==========================================================================
+   SIDE-BY-SIDE MULTI-RACK ROW LAYOUT & HEADER BADGES
+   ========================================================================== */
+.multi-rack-stage {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 64px !important;
+  padding: 40px 60px 80px 60px;
+  width: max-content !important;
+  box-sizing: content-box;
+}
+
+.multi-rack-stage .rack-container {
+  flex-shrink: 0 !important;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.multi-rack-stage .rack-container.active-rack-target {
+  box-shadow: 0 0 0 3px #38bdf8, 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Cabinet Header Aluminum Plate */
+.rack-header-plate {
+  position: absolute;
+  top: -38px;
+  left: 0;
+  width: 100%;
+  height: 32px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  box-sizing: border-box;
+  user-select: none;
+  z-index: 10;
+}
+
+.rack-header-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rack-header-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Global SVG Cabling Layer when in Multi-Rack Mode */
+.rack-stage.multi-rack-stage > #cables-svg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+.rack-stage.multi-rack-stage > #cables-svg .cable-path {
+  pointer-events: stroke !important;
+  cursor: pointer;
+}
+
+
+
+

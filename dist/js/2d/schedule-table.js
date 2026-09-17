@@ -14,6 +14,7 @@
   const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
   const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
   const highlightCable = (...args) => RS.highlightCable && RS.highlightCable(...args);
+  const setCableHover = (...args) => RS.setCableHover && RS.setCableHover(...args);
   const disconnectCable = (...args) => RS.disconnectCable && RS.disconnectCable(...args);
   const renameCable2D = (...args) => RS.renameCable2D && RS.renameCable2D(...args);
 
@@ -230,6 +231,16 @@
       dom.cableCountLabel.textContent = `${STATE.cables.length} Bağlantı Yapıldı`;
     }
 
+    if (dom.scheduleTbody && !dom.scheduleTbody.__HOVER_BOUND__) {
+      dom.scheduleTbody.__HOVER_BOUND__ = true;
+      dom.scheduleTbody.addEventListener('mouseleave', () => {
+        const cur = RS.getActiveHoveredCableId && RS.getActiveHoveredCableId();
+        if (cur) {
+          setCableHover(cur, false);
+        }
+      });
+    }
+
     if (STATE.cables.length === 0) {
       dom.scheduleTbody.innerHTML = `
         <tr>
@@ -317,6 +328,14 @@
           <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök (Delete)">✂️</button>
         </td>
       `;
+
+      tr.addEventListener('mouseenter', () => {
+        setCableHover(c.id, true);
+      });
+
+      tr.addEventListener('mouseleave', () => {
+        setCableHover(c.id, false);
+      });
 
       tr.addEventListener('click', (e) => {
         if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.clickable-endpoint')) return;
