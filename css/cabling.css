@@ -7,6 +7,8 @@
   height: 100%;
   pointer-events: none;
   z-index: 10;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .cable-path {
@@ -16,8 +18,8 @@
   stroke-width: 3.4px !important;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 2.5px 3.5px rgba(0, 0, 0, 0.82)) !important;
-  transition: stroke-width 0.18s, filter 0.18s, stroke 0.18s;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.75)) !important;
+  transition: stroke-width 0.15s ease, stroke 0.15s ease;
 }
 
 .cable-path:hover {
@@ -91,4 +93,132 @@
 .dring-svg-bracket {
   pointer-events: none;
 }
+
+/* Floating Cable Quick-Action HUD (Balloon) */
+.cable-quick-hud {
+  position: fixed;
+  z-index: 10005;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  padding: 5px 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.95), 0 0 16px rgba(2, 132, 199, 0.5);
+  transform: translate(-50%, -120%);
+  pointer-events: auto;
+  user-select: none;
+  animation: hudPopIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hudPopIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -120%) scale(1);
+  }
+}
+
+.cable-quick-hud .hud-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.cable-quick-hud button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 5px;
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cable-quick-hud button:hover {
+  background: #334155;
+  border-color: #64748b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.cable-quick-hud .hud-btn-disconnect {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.cable-quick-hud .hud-btn-disconnect:hover {
+  background: #ef4444;
+  border-color: #f87171;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+}
+
+.cable-quick-hud .hud-btn-close {
+  padding: 3px 6px;
+  color: #94a3b8;
+}
+
+/* Custom Cable Context Menu */
+.cable-context-menu {
+  position: fixed;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  animation: hudPopIn 0.12s ease-out;
+}
+
+.cable-context-menu .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cable-context-menu .menu-item:hover {
+  background: #1e293b;
+  color: #38bdf8;
+}
+
+.cable-context-menu .menu-item.danger {
+  color: #f87171;
+}
+
+.cable-context-menu .menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.cable-context-menu .menu-divider {
+  height: 1px;
+  background: #1e293b;
+  margin: 3px 0;
+}
+
 

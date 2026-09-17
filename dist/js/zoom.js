@@ -64,8 +64,16 @@ export function setZoom(newScale, screenX, screenY, smooth = false) {
   ZOOM_STATE.isFit = false;
 
   updateStageTransform(smooth);
-  // Re-render cables immediately so labels and paths stay razor sharp
-  renderAllCables();
+  scheduleCableRender();
+}
+
+let cableRenderTimer = null;
+function scheduleCableRender(delay = 50) {
+  if (cableRenderTimer) clearTimeout(cableRenderTimer);
+  cableRenderTimer = setTimeout(() => {
+    cableRenderTimer = null;
+    requestAnimationFrame(renderAllCables);
+  }, delay);
 }
 
 export function jumpToSection(section) {

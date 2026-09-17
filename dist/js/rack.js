@@ -1,6 +1,6 @@
 import { STATE, dom } from './state.js';
 import { HARDWARE_CATALOG } from './catalog.js';
-import { renderAllCables, cancelPendingConnection } from './cabling.js';
+import { renderAllCables, cancelPendingConnection, highlightCable, showCableQuickHud, disconnectCable } from './cabling.js';
 import { renderScheduleTable } from './schedule.js';
 
 export function renderRackRailsAndSlots(onSlotClick) {
@@ -246,16 +246,48 @@ function renderPortIcon(instanceId, port) {
     (c.to.instanceId === instanceId && c.to.portId === port.id)
   );
 
-  const dev = STATE.devices.find(d => d.instanceId === instanceId);
+  const dev = (STATE.devices || []).find(d => d.instanceId === instanceId);
   const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
-  const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
-  const trunkColor = (portCfg && portCfg.color) || '#a855f7';
-  const trunkClass = isTrunk ? 'port-trunk' : '';
-  const trunkStyle = isTrunk ? `style="--trunk-color: ${trunkColor};"` : '';
+
+  let specialClass = '';
+  let specialStyle = '';
+
+  if (portCfg) {
+    const role = (portCfg.role || (portCfg.isTrunk ? 'trunk' : '')).toLowerCase();
+    const hasVlan = Boolean(portCfg.vlan);
+    const customColor = portCfg.color;
+
+    if (role === 'trunk' || portCfg.isTrunk) {
+      const color = customColor || '#a855f7';
+      specialClass = 'port-special port-trunk';
+      specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --trunk-color: ${color}; --port-badge-text: 'T';"`;
+    } else if (role === 'uplink') {
+      const color = customColor || '#00d2ff';
+      specialClass = 'port-special port-uplink';
+      specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '▲';"`;
+    } else if (role === 'poe') {
+      const color = customColor || '#f59e0b';
+      specialClass = 'port-special port-poe';
+      specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '⚡';"`;
+    } else if (role === 'management' || role === 'mgmt') {
+      const color = customColor || '#10b981';
+      specialClass = 'port-special port-mgmt';
+      specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'M';"`;
+    } else if (hasVlan || (role === 'access' && hasVlan)) {
+      const color = customColor || '#3b82f6';
+      const vlanLabel = String(portCfg.vlan).trim().split(/[, ]+/)[0];
+      const badgeText = vlanLabel ? `V${vlanLabel.slice(0, 3)}` : 'V';
+      specialClass = 'port-special port-vlan';
+      specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '${badgeText}';"`;
+    } else if (customColor) {
+      specialClass = 'port-special';
+      specialStyle = `style="--port-role-color: ${customColor}; --custom-color: ${customColor}; --port-badge-text: '●';"`;
+    }
+  }
 
   return `
-    <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${trunkClass}" 
-         ${trunkStyle}
+    <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${specialClass}" 
+         ${specialStyle}
          data-instance-id="${instanceId}" 
          data-port-id="${port.id}"
          data-port-name="${port.name}"
@@ -356,14 +388,14 @@ function handlePortClick(e) {
     );
 
     if (isOccupied) {
-      if (confirm("Bu portta zaten bir kablo takılı. Kabloyu sökmek istiyor musunuz?")) {
-        STATE.cables = STATE.cables.filter(c => 
-          !(c.from.instanceId === instanceId && c.from.portId === portId) &&
-          !(c.to.instanceId === instanceId && c.to.portId === portId)
-        );
-        renderMountedDevices();
-        renderScheduleTable();
-        renderAllCables();
+      const connectedCable = STATE.cables.find(c => 
+        (c.from.instanceId === instanceId && c.from.portId === portId) ||
+        (c.to.instanceId === instanceId && c.to.portId === portId)
+      );
+      if (connectedCable) {
+        highlightCable(connectedCable.id);
+        const rect = portEl.getBoundingClientRect();
+        showCableQuickHud(connectedCable.id, rect.left + rect.width / 2, rect.top);
       }
       return;
     }

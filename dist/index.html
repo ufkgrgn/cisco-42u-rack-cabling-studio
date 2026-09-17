@@ -8,7 +8,7 @@
   <!-- 3D Studio & HUD Styles -->
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-BelOlodd.css">
+  <link rel="stylesheet" crossorigin href="/assets/main-CNUJPC9G.css">
 </head>
 <body>
 
@@ -386,7 +386,9 @@
           <select id="port-edit-role" class="form-input">
             <option value="access">Standart Access Port (PC / Uç Birim)</option>
             <option value="trunk">⚡ 802.1Q TRUNK (Switch / Omurga / Oda Dağıtım)</option>
-            <option value="uplink">🚀 Uplink / WAN (Router / Dış Hat)</option>
+            <option value="uplink">▲ Uplink / WAN (Router / Dış Hat)</option>
+            <option value="poe">⚡ PoE (Kamera / AP / Telefon Besleme)</option>
+            <option value="mgmt">🔒 Management (OOB / Yönetim)</option>
           </select>
         </div>
 
@@ -1597,13 +1599,26 @@
       }
     });
 
+    const ROLE_DEFAULT_COLORS = {
+      trunk: '#a855f7',
+      uplink: '#00d2ff',
+      poe: '#f59e0b',
+      mgmt: '#10b981',
+      management: '#10b981',
+      access: '#3b82f6'
+    };
+
     document.getElementById('port-edit-role')?.addEventListener('change', (e) => {
       const role = e.target.value;
-      const color = document.getElementById('port-edit-color')?.value || '#a855f7';
+      const defColor = ROLE_DEFAULT_COLORS[role] || '#3b82f6';
+      const colorInput = document.getElementById('port-edit-color');
+      const hexInput = document.getElementById('port-edit-color-hex');
+      if (colorInput) colorInput.value = defColor;
+      if (hexInput) hexInput.value = defColor.toUpperCase();
       const badge = document.getElementById('port-edit-badge');
       if (badge) {
         badge.textContent = role.toUpperCase();
-        badge.style.background = role === 'trunk' ? color : (role === 'uplink' ? '#0284c7' : '#334155');
+        badge.style.background = defColor;
       }
     });
 

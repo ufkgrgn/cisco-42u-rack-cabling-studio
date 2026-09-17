@@ -299,6 +299,14 @@ export function renderAllCables() {
     path.addEventListener('click', (e) => {
       e.stopPropagation();
       highlightCable(cable.id);
+      showCableQuickHud(cable.id, e.clientX, e.clientY);
+    });
+
+    path.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      highlightCable(cable.id);
+      showCableContextMenu(cable.id, e.clientX, e.clientY);
     });
 
     path.addEventListener('mouseenter', (e) => {
@@ -372,6 +380,14 @@ export function renderAllCables() {
     labelGroup.addEventListener('click', (e) => {
       e.stopPropagation();
       highlightCable(cable.id);
+      showCableQuickHud(cable.id, e.clientX, e.clientY);
+    });
+
+    labelGroup.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      highlightCable(cable.id);
+      showCableContextMenu(cable.id, e.clientX, e.clientY);
     });
 
     labelGroup.addEventListener('mouseenter', (e) => {
@@ -408,6 +424,12 @@ export function renderAllCables() {
       bootA.setAttribute('stroke', cable.color);
       bootA.setAttribute('stroke-width', '1.6');
       bootA.setAttribute('class', 'cable-boot');
+      bootA.style.cursor = 'pointer';
+      bootA.addEventListener('click', (e) => {
+        e.stopPropagation();
+        highlightCable(cable.id);
+        showCableQuickHud(cable.id, e.clientX, e.clientY);
+      });
 
       const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       bootB.setAttribute('cx', x2);
@@ -417,6 +439,12 @@ export function renderAllCables() {
       bootB.setAttribute('stroke', cable.color);
       bootB.setAttribute('stroke-width', '1.6');
       bootB.setAttribute('class', 'cable-boot');
+      bootB.style.cursor = 'pointer';
+      bootB.addEventListener('click', (e) => {
+        e.stopPropagation();
+        highlightCable(cable.id);
+        showCableQuickHud(cable.id, e.clientX, e.clientY);
+      });
 
       dom.connectorsGroup.appendChild(bootA);
       dom.connectorsGroup.appendChild(bootB);
@@ -426,8 +454,215 @@ export function renderAllCables() {
   renderDRingOverlays(activeRack, contRect, curScale);
 }
 
+let quickHudEl = null;
+let contextMenuEl = null;
+
+export function hideCableQuickHud() {
+  if (quickHudEl) {
+    quickHudEl.remove();
+    quickHudEl = null;
+  }
+}
+
+export function hideCableContextMenu() {
+  if (contextMenuEl) {
+    contextMenuEl.remove();
+    contextMenuEl = null;
+  }
+}
+
+export function disconnectCable(cableId) {
+  if (!cableId) return;
+  const cable = STATE.cables.find(c => c.id === cableId);
+  if (!cable) return;
+
+  STATE.cables = STATE.cables.filter(c => c.id !== cableId);
+  if (STATE.highlightedCableId === cableId) {
+    STATE.highlightedCableId = null;
+  }
+  hideCableQuickHud();
+  hideCableContextMenu();
+
+  if (typeof window.RackStudio?.renderMountedDevices === 'function') {
+    window.RackStudio.renderMountedDevices();
+  }
+  if (typeof window.RackStudio?.renderScheduleTable === 'function') {
+    window.RackStudio.renderScheduleTable();
+  }
+  renderAllCables();
+
+  if (dom.connectionStatusHint) {
+    dom.connectionStatusHint.innerHTML = `<span style="color:#f87171; font-weight:700;">✂️ ${cable.name || cable.id} söküldü.</span>`;
+    setTimeout(() => {
+      if (dom.connectionStatusHint && !STATE.pendingConnection) {
+        dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
+      }
+    }, 2500);
+  }
+
+  if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeCable === 'function') {
+    window.__STUDIO3D__.removeCable(cableId);
+  }
+  window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+}
+
+export function showCableQuickHud(cableId, clientX, clientY) {
+  hideCableQuickHud();
+  hideCableContextMenu();
+
+  const cable = STATE.cables.find(c => c.id === cableId);
+  if (!cable) return;
+
+  const hud = document.createElement('div');
+  hud.className = 'cable-quick-hud';
+  hud.id = 'cable-quick-hud';
+  const left = Math.max(80, Math.min(window.innerWidth - 80, clientX));
+  const isNearTop = clientY < 85;
+  const top = isNearTop ? Math.max(70, clientY + 30) : clientY;
+  if (isNearTop) {
+    hud.style.transform = 'translate(-50%, 0)';
+  }
+  hud.style.left = `${left}px`;
+  hud.style.top = `${top}px`;
+
+  hud.innerHTML = `
+    <span class="hud-title"><span style="color:${cable.color};">●</span> ${cable.name || cable.id}</span>
+    <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
+    <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
+    <button type="button" class="hud-btn-close" title="Kapat">✕</button>
+  `;
+
+  hud.querySelector('.hud-btn-disconnect').addEventListener('click', (e) => {
+    e.stopPropagation();
+    disconnectCable(cableId);
+  });
+
+  hud.querySelector('.hud-btn-color').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const colors = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+    const currentIdx = colors.indexOf(cable.color);
+    cable.color = colors[(currentIdx + 1) % colors.length];
+    renderAllCables();
+    if (typeof window.RackStudio?.renderScheduleTable === 'function') window.RackStudio.renderScheduleTable();
+    showCableQuickHud(cableId, left, top);
+  });
+
+  hud.querySelector('.hud-btn-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideCableQuickHud();
+    if (STATE.highlightedCableId === cableId) {
+      highlightCable(cableId);
+    }
+  });
+
+  document.body.appendChild(hud);
+  quickHudEl = hud;
+}
+
+export function showCableContextMenu(cableId, clientX, clientY) {
+  hideCableQuickHud();
+  hideCableContextMenu();
+
+  const cable = STATE.cables.find(c => c.id === cableId);
+  if (!cable) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'cable-context-menu';
+  menu.id = 'cable-context-menu';
+  const left = Math.max(10, Math.min(window.innerWidth - 180, clientX));
+  const top = Math.max(10, Math.min(window.innerHeight - 150, clientY));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+
+  menu.innerHTML = `
+    <div style="padding: 4px 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #1e293b;">
+      <span style="color:${cable.color};">●</span> ${cable.name || cable.id} (${cable.lengthMeters || 1.5}m)
+    </div>
+    <div class="menu-item danger" id="ctx-disconnect">
+      ✂️ Kabloyu Sök (Delete)
+    </div>
+    <div class="menu-item" id="ctx-rename">
+      ✏️ Yeniden Adlandır
+    </div>
+    <div class="menu-item" id="ctx-change-color">
+      🎨 Renk Değiştir
+    </div>
+    <div class="menu-divider"></div>
+    <div class="menu-item" id="ctx-cancel">
+      ✕ Kapat
+    </div>
+  `;
+
+  menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
+    e.stopPropagation();
+    disconnectCable(cableId);
+  });
+
+  menu.querySelector('#ctx-rename').addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideCableContextMenu();
+    const nextName = prompt('Kablo Adı / Etiketi:', cable.name || cable.id);
+    if (nextName !== null && nextName.trim()) {
+      cable.name = nextName.trim();
+      renderAllCables();
+      if (typeof window.RackStudio?.renderScheduleTable === 'function') window.RackStudio.renderScheduleTable();
+    }
+  });
+
+  menu.querySelector('#ctx-change-color').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const colors = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+    const currentIdx = colors.indexOf(cable.color);
+    cable.color = colors[(currentIdx + 1) % colors.length];
+    renderAllCables();
+    if (typeof window.RackStudio?.renderScheduleTable === 'function') window.RackStudio.renderScheduleTable();
+    hideCableContextMenu();
+  });
+
+  menu.querySelector('#ctx-cancel').addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideCableContextMenu();
+  });
+
+  document.body.appendChild(menu);
+  contextMenuEl = menu;
+}
+
+// Global keydown and click listeners for keyboard shortcuts & auto-dismiss
+if (typeof window !== 'undefined' && !window.__CABLE_INTERACTIONS_BOUND__) {
+  window.__CABLE_INTERACTIONS_BOUND__ = true;
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#cable-quick-hud') && !e.target.closest('#cable-context-menu')) {
+      hideCableQuickHud();
+      hideCableContextMenu();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      const activeEl = document.activeElement;
+      const isEditing = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.isContentEditable
+      );
+      if (isEditing) return;
+
+      if (STATE.highlightedCableId) {
+        e.preventDefault();
+        disconnectCable(STATE.highlightedCableId);
+      }
+    }
+  });
+}
+
 export function highlightCable(cableId) {
   STATE.highlightedCableId = (STATE.highlightedCableId === cableId) ? null : cableId;
+  if (!STATE.highlightedCableId) {
+    hideCableQuickHud();
+    hideCableContextMenu();
+  }
 
   document.querySelectorAll('.cable-path').forEach(p => {
     p.classList.remove('highlighted');

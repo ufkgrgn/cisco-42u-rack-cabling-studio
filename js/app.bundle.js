@@ -1011,7 +1011,16 @@
     if (curScale <= 0) return;
 
     const portRects = new Map();
-    document.querySelectorAll('.port').forEach(el => portRects.set(el.id, el.getBoundingClientRect()));
+    function getPortRect(el) {
+      if (!el) return null;
+      const key = el.id || el;
+      let r = portRects.get(key);
+      if (!r) {
+        r = el.getBoundingClientRect();
+        portRects.set(key, r);
+      }
+      return r;
+    }
     let leftChannelUsage = 0;
     let rightChannelUsage = 0;
     const dringUsageMap = new Map();
@@ -1042,8 +1051,10 @@
 
       if (!portFromEl || !portToEl) return;
 
-      const rectA = portRects.get(portFromEl.id);
-      const rectB = portRects.get(portToEl.id);
+      const rectA = getPortRect(portFromEl);
+      const rectB = getPortRect(portToEl);
+      if (!rectA || !rectB) return;
+      if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
 
       // 8px is rack-container outer border
       const x1 = (rectA.left + rectA.width / 2 - (contRect.left + 8 * curScale)) / curScale;
@@ -1182,7 +1193,14 @@
       path.addEventListener('click', (e) => {
         e.stopPropagation();
         highlightCable(cable.id);
-        showCableTooltip(e);
+        showCableQuickHud(cable.id, e.clientX, e.clientY);
+      });
+
+      path.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        highlightCable(cable.id);
+        showCableContextMenu(cable.id, e.clientX, e.clientY);
       });
 
       path.addEventListener('dblclick', (e) => {
@@ -1215,6 +1233,18 @@
         bootA.setAttribute('stroke', cable.color);
         bootA.setAttribute('stroke-width', '1.6');
         bootA.setAttribute('class', 'cable-boot');
+        bootA.style.cursor = 'pointer';
+        bootA.addEventListener('click', (e) => {
+          e.stopPropagation();
+          highlightCable(cable.id);
+          showCableQuickHud(cable.id, e.clientX, e.clientY);
+        });
+        bootA.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          highlightCable(cable.id);
+          showCableContextMenu(cable.id, e.clientX, e.clientY);
+        });
 
         const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         bootB.setAttribute('cx', x2);
@@ -1224,6 +1254,18 @@
         bootB.setAttribute('stroke', cable.color);
         bootB.setAttribute('stroke-width', '1.6');
         bootB.setAttribute('class', 'cable-boot');
+        bootB.style.cursor = 'pointer';
+        bootB.addEventListener('click', (e) => {
+          e.stopPropagation();
+          highlightCable(cable.id);
+          showCableQuickHud(cable.id, e.clientX, e.clientY);
+        });
+        bootB.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          highlightCable(cable.id);
+          showCableContextMenu(cable.id, e.clientX, e.clientY);
+        });
 
         dom.connectorsGroup.appendChild(bootA);
         dom.connectorsGroup.appendChild(bootB);
@@ -1233,8 +1275,206 @@
     renderDRingOverlays(activeRack, contRect, curScale);
   }
 
+  let quickHudEl = null;
+  let contextMenuEl = null;
+
+  function hideCableQuickHud() {
+    if (quickHudEl) {
+      quickHudEl.remove();
+      quickHudEl = null;
+    }
+  }
+
+  function hideCableContextMenu() {
+    if (contextMenuEl) {
+      contextMenuEl.remove();
+      contextMenuEl = null;
+    }
+  }
+
+  function disconnectCable(cableId) {
+    if (!cableId) return;
+    const cable = STATE.cables.find(c => c.id === cableId);
+    if (!cable) return;
+
+    STATE.cables = STATE.cables.filter(c => c.id !== cableId);
+    if (STATE.highlightedCableId === cableId) {
+      STATE.highlightedCableId = null;
+    }
+    hideCableQuickHud();
+    hideCableContextMenu();
+
+    renderMountedDevices();
+    renderScheduleTable();
+    renderAllCables();
+
+    if (dom.connectionStatusHint) {
+      dom.connectionStatusHint.innerHTML = `<span style="color:#f87171; font-weight:700;">✂️ ${escapeHtml(cable.name || cable.id)} söküldü.</span>`;
+      setTimeout(() => {
+        if (dom.connectionStatusHint && !STATE.pendingConnection) {
+          dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
+        }
+      }, 2500);
+    }
+
+    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeCable === 'function') {
+      window.__STUDIO3D__.removeCable(cableId);
+    }
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+  }
+
+  function showCableQuickHud(cableId, clientX, clientY) {
+    hideCableQuickHud();
+    hideCableContextMenu();
+
+    const cable = STATE.cables.find(c => c.id === cableId);
+    if (!cable) return;
+
+    const hud = document.createElement('div');
+    hud.className = 'cable-quick-hud';
+    hud.id = 'cable-quick-hud';
+    const left = Math.max(80, Math.min(window.innerWidth - 80, clientX));
+    const isNearTop = clientY < 85;
+    const top = isNearTop ? Math.max(70, clientY + 30) : clientY;
+    if (isNearTop) {
+      hud.style.transform = 'translate(-50%, 0)';
+    }
+    hud.style.left = `${left}px`;
+    hud.style.top = `${top}px`;
+
+    hud.innerHTML = `
+      <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)}</span>
+      <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
+      <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
+      <button type="button" class="hud-btn-close" title="Kapat">✕</button>
+    `;
+
+    hud.querySelector('.hud-btn-disconnect').addEventListener('click', (e) => {
+      e.stopPropagation();
+      disconnectCable(cableId);
+    });
+
+    hud.querySelector('.hud-btn-color').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const colors = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+      const currentIdx = colors.indexOf(cable.color);
+      cable.color = colors[(currentIdx + 1) % colors.length];
+      renderAllCables();
+      renderScheduleTable();
+      showCableQuickHud(cableId, left, top);
+    });
+
+    hud.querySelector('.hud-btn-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableQuickHud();
+      if (STATE.highlightedCableId === cableId) {
+        highlightCable(cableId);
+      }
+    });
+
+    document.body.appendChild(hud);
+    quickHudEl = hud;
+  }
+
+  function showCableContextMenu(cableId, clientX, clientY) {
+    hideCableQuickHud();
+    hideCableContextMenu();
+
+    const cable = STATE.cables.find(c => c.id === cableId);
+    if (!cable) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'cable-context-menu';
+    menu.id = 'cable-context-menu';
+    const left = Math.max(10, Math.min(window.innerWidth - 180, clientX));
+    const top = Math.max(10, Math.min(window.innerHeight - 150, clientY));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+
+    menu.innerHTML = `
+      <div style="padding: 4px 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #1e293b;">
+        <span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} (${cable.lengthMeters || 1.5}m)
+      </div>
+      <div class="menu-item danger" id="ctx-disconnect">
+        ✂️ Kabloyu Sök (Delete)
+      </div>
+      <div class="menu-item" id="ctx-rename">
+        ✏️ Yeniden Adlandır
+      </div>
+      <div class="menu-item" id="ctx-change-color">
+        🎨 Renk Değiştir
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" id="ctx-cancel">
+        ✕ Kapat
+      </div>
+    `;
+
+    menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
+      e.stopPropagation();
+      disconnectCable(cableId);
+    });
+
+    menu.querySelector('#ctx-rename').addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+      renameCable2D(cable.id);
+    });
+
+    menu.querySelector('#ctx-change-color').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const colors = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+      const currentIdx = colors.indexOf(cable.color);
+      cable.color = colors[(currentIdx + 1) % colors.length];
+      renderAllCables();
+      renderScheduleTable();
+      hideCableContextMenu();
+    });
+
+    menu.querySelector('#ctx-cancel').addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+    });
+
+    document.body.appendChild(menu);
+    contextMenuEl = menu;
+  }
+
+  // Global keydown and click listeners for keyboard shortcuts & auto-dismiss
+  if (typeof window !== 'undefined' && !window.__CABLE_INTERACTIONS_BOUND__) {
+    window.__CABLE_INTERACTIONS_BOUND__ = true;
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#cable-quick-hud') && !e.target.closest('#cable-context-menu')) {
+        hideCableQuickHud();
+        hideCableContextMenu();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeEl = document.activeElement;
+        const isEditing = activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable
+        );
+        if (isEditing) return;
+
+        if (STATE.highlightedCableId) {
+          e.preventDefault();
+          disconnectCable(STATE.highlightedCableId);
+        }
+      }
+    });
+  }
+
   function highlightCable(cableId) {
     STATE.highlightedCableId = (STATE.highlightedCableId === cableId) ? null : cableId;
+    if (!STATE.highlightedCableId) {
+      hideCableQuickHud();
+      hideCableContextMenu();
+    }
 
     document.querySelectorAll('.cable-path').forEach(p => {
       p.classList.remove('highlighted');
@@ -1683,14 +1923,46 @@
     const activeRack = getActiveRack ? getActiveRack() : (STATE.racks && STATE.racks[0]);
     const dev = activeRack && activeRack.devices.find(d => d.instanceId === instanceId);
     const portCfg = dev && dev.portsConfig && (dev.portsConfig[port.id] || dev.portsConfig[port.id.replace('p', '')] || dev.portsConfig[port.name]);
-    const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
-    const trunkColor = (portCfg && portCfg.color) || '#a855f7';
-    const trunkClass = isTrunk ? 'port-trunk' : '';
-    const trunkStyle = isTrunk ? `style="--trunk-color: ${trunkColor};"` : '';
+
+    let specialClass = '';
+    let specialStyle = '';
+
+    if (portCfg) {
+      const role = (portCfg.role || (portCfg.isTrunk ? 'trunk' : '')).toLowerCase();
+      const hasVlan = Boolean(portCfg.vlan);
+      const customColor = portCfg.color;
+
+      if (role === 'trunk' || portCfg.isTrunk) {
+        const color = customColor || '#a855f7';
+        specialClass = 'port-special port-trunk';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --trunk-color: ${color}; --port-badge-text: 'T';"`;
+      } else if (role === 'uplink') {
+        const color = customColor || '#00d2ff';
+        specialClass = 'port-special port-uplink';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '▲';"`;
+      } else if (role === 'poe') {
+        const color = customColor || '#f59e0b';
+        specialClass = 'port-special port-poe';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '⚡';"`;
+      } else if (role === 'management' || role === 'mgmt') {
+        const color = customColor || '#10b981';
+        specialClass = 'port-special port-mgmt';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: 'M';"`;
+      } else if (hasVlan || (role === 'access' && hasVlan)) {
+        const color = customColor || '#3b82f6';
+        const vlanLabel = String(portCfg.vlan).trim().split(/[, ]+/)[0];
+        const badgeText = vlanLabel ? `V${vlanLabel.slice(0, 3)}` : 'V';
+        specialClass = 'port-special port-vlan';
+        specialStyle = `style="--port-role-color: ${color}; --custom-color: ${color}; --port-badge-text: '${badgeText}';"`;
+      } else if (customColor) {
+        specialClass = 'port-special';
+        specialStyle = `style="--port-role-color: ${customColor}; --custom-color: ${customColor}; --port-badge-text: '●';"`;
+      }
+    }
 
     return `
-      <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${trunkClass}" 
-           ${trunkStyle}
+      <div class="port ${typeClass} ${isConnected ? 'connected' : ''} ${specialClass}" 
+           ${specialStyle}
            data-instance-id="${instanceId}" 
            data-port-id="${port.id}"
            data-port-name="${escapeHtml(port.name)}"
@@ -1821,14 +2093,14 @@
       );
 
       if (isOccupied) {
-        if (confirm("Bu portta zaten bir kablo takılı. Kabloyu sökmek istiyor musunuz?")) {
-          STATE.cables = STATE.cables.filter(c =>
-            !(c.from.instanceId === instanceId && c.from.portId === portId) &&
-            !(c.to.instanceId === instanceId && c.to.portId === portId)
-          );
-          renderMountedDevices();
-          renderScheduleTable();
-          renderAllCables();
+        const connectedCable = STATE.cables.find(c => 
+          (c.from.instanceId === instanceId && c.from.portId === portId) ||
+          (c.to.instanceId === instanceId && c.to.portId === portId)
+        );
+        if (connectedCable) {
+          highlightCable(connectedCable.id);
+          const rect = portEl.getBoundingClientRect();
+          showCableQuickHud(connectedCable.id, rect.left + rect.width / 2, rect.top);
         }
         return;
       }
@@ -1967,7 +2239,16 @@
     ZOOM_STATE.isFit = false;
 
     updateStageTransform(smooth);
-    requestAnimationFrame(renderAllCables);
+    scheduleCableRender();
+  }
+
+  let cableRenderTimer = null;
+  function scheduleCableRender(delay = 50) {
+    if (cableRenderTimer) clearTimeout(cableRenderTimer);
+    cableRenderTimer = setTimeout(() => {
+      cableRenderTimer = null;
+      requestAnimationFrame(renderAllCables);
+    }, delay);
   }
 
   function jumpToSection(section) {
@@ -2844,14 +3125,24 @@
     const dev = activeRack.devices.find(d => d.instanceId === instanceId);
     if (!dev) return false;
     if (!dev.portsConfig) dev.portsConfig = {};
-    if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description)) {
+    if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description && !config.color)) {
       delete dev.portsConfig[portId];
       delete dev.portsConfig[String(portId).replace('p', '')];
     } else {
+      const role = config.role || 'trunk';
+      const defaultRoleColors = {
+        trunk: '#a855f7',
+        uplink: '#00d2ff',
+        poe: '#f59e0b',
+        mgmt: '#10b981',
+        management: '#10b981',
+        access: '#3b82f6'
+      };
+      const resolvedColor = config.color || defaultRoleColors[role] || '#a855f7';
       dev.portsConfig[portId] = {
-        role: config.role || 'trunk',
-        isTrunk: config.role === 'trunk' || config.isTrunk === true,
-        color: config.color || '#a855f7',
+        role: role,
+        isTrunk: role === 'trunk' || config.isTrunk === true,
+        color: resolvedColor,
         ciscoName: config.ciscoName || '',
         vlan: config.vlan || '',
         description: config.description || '',
@@ -2859,12 +3150,36 @@
       };
     }
     renderMountedDevices();
+    renderScheduleTable();
     renderAllCables();
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
     return true;
   }
 
-  window.RackStudio = { STATE, catalog:HARDWARE_CATALOG, getActiveRack, refresh, renderAllCables, fit:fitRackToScreen, mountDeviceAt, loadCustomTopology, validateTopology, exportJson, exportVisioSvg, switchActiveRack, addNewRack, removeDevice, updateDeviceMetadata, updatePortConfig };
+  window.RackStudio = {
+    STATE,
+    catalog: HARDWARE_CATALOG,
+    getActiveRack,
+    refresh,
+    renderAllCables,
+    renderMountedDevices,
+    renderScheduleTable,
+    fit: fitRackToScreen,
+    mountDeviceAt,
+    loadCustomTopology,
+    validateTopology,
+    exportJson,
+    exportVisioSvg,
+    switchActiveRack,
+    addNewRack,
+    removeDevice,
+    updateDeviceMetadata,
+    updatePortConfig,
+    highlightCable,
+    disconnectCable,
+    showCableQuickHud,
+    hideCableQuickHud
+  };
 
   // Automatic init on DOM ready or immediate if already loaded
   if (document.readyState === 'loading') {
