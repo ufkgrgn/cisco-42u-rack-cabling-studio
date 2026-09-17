@@ -158,7 +158,7 @@
 
     // Explicitly maintain active cable selection & highlight so route change is immediately visible
     STATE.highlightedCableId = cableId;
-    renderAllCables();
+    renderAllCables();         // redraws SVG path AND updates cable.lengthMeters via computeCableLength
     setCableHover(cableId, true);
 
     // Update duct triggers in-place without destroying schedule table DOM to prevent card flicker
@@ -168,6 +168,19 @@
       btn.textContent = ductLabel;
       btn.title = ductTooltip;
     });
+
+    // Update the metraj (length) badge in-place in schedule rows — no full table re-render needed
+    const newLen = cable.lengthMeters || 0;
+    document.querySelectorAll(`[data-cable-id="${cableId}"] .metraj-badge, tr[data-cable-id="${cableId}"] .metraj-badge`).forEach(badge => {
+      badge.textContent = `${newLen}m`;
+      badge.title = `Gerçek Saha Metrajı (${next === 'auto' ? 'Otomatik Kanal' : (next === 'left' ? 'Sol Kanal' : 'Sağ Kanal')}, Servis Payı Dahil)`;
+    });
+
+    // If the quick HUD is open for this cable, update its length display too
+    if (quickHudEl) {
+      const hudLen = quickHudEl.querySelector('.hud-length-val');
+      if (hudLen) hudLen.textContent = `${newLen}m`;
+    }
 
     document.querySelectorAll('#schedule-tbody tr').forEach(row => {
       row.classList.toggle('active', row.dataset.cableId === cableId);
@@ -1025,6 +1038,8 @@
           // Same device loopback
           const loopSide = x1 > 300 ? 12 : -12;
           pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
+          // Loopback: tiny arc — port-to-port on same device, minimal physical length
+          cable.lengthMeters = Math.max(0.5, Math.round(Math.abs(y2 - y1) * MM_PER_SVG_Y / 1000 * SLACK_FACTOR * 2) / 2);
         } else {
           // Structured datacenter cabling within same rack
 
@@ -1392,7 +1407,7 @@
     const ductTitle = `Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
 
     hud.innerHTML = `
-      <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)}</span>
+      <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} <span class="hud-length-val" style="color:#94a3b8; font-size:0.72rem; margin-left:4px;">${Number(cable.lengthMeters || 0).toFixed(1)}m</span></span>
       <button type="button" class="hud-btn-duct" title="${escapeHtml(ductTitle)}">${escapeHtml(ductIcon)}</button>
       <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
       <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
