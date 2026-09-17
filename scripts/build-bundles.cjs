@@ -11,19 +11,7 @@ const root = path.resolve(__dirname, '..');
 console.log('🚀 Building standalone studio bundles via esbuild...');
 
 try {
-  // 1. Build 2D App Bundle
-  const start2D = Date.now();
-  esbuild.buildSync({
-    entryPoints: [path.join(root, 'js/src/2d/appCore.js')],
-    bundle: true,
-    outfile: path.join(root, 'js/app.bundle.js'),
-    format: 'iife',
-    target: ['es2020'],
-    legalComments: 'inline'
-  });
-  console.log(`✅ Built js/app.bundle.js (${fs.statSync(path.join(root, 'js/app.bundle.js')).size} bytes) in ${Date.now() - start2D}ms`);
-
-  // 2. Build 3D Studio Engine Bundle
+  // 1. Build 3D Studio Engine Bundle
   const start3D = Date.now();
   esbuild.buildSync({
     entryPoints: [path.join(root, 'js/src/3d/engine.js')],

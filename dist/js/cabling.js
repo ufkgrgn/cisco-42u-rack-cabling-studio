@@ -309,8 +309,19 @@ export function renderAllCables() {
 
         // Side rail selection: left rail if on left half, right rail if on right half
         const avgX = (x1 + x2) / 2;
-        const useRightChannel = (x1 >= 309 && x2 >= 309) || (avgX >= 309);
-        const channelBase = useRightChannel ? 595 : 23;
+
+        // Dynamic channel X: read actual rack container edges from DOM
+        let rackLeftEdge = 23;
+        let rackRightEdge = 595;
+        const rackContainerEl = document.getElementById('rack-container');
+        if (rackContainerEl && svgRect) {
+          const rc = rackContainerEl.getBoundingClientRect();
+          rackLeftEdge = (rc.left - svgRect.left) / scaleX + 14;
+          rackRightEdge = (rc.right - svgRect.left) / scaleX - 14;
+        }
+
+        const useRightChannel = avgX > (rackLeftEdge + rackRightEdge) / 2;
+        const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
         const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
 
         // Space parallel cables neatly within vertical rail duct (44px rail width)

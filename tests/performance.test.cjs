@@ -1,5 +1,5 @@
 // Headless smoke benchmark; not a hardware-qualified 60 FPS certification.
-const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'C:/Users/ufuk_/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');

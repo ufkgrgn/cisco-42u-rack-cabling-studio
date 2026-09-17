@@ -25,7 +25,7 @@
     selectedLibraryItem: null,
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
-    viewMode: 'multi', // 'multi' (side-by-side all racks) or 'single' (focused on active rack)
+    viewMode: 'single', // 'single' (focused on active rack) or 'multi' (side-by-side all racks)
     pendingConnection: null, // { rackId, instanceId, portId, element }
     highlightedCableId: null
   };

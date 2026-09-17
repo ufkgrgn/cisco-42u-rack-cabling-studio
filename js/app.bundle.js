@@ -1281,8 +1281,20 @@
             trayYB = orgCenterY + (isATop ? 6 : -6);
           }
           const avgX = (x1 + x2) / 2;
-          const useRightChannel = x1 >= 309 && x2 >= 309 || avgX >= 309;
-          const channelBase = useRightChannel ? 595 : 23;
+
+          // Dynamic channel X: read actual rack container edges from DOM
+          // This is critical for multi-rack mode where each rack has a different horizontal offset
+          let rackLeftEdge = 23;
+          let rackRightEdge = 595;
+          const rackContEl = document.getElementById(rackA?.id === STATE.activeRackId ? "rack-container" : `rack-container-${rackA?.id}`);
+          if (rackContEl && svgRect) {
+            const rc = rackContEl.getBoundingClientRect();
+            rackLeftEdge = (rc.left - svgRect.left) / scaleX + 14;
+            rackRightEdge = (rc.right - svgRect.left) / scaleX - 14;
+          }
+
+          const useRightChannel = avgX > (rackLeftEdge + rackRightEdge) / 2;
+          const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
           const bundleIdx = useRightChannel ? rightChannelUsage++ : leftChannelUsage++;
           const railOffset = (bundleIdx % 7 - 3) * 4.2;
           const channelX = channelBase + railOffset;

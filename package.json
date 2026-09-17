@@ -17,7 +17,7 @@
     "test:legacy": "node tests/studio.test.cjs && node --test tests/editor.test.cjs tests/catalog.test.cjs",
     "test:performance": "node tests/performance.test.cjs",
     "test": "npm run test:unit && npm run test:legacy",
-    "check:legacy": "node --check js/app.bundle.js && node --check js/editor.js && node --check js/catalog-ui.js",
+    "check:legacy": "node --check js/2d/app.js && node --check js/editor.js && node --check js/catalog-ui.js",
     "check": "npm run bundle && tsc --noEmit && npm run check:legacy",
     "start": "node scripts/serve.cjs"
   },
