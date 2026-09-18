@@ -62,6 +62,7 @@ if /i "%~1"=="android-aab" goto :BUILD_ANDROID_AAB
 if /i "%~1"=="android-dev" goto :DEV_ANDROID
 if /i "%~1"=="web" goto :BUILD_WEB
 if /i "%~1"=="all" goto :BUILD_ALL
+if /i "%~1"=="install" goto :INSTALL_TABLET
 
 :: ============================================================================
 :: 3. INTERACTIVE MENU
@@ -83,6 +84,8 @@ echo.
 echo [7] Web / Dist Derle (npm run build)
 echo [8] Tam Derleme (Hem Desktop Hem Android Release APK)
 echo.
+echo [9] Bagli Tablete / Cihaza Otomatik Yukle (ADB Install & Calistir)
+echo.
 echo [0] Cikis
 echo ===============================================================================
 echo Ortam Bilgisi:
@@ -90,7 +93,7 @@ echo   JAVA_HOME    : %JAVA_HOME%
 echo   ANDROID_HOME : %ANDROID_HOME%
 echo   NDK_HOME     : %NDK_HOME%
 echo ===============================================================================
-set /p "CHOICE=Seciminiz [0-8]: "
+set /p "CHOICE=Seciminiz [0-9]: "
 
 if "%CHOICE%"=="1" goto :BUILD_DESKTOP
 if "%CHOICE%"=="2" goto :DEV_DESKTOP
@@ -100,6 +103,7 @@ if "%CHOICE%"=="5" goto :BUILD_ANDROID_AAB
 if "%CHOICE%"=="6" goto :DEV_ANDROID
 if "%CHOICE%"=="7" goto :BUILD_WEB
 if "%CHOICE%"=="8" goto :BUILD_ALL
+if "%CHOICE%"=="9" goto :INSTALL_TABLET
 if "%CHOICE%"=="0" exit /b 0
 
 echo Gecersiz secim. Lutfen tekrar deneyin.
@@ -276,6 +280,15 @@ echo ===========================================================================
 echo Tum derleme islemleri tamamlandi!
 echo ===============================================================================
 pause
+goto :MENU
+
+:INSTALL_TABLET
+if exist "install-to-tablet.bat" (
+    call install-to-tablet.bat
+) else (
+    echo [HATA] install-to-tablet.bat bulunamadi!
+    pause
+)
 goto :MENU
 
 :SHOW_HELP
