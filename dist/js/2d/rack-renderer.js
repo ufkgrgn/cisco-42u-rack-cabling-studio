@@ -297,6 +297,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
               </span>
               <span class="rack-header-standard-badge" title="EIA-310-D Standart 19 İnç Kabin Çerçevesi">EIA-310-D Standard</span>
               <span class="rack-header-actions">
+                <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm kabloları temizle / sök">🧹 Kablolar</button>
+                <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt">🗑️ Cihazlar</button>
                 <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)">⧉ Çoğalt</button>
                 ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
               </span>
@@ -379,6 +381,20 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             }, { once: true });
           });
         }
+        const clearCablesBtn = sHdr.querySelector('.rack-hdr-clear-cables');
+        if (clearCablesBtn) {
+          clearCablesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearRackCables(activeRack.id, clearCablesBtn);
+          });
+        }
+        const clearDevsBtn = sHdr.querySelector('.rack-hdr-clear-devices');
+        if (clearDevsBtn) {
+          clearDevsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearRackDevices(activeRack.id, clearDevsBtn);
+          });
+        }
         const delBtn = sHdr.querySelector('.rack-hdr-delete');
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
@@ -457,6 +473,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             <span class="rack-header-actions">
               <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı">←</button>
               <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı">→</button>
+              <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${rack.id}" title="Bu kabindeki tüm kabloları temizle / sök">🧹 Kablolar</button>
+              <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${rack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt">🗑️ Cihazlar</button>
               <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt">⧉ Çoğalt</button>
               ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
             </span>
@@ -494,6 +512,20 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           moveRightBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (RS.moveRackOrder) RS.moveRackOrder(rack.id, 1);
+          });
+        }
+        const clearCablesBtn = headerPlate.querySelector('.rack-hdr-clear-cables');
+        if (clearCablesBtn) {
+          clearCablesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearRackCables(rack.id, clearCablesBtn);
+          });
+        }
+        const clearDevsBtn = headerPlate.querySelector('.rack-hdr-clear-devices');
+        if (clearDevsBtn) {
+          clearDevsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearRackDevices(rack.id, clearDevsBtn);
           });
         }
         const dupBtn = headerPlate.querySelector('.rack-hdr-duplicate');
@@ -670,6 +702,134 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     return true;
   }
 
+  function clearRackCables(rackId, targetBtn) {
+    const rack = (STATE.racks && STATE.racks.find(r => r.id === rackId)) || getActiveRack();
+    if (!rack) return;
+    const devIds = new Set((rack.devices || []).map(d => d.instanceId));
+    const rackCables = (STATE.cables || []).filter(c => devIds.has(c.from?.instanceId) || devIds.has(c.to?.instanceId));
+    if (rackCables.length === 0) {
+      if (targetBtn) {
+        const rect = targetBtn.getBoundingClientRect();
+        showTemporaryTooltip(rect.left, rect.bottom + 10, `[${rack.name}] kabininde bağlı kablo bulunmuyor.`);
+      } else {
+        alert(`[${rack.name}] kabininde bağlı kablo bulunmuyor.`);
+      }
+      return;
+    }
+
+    const doClear = () => {
+      if (window.SoundFX) window.SoundFX.playCableCut();
+      STATE.cables = (STATE.cables || []).filter(c => !devIds.has(c.from?.instanceId) && !devIds.has(c.to?.instanceId));
+      if (STATE.pendingConnection && devIds.has(STATE.pendingConnection.instanceId)) {
+        cancelPendingConnection();
+      }
+      renderMountedDevices();
+      renderScheduleTable();
+      renderAllCables();
+      updateRackHeaderTelemetry(rack.id);
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    };
+
+    if (targetBtn) {
+      showInlineDeleteConfirm(targetBtn, rack.name, {
+        title: '🧹 KABLO TEMİZLE?',
+        msg: `<strong>${escapeHtml(rack.name)}</strong> kabinine bağlı <strong>${rackCables.length} adet kablo</strong> sökülecektir.`,
+        confirmText: '🧹 Kabloları Sil'
+      }, doClear);
+    } else {
+      if (confirm(`[${rack.name}] kabinindeki ${rackCables.length} adet kablo silinsin mi?`)) {
+        doClear();
+      }
+    }
+  }
+
+  function clearRackDevices(rackId, targetBtn) {
+    const rack = (STATE.racks && STATE.racks.find(r => r.id === rackId)) || getActiveRack();
+    if (!rack) return;
+    const devCount = (rack.devices || []).length;
+    if (devCount === 0) {
+      if (targetBtn) {
+        const rect = targetBtn.getBoundingClientRect();
+        showTemporaryTooltip(rect.left, rect.bottom + 10, `[${rack.name}] kabininde takılı cihaz bulunmuyor.`);
+      } else {
+        alert(`[${rack.name}] kabininde takılı cihaz bulunmuyor.`);
+      }
+      return;
+    }
+
+    const doClear = () => {
+      if (window.SoundFX) window.SoundFX.playCableCut();
+      const devIds = new Set(rack.devices.map(d => d.instanceId));
+      STATE.cables = (STATE.cables || []).filter(c => !devIds.has(c.from?.instanceId) && !devIds.has(c.to?.instanceId));
+      if (STATE.pendingConnection && devIds.has(STATE.pendingConnection.instanceId)) {
+        cancelPendingConnection();
+      }
+      if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeDevice === 'function') {
+        devIds.forEach(id => {
+          try { window.__STUDIO3D__.removeDevice(id); } catch (_) {}
+        });
+      }
+      rack.devices = [];
+      rack.units = Array((rack.heightU || 42) + 1).fill(null);
+      renderRackTabs();
+      renderMountedDevices();
+      renderScheduleTable();
+      renderAllCables();
+      updateRackHeaderTelemetry(rack.id);
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    };
+
+    if (targetBtn) {
+      showInlineDeleteConfirm(targetBtn, rack.name, {
+        title: '🗑️ CİHAZLARI BOŞALT?',
+        msg: `<strong>${escapeHtml(rack.name)}</strong> kabinindeki <strong>${devCount} adet cihaz</strong> ve tüm kablolar kaldırılacaktır.<br><small style="color:#94a3b8;">(Kabin boşaltılacak, kabin çerçevesi silinmeyecektir)</small>`,
+        confirmText: '🗑️ Cihazları Boşalt'
+      }, doClear);
+    } else {
+      if (confirm(`[${rack.name}] kabinindeki ${devCount} adet cihaz ve bunlara bağlı tüm kablolar kaldırılsın mı?\n(Kabin boşaltılacak, kabin silinmeyecektir)`)) {
+        doClear();
+      }
+    }
+  }
+
+  function clearDeviceCables(instanceId, targetBtn) {
+    const devCables = (STATE.cables || []).filter(c => c.from?.instanceId === instanceId || c.to?.instanceId === instanceId);
+    if (devCables.length === 0) return;
+    const rack = STATE.racks?.find(r => r.devices && r.devices.some(d => d.instanceId === instanceId));
+    const dev = rack?.devices?.find(d => d.instanceId === instanceId);
+    const cat = dev ? (HARDWARE_CATALOG[dev.catalogKey] || {}) : {};
+    const isPanel = cat.category === 'patch' || cat.category === 'fiber';
+    const devName = dev?.hostname || dev?.name || dev?.panelLabel || cat.name || (isPanel ? 'Patch Panel' : 'Cihaz');
+
+    const doClear = () => {
+      if (window.SoundFX) window.SoundFX.playCableCut();
+      STATE.cables = (STATE.cables || []).filter(c => c.from?.instanceId !== instanceId && c.to?.instanceId !== instanceId);
+      if (STATE.pendingConnection && STATE.pendingConnection.instanceId === instanceId) {
+        cancelPendingConnection();
+      }
+      renderMountedDevices();
+      renderScheduleTable();
+      renderAllCables();
+      updateRackHeaderTelemetry(rack?.id);
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    };
+
+    if (targetBtn) {
+      showInlineDeleteConfirm(targetBtn, devName, {
+        title: '✂️ KABLOLARI TEMİZLE?',
+        msg: `<strong>${escapeHtml(devName)}</strong> üzerindeki <strong>${devCables.length} adet kablo</strong> sökülecektir.`,
+        confirmText: '✂️ Kabloları Sök'
+      }, doClear);
+    } else {
+      if (confirm(`[${devName}] üzerindeki ${devCables.length} adet kablo sökülsün mü?`)) {
+        doClear();
+      }
+    }
+  }
+
   function showInlineDeleteConfirm(targetBtn, deviceName, optionsOrConfirm, maybeConfirm) {
     const onConfirm = typeof optionsOrConfirm === 'function' ? optionsOrConfirm : maybeConfirm;
     const options = typeof optionsOrConfirm === 'object' && optionsOrConfirm !== null ? optionsOrConfirm : {};
@@ -679,22 +839,25 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     const popover = document.createElement('div');
     popover.className = 'inline-delete-popover';
 
-    let title = '⚠️ CİHAZI SİL?';
-    let msg = `<strong>${escapeHtml(deviceName)}</strong> ve bağlı tüm kablolar kaldırılacaktır.`;
+    let title = options.title || '⚠️ CİHAZI SİL?';
+    let msg = options.msg || `<strong>${escapeHtml(deviceName)}</strong> ve bağlı tüm kablolar kaldırılacaktır.`;
+    let confirmText = options.confirmText || '✕ Sil';
 
-    if (options.category === 'organizer') {
-      title = '🗑️ DÜZENLEYİCİYİ KALDIR?';
-      msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
-    } else if (options.category === 'blank') {
-      title = '🗑️ KÖR PANELİ KALDIR?';
-      msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
-    } else if (typeof options.cableCount === 'number') {
-      if (options.cableCount > 0) {
-        title = '⚠️ CİHAZI SİL?';
-        msg = `<strong>${escapeHtml(deviceName)}</strong> ve bu cihaza bağlı <strong>${options.cableCount} kablo</strong> sökülecektir.`;
-      } else {
-        title = '⚠️ CİHAZI SİL?';
-        msg = `<strong>${escapeHtml(deviceName)}</strong> kabinden kaldırılacaktır (bağlı kablo yok).`;
+    if (!options.title && !options.msg) {
+      if (options.category === 'organizer') {
+        title = '🗑️ DÜZENLEYİCİYİ KALDIR?';
+        msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
+      } else if (options.category === 'blank') {
+        title = '🗑️ KÖR PANELİ KALDIR?';
+        msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
+      } else if (typeof options.cableCount === 'number') {
+        if (options.cableCount > 0) {
+          title = '⚠️ CİHAZI SİL?';
+          msg = `<strong>${escapeHtml(deviceName)}</strong> ve bu cihaza bağlı <strong>${options.cableCount} kablo</strong> sökülecektir.`;
+        } else {
+          title = '⚠️ CİHAZI SİL?';
+          msg = `<strong>${escapeHtml(deviceName)}</strong> kabinden kaldırılacaktır (bağlı kablo yok).`;
+        }
       }
     }
 
@@ -703,28 +866,28 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       <div class="inline-delete-msg">${msg}</div>
       <div class="inline-delete-actions">
         <button type="button" class="inline-del-btn-cancel">İptal</button>
-        <button type="button" class="inline-del-btn-confirm">✕ Sil</button>
+        <button type="button" class="inline-del-btn-confirm">${escapeHtml(confirmText)}</button>
       </div>
     `;
 
     document.body.appendChild(popover);
 
     const rect = targetBtn.getBoundingClientRect();
-    const popoverWidth = 230;
-    const popoverHeight = 100;
+    const popoverWidth = 240;
+    const popoverHeight = 110;
 
     let left = rect.left - popoverWidth - 8;
-    if (left < 10) {
-      left = rect.right + 8;
-    }
     let top = rect.top + (rect.height / 2) - (popoverHeight / 2);
-    if (top < 10) top = 10;
+    if (left < 10 || top < 20) {
+      left = Math.min(Math.max(10, rect.left - popoverWidth / 2 + rect.width / 2), window.innerWidth - popoverWidth - 10);
+      top = rect.bottom + 6;
+    }
     if (top + popoverHeight > window.innerHeight - 10) {
-      top = window.innerHeight - popoverHeight - 10;
+      top = Math.max(10, rect.top - popoverHeight - 6);
     }
 
-    popover.style.left = `${left}px`;
-    popover.style.top = `${top}px`;
+    popover.style.left = `${Math.round(left)}px`;
+    popover.style.top = `${Math.round(top)}px`;
 
     const close = () => {
       popover.remove();
@@ -987,7 +1150,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
         if (!['organizer', 'blank'].includes(cat.category)) {
           devEl.addEventListener('dblclick', (e) => {
-            if (e.target.closest('.port, .del-device-btn, .color-device-cables-btn')) return;
+            if (e.target.closest('.port, .del-device-btn, .color-device-cables-btn, .clear-device-cables-btn')) return;
             window.DeviceMetadataEditor?.open2D(dev.instanceId);
           });
           const bezel = devEl.querySelector('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
@@ -1004,6 +1167,14 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             if (RS.openSwitchBulkColorPopover) {
               RS.openSwitchBulkColorPopover(colorBtn, dev.instanceId);
             }
+          });
+        }
+
+        const clearCablesBtn = devEl.querySelector('.clear-device-cables-btn');
+        if (clearCablesBtn) {
+          clearCablesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearDeviceCables(dev.instanceId, clearCablesBtn);
           });
         }
 
@@ -1062,6 +1233,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       <div class="device-faceplate" style="background:linear-gradient(90deg, #131b2c 0%, #1e293b 100%);">
         <div class="device-controls">
           ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
+          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını temizle / sök">✂️</button>` : ''}
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
         <div class="bezel-badge">
@@ -1381,7 +1553,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       <div class="device-faceplate ${typeClass}">
         <div class="device-controls">
           ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
-          <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
+          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatchPanel ? 'Paneli tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">✂️</button>` : ''}
+          <button class="dev-btn del-device-btn" title="${isPatchPanel ? 'Paneli Kaldır' : 'Cihazı Kaldır'}">✕</button>
         </div>
         ${leftSection}
         <div class="ports-area">
@@ -2324,6 +2497,9 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
   RS.mountDeviceAt = mountDeviceAt;
   RS.removeDevice = removeDevice;
+  RS.clearRackCables = clearRackCables;
+  RS.clearRackDevices = clearRackDevices;
+  RS.clearDeviceCables = clearDeviceCables;
   RS.updateDeviceMetadata = updateDeviceMetadata;
   RS.renderMountedDevices = renderMountedDevices;
   RS.renderRouterFaceplate = renderRouterFaceplate;
