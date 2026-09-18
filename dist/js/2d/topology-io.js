@@ -194,8 +194,14 @@
   }
 
   function refresh() {
-    renderRackRailsAndSlots();
-    renderRackTabs(); renderMountedDevices(); renderScheduleTable(); renderAllCables();
+    if (RS.invalidate && RS.flushSync) {
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+      RS.invalidate({ all: true });
+      RS.flushSync();
+    } else {
+      renderRackRailsAndSlots();
+      renderRackTabs(); renderMountedDevices(); renderScheduleTable(); renderAllCables();
+    }
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', {bubbles:true}));
     document.dispatchEvent(new CustomEvent('rackstudio:change', {bubbles:true}));
   }
@@ -205,6 +211,7 @@
     for (const key of Object.keys(HARDWARE_CATALOG)) if (!BUILTIN_KEYS.has(key)) delete HARDWARE_CATALOG[key];
     Object.assign(HARDWARE_CATALOG, next.customCatalog);
     Object.assign(STATE, next);
+    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
     if (next.viewMode && RS.setViewMode) {
       RS.setViewMode(next.viewMode, true);
     }

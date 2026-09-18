@@ -688,6 +688,99 @@
     });
   }
 
+  function ensureCableDelegation(svgEl) {
+    if (!svgEl || svgEl.__DELEGATION_BOUND__) return;
+    svgEl.__DELEGATION_BOUND__ = true;
+
+    svgEl.addEventListener('click', (e) => {
+      const boot = e.target.closest('.cable-boot');
+      if (boot && boot.dataset.cableId) {
+        e.stopPropagation();
+        highlightCable(boot.dataset.cableId);
+        showCableQuickHud(boot.dataset.cableId, e.clientX, e.clientY);
+        return;
+      }
+      const path = e.target.closest('.cable-path');
+      if (path && path.dataset.cableId) {
+        e.stopPropagation();
+        highlightCable(path.dataset.cableId);
+        showCableQuickHud(path.dataset.cableId, e.clientX, e.clientY);
+        return;
+      }
+    });
+
+    svgEl.addEventListener('contextmenu', (e) => {
+      const el = e.target.closest('[data-cable-id]');
+      if (el && el.dataset.cableId) {
+        e.preventDefault();
+        e.stopPropagation();
+        highlightCable(el.dataset.cableId);
+        showCableContextMenu(el.dataset.cableId, e.clientX, e.clientY);
+      }
+    });
+
+    svgEl.addEventListener('dblclick', (e) => {
+      const path = e.target.closest('.cable-path');
+      if (path && path.dataset.cableId) {
+        e.preventDefault();
+        e.stopPropagation();
+        renameCable2D(path.dataset.cableId);
+      }
+    });
+
+    svgEl.addEventListener('mouseover', (e) => {
+      if (STATE.pendingConnection) return;
+      const el = e.target.closest('[data-cable-id]');
+      if (el && el.dataset.cableId) {
+        setCableHover(el.dataset.cableId, true);
+        showCableTooltip(e, el.dataset.cableId);
+      }
+    });
+
+    svgEl.addEventListener('mouseout', (e) => {
+      const el = e.target.closest('[data-cable-id]');
+      if (el && el.dataset.cableId) {
+        const rel = e.relatedTarget ? e.relatedTarget.closest('[data-cable-id]') : null;
+        if (!rel || rel.dataset.cableId !== el.dataset.cableId) {
+          setCableHover(el.dataset.cableId, false);
+          if (dom.tooltip) dom.tooltip.style.display = 'none';
+        }
+      }
+    });
+
+    svgEl.addEventListener('mousemove', (e) => {
+      if (STATE.pendingConnection) return;
+      if (dom.tooltip && dom.tooltip.style.display !== 'none') {
+        dom.tooltip.style.left = `${e.clientX + 10}px`;
+        dom.tooltip.style.top = `${e.clientY - 10}px`;
+      }
+    });
+  }
+
+  function showCableTooltip(e, cableId) {
+    if (STATE.pendingConnection || !dom.tooltip) return;
+    const cable = (STATE.cables || []).find(c => c.id === cableId);
+    if (!cable) return;
+    const activeRack = getActiveRack();
+    const cableLabel = getCableLabel(activeRack, cable);
+    dom.tooltip.style.display = 'block';
+    dom.tooltip.style.left = `${e.clientX + 10}px`;
+    dom.tooltip.style.top = `${e.clientY - 10}px`;
+    dom.tooltip.innerHTML = `
+      <b>${escapeHtml(cable.id)}</b> (${Number(cable.lengthMeters || 0).toFixed(1)}m)<br>
+      <span style="color:${cable.color};">&#9632;</span> <strong>${escapeHtml(cableLabel)}</strong><br>
+      <span style="color:#f59e0b;font-size:11px;">Yeniden adlandırmak için çift tıklayın</span>
+    `;
+  }
+
+  function getOrCreateSvgElement(tagName, id) {
+    const existing = document.getElementById(id);
+    if (existing && existing.namespaceURI === 'http://www.w3.org/2000/svg') return existing;
+    const element = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+    element.id = id;
+    return element;
+  }
+
   function renderAllCables() {
     restoreHoveredCable();
 
@@ -695,14 +788,13 @@
     const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
     const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
     if (!cablesGroup) return;
-    cablesGroup.innerHTML = '';
-    if (connectorsGroup) connectorsGroup.innerHTML = '';
 
     const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
     const svgRect = svgEl ? svgEl.getBoundingClientRect() : null;
     if (!svgRect || svgRect.width <= 0) return;
 
     if (svgEl) {
+      ensureCableDelegation(svgEl);
       svgEl.classList.toggle('has-cable-selected', !!STATE.highlightedCableId);
       if (!svgEl.__HOVER_LEAVE_BOUND__) {
         svgEl.__HOVER_LEAVE_BOUND__ = true;
@@ -839,9 +931,16 @@
       const rawM = (totalMm / 1000) * SLACK_FACTOR;
       return Math.max(0.5, Math.round(rawM * 2) / 2); // round up to nearest 0.5 m
     }
-    // ── End physical scale helpers ─────────────────────────────────────────
+    const cablesFrag = document.createDocumentFragment();
+    const connectorsFrag = document.createDocumentFragment();
 
     STATE.cables.forEach((cable) => {
+      if (!isMulti && cable.from?.rackId && cable.to?.rackId) {
+        if (cable.from.rackId !== activeRack?.id && cable.to.rackId !== activeRack?.id) {
+          return;
+        }
+      }
+
       const instA = cable.from.instanceId || cable.from.deviceId;
       const instB = cable.to.instanceId || cable.to.deviceId;
       const portIdA = cable.from.portId || ('p' + cable.from.portIdx);
@@ -892,10 +991,10 @@
       } else if (isInterRack && STATE.cableRoutingMode === 'structured') {
         // Inter-rack cable in STRUCTURED mode:
         // Follows datacenter pathway: Organizer A -> Vertical Channel A (UP) -> Overhead Cable Tray (across) -> Vertical Channel B (DOWN) -> Organizer B -> Port B
-        const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
-        const devB = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB);
-        const rackA = STATE.racks.find(r => r.id === cable.from.rackId);
-        const rackB = STATE.racks.find(r => r.id === cable.to.rackId);
+        const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (STATE.deviceById?.get(instA) || STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA));
+        const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (STATE.deviceById?.get(instB) || STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB));
+        const rackA = RS.getRackById ? RS.getRackById(cable.from.rackId) : (STATE.rackById?.get(cable.from.rackId) || STATE.racks.find(r => r.id === cable.from.rackId));
+        const rackB = RS.getRackById ? RS.getRackById(cable.to.rackId) : (STATE.rackById?.get(cable.to.rackId) || STATE.racks.find(r => r.id === cable.to.rackId));
 
         const orgA = findDeviceOrganizer(rackA, devA);
         const orgB = findDeviceOrganizer(rackB, devB);
@@ -1036,9 +1135,9 @@
         }
       } else if (STATE.cableRoutingMode === 'structured') {
         // Find devices: check all racks, not just active rack
-        const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
-        const devB = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB);
-        const rackA = STATE.racks.find(r => r.id === cable.from.rackId) || activeRack;
+        const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (STATE.deviceById?.get(instA) || STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA));
+        const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (STATE.deviceById?.get(instB) || STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB));
+        const rackA = RS.getRackById ? RS.getRackById(cable.from.rackId) : (STATE.rackById?.get(cable.from.rackId) || activeRack);
 
         if (instA === instB) {
           // Same device loopback
@@ -1164,15 +1263,14 @@
 
       // Casing / Outline path (for clear separation between overlapping & adjacent cables)
       const isFiberCable = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
-      const casing = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const casing = getOrCreateSvgElement('path', `svg-cable-casing-${cable.id}`);
       casing.setAttribute('d', pathD);
       casing.setAttribute('class', `cable-casing ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''} ${isFiberCable ? 'cable-casing-fiber' : ''}`.trim());
-      casing.setAttribute('id', `svg-cable-casing-${cable.id}`);
       casing.setAttribute('data-cable-id', cable.id);
       casing.style.setProperty('--cable-color', cable.color);
-      dom.cablesGroup.appendChild(casing);
+      cablesFrag.appendChild(casing);
 
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const path = getOrCreateSvgElement('path', `svg-cable-${cable.id}`);
       path.setAttribute('d', pathD);
       path.setAttribute('stroke', cable.color);
       path.setAttribute('stroke-width', isFiberCable ? '2.8' : '2.6');
@@ -1181,67 +1279,16 @@
       path.style.color = cable.color;
       path.style.setProperty('--cable-color', cable.color);
       path.setAttribute('class', `cable-path ${cable.id === STATE.highlightedCableId ? 'highlighted' : ''} ${isFiberCable ? 'cable-fiber' : ''}`.trim());
-      path.setAttribute('id', `svg-cable-${cable.id}`);
       path.setAttribute('data-cable-id', cable.id);
       path.setAttribute('filter', 'url(#cable-shadow)');
 
       const cableLabel = getCableLabel(activeRack, cable);
       path.setAttribute('aria-label', cableLabel);
 
-      const showCableTooltip = (e) => {
-        if (STATE.pendingConnection || !dom.tooltip) return;
-        dom.tooltip.style.display = 'block';
-        dom.tooltip.style.left = `${e.clientX + 10}px`;
-        dom.tooltip.style.top = `${e.clientY - 10}px`;
-        dom.tooltip.innerHTML = `
-          <b>${escapeHtml(cable.id)}</b> (${Number(cable.lengthMeters || 0).toFixed(1)}m)<br>
-          <span style="color:${cable.color};">&#9632;</span> <strong>${escapeHtml(cableLabel)}</strong><br>
-          <span style="color:#f59e0b;font-size:11px;">Yeniden adlandırmak için çift tıklayın</span>
-        `;
-      };
+      cablesFrag.appendChild(path);
 
-      path.addEventListener('click', (e) => {
-        e.stopPropagation();
-        highlightCable(cable.id);
-        showCableQuickHud(cable.id, e.clientX, e.clientY);
-      });
-
-      path.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        highlightCable(cable.id);
-        showCableContextMenu(cable.id, e.clientX, e.clientY);
-      });
-
-      path.addEventListener('dblclick', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        renameCable2D(cable.id);
-      });
-
-      path.addEventListener('mouseenter', (e) => {
-        if (STATE.pendingConnection) return;
-        setCableHover(cable.id, true);
-        showCableTooltip(e);
-      });
-
-      path.addEventListener('mousemove', (e) => {
-        if (STATE.pendingConnection) return;
-        if (dom.tooltip && dom.tooltip.style.display !== 'none') {
-          dom.tooltip.style.left = `${e.clientX + 10}px`;
-          dom.tooltip.style.top = `${e.clientY - 10}px`;
-        }
-      });
-
-      path.addEventListener('mouseleave', () => {
-        setCableHover(cable.id, false);
-        if (dom.tooltip) dom.tooltip.style.display = 'none';
-      });
-
-      dom.cablesGroup.appendChild(path);
-
-      if (dom.connectorsGroup) {
-        const bootA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      if (connectorsGroup) {
+        const bootA = getOrCreateSvgElement('circle', `svg-cable-boot-a-${cable.id}`);
         bootA.setAttribute('cx', x1);
         bootA.setAttribute('cy', y1);
         bootA.setAttribute('r', '3.4');
@@ -1252,28 +1299,8 @@
         bootA.style.setProperty('--cable-color', cable.color);
         bootA.setAttribute('class', 'cable-boot');
         bootA.setAttribute('data-cable-id', cable.id);
-        bootA.addEventListener('click', (e) => {
-          e.stopPropagation();
-          highlightCable(cable.id);
-          showCableQuickHud(cable.id, e.clientX, e.clientY);
-        });
-        bootA.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          highlightCable(cable.id);
-          showCableContextMenu(cable.id, e.clientX, e.clientY);
-        });
-        bootA.addEventListener('mouseenter', (e) => {
-          if (STATE.pendingConnection) return;
-          setCableHover(cable.id, true);
-          showCableTooltip(e);
-        });
-        bootA.addEventListener('mouseleave', () => {
-          setCableHover(cable.id, false);
-          if (dom.tooltip) dom.tooltip.style.display = 'none';
-        });
 
-        const pinA = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const pinA = getOrCreateSvgElement('circle', `svg-cable-pin-a-${cable.id}`);
         pinA.setAttribute('cx', x1);
         pinA.setAttribute('cy', y1);
         pinA.setAttribute('r', '1.2');
@@ -1281,7 +1308,7 @@
         pinA.setAttribute('class', 'cable-boot-pin');
         pinA.setAttribute('data-cable-id', cable.id);
 
-        const bootB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const bootB = getOrCreateSvgElement('circle', `svg-cable-boot-b-${cable.id}`);
         bootB.setAttribute('cx', x2);
         bootB.setAttribute('cy', y2);
         bootB.setAttribute('r', '3.4');
@@ -1292,28 +1319,8 @@
         bootB.style.setProperty('--cable-color', cable.color);
         bootB.setAttribute('class', 'cable-boot');
         bootB.setAttribute('data-cable-id', cable.id);
-        bootB.addEventListener('click', (e) => {
-          e.stopPropagation();
-          highlightCable(cable.id);
-          showCableQuickHud(cable.id, e.clientX, e.clientY);
-        });
-        bootB.addEventListener('contextmenu', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          highlightCable(cable.id);
-          showCableContextMenu(cable.id, e.clientX, e.clientY);
-        });
-        bootB.addEventListener('mouseenter', (e) => {
-          if (STATE.pendingConnection) return;
-          setCableHover(cable.id, true);
-          showCableTooltip(e);
-        });
-        bootB.addEventListener('mouseleave', () => {
-          setCableHover(cable.id, false);
-          if (dom.tooltip) dom.tooltip.style.display = 'none';
-        });
 
-        const pinB = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const pinB = getOrCreateSvgElement('circle', `svg-cable-pin-b-${cable.id}`);
         pinB.setAttribute('cx', x2);
         pinB.setAttribute('cy', y2);
         pinB.setAttribute('r', '1.2');
@@ -1321,12 +1328,17 @@
         pinB.setAttribute('class', 'cable-boot-pin');
         pinB.setAttribute('data-cable-id', cable.id);
 
-        dom.connectorsGroup.appendChild(bootA);
-        dom.connectorsGroup.appendChild(pinA);
-        dom.connectorsGroup.appendChild(bootB);
-        dom.connectorsGroup.appendChild(pinB);
+        connectorsFrag.appendChild(bootA);
+        connectorsFrag.appendChild(pinA);
+        connectorsFrag.appendChild(bootB);
+        connectorsFrag.appendChild(pinB);
       }
     });
+
+    cablesGroup.replaceChildren(cablesFrag);
+    if (connectorsGroup) {
+      connectorsGroup.replaceChildren(connectorsFrag);
+    }
 
     if (STATE.highlightedCableId) {
       const hlPath = document.getElementById(`svg-cable-${STATE.highlightedCableId}`);
@@ -1389,7 +1401,7 @@
       }, 2500);
     }
 
-    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeCable === 'function') {
+    if (window.__STUDIO3D__ && window.is3DMode && typeof window.__STUDIO3D__.removeCable === 'function') {
       window.__STUDIO3D__.removeCable(cableId);
     }
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
@@ -1421,6 +1433,7 @@
     hud.innerHTML = `
       <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} <span class="hud-length-val" style="color:#94a3b8; font-size:0.72rem; margin-left:4px;">${Number(cable.lengthMeters || 0).toFixed(1)}m</span></span>
       <button type="button" class="hud-btn-duct" title="${escapeHtml(ductTitle)}">${escapeHtml(ductIcon)}</button>
+      <button type="button" class="hud-btn-settings" title="Tüm Kablo Ayarları & Menü">⚙️ Menü</button>
       <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
       <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
       <button type="button" class="hud-btn-close" title="Kapat">✕</button>
@@ -1430,6 +1443,11 @@
       e.stopPropagation();
       toggleCableDuctSide(cableId);
       showCableQuickHud(cableId, left, top);
+    });
+
+    hud.querySelector('.hud-btn-settings').addEventListener('click', (e) => {
+      e.stopPropagation();
+      showCableContextMenu(cableId, left, top);
     });
 
     hud.querySelector('.hud-btn-disconnect').addEventListener('click', (e) => {
@@ -1715,7 +1733,7 @@
       }, 3000);
     }
 
-    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.syncCables === 'function') {
+    if (window.__STUDIO3D__ && window.is3DMode && typeof window.__STUDIO3D__.syncCables === 'function') {
       window.__STUDIO3D__.syncCables(STATE.cables);
     }
 

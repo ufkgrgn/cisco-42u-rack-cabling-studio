@@ -7,40 +7,53 @@
   const RS = window.RackStudio = window.RackStudio || {};
 
   let stageTransitionBound = false;
+  let lastTransitionValue = null;
+  let lastTransformValue = null;
+  let lastZoomBadgeValue = null;
   function ensureStageTransitionListener() {
     if (stageTransitionBound || !RS.dom?.rackStage) return;
     RS.dom.rackStage.addEventListener('transitionend', (e) => {
-      if (e.propertyName === 'transform') {
-        if (RS.renderAllCables) RS.renderAllCables();
-      }
+      // The cable SVG is a child of rackStage, so it follows the same CSS
+      // transform. Rebuilding cable geometry here only duplicates browser work.
+      if (e.propertyName === 'transform') RS.dom.rackStage.style.transition = 'none';
     });
     stageTransitionBound = true;
   }
 
+  let lastDispatchedScale = null;
   function updateStageTransform(smooth = false) {
     if (!RS.dom?.rackStage) return;
     ensureStageTransitionListener();
 
-    if (smooth) {
-      RS.dom.rackStage.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)';
-    } else {
-      RS.dom.rackStage.style.transition = 'none';
+    const transitionValue = smooth ? 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)' : 'none';
+    if (transitionValue !== lastTransitionValue) {
+      RS.dom.rackStage.style.transition = transitionValue;
+      lastTransitionValue = transitionValue;
     }
-    RS.dom.rackStage.style.transform = `translate(${RS.ZOOM_STATE.panX}px, ${RS.ZOOM_STATE.panY}px) scale(${RS.ZOOM_STATE.scale})`;
-    if (RS.dom.zoomBadge) {
-      RS.dom.zoomBadge.textContent = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
+    const transformValue = `translate3d(${RS.ZOOM_STATE.panX}px, ${RS.ZOOM_STATE.panY}px, 0) scale(${RS.ZOOM_STATE.scale})`;
+    if (transformValue !== lastTransformValue) {
+      RS.dom.rackStage.style.transform = transformValue;
+      lastTransformValue = transformValue;
+    }
+    const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
+    if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
+      RS.dom.zoomBadge.textContent = zoomBadgeValue;
+      lastZoomBadgeValue = zoomBadgeValue;
     }
 
     // Dynamic 2D Level of Detail (LOD) tiering
     const currentLod = RS.ZOOM_STATE.scale < 0.42 ? 'macro' : (RS.ZOOM_STATE.scale < 0.78 ? 'medium' : 'detail');
-    if (RS.dom.rackStage && RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
+    if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
       RS.dom.rackStage.setAttribute('data-lod', currentLod);
     }
 
-    // Dispatch custom zoom event for high-DPI re-rendering
-    window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
-      detail: { scale: RS.ZOOM_STATE.scale, panX: RS.ZOOM_STATE.panX, panY: RS.ZOOM_STATE.panY }
-    }));
+    // Only dispatch zoom changed event if scale actually changed (pure pan does not change scale)
+    if (RS.ZOOM_STATE.scale !== lastDispatchedScale) {
+      lastDispatchedScale = RS.ZOOM_STATE.scale;
+      window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
+        detail: { scale: RS.ZOOM_STATE.scale, panX: RS.ZOOM_STATE.panX, panY: RS.ZOOM_STATE.panY }
+      }));
+    }
   }
 
   function fitRackToScreen(smooth = true) {
@@ -79,7 +92,7 @@
     RS.ZOOM_STATE.isFit = true;
 
     updateStageTransform(smooth);
-    if (RS.renderAllCables) RS.renderAllCables();
+    scheduleViewportContentRefresh(smooth ? 300 : 0);
   }
 
   function setZoom(targetScale, pivotX, pivotY, smooth = false) {
@@ -103,15 +116,24 @@
     RS.ZOOM_STATE.isFit = false;
 
     updateStageTransform(smooth);
-    if (RS.renderAllCables) RS.renderAllCables();
+    scheduleViewportContentRefresh(smooth ? 300 : 120);
   }
 
   let cableRenderTimeout = null;
+  let viewportContentRefreshTimeout = null;
   function scheduleCableRender(delay = 16) {
     if (cableRenderTimeout) clearTimeout(cableRenderTimeout);
     cableRenderTimeout = setTimeout(() => {
       if (RS.renderAllCables) RS.renderAllCables();
       cableRenderTimeout = null;
+    }, delay);
+  }
+
+  function scheduleViewportContentRefresh(delay = 100) {
+    if (viewportContentRefreshTimeout) clearTimeout(viewportContentRefreshTimeout);
+    viewportContentRefreshTimeout = setTimeout(() => {
+      RS.refreshVisibleRackContent?.();
+      viewportContentRefreshTimeout = null;
     }, delay);
   }
 
@@ -136,12 +158,65 @@
     }
 
     updateStageTransform(true);
-    if (RS.renderAllCables) RS.renderAllCables();
+    scheduleViewportContentRefresh(300);
   }
 
   function bindZoomAndPanEvents() {
     const canvas = RS.dom?.viewportCanvas;
     if (!canvas) return;
+
+    let panFrameId = 0;
+    let pendingPanPoint = null;
+    let panCleanupTimer = 0;
+
+    function applyPendingPan() {
+      if (!pendingPanPoint) return;
+      const { clientX, clientY } = pendingPanPoint;
+      pendingPanPoint = null;
+      RS.ZOOM_STATE.panX = clientX - RS.ZOOM_STATE.startX;
+      RS.ZOOM_STATE.panY = clientY - RS.ZOOM_STATE.startY;
+      RS.ZOOM_STATE.isFit = false;
+      updateStageTransform(false);
+    }
+
+    function schedulePan(clientX, clientY) {
+      pendingPanPoint = { clientX, clientY };
+      if (panFrameId) return;
+      panFrameId = requestAnimationFrame(() => {
+        panFrameId = 0;
+        applyPendingPan();
+      });
+    }
+
+    function beginPan(clientX, clientY) {
+      if (panCleanupTimer) {
+        clearTimeout(panCleanupTimer);
+        panCleanupTimer = 0;
+      }
+      RS.ZOOM_STATE.isPanning = true;
+      RS.ZOOM_STATE.startX = clientX - RS.ZOOM_STATE.panX;
+      RS.ZOOM_STATE.startY = clientY - RS.ZOOM_STATE.panY;
+      canvas.classList.add('panning');
+      RS.dom?.rackStage?.classList.add('panning-active');
+    }
+
+    function endPan() {
+      if (!RS.ZOOM_STATE.isPanning) return;
+      if (panFrameId) {
+        cancelAnimationFrame(panFrameId);
+        panFrameId = 0;
+        applyPendingPan();
+      }
+      RS.ZOOM_STATE.isPanning = false;
+      canvas.classList.remove('panning');
+      // Keep the compositor layer warm briefly so release/inertial frames do not
+      // pay a layer teardown + rebuild cost.
+      panCleanupTimer = setTimeout(() => {
+        RS.dom?.rackStage?.classList.remove('panning-active');
+        panCleanupTimer = 0;
+      }, 180);
+      scheduleViewportContentRefresh(0);
+    }
 
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -154,13 +229,10 @@
 
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 1 || (e.button === 0 && (e.altKey || e.spaceKey || e.target === canvas || e.target === RS.dom?.rackStage || e.target === RS.dom?.cablesSvg))) {
-        RS.ZOOM_STATE.isPanning = true;
         panOriginClientX = e.clientX;
         panOriginClientY = e.clientY;
-        RS.ZOOM_STATE.startX = e.clientX - RS.ZOOM_STATE.panX;
-        RS.ZOOM_STATE.startY = e.clientY - RS.ZOOM_STATE.panY;
+        beginPan(e.clientX, e.clientY);
         RS.ZOOM_STATE.hasMoved = false;
-        canvas.classList.add('panning');
         e.preventDefault();
       }
     });
@@ -171,18 +243,12 @@
       if (dist > 4) {
         RS.ZOOM_STATE.hasMoved = true;
       }
-      RS.ZOOM_STATE.panX = e.clientX - RS.ZOOM_STATE.startX;
-      RS.ZOOM_STATE.panY = e.clientY - RS.ZOOM_STATE.startY;
-      RS.ZOOM_STATE.isFit = false;
-      updateStageTransform(false);
-      scheduleCableRender(40);
+      schedulePan(e.clientX, e.clientY);
     });
 
     window.addEventListener('mouseup', () => {
       if (RS.ZOOM_STATE.isPanning) {
-        RS.ZOOM_STATE.isPanning = false;
-        canvas.classList.remove('panning');
-        if (RS.renderAllCables) RS.renderAllCables();
+        endPan();
         if (RS.ZOOM_STATE.hasMoved) {
           setTimeout(() => {
             if (RS.ZOOM_STATE) RS.ZOOM_STATE.hasMoved = false;
@@ -205,9 +271,7 @@
           y: (e.touches[0].clientY + e.touches[1].clientY) / 2
         };
       } else if (e.touches.length === 1 && (e.target === canvas || e.target === RS.dom?.rackStage || e.target === RS.dom?.cablesSvg)) {
-        RS.ZOOM_STATE.isPanning = true;
-        RS.ZOOM_STATE.startX = e.touches[0].clientX - RS.ZOOM_STATE.panX;
-        RS.ZOOM_STATE.startY = e.touches[0].clientY - RS.ZOOM_STATE.panY;
+        beginPan(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: true });
 
@@ -223,18 +287,13 @@
         }
         lastTouchDist = dist;
       } else if (e.touches.length === 1 && RS.ZOOM_STATE.isPanning) {
-        RS.ZOOM_STATE.panX = e.touches[0].clientX - RS.ZOOM_STATE.startX;
-        RS.ZOOM_STATE.panY = e.touches[0].clientY - RS.ZOOM_STATE.startY;
-        RS.ZOOM_STATE.isFit = false;
-        updateStageTransform(false);
-        scheduleCableRender(50);
+        schedulePan(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: true });
 
     canvas.addEventListener('touchend', () => {
-      RS.ZOOM_STATE.isPanning = false;
+      endPan();
       lastTouchDist = 0;
-      if (RS.renderAllCables) RS.renderAllCables();
     });
 
     // Toolbar buttons
@@ -264,7 +323,8 @@
     if (RS.dom?.navJumpMid) RS.dom.navJumpMid.addEventListener('click', () => jumpToSection('mid'));
     if (RS.dom?.navJumpBot) RS.dom.navJumpBot.addEventListener('click', () => jumpToSection('bot'));
 
-    window.addEventListener('rack-zoom-changed', () => scheduleCableRender(30));
+    // Zoom and pan are compositor-only. Cable geometry is refreshed by layout
+    // mutations and resize handlers, not by view transforms.
   }
 
   RS.ensureStageTransitionListener = ensureStageTransitionListener;

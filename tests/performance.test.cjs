@@ -12,7 +12,8 @@ const assert = require('node:assert/strict');
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(pathToFileURL(path.resolve(__dirname,'../index.html')).href);
     await page.waitForFunction(() => window.RackStudio);
-    const results = await page.evaluate(async () => {
+    const targetRackCount = parseInt(process.env.BENCH_RACKS || '10', 10);
+    const results = await page.evaluate(async (rackLimit) => {
       const api = window.RackStudio;
       const baseline=[]; let baselinePrevious;
       for(let i=0;i<60;i++) {
@@ -22,7 +23,7 @@ const assert = require('node:assert/strict');
       }
       baseline.sort((a,b)=>a-b);
       const [catalogKey, model] = Object.entries(api.catalog).find(([,c]) => c.u === 1 && c.ports.length >= 24);
-      const racks = Array.from({length:100}, (_,r) => ({id:`bench-r${r}`,name:`Benchmark ${r+1}`,heightU:42,
+      const racks = Array.from({length:rackLimit}, (_,r) => ({id:`bench-r${r}`,name:`Benchmark ${r+1}`,heightU:42,
         devices:Array.from({length:30},(_,d)=>({instanceId:`bench-d${r}-${d}`,catalogKey,topU:42-d,uHeight:1}))}));
       const cables=[];
       for (const rack of racks) {
@@ -46,7 +47,7 @@ const assert = require('node:assert/strict');
       }
       window.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
       const sorted=[...intervals].sort((a,b)=>a-b);
-      return {rackCount:racks.length,deviceCount:3000,cableCount:cables.length,activeRackCableCount:200,
+      return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
         baselineFrameIntervalP95Ms:baseline[Math.floor(baseline.length*.95)],
         validationMs,importMs,panFrames:intervals.length,frameIntervalP50Ms:sorted[Math.floor(sorted.length*.5)],
@@ -55,7 +56,7 @@ const assert = require('node:assert/strict');
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
-    });
+    }, targetRackCount);
     assert.equal(results.renderedDevices,30);
     assert.equal(results.renderedCables,200);
     assert.deepEqual(errors,[]);

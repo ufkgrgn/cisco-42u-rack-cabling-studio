@@ -27,11 +27,61 @@
     cableRoutingMode: 'structured',
     viewMode: (typeof localStorage !== 'undefined' && (localStorage.getItem('rack_studio_view_mode') === 'multi' || localStorage.getItem('rack_studio_view_mode') === 'single')) ? localStorage.getItem('rack_studio_view_mode') : 'single', // 'single' (focused on active rack) or 'multi' (side-by-side all racks)
     pendingConnection: null, // { rackId, instanceId, portId, element }
-    highlightedCableId: null
+    highlightedCableId: null,
+    deviceById: new Map(),
+    rackById: new Map()
   };
 
+  function rebuildStateIndexes() {
+    const devMap = new Map();
+    const rackMap = new Map();
+    if (Array.isArray(STATE.racks)) {
+      for (let i = 0; i < STATE.racks.length; i++) {
+        const r = STATE.racks[i];
+        if (!r) continue;
+        rackMap.set(r.id, r);
+        if (Array.isArray(r.devices)) {
+          for (let j = 0; j < r.devices.length; j++) {
+            const d = r.devices[j];
+            if (d && d.instanceId) devMap.set(d.instanceId, d);
+          }
+        }
+      }
+    }
+    STATE.deviceById = devMap;
+    STATE.rackById = rackMap;
+    return devMap;
+  }
+
+  function getDeviceById(id) {
+    if (!id) return null;
+    if (!STATE.deviceById || STATE.deviceById.size === 0) {
+      rebuildStateIndexes();
+    }
+    let dev = STATE.deviceById.get(id);
+    if (!dev) {
+      // Fallback rebuild in case a device was added directly without indexing
+      rebuildStateIndexes();
+      dev = STATE.deviceById.get(id);
+    }
+    return dev || null;
+  }
+
+  function getRackById(id) {
+    if (!id) return null;
+    if (!STATE.rackById || STATE.rackById.size === 0) {
+      rebuildStateIndexes();
+    }
+    let rack = STATE.rackById.get(id);
+    if (!rack) {
+      rebuildStateIndexes();
+      rack = STATE.rackById.get(id);
+    }
+    return rack || null;
+  }
+
   function getActiveRack() {
-    let r = STATE.racks.find(rack => rack.id === STATE.activeRackId);
+    let r = getRackById(STATE.activeRackId);
     if (!r && STATE.racks.length > 0) {
       r = STATE.racks[0];
       STATE.activeRackId = r.id;
@@ -147,4 +197,7 @@
   RS.dom = dom;
   RS.initDomReferences = initDomReferences;
   RS.getActiveRack = getActiveRack;
+  RS.rebuildStateIndexes = rebuildStateIndexes;
+  RS.getDeviceById = getDeviceById;
+  RS.getRackById = getRackById;
 })();

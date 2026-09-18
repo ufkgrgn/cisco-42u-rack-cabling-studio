@@ -1660,18 +1660,20 @@
    2D LOD (LEVEL OF DETAIL) SYSTEM FOR MULTI-RACK SCALE & PERFORMANCE
    ========================================================================== */
 /* LOD MACRO (< 40% Zoom): Hide subpixel port holes, screws, and micro text */
-[data-lod="macro"] .port-grid,
-[data-lod="macro"] .port,
 [data-lod="macro"] .cisco-bezel-screws,
 [data-lod="macro"] .cisco-led-dot,
-[data-lod="macro"] .port-grid-24,
-[data-lod="macro"] .port-grid-48,
-[data-lod="macro"] .fiber-adapter-ports,
 [data-lod="macro"] .hole,
 [data-lod="macro"] .dring-bracket,
 [data-lod="macro"] .organizer-brush,
 [data-lod="macro"] .device-controls {
   display: none !important;
+}
+
+/* Preserve port layout boxes for SVG cable endpoint geometry. display:none
+   made every getBoundingClientRect() return zero after a macro-LOD refresh. */
+[data-lod="macro"] :is(.port-grid, .port-grid-24, .port-grid-48, .fiber-adapter-ports, .port) {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 [data-lod="macro"] .cables-svg-layer {
@@ -1685,9 +1687,29 @@
   display: none !important;
 }
 
-/* Fast-panning class disables pointer hit-testing for 120 FPS buttery pan */
-.rack-stage.panning-active * {
+/* Disable hit testing once at the retained-scene root while dragging. */
+.rack-stage.panning-active {
   pointer-events: none !important;
+}
+
+/* Limit raster-effect invalidation to the elements that actually use those
+   effects. A universal descendant selector caused a full-tree style recalc. */
+.rack-stage.panning-active :is(
+  .mounted-device,
+  .device-faceplate,
+  .rack-container,
+  .rack-header-plate,
+  .port,
+  .cable-path,
+  .cable-casing,
+  .cable-boot
+),
+.rack-stage.panning-active :is(.mounted-device, .device-faceplate, .rack-container, .port)::before,
+.rack-stage.panning-active :is(.mounted-device, .device-faceplate, .rack-container, .port)::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
 }
 
 /* ==========================================================================

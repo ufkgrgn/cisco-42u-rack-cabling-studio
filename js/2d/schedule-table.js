@@ -794,16 +794,15 @@
 
     // Standard list modes: Clone and sort cables
     const cablesList = [...STATE.cables];
-    const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
 
     if (scheduleSortMode === 'u') {
       cablesList.sort((a, b) => {
-        const devA1 = allDevices.find(d => d.instanceId === a.from?.instanceId);
-        const devA2 = allDevices.find(d => d.instanceId === a.to?.instanceId);
+        const devA1 = RS.getDeviceById ? RS.getDeviceById(a.from?.instanceId) : null;
+        const devA2 = RS.getDeviceById ? RS.getDeviceById(a.to?.instanceId) : null;
         const maxUA = Math.max(devA1?.topU || 0, devA2?.topU || 0);
 
-        const devB1 = allDevices.find(d => d.instanceId === b.from?.instanceId);
-        const devB2 = allDevices.find(d => d.instanceId === b.to?.instanceId);
+        const devB1 = RS.getDeviceById ? RS.getDeviceById(b.from?.instanceId) : null;
+        const devB2 = RS.getDeviceById ? RS.getDeviceById(b.to?.instanceId) : null;
         const maxUB = Math.max(devB1?.topU || 0, devB2?.topU || 0);
 
         if (maxUB !== maxUA) return maxUB - maxUA;
@@ -811,12 +810,12 @@
       });
     } else if (scheduleSortMode === 'panel') {
       cablesList.sort((a, b) => {
-        const devA1 = allDevices.find(d => d.instanceId === a.from?.instanceId);
-        const devA2 = allDevices.find(d => d.instanceId === a.to?.instanceId);
+        const devA1 = RS.getDeviceById ? RS.getDeviceById(a.from?.instanceId) : null;
+        const devA2 = RS.getDeviceById ? RS.getDeviceById(a.to?.instanceId) : null;
         const panelA = devA1?.panelLabel || devA2?.panelLabel || devA1?.hostname || devA2?.hostname || '';
 
-        const devB1 = allDevices.find(d => d.instanceId === b.from?.instanceId);
-        const devB2 = allDevices.find(d => d.instanceId === b.to?.instanceId);
+        const devB1 = RS.getDeviceById ? RS.getDeviceById(b.from?.instanceId) : null;
+        const devB2 = RS.getDeviceById ? RS.getDeviceById(b.to?.instanceId) : null;
         const panelB = devB1?.panelLabel || devB2?.panelLabel || devB1?.hostname || devB2?.hostname || '';
 
         const cmp = panelA.localeCompare(panelB);
@@ -825,9 +824,33 @@
       });
     }
 
-    cablesList.forEach(c => {
+    // Progressive virtualization: render first 100 rows to keep DOM lightweight
+    const MAX_VISIBLE_SCHEDULE_ROWS = 100;
+    const initialBatch = cablesList.slice(0, MAX_VISIBLE_SCHEDULE_ROWS);
+    initialBatch.forEach(c => {
       renderSingleCableCard(c);
     });
+
+    if (cablesList.length > MAX_VISIBLE_SCHEDULE_ROWS) {
+      const remainingCount = cablesList.length - MAX_VISIBLE_SCHEDULE_ROWS;
+      const loadMoreTr = document.createElement('tr');
+      loadMoreTr.className = 'schedule-load-more-row';
+      loadMoreTr.innerHTML = `
+        <td colspan="5" style="text-align:center; padding:12px; background:rgba(15,23,42,0.6);">
+          <button type="button" class="schedule-load-more-btn" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; padding:6px 16px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">
+            Kalan ${remainingCount} Bağlantıyı Göster (${MAX_VISIBLE_SCHEDULE_ROWS} / ${cablesList.length})
+          </button>
+        </td>
+      `;
+      const btn = loadMoreTr.querySelector('button');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          loadMoreTr.remove();
+          cablesList.slice(MAX_VISIBLE_SCHEDULE_ROWS).forEach(c => renderSingleCableCard(c));
+        });
+      }
+      dom.scheduleTbody.appendChild(loadMoreTr);
+    }
   }
 
   RS.ensureCableVisibleInSchedule = function(cableId) {

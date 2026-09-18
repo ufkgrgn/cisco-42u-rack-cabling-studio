@@ -268,6 +268,76 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   }
   RS.updateRackHeaderTelemetry = updateRackHeaderTelemetry;
 
+  let rackVisibilityObserver = null;
+  let rackVisibilityRefreshFrame = 0;
+
+  function refreshVisibleRackContent(renderChanges = true) {
+    if (STATE.viewMode !== 'multi') return false;
+    const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
+    const rackStage = dom.rackStage || document.getElementById('rack-stage');
+    if (!canvas || !rackStage) return false;
+    const containers = Array.from(rackStage.querySelectorAll('.rack-container[data-rack-id]'));
+    const viewportRect = canvas.getBoundingClientRect();
+    const preloadMargin = Math.max(320, viewportRect.width * 0.3);
+    let changed = false;
+    containers.forEach(container => {
+      const rect = container.getBoundingClientRect();
+      const nearViewport = container.dataset.rackId === STATE.activeRackId || (
+        rect.right >= viewportRect.left - preloadMargin &&
+        rect.left <= viewportRect.right + preloadMargin &&
+        rect.bottom >= viewportRect.top - preloadMargin &&
+        rect.top <= viewportRect.bottom + preloadMargin
+      );
+      const next = nearViewport ? 'true' : 'false';
+      if (container.dataset.virtualVisible !== next) {
+        container.dataset.virtualVisible = next;
+        changed = true;
+      }
+    });
+    if (changed && renderChanges) {
+      renderMountedDevices();
+      if (typeof RS.renderAllCables === 'function') RS.renderAllCables();
+    }
+    return changed;
+  }
+
+  function configureMultiRackVisibility(rackStage, isMulti) {
+    rackVisibilityObserver?.disconnect();
+    rackVisibilityObserver = null;
+    if (!isMulti) return;
+
+    const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
+    const containers = Array.from(rackStage.querySelectorAll('.rack-container[data-rack-id]'));
+    if (!canvas || !containers.length) return;
+
+    const viewportRect = canvas.getBoundingClientRect();
+    const preloadMargin = Math.max(320, viewportRect.width * 0.3);
+    refreshVisibleRackContent(false);
+
+    if (typeof IntersectionObserver !== 'function') {
+      containers.forEach(container => { container.dataset.virtualVisible = 'true'; });
+      return;
+    }
+
+    rackVisibilityObserver = new IntersectionObserver(entries => {
+      let changed = false;
+      entries.forEach(entry => {
+        const next = entry.isIntersecting ? 'true' : 'false';
+        if (entry.target.dataset.virtualVisible !== next) {
+          entry.target.dataset.virtualVisible = next;
+          changed = true;
+        }
+      });
+      if (!changed || rackVisibilityRefreshFrame) return;
+      rackVisibilityRefreshFrame = requestAnimationFrame(() => {
+        rackVisibilityRefreshFrame = 0;
+        renderMountedDevices();
+        if (typeof RS.renderAllCables === 'function') RS.renderAllCables();
+      });
+    }, { root: canvas, rootMargin: `${Math.round(preloadMargin)}px` });
+    containers.forEach(container => rackVisibilityObserver.observe(container));
+  }
+
   function renderRackRailsAndSlots(onSlotClick) {
     if (typeof onSlotClick === 'function') STATE.onSlotClick = onSlotClick;
     const clickHandler = typeof onSlotClick === 'function' ? onSlotClick : STATE.onSlotClick;
@@ -340,6 +410,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         </div>
       `;
       initDomReferences();
+      configureMultiRackVisibility(rackStage, false);
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
 
       // Wire bottom resize handle for single rack
@@ -619,6 +690,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       });
 
       initDomReferences();
+      configureMultiRackVisibility(rackStage, true);
     }
   }
 
@@ -674,7 +746,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     renderScheduleTable();
     renderAllCables();
 
-    if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeDevice === 'function') {
+    if (window.__STUDIO3D__ && window.is3DMode && typeof window.__STUDIO3D__.removeDevice === 'function') {
       try { window.__STUDIO3D__.removeDevice(instanceId); } catch (_) {}
     }
 
@@ -765,7 +837,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       if (STATE.pendingConnection && devIds.has(STATE.pendingConnection.instanceId)) {
         cancelPendingConnection();
       }
-      if (window.__STUDIO3D__ && typeof window.__STUDIO3D__.removeDevice === 'function') {
+      if (window.__STUDIO3D__ && window.is3DMode && typeof window.__STUDIO3D__.removeDevice === 'function') {
         devIds.forEach(id => {
           try { window.__STUDIO3D__.removeDevice(id); } catch (_) {}
         });
@@ -1094,11 +1166,21 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   }
 
   function renderMountedDevices() {
-    // Remove all currently mounted device elements
-    document.querySelectorAll('.mounted-device').forEach(el => el.remove());
+    // Retain unchanged device DOM. Faceplates contain dozens of ports, so a
+    // keyed update is substantially cheaper than deleting the whole rack.
+    const existingDevices = new Map(
+      Array.from(document.querySelectorAll('.mounted-device')).map(el => [el.id, el])
+    );
+    const desiredDeviceIds = new Set();
 
     const isMulti = STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
-    const racksToRender = isMulti ? STATE.racks : [getActiveRack()].filter(Boolean);
+    const racksToRender = isMulti
+      ? STATE.racks.filter(rack => {
+          if (rack.id === STATE.activeRackId) return true;
+          const container = document.getElementById(`rack-container-${rack.id}`);
+          return !container || container.dataset.virtualVisible !== 'false';
+        })
+      : [getActiveRack()].filter(Boolean);
 
     if (!racksToRender.length) return;
 
@@ -1108,13 +1190,32 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       renderRackRailsAndSlots();
     }
 
-    occupiedPortKeys = new Set(STATE.cables.flatMap(c => [portKey(c.from.instanceId, c.from.portId), portKey(c.to.instanceId, c.to.portId)]));
+    occupiedPortKeys = new Set();
+    const cableStateByDevice = new Map();
+    if (Array.isArray(STATE.cables)) {
+      for (let i = 0; i < STATE.cables.length; i++) {
+        const c = STATE.cables[i];
+        if (c.from) {
+          occupiedPortKeys.add(portKey(c.from.instanceId, c.from.portId));
+          const ports = cableStateByDevice.get(c.from.instanceId) || [];
+          ports.push(`${c.from.portId}:${c.id}:${c.color || ''}:${c.role || ''}`);
+          cableStateByDevice.set(c.from.instanceId, ports);
+        }
+        if (c.to) {
+          occupiedPortKeys.add(portKey(c.to.instanceId, c.to.portId));
+          const ports = cableStateByDevice.get(c.to.instanceId) || [];
+          ports.push(`${c.to.portId}:${c.id}:${c.color || ''}:${c.role || ''}`);
+          cableStateByDevice.set(c.to.instanceId, ports);
+        }
+      }
+    }
 
     racksToRender.forEach(rack => {
       if (!rack) return;
       rack.devices.forEach(dev => {
         const cat = HARDWARE_CATALOG[dev.catalogKey];
         if (!cat) return;
+        desiredDeviceIds.add(dev.instanceId);
 
         // Find the slot element for this device (handles single and multi rack mode gracefully)
         let slotEl = document.getElementById(`rack-${rack.id}-slot-u${dev.topU}`);
@@ -1129,9 +1230,22 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         }
         if (!slotEl) return;
 
-        const devEl = document.createElement('div');
+        const cableState = (cableStateByDevice.get(dev.instanceId) || []).sort();
+        const renderKey = JSON.stringify([
+          dev,
+          cableState,
+          STATE.deviceLabelMode || 'name'
+        ]);
+        let devEl = existingDevices.get(dev.instanceId);
+        if (devEl && devEl.dataset.renderKey === renderKey) {
+          if (devEl.parentElement !== slotEl) slotEl.appendChild(devEl);
+          return;
+        }
+        if (devEl) devEl.remove();
+        devEl = document.createElement('div');
         devEl.className = 'mounted-device';
         devEl.id = dev.instanceId;
+        devEl.dataset.renderKey = renderKey;
         devEl.style.height = `${dev.uHeight * 32}px`;
         devEl.style.top = '0px';
         devEl.dataset.rackId = rack.id;
@@ -1203,6 +1317,10 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           });
         }
       });
+    });
+
+    existingDevices.forEach((element, instanceId) => {
+      if (!desiredDeviceIds.has(instanceId)) element.remove();
     });
 
     bindPortInteractions();
@@ -1814,12 +1932,25 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   }
   // --- END PORT ROLE CYCLE ---
 
+  let portDelegationBound = false;
   function bindPortInteractions() {
-    const portElements = document.querySelectorAll('.port');
-    portElements.forEach(portEl => {
-      portEl.addEventListener('mouseenter', handlePortHover);
-      portEl.addEventListener('mouseleave', handlePortLeave);
-      portEl.addEventListener('click', (e) => {
+    const stage = dom.rackStage || document.getElementById('rack-stage') || document.body;
+    if (!portDelegationBound && stage) {
+      portDelegationBound = true;
+      stage.addEventListener('mouseover', (e) => {
+        const portEl = e.target.closest('.port');
+        if (portEl) handlePortHover({ currentTarget: portEl, target: portEl });
+      });
+      stage.addEventListener('mouseout', (e) => {
+        const portEl = e.target.closest('.port');
+        if (portEl) {
+          const next = e.relatedTarget ? e.relatedTarget.closest('.port') : null;
+          if (next !== portEl) handlePortLeave();
+        }
+      });
+      stage.addEventListener('click', (e) => {
+        const portEl = e.target.closest('.port');
+        if (!portEl) return;
         if (e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
@@ -1830,29 +1961,27 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           }
           return;
         }
-        handlePortClick(e);
+        handlePortClick({ currentTarget: portEl, target: portEl, stopPropagation: () => e.stopPropagation() });
       });
-      portEl.addEventListener('dblclick', (e) => {
+      stage.addEventListener('dblclick', (e) => {
+        const portEl = e.target.closest('.port');
+        if (!portEl) return;
         e.stopPropagation();
         e.preventDefault();
         const instanceId = portEl.dataset.instanceId;
-        const portId     = portEl.dataset.portId;
-        const portType   = portEl.dataset.portType;
+        const portId = portEl.dataset.portId;
+        const portType = portEl.dataset.portType;
         if (!instanceId || !portId) return;
 
-        // Only act on empty (unconnected) ports
-        const isOccupied = STATE.cables.some(c =>
-          (c.from.instanceId === instanceId && c.from.portId === portId) ||
-          (c.to.instanceId   === instanceId && c.to.portId   === portId)
-        );
-        if (isOccupied) return;  // occupied ports → ignore dblclick (cable HUD handles them)
+        const isOccupied = occupiedPortKeys.has(portKey(instanceId, portId));
+        if (isOccupied) return;
 
-        // Cancel any pending connection so dblclick doesn't accidentally start one
         if (STATE.pendingConnection) cancelPendingConnection();
-
         cyclePortRole(instanceId, portId, portType);
       });
-      portEl.addEventListener('contextmenu', (e) => {
+      stage.addEventListener('contextmenu', (e) => {
+        const portEl = e.target.closest('.port');
+        if (!portEl) return;
         e.preventDefault();
         e.stopPropagation();
         const devId = portEl.dataset.instanceId;
@@ -1861,7 +1990,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           window.PortConfigEditor.open(devId, portId, '2d');
         }
       });
-    });
+    }
   }
 
   function handlePortHover(e) {
@@ -2495,6 +2624,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
   }
 
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
+  RS.refreshVisibleRackContent = refreshVisibleRackContent;
   RS.mountDeviceAt = mountDeviceAt;
   RS.removeDevice = removeDevice;
   RS.clearRackCables = clearRackCables;

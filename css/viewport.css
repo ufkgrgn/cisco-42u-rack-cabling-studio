@@ -232,6 +232,11 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
+  /* The complete rack is a retained scene. Keep its transform on the
+     compositor instead of repainting thousands of DOM/SVG descendants. */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
