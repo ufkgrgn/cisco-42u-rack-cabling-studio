@@ -1,20 +1,13 @@
 .studio-editor {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 0;
-  background: transparent;
-  border-top: none;
-  border-bottom: none;
-  color: #94a3b8;
-  font: 11px Inter, system-ui, sans-serif;
-  z-index: 12;
-  flex-shrink: 0;
-  min-height: auto;
-  height: 100%;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  opacity: 0.001 !important;
+  overflow: hidden !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
 }
 .studio-editor::-webkit-scrollbar {
   display: none;

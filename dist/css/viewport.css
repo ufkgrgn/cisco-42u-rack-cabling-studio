@@ -309,71 +309,15 @@
   align-items: center;
   gap: 6px;
   background: transparent;
-  padding: 0 8px 0 0;
+  padding: 0 4px;
   min-height: auto;
   height: 100%;
   overflow: visible;
   border-bottom: none;
-  border-right: 1px solid rgba(56, 189, 248, 0.2);
+  border-right: none;
   flex-shrink: 0;
 }
 .rack-floating-topdeck .rack-tabs-bar::-webkit-scrollbar { display: none; }
-
-.rack-floating-topdeck .studio-editor {
-  background: transparent;
-  border-top: none;
-  border-bottom: none;
-  padding: 0;
-  margin: 0;
-  min-height: auto;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
-  max-width: 1200px;
-  overflow: visible;
-}
-
-/* Collapsed State: horizontally folds away the editor controls to only show rack switcher */
-.rack-floating-topdeck.collapsed .studio-editor {
-  max-width: 0;
-  opacity: 0;
-  padding: 0;
-  margin: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border: none;
-}
-
-.rack-floating-topdeck.collapsed .rack-tabs-bar {
-  border-right: none;
-  padding-right: 0;
-}
-
-.btn-collapse-toggle {
-  width: 22px !important;
-  height: 22px !important;
-  padding: 0 !important;
-  border-radius: 6px !important;
-  background: rgba(15, 23, 42, 0.75) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #94a3b8 !important;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.18s ease;
-  font-size: 9px !important;
-  flex-shrink: 0;
-}
-.btn-collapse-toggle:hover {
-  background: rgba(56, 189, 248, 0.25) !important;
-  border-color: #00e5ff !important;
-  color: #00e5ff !important;
-  transform: translateY(-0.5px);
-}
 
 .rack-tabs-list {
   display: flex;
