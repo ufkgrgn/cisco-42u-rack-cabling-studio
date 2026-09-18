@@ -52,14 +52,14 @@
 
     const activeRack = RS.getActiveRack ? RS.getActiveRack() : null;
     let rackW = 634; // 618px inner content + 16px border
-    let rackH = (activeRack?.heightU || 42) * 32 + 16; // 1344px inner content + 16px border
+    let rackH = (activeRack?.heightU || 42) * 32 + 84; // 1344px inner content + 84px header canopy/margin
 
     const isMulti = RS.STATE && RS.STATE.viewMode === 'multi' && RS.STATE.racks && RS.STATE.racks.length > 1;
     if (isMulti) {
       const numRacks = RS.STATE.racks.length;
       rackW = numRacks * 634 + (numRacks - 1) * 64 + 120;
       const maxU = Math.max(...RS.STATE.racks.map(r => r.heightU || 42));
-      rackH = maxU * 32 + 16;
+      rackH = maxU * 32 + 84;
     }
 
     const paddingX = 48;
@@ -71,7 +71,7 @@
     targetScale = Math.max(RS.ZOOM_STATE.minScale, Math.min(RS.ZOOM_STATE.maxScale, targetScale));
 
     const targetPanX = (cw - rackW * targetScale) / 2;
-    const targetPanY = (ch - rackH * targetScale) / 2;
+    const targetPanY = (ch - rackH * targetScale) / 2 + (66 * targetScale);
 
     RS.ZOOM_STATE.scale = parseFloat(targetScale.toFixed(3));
     RS.ZOOM_STATE.panX = Math.round(targetPanX);
@@ -128,7 +128,7 @@
     RS.ZOOM_STATE.panX = Math.round((canvas.clientWidth - 634) / 2);
 
     if (section === 'top') {
-      RS.ZOOM_STATE.panY = 24;
+      RS.ZOOM_STATE.panY = 76;
     } else if (section === 'mid') {
       RS.ZOOM_STATE.panY = Math.round((ch - rackH) / 2);
     } else if (section === 'bot') {

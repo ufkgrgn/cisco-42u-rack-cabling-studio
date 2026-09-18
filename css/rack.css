@@ -1707,24 +1707,44 @@
   box-shadow: 0 0 0 3px #38bdf8, 0 20px 50px rgba(0, 0, 0, 0.8) !important;
 }
 
-/* Cabinet Header Aluminum Plate */
+/* Cabinet Header Aluminum Plate (Extended Canopy with EIA-310-D & Per-Rack Telemetry) */
 .rack-header-plate {
   position: absolute;
-  top: -38px;
+  top: -66px;
   left: 0;
   width: 100%;
-  height: 32px;
+  height: 60px;
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   border: 1px solid #334155;
+  border-bottom: 2px solid #0284c7;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 5px 12px;
   box-sizing: border-box;
   user-select: none;
   z-index: 10;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.rack-header-top-tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 24px;
+}
+
+.rack-header-bottom-tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 2px;
 }
 
 .rack-header-title {
@@ -1738,14 +1758,106 @@
   gap: 6px;
 }
 
+.rack-header-name-editable {
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.rack-header-name-editable:hover {
+  background: rgba(56, 189, 248, 0.15);
+  text-decoration: underline;
+}
+
+.rack-header-rename-hint {
+  font-size: 10px;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.rack-header-rename-hint:hover {
+  opacity: 1;
+}
+
+.rack-header-standard-badge {
+  font-size: 9.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rack-header-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .rack-header-meta {
   font-size: 10px;
   font-weight: 700;
   color: #94a3b8;
   background: rgba(15, 23, 42, 0.8);
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rack-header-telemetry-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rack-telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.rack-telemetry-badge.power {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.3);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.rack-telemetry-badge.heat {
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.3);
+  background: rgba(251, 146, 60, 0.08);
+}
+
+.rack-telemetry-badge.pdu {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.rack-telemetry-badge.overload {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+  animation: pulse-overload 1s infinite alternate;
 }
 
 /* Global SVG Cabling Layer when in Multi-Rack Mode */

@@ -210,6 +210,64 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     });
   }
 
+  function getRackTelemetry(rack) {
+    let totalWatts = 0;
+    const devices = rack?.devices || [];
+    devices.forEach(d => {
+      const cat = (RS.catalog && RS.catalog[d.catalogId || d.catalogKey]) || 
+                  (HARDWARE_CATALOG && HARDWARE_CATALOG[d.catalogKey]) || {};
+      let w = 150;
+      if (typeof d.powerWatts === 'number' && d.powerWatts > 0) {
+        w = d.powerWatts;
+      } else if (typeof cat.powerWatts === 'number') {
+        w = cat.powerWatts;
+      } else if (['organizer', 'blank', 'patch', 'passive', 'fiber'].includes(cat.category)) {
+        w = 0;
+      }
+      totalWatts += w;
+    });
+    const totalAmps = Number((totalWatts / (230 * 0.95)).toFixed(1));
+    const totalBtu = Math.round(totalWatts * 3.412142);
+    const totalKw = (totalWatts / 1000).toFixed(2);
+    const pduPercent = Math.min(100, Math.round((totalWatts / 3680) * 100));
+    const isOverload = totalWatts > 3680 || totalAmps > 16.0;
+    return { totalWatts, totalAmps, totalBtu, totalKw, pduPercent, isOverload };
+  }
+  RS.getRackTelemetry = getRackTelemetry;
+
+  function updateRackHeaderTelemetry(targetRackId) {
+    const plates = document.querySelectorAll('.rack-header-plate');
+    plates.forEach(plate => {
+      const rId = plate.dataset.rackId;
+      if (targetRackId && rId !== targetRackId) return;
+      const rack = STATE.racks?.find(r => r.id === rId);
+      if (!rack) return;
+      const telem = getRackTelemetry(rack);
+      const devCount = rack.devices ? rack.devices.length : 0;
+      const heightU = rack.heightU || 42;
+
+      const pVal = plate.querySelector('.rack-telem-val-power');
+      if (pVal) pVal.textContent = `${telem.totalWatts}W`;
+      const aVal = plate.querySelector('.rack-telem-val-amp');
+      if (aVal) aVal.textContent = `(${telem.totalAmps}A)`;
+      const hVal = plate.querySelector('.rack-telem-val-heat');
+      if (hVal) hVal.textContent = telem.totalBtu.toLocaleString();
+      const pduVal = plate.querySelector('.rack-telem-val-pdu');
+      if (pduVal) pduVal.textContent = `%${telem.pduPercent} PDU`;
+
+      const powerBadge = plate.querySelector('.rack-telemetry-badge.power');
+      if (powerBadge) powerBadge.classList.toggle('overload', telem.isOverload);
+      const pduBadge = plate.querySelector('.rack-telemetry-badge.pdu');
+      if (pduBadge) pduBadge.classList.toggle('overload', telem.isOverload);
+
+      const uEl = plate.querySelector('.rack-header-u-count');
+      if (uEl) uEl.textContent = `${heightU}U`;
+      const devEl = plate.querySelector('.rack-header-dev-count');
+      if (devEl) devEl.textContent = `${devCount} Cihaz`;
+    });
+  }
+  RS.updateRackHeaderTelemetry = updateRackHeaderTelemetry;
+
   function renderRackRailsAndSlots(onSlotClick) {
     if (typeof onSlotClick === 'function') STATE.onSlotClick = onSlotClick;
     const clickHandler = typeof onSlotClick === 'function' ? onSlotClick : STATE.onSlotClick;
@@ -226,19 +284,40 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 
       const canDelete = STATE.racks.length > 1;
       const devCount = activeRack.devices ? activeRack.devices.length : 0;
+      const telem = getRackTelemetry(activeRack);
 
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
           <div class="rack-header-plate" data-rack-id="${activeRack.id}">
-            <span class="rack-header-title">
-              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
-              <span class="rack-header-name-editable" data-rack-id="${activeRack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
-            </span>
-            <span class="rack-header-meta">${heightU}U · ${devCount} Cihaz</span>
-            <span class="rack-header-actions">
-              <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)">⧉ Çoğalt</button>
-              ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
-            </span>
+            <div class="rack-header-top-tier">
+              <span class="rack-header-title">
+                <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
+                <span class="rack-header-name-editable" data-rack-id="${activeRack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
+                <span class="rack-header-rename-hint" title="Adı düzenle">✏️</span>
+              </span>
+              <span class="rack-header-standard-badge" title="EIA-310-D Standart 19 İnç Kabin Çerçevesi">EIA-310-D Standard</span>
+              <span class="rack-header-actions">
+                <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)">⧉ Çoğalt</button>
+                ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
+              </span>
+            </div>
+            <div class="rack-header-bottom-tier">
+              <div class="rack-header-meta-group">
+                <span class="rack-header-meta rack-header-u-count">${heightU}U</span>
+                <span class="rack-header-meta rack-header-dev-count">${devCount} Cihaz</span>
+              </div>
+              <div class="rack-header-telemetry-group">
+                <span class="rack-telemetry-badge power ${telem.isOverload ? 'overload' : ''}" title="Kabin Güç Tüketimi (230V @ 0.95 PF)">
+                  ⚡ <b class="rack-telem-val-power">${telem.totalWatts}W</b> <span class="rack-telem-val-amp" style="font-size:9.5px; opacity:0.85;">(${telem.totalAmps}A)</span>
+                </span>
+                <span class="rack-telemetry-badge heat" title="Kabin Termal Isı Yayılımı (~${(telem.totalWatts * 0.000293).toFixed(2)} Ton Soğutma)">
+                  🔥 <b class="rack-telem-val-heat">${telem.totalBtu.toLocaleString()}</b> <span style="font-size:9.5px; opacity:0.85;">BTU/h</span>
+                </span>
+                <span class="rack-telemetry-badge pdu ${telem.isOverload ? 'overload' : ''}" title="16A PDU Sigorta Kapasitesi Kullanımı">
+                  <span class="rack-telem-val-pdu">%${telem.pduPercent} PDU</span>
+                </span>
+              </div>
+            </div>
           </div>
           <div class="rack-rail left" id="rail-left"></div>
           <div class="rack-main-space" id="rack-space"></div>
@@ -362,21 +441,43 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         const canDelete = STATE.racks.length > 1;
         const devCount = rack.devices ? rack.devices.length : 0;
 
+        const telem = getRackTelemetry(rack);
+
         const headerPlate = document.createElement('div');
         headerPlate.className = 'rack-header-plate';
         headerPlate.dataset.rackId = rack.id;
         headerPlate.innerHTML = `
-          <span class="rack-header-title">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
-            <span class="rack-header-name-editable" data-rack-id="${rack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(rack.name)}</span>
-          </span>
-          <span class="rack-header-meta">${rack.heightU || 42}U · ${devCount} Cihaz</span>
-          <span class="rack-header-actions">
-            <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı">←</button>
-            <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı">→</button>
-            <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt">⧉ Çoğalt</button>
-            ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
-          </span>
+          <div class="rack-header-top-tier">
+            <span class="rack-header-title">
+              <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
+              <span class="rack-header-name-editable" data-rack-id="${rack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(rack.name)}</span>
+              <span class="rack-header-rename-hint" title="Adı düzenle">✏️</span>
+            </span>
+            <span class="rack-header-standard-badge" title="EIA-310-D Standart 19 İnç Kabin Çerçevesi">EIA-310-D Standard</span>
+            <span class="rack-header-actions">
+              <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı">←</button>
+              <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı">→</button>
+              <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt">⧉ Çoğalt</button>
+              ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
+            </span>
+          </div>
+          <div class="rack-header-bottom-tier">
+            <div class="rack-header-meta-group">
+              <span class="rack-header-meta rack-header-u-count">${rack.heightU || 42}U</span>
+              <span class="rack-header-meta rack-header-dev-count">${devCount} Cihaz</span>
+            </div>
+            <div class="rack-header-telemetry-group">
+              <span class="rack-telemetry-badge power ${telem.isOverload ? 'overload' : ''}" title="Kabin Güç Tüketimi (230V @ 0.95 PF)">
+                ⚡ <b class="rack-telem-val-power">${telem.totalWatts}W</b> <span class="rack-telem-val-amp" style="font-size:9.5px; opacity:0.85;">(${telem.totalAmps}A)</span>
+              </span>
+              <span class="rack-telemetry-badge heat" title="Kabin Termal Isı Yayılımı (~${(telem.totalWatts * 0.000293).toFixed(2)} Ton Soğutma)">
+                🔥 <b class="rack-telem-val-heat">${telem.totalBtu.toLocaleString()}</b> <span style="font-size:9.5px; opacity:0.85;">BTU/h</span>
+              </span>
+              <span class="rack-telemetry-badge pdu ${telem.isOverload ? 'overload' : ''}" title="16A PDU Sigorta Kapasitesi Kullanımı">
+                <span class="rack-telem-val-pdu">%${telem.pduPercent} PDU</span>
+              </span>
+            </div>
+          </div>
         `;
         cont.appendChild(headerPlate);
 
@@ -934,6 +1035,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     });
 
     bindPortInteractions();
+    updateRackHeaderTelemetry();
   }
 
   function renderRouterFaceplate(cat, dev) {

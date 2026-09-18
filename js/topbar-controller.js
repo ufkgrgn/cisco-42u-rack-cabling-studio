@@ -79,6 +79,10 @@
     if (heatBadgeEl) {
       heatBadgeEl.title = `Termal Isı Yayılımı: ${totalBtu} BTU/h (~${(totalWatts * 0.000293).toFixed(2)} Ton Soğutma) · Hot Aisle Yükü`;
     }
+
+    if (window.RackStudio && typeof window.RackStudio.updateRackHeaderTelemetry === 'function') {
+      window.RackStudio.updateRackHeaderTelemetry();
+    }
   }
   window.updateTelemetry = updateTelemetry;
 
