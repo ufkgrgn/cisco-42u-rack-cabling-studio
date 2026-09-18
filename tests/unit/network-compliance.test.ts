@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 
 describe('Intelligent Network Rules & Compliance Engine', () => {
   // Mock validation logic matching js/2d/network-rules.js
+  function isSfpCageType(type: string) {
+    if (!type) return false;
+    const t = String(type).toLowerCase().trim();
+    return t === 'sfp' || t === 'sfp+' || t === 'sfp28' || t === 'qsfp' || t === 'qsfp+' || t === 'qsfp28';
+  }
+
   function isUplinkPort(port: any, _device: any, catalog: any) {
     if (!port) return false;
     const pId = String(port.id || '').toLowerCase();
@@ -13,7 +19,7 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     if (pSpeed.includes('uplink') || pSpeed.includes('spine') || pSpeed.includes('core')) return true;
     if (pName.startsWith('te') || pName.startsWith('fo') || pName.startsWith('twe') || pName.startsWith('hu') || pName.startsWith('25ge') || pName.startsWith('100ge')) return true;
 
-    if (catalog && (pType === 'sfp' || pType === 'qsfp')) {
+    if (catalog && isSfpCageType(pType)) {
       const hasCopper = Array.isArray(catalog.ports) && catalog.ports.some((p: any) => p.type === 'rj45');
       if (hasCopper) return true;
     }
@@ -34,9 +40,9 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
 
     if (isSrcSwitch && isTgtSwitch) {
       if (isSrcUplink && isTgtUplink) {
-        return { isUplink: true, isTrunk: true, isSwitchToSwitch: true, disallowStandard: true, role: 'uplink', color: '#00d2ff', prefix: '[UPLINK]', requiresPrompt: true };
+        return { isUplink: true, isTrunk: true, isSwitchToSwitch: true, disallowStandard: false, role: 'uplink', color: '#00d2ff', prefix: '[UPLINK]', requiresPrompt: true };
       }
-      return { isUplink: false, isTrunk: true, isSwitchToSwitch: true, disallowStandard: true, role: 'trunk', color: '#7c3aed', prefix: '[TRUNK]', requiresPrompt: true };
+      return { isUplink: false, isTrunk: true, isSwitchToSwitch: true, disallowStandard: false, role: 'trunk', color: '#7c3aed', prefix: '[TRUNK]', requiresPrompt: true };
     }
     if ((isSrcUplink && (isTgtRouter || catTgt?.category === 'fiber-switch')) ||
         (isTgtUplink && (isSrcRouter || catSrc?.category === 'fiber-switch'))) {
@@ -50,7 +56,7 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     const type = String(port.type || '').toLowerCase();
     if (type === 'lc' || type === 'sc' || type === 'fiber') return true;
     if (catalog?.category === 'fiber') return true;
-    if (type === 'sfp') {
+    if (isSfpCageType(type)) {
       const speed = String(port.speed || '').toLowerCase();
       if (speed.includes('fiber') || catalog?.category === 'fiber-switch') return true;
       return true;
@@ -103,8 +109,24 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
       return { allowed: false, type: 'same-port', reason: 'Aynı port kendisine bağlanamaz!' };
     }
 
-    const devA = state.devices.find((d: any) => d.instanceId === source.instanceId);
-    const devB = state.devices.find((d: any) => d.instanceId === target.instanceId);
+    function findDev(instId: string) {
+      if (!state) return null;
+      if (Array.isArray(state.devices)) {
+        return state.devices.find((d: any) => d.instanceId === instId);
+      }
+      if (Array.isArray(state.racks)) {
+        for (const r of state.racks) {
+          if (Array.isArray(r.devices)) {
+            const d = r.devices.find((dev: any) => dev.instanceId === instId);
+            if (d) return d;
+          }
+        }
+      }
+      return null;
+    }
+
+    const devA = findDev(source.instanceId);
+    const devB = findDev(target.instanceId);
     const catA = catalogMap[devA?.catalogKey];
     const catB = catalogMap[devB?.catalogKey];
 
@@ -135,8 +157,8 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     if (strictMode) {
       const isFiberA = typeA === 'lc' || typeA === 'sc' || typeA === 'fiber';
       const isFiberB = typeB === 'lc' || typeB === 'sc' || typeB === 'fiber';
-      const isSfpA = typeA === 'sfp' || typeA === 'qsfp' || typeA === 'qsfp28';
-      const isSfpB = typeB === 'sfp' || typeB === 'qsfp' || typeB === 'qsfp28';
+      const isSfpA = isSfpCageType(typeA);
+      const isSfpB = isSfpCageType(typeB);
       const isCopperA = typeA === 'rj45';
       const isCopperB = typeB === 'rj45';
 
@@ -283,7 +305,7 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     expect(res.autoConfig?.color).toBe('#00d2ff');
     expect(res.autoConfig?.prefix).toBe('[UPLINK]');
     expect(res.autoConfig?.requiresPrompt).toBe(true);
-    expect((res.autoConfig as any)?.disallowStandard).toBe(true);
+    expect((res.autoConfig as any)?.disallowStandard).toBe(false);
     expect((res.autoConfig as any)?.isSwitchToSwitch).toBe(true);
   });
 
@@ -300,7 +322,7 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     expect(res.autoConfig?.requiresPrompt).toBe(false);
   });
 
-  it('strictly forbids standard access mode and enforces 802.1Q trunk confirmation for switch-to-switch links', () => {
+  it('prompts 802.1Q trunk confirmation and allows standard access mode for switch-to-switch links', () => {
     const res = validateConnection(
       { instanceId: 'sw1', portId: 'p1' },
       { instanceId: 'sw2', portId: 'p1' },
@@ -312,7 +334,7 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     expect(res.autoConfig?.color).toBe('#7c3aed');
     expect(res.autoConfig?.prefix).toBe('[TRUNK]');
     expect(res.autoConfig?.requiresPrompt).toBe(true);
-    expect((res.autoConfig as any)?.disallowStandard).toBe(true);
+    expect((res.autoConfig as any)?.disallowStandard).toBe(false);
     expect((res.autoConfig as any)?.isSwitchToSwitch).toBe(true);
   });
 
@@ -476,8 +498,96 @@ describe('Intelligent Network Rules & Compliance Engine', () => {
     expect(res.allowed).toBe(true);
     expect(res.autoConfig?.role).toBe('uplink');
     expect(res.autoConfig?.requiresPrompt).toBe(true);
-    expect((res.autoConfig as any)?.disallowStandard).toBe(true);
+    expect((res.autoConfig as any)?.disallowStandard).toBe(false);
     expect((res.autoConfig as any)?.isSwitchToSwitch).toBe(true);
+  });
+
+  describe('Requirements R1-R4: Media Compatibility & Structured Cabling Calibration', () => {
+    it('normalizes all SFP/QSFP cage types according to Schema V3', () => {
+      expect(isSfpCageType('sfp')).toBe(true);
+      expect(isSfpCageType('sfp+')).toBe(true);
+      expect(isSfpCageType('sfp28')).toBe(true);
+      expect(isSfpCageType('qsfp')).toBe(true);
+      expect(isSfpCageType('qsfp+')).toBe(true);
+      expect(isSfpCageType('qsfp28')).toBe(true);
+      expect(isSfpCageType('rj45')).toBe(false);
+      expect(isSfpCageType('lc')).toBe(false);
+      expect(isSfpCageType('power')).toBe(false);
+    });
+
+    it('correctly parses port indices from patch panel and fiber port IDs without NaN defaulting to 1', () => {
+      const parseIdx = (portId: string) => parseInt(String(portId).replace(/\D+/g, ''), 10) || 1;
+      expect(parseIdx('pt5')).toBe(5);
+      expect(parseIdx('pt24')).toBe(24);
+      expect(parseIdx('pt48')).toBe(48);
+      expect(parseIdx('lc12')).toBe(12);
+      expect(parseIdx('sc8')).toBe(8);
+      expect(parseIdx('p16')).toBe(16);
+      expect(parseIdx('ge0_0_2')).toBe(2);
+    });
+
+    it('validates connection using multi-rack runtime state schema ({ racks: [...] })', () => {
+      const multiRackState = {
+        racks: [
+          {
+            id: 'rack-1',
+            name: 'Kabin 1',
+            devices: [
+              { instanceId: 'sw-1', catalogKey: 'cisco-2960x-24ps', portsConfig: {} }
+            ]
+          },
+          {
+            id: 'rack-2',
+            name: 'Kabin 2',
+            devices: [
+              { instanceId: 'sw-2', catalogKey: 'cisco-2960x-24ps', portsConfig: {} }
+            ]
+          }
+        ]
+      };
+
+      const result = validateConnection(
+        { instanceId: 'sw-1', portId: 'p1' },
+        { instanceId: 'sw-2', portId: 'p1' },
+        multiRackState as any,
+        catalog
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.autoConfig?.role).toBe('trunk');
+      expect((result.autoConfig as any)?.disallowStandard).toBe(false);
+      expect((result.autoConfig as any)?.isSwitchToSwitch).toBe(true);
+    });
+
+    it('detects optical fiber connection when SFP cage is connected to optical LC ODF', () => {
+      const fiberCatalog = {
+        ...catalog,
+        'fiber-odf-24-os2': {
+          category: 'fiber',
+          ports: [
+            { id: 'lc1', name: 'LC-01', type: 'lc', speed: 'Single-Mode OS2' }
+          ]
+        }
+      };
+
+      const fiberState = {
+        devices: [
+          { instanceId: 'sw1', catalogKey: 'cisco-2960x-24ps', portsConfig: {} },
+          { instanceId: 'odf1', catalogKey: 'fiber-odf-24-os2', portsConfig: {} }
+        ]
+      };
+
+      const result = validateConnection(
+        { instanceId: 'sw1', portId: 'up1' },
+        { instanceId: 'odf1', portId: 'lc1' },
+        fiberState as any,
+        fiberCatalog
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.autoConfig?.color).toBe('#facc15');
+      expect(result.autoConfig?.role).toBe('fiber');
+    });
   });
 });
 
@@ -707,4 +817,5 @@ describe('Custom Port Configuration & Cable Routing Persistence', () => {
     });
   });
 });
+
 

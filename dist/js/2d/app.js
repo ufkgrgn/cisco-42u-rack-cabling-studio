@@ -386,10 +386,10 @@
     if (!dev.portsConfig) dev.portsConfig = {};
 
     const pIdStr = String(portId || '');
-    const isNumericPort = /^p\d+$/i.test(pIdStr) || /^\d+$/.test(pIdStr);
-    const pNumStr = isNumericPort ? pIdStr.replace(/^p/i, '') : pIdStr;
+    const pNumStr = pIdStr.replace(/\D+/g, '');
+    const isNumericPort = Boolean(pNumStr);
     const cat = HARDWARE_CATALOG[dev.catalogKey];
-    const portObj = cat?.ports?.find(p => p.id === portId || p.name === portId || (isNumericPort && String(p.id).replace(/^p/i, '') === pNumStr));
+    const portObj = cat?.ports?.find(p => p.id === portId || p.name === portId || (isNumericPort && String(p.id).replace(/\D+/g, '') === pNumStr));
     const portName = portObj?.name;
 
     const isReset = !config || (
@@ -403,16 +403,19 @@
 
     if (isReset) {
       delete dev.portsConfig[pIdStr];
-      if (isNumericPort) {
+      if (pNumStr) {
         delete dev.portsConfig[pNumStr];
         delete dev.portsConfig['p' + pNumStr];
+        delete dev.portsConfig['pt' + pNumStr];
+        delete dev.portsConfig['lc' + pNumStr];
+        delete dev.portsConfig['sc' + pNumStr];
       }
       delete dev.portsConfig['p' + pIdStr];
       if (portName) delete dev.portsConfig[portName];
 
       const connectedCable = STATE.cables.find(c =>
-        (c.from.instanceId === instanceId && (c.from.portId === portId || (isNumericPort && String(c.from.portId).replace(/^p/i, '') === pNumStr))) ||
-        (c.to.instanceId === instanceId && (c.to.portId === portId || (isNumericPort && String(c.to.portId).replace(/^p/i, '') === pNumStr)))
+        (c.from.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
+        (c.to.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
       );
 
       if (connectedCable) {
@@ -429,14 +432,16 @@
         }
         if (otherDev && otherDev.portsConfig) {
           const oIdStr = String(otherEndpoint.portId || '');
-          const oIsNumeric = /^p\d+$/i.test(oIdStr) || /^\d+$/.test(oIdStr);
-          const oNumStr = oIsNumeric ? oIdStr.replace(/^p/i, '') : oIdStr;
+          const oNumStr = oIdStr.replace(/\D+/g, '');
           const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
-          const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oIsNumeric && String(p.id).replace(/^p/i, '') === oNumStr));
+          const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
           delete otherDev.portsConfig[oIdStr];
-          if (oIsNumeric) {
+          if (oNumStr) {
             delete otherDev.portsConfig[oNumStr];
             delete otherDev.portsConfig['p' + oNumStr];
+            delete otherDev.portsConfig['pt' + oNumStr];
+            delete otherDev.portsConfig['lc' + oNumStr];
+            delete otherDev.portsConfig['sc' + oNumStr];
           }
           delete otherDev.portsConfig['p' + oIdStr];
           if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
@@ -445,7 +450,7 @@
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
             const pIdxA = parseInt(pNumStr, 10) || 1;
-            const pIdxB = parseInt(String(otherEndpoint.portId).replace(/^p/i, ''), 10) || 1;
+            const pIdxB = parseInt(String(otherEndpoint.portId).replace(/\D+/g, ''), 10) || 1;
             window.__STUDIO3D__.updatePortConfig(dev.id || dev.instanceId, pIdxA, null);
             if (otherDev) window.__STUDIO3D__.updatePortConfig(otherDev.id || otherDev.instanceId, pIdxB, null);
           } catch (e) {}
@@ -481,15 +486,18 @@
       if (portName) delete dev.portsConfig[portName];
 
       dev.portsConfig[pIdStr] = cleanCfg;
-      if (isNumericPort) {
+      if (pNumStr) {
         dev.portsConfig[pNumStr] = cleanCfg;
         dev.portsConfig['p' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('pt')) dev.portsConfig['pt' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('lc')) dev.portsConfig['lc' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('sc')) dev.portsConfig['sc' + pNumStr] = cleanCfg;
       }
 
       if (config.autoCableColor !== false) {
         const connectedCable = STATE.cables.find(c =>
-          (c.from.instanceId === instanceId && (c.from.portId === portId || (isNumericPort && String(c.from.portId).replace(/^p/i, '') === pNumStr))) ||
-          (c.to.instanceId === instanceId && (c.to.portId === portId || (isNumericPort && String(c.to.portId).replace(/^p/i, '') === pNumStr)))
+          (c.from.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
+          (c.to.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
         );
         if (connectedCable) {
           connectedCable.color = resolvedColor;
@@ -508,18 +516,20 @@
           if (otherDev) {
             if (!otherDev.portsConfig) otherDev.portsConfig = {};
             const oIdStr = String(otherEndpoint.portId || '');
-            const oIsNumeric = /^p\d+$/i.test(oIdStr) || /^\d+$/.test(oIdStr);
-            const oNumStr = oIsNumeric ? oIdStr.replace(/^p/i, '') : oIdStr;
+            const oNumStr = oIdStr.replace(/\D+/g, '');
             const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
-            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oIsNumeric && String(p.id).replace(/^p/i, '') === oNumStr));
+            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
 
             delete otherDev.portsConfig['p' + oIdStr];
             if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
 
             otherDev.portsConfig[oIdStr] = cleanCfg;
-            if (oIsNumeric) {
+            if (oNumStr) {
               otherDev.portsConfig[oNumStr] = cleanCfg;
               otherDev.portsConfig['p' + oNumStr] = cleanCfg;
+              if (oIdStr.startsWith('pt')) otherDev.portsConfig['pt' + oNumStr] = cleanCfg;
+              if (oIdStr.startsWith('lc')) otherDev.portsConfig['lc' + oNumStr] = cleanCfg;
+              if (oIdStr.startsWith('sc')) otherDev.portsConfig['sc' + oNumStr] = cleanCfg;
             }
           }
         }

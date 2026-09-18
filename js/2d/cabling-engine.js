@@ -155,6 +155,8 @@
     const current = cable.ductSide || 'auto';
     const next = current === 'auto' ? 'left' : (current === 'left' ? 'right' : 'auto');
     cable.ductSide = next;
+    // Clear lengthMeters so renderAllCables recomputes it for the new duct side
+    delete cable.lengthMeters;
 
     // Explicitly maintain active cable selection & highlight so route change is immediately visible
     STATE.highlightedCableId = cableId;
@@ -884,7 +886,9 @@
         // Inter-rack cable in DIRECT mode: aerial Bézier arc above cabinets
         const overheadY = Math.min(y1, y2) - 80 - (leftChannelUsage++ % 6) * 8;
         pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
-        cable.lengthMeters = computeCableLength('interrack-direct', { x1, y1, x2, y2, overheadY });
+        if (cable.lengthMeters == null) {
+          cable.lengthMeters = computeCableLength('interrack-direct', { x1, y1, x2, y2, overheadY });
+        }
       } else if (isInterRack && STATE.cableRoutingMode === 'structured') {
         // Inter-rack cable in STRUCTURED mode:
         // Follows datacenter pathway: Organizer A -> Vertical Channel A (UP) -> Overhead Cable Tray (across) -> Vertical Channel B (DOWN) -> Organizer B -> Port B
@@ -1022,12 +1026,14 @@
                 `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
                 `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
                 `L ${x2} ${y2}`;
-        cable.lengthMeters = computeCableLength('interrack-structured', {
-          x1, y1, x2, y2,
-          channelXA, channelXB,
-          trayYA: actualTrayYA, trayYB: actualTrayYB,
-          overheadTrayY
-        });
+        if (cable.lengthMeters == null) {
+          cable.lengthMeters = computeCableLength('interrack-structured', {
+            x1, y1, x2, y2,
+            channelXA, channelXB,
+            trayYA: actualTrayYA, trayYB: actualTrayYB,
+            overheadTrayY
+          });
+        }
       } else if (STATE.cableRoutingMode === 'structured') {
         // Find devices: check all racks, not just active rack
         const devA = STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
@@ -1039,7 +1045,9 @@
           const loopSide = x1 > 300 ? 12 : -12;
           pathD = `M ${x1} ${y1} C ${x1 + loopSide} ${y1}, ${x2 + loopSide} ${y2}, ${x2} ${y2}`;
           // Loopback: tiny arc — port-to-port on same device, minimal physical length
-          cable.lengthMeters = Math.max(0.5, Math.round(Math.abs(y2 - y1) * MM_PER_SVG_Y / 1000 * SLACK_FACTOR * 2) / 2);
+          if (cable.lengthMeters == null) {
+            cable.lengthMeters = Math.max(0.5, Math.round(Math.abs(y2 - y1) * MM_PER_SVG_Y / 1000 * SLACK_FACTOR * 2) / 2);
+          }
         } else {
           // Structured datacenter cabling within same rack
 
@@ -1132,12 +1140,14 @@
                   `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
                   `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
                   `L ${x2} ${y2}`;
-          cable.lengthMeters = computeCableLength('structured', {
-            x1, y1, x2, y2,
-            channelX,
-            trayYA: actualTrayYA, trayYB: actualTrayYB,
-            hasOrganizer: !!(orgA || orgB)
-          });
+          if (cable.lengthMeters == null) {
+            cable.lengthMeters = computeCableLength('structured', {
+              x1, y1, x2, y2,
+              channelX,
+              trayYA: actualTrayYA, trayYB: actualTrayYB,
+              hasOrganizer: !!(orgA || orgB)
+            });
+          }
         }
       } else {
         const ymid = (y1 + y2) / 2;
@@ -1147,7 +1157,9 @@
         const cp2x = x1 + (x2 - x1) * 0.75;
         const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
         pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
-        cable.lengthMeters = computeCableLength('direct', { x1, y1, x2, y2, sag: tightSag });
+        if (cable.lengthMeters == null) {
+          cable.lengthMeters = computeCableLength('direct', { x1, y1, x2, y2, sag: tightSag });
+        }
       }
 
       // Casing / Outline path (for clear separation between overlapping & adjacent cables)

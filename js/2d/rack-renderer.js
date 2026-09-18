@@ -456,20 +456,27 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     const roleColor = options.color || (isSwitchToSwitch ? '#7c3aed' : (isUplink ? '#00d2ff' : '#7c3aed'));
 
     const headerBadgeHtml = isSwitchToSwitch
-      ? `<span style="font-size:15px;">⚠️</span> DİKKAT: SWİTCHLER ARASI BAĞLANTI (LOOP RİSKİ)`
+      ? `<span style="font-size:15px;">⚡</span> SWİTCHLER ARASI BAĞLANTI (802.1Q TRUNK / ACCESS)`
       : `<span style="font-size:14px;">⚡</span> OTOMATİK ${roleName} / TRUNK ALGILANDI`;
 
     const descriptionHtml = isSwitchToSwitch
-      ? `İki switch arasında doğrudan bağlantı algılandı. Standart erişim (Access) portu bağlantısı ağ döngülerine (Broadcast Storm / STP Loop) yol açabileceğinden bu hat <b>yalnızca 802.1Q TRUNK</b> olarak yapılandırılabilir. Standart access moda izin verilmez.`
+      ? `İki switch arasında doğrudan bağlantı algılandı. Ağ omurga bütünlüğü ve STP performansı için <b>802.1Q TRUNK</b> önerilir. İsteğe bağlı olarak standart Access bağlantısı da kurulabilir.`
       : `${escapeHtml(options.reason || 'İki switch / omurga portu arasında doğrudan bağlantı algılandı.')} Bu bağlantının ağ rolünü otomatik olarak tanımlamak istiyor musunuz?`;
 
     const choiceCardsHtml = isSwitchToSwitch
       ? `
         <div class="uplink-choice-card recommended" id="opt-uplink-recommend" style="border-color: rgba(124, 58, 237, 0.65); background: linear-gradient(180deg, rgba(124, 58, 237, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%);">
-          <span class="choice-tag" style="background: rgba(124, 58, 237, 0.25); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.5);">ZORUNLU AĞ STANDARDI</span>
+          <span class="choice-tag" style="background: rgba(124, 58, 237, 0.25); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.5);">ÖNERİLEN OMURGA STANDARDI</span>
           <div class="choice-title" style="color:#c084fc;">✨ 802.1Q TRUNK Olarak Yapılandır</div>
           <div class="choice-desc">
             Tüm VLAN trafiği güvenle taşınır, STP / Loop koruması aktif tutulur, omurga portu rozeti atanır ve mor/neon kablo rengi uygulanır.
+          </div>
+        </div>
+        <div class="uplink-choice-card" id="opt-uplink-standard">
+          <span class="choice-tag gray">MANUEL / ACCESS</span>
+          <div class="choice-title">Standart Access Olarak Bağla</div>
+          <div class="choice-desc">
+            Özel omurga rolü atanmaz; mevcut seçili kablo rengi ve standart erişim portu ayarları korunur.
           </div>
         </div>
       `
@@ -493,17 +500,19 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     const footerButtonsHtml = isSwitchToSwitch
       ? `
         <button type="button" class="btn-secondary" id="btn-uplink-cancel">İptal</button>
+        <button type="button" class="btn-secondary" id="btn-uplink-standard">Standart Access Olarak Bağla</button>
         <button type="button" class="btn-primary" id="btn-uplink-approve" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #a855f7; box-shadow: 0 2px 14px rgba(124, 58, 237, 0.5);">✨ 802.1Q TRUNK Olarak Yapılandır</button>
       `
       : `
+        <button type="button" class="btn-secondary" id="btn-uplink-cancel">İptal</button>
         <button type="button" class="btn-secondary" id="btn-uplink-standard">Standart Kablo Olarak Bağla</button>
         <button type="button" class="btn-primary" id="btn-uplink-approve">✨ ${roleName} Olarak Yapılandır</button>
       `;
 
     backdrop.innerHTML = `
-      <div class="uplink-modal-card" role="dialog" aria-modal="true" style="${isSwitchToSwitch ? 'border-color: rgba(239, 68, 68, 0.45); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(239, 68, 68, 0.2);' : ''}">
-        <div class="uplink-modal-header" style="${isSwitchToSwitch ? 'background: rgba(45, 10, 10, 0.7);' : ''}">
-          <div class="header-badge" style="${isSwitchToSwitch ? 'color: #f87171;' : ''}">
+      <div class="uplink-modal-card" role="dialog" aria-modal="true">
+        <div class="uplink-modal-header" style="${isSwitchToSwitch ? 'background: rgba(45, 20, 60, 0.6);' : ''}">
+          <div class="header-badge" style="${isSwitchToSwitch ? 'color: #c084fc;' : ''}">
             ${headerBadgeHtml}
           </div>
           <button type="button" class="close-btn" title="Kapat (İptal)">✕</button>
@@ -517,7 +526,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           <p class="uplink-modal-desc">
             ${descriptionHtml}
           </p>
-          <div class="uplink-choices-grid" style="${isSwitchToSwitch ? 'grid-template-columns: 1fr;' : ''}">
+          <div class="uplink-choices-grid">
             ${choiceCardsHtml}
           </div>
         </div>
@@ -530,34 +539,34 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     document.body.appendChild(backdrop);
 
     let resolved = false;
-    const close = (approved) => {
+    const close = (decision) => {
       if (resolved) return;
       resolved = true;
       backdrop.remove();
       document.removeEventListener('keydown', handleKey);
-      onDecision(approved);
+      onDecision(decision);
     };
 
     const handleKey = (e) => {
-      if (e.key === 'Escape') close(false);
-      if (e.key === 'Enter') close(true);
+      if (e.key === 'Escape') close('cancel');
+      if (e.key === 'Enter') close('trunk');
     };
 
     document.addEventListener('keydown', handleKey);
 
-    backdrop.querySelector('.close-btn').addEventListener('click', () => close(false));
+    backdrop.querySelector('.close-btn').addEventListener('click', () => close('cancel'));
     const btnCancel = backdrop.querySelector('#btn-uplink-cancel');
-    if (btnCancel) btnCancel.addEventListener('click', () => close(false));
+    if (btnCancel) btnCancel.addEventListener('click', () => close('cancel'));
     const btnStandard = backdrop.querySelector('#btn-uplink-standard');
-    if (btnStandard) btnStandard.addEventListener('click', () => close(false));
-    backdrop.querySelector('#btn-uplink-approve').addEventListener('click', () => close(true));
+    if (btnStandard) btnStandard.addEventListener('click', () => close('standard'));
+    backdrop.querySelector('#btn-uplink-approve').addEventListener('click', () => close('trunk'));
 
-    backdrop.querySelector('#opt-uplink-recommend').addEventListener('click', () => close(true));
+    backdrop.querySelector('#opt-uplink-recommend').addEventListener('click', () => close('trunk'));
     const optStandard = backdrop.querySelector('#opt-uplink-standard');
-    if (optStandard) optStandard.addEventListener('click', () => close(false));
+    if (optStandard) optStandard.addEventListener('click', () => close('standard'));
 
     backdrop.addEventListener('click', (e) => {
-      if (e.target === backdrop) close(false);
+      if (e.target === backdrop) close('cancel');
     });
   }
 
@@ -1034,22 +1043,50 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
     const dev = allDevices.find(d => d.instanceId === instanceId);
     const pIdStr = String(port.id || '');
-    const pNumStr = pIdStr.replace(/^p/i, '');
+    const pNumStr = pIdStr.replace(/\D+/g, '');
     let portCfg = dev && dev.portsConfig && (
       dev.portsConfig[port.id] ||
-      dev.portsConfig[pNumStr] ||
-      dev.portsConfig['p' + pNumStr] ||
+      (pNumStr && dev.portsConfig[pNumStr]) ||
+      (pNumStr && dev.portsConfig['p' + pNumStr]) ||
+      (pNumStr && dev.portsConfig['pt' + pNumStr]) ||
+      (pNumStr && dev.portsConfig['lc' + pNumStr]) ||
+      (pNumStr && dev.portsConfig['sc' + pNumStr]) ||
       dev.portsConfig[port.name]
     );
 
-    // Fallback: If port is connected but dev.portsConfig has no role set, derive from connected cable
+    // Fallback: If port is connected but dev.portsConfig has no role set, derive from connected cable or remote endpoint
     if (!portCfg && isConnected && Array.isArray(STATE.cables)) {
-      const connCable = STATE.cables.find(c =>
-        (c.from && c.from.instanceId === instanceId && (c.from.portId === port.id || String(c.from.portId).replace(/^p/i, '') === pNumStr)) ||
-        (c.to && c.to.instanceId === instanceId && (c.to.portId === port.id || String(c.to.portId).replace(/^p/i, '') === pNumStr))
-      );
+      const connCable = STATE.cables.find(c => {
+        const fromMatch = c.from && c.from.instanceId === instanceId && (
+          c.from.portId === port.id ||
+          (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr)
+        );
+        const toMatch = c.to && c.to.instanceId === instanceId && (
+          c.to.portId === port.id ||
+          (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)
+        );
+        return fromMatch || toMatch;
+      });
       if (connCable) {
-        if (connCable.color === '#facc15' || connCable.name?.includes('[FIBER]') || connCable.role === 'fiber' || port.type === 'sfp' || port.type === 'lc' || port.type === 'sc') {
+        // Inspect remote connected endpoint's portsConfig to inherit VLAN / role badges bidirectionally
+        const isFromMe = connCable.from && connCable.from.instanceId === instanceId;
+        const remoteEndpoint = isFromMe ? connCable.to : connCable.from;
+        const remoteDev = remoteEndpoint ? allDevices.find(d => d.instanceId === remoteEndpoint.instanceId) : null;
+        let remoteCfg = null;
+        if (remoteDev && remoteDev.portsConfig && remoteEndpoint.portId) {
+          const remId = String(remoteEndpoint.portId);
+          const remNum = remId.replace(/\D+/g, '');
+          remoteCfg = remoteDev.portsConfig[remId] ||
+                      (remNum && remoteDev.portsConfig[remNum]) ||
+                      (remNum && remoteDev.portsConfig['p' + remNum]) ||
+                      (remNum && remoteDev.portsConfig['pt' + remNum]) ||
+                      (remNum && remoteDev.portsConfig['lc' + remNum]) ||
+                      (remNum && remoteDev.portsConfig['sc' + remNum]);
+        }
+
+        if (remoteCfg && (remoteCfg.vlan || remoteCfg.role || remoteCfg.color || remoteCfg.isTrunk)) {
+          portCfg = { ...remoteCfg };
+        } else if (connCable.color === '#facc15' || connCable.name?.includes('[FIBER]') || connCable.role === 'fiber' || port.type === 'sfp' || port.type === 'lc' || port.type === 'sc') {
           portCfg = { role: 'fiber', color: '#facc15' };
         } else if (connCable.role) {
           portCfg = { role: connCable.role, color: connCable.color };
@@ -1393,8 +1430,10 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           return;
         }
 
-        const validation = window.NetworkRules && typeof window.NetworkRules.validateConnection === 'function'
-          ? window.NetworkRules.validateConnection(src, { instanceId, portId }, STATE, HARDWARE_CATALOG, false)
+        const rules = RS.NetworkRules || window.NetworkRules;
+        const strict = STATE.strictCompliance !== false;
+        const validation = rules && typeof rules.validateConnection === 'function'
+          ? rules.validateConnection(src, { rackId: activeRack.id, instanceId, portId }, STATE, HARDWARE_CATALOG, strict)
           : { allowed: true };
 
         if (!validation.allowed) {
@@ -1407,7 +1446,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           return;
         }
 
-        if (validation.warning) {
+        if (validation.warning && !validation.warning.includes('Patch Panel Ara Bağlantı')) {
           dom.tooltip.innerHTML = `
             <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid #78350f; padding-bottom:3px; margin-bottom:4px;">
               ⚠️ Bağlantı Uyarısı
@@ -1618,7 +1657,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             autoCableColor: sourcePortCfg.autoCableColor !== false
           };
           targetDev.portsConfig[portId] = inheritedCfg;
-          targetDev.portsConfig[String(portId).replace(/^p/i, '')] = inheritedCfg;
+          const pNumTgt = String(portId).replace(/\D+/g, '');
+          if (pNumTgt) targetDev.portsConfig[pNumTgt] = inheritedCfg;
         }
       } else if (!isSourceConfigured && isTargetConfigured) {
         // Master is target: source inherits configuration, marking, and cable color
@@ -1639,7 +1679,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             autoCableColor: targetPortCfg.autoCableColor !== false
           };
           sourceDev.portsConfig[source.portId] = inheritedCfg;
-          sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = inheritedCfg;
+          const pNumSrc = String(source.portId).replace(/\D+/g, '');
+          if (pNumSrc) sourceDev.portsConfig[pNumSrc] = inheritedCfg;
         }
       } else if (isSourceConfigured && isTargetConfigured) {
         // Both already configured: prioritize source for cable attributes
@@ -1673,18 +1714,16 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             if (sourceDev) {
               if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
               sourceDev.portsConfig[source.portId] = autoCfg;
-              sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = autoCfg;
+              const pNumSrc = String(source.portId).replace(/\D+/g, '');
+              if (pNumSrc) sourceDev.portsConfig[pNumSrc] = autoCfg;
             }
             if (targetDev) {
               if (!targetDev.portsConfig) targetDev.portsConfig = {};
               targetDev.portsConfig[portId] = autoCfg;
-              targetDev.portsConfig[String(portId).replace(/^p/i, '')] = autoCfg;
+              const pNumTgt = String(portId).replace(/\D+/g, '');
+              if (pNumTgt) targetDev.portsConfig[pNumTgt] = autoCfg;
             }
           } else {
-            if (detectedUplink.disallowStandard || detectedUplink.isSwitchToSwitch) {
-              cancelPendingConnection();
-              return;
-            }
             effectiveRole = 'standard';
             effectiveColor = STATE.selectedCableColor;
             isTrunk = false;
@@ -1705,12 +1744,14 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           if (sourceDev) {
             if (!sourceDev.portsConfig) sourceDev.portsConfig = {};
             sourceDev.portsConfig[source.portId] = autoFiberCfg;
-            sourceDev.portsConfig[String(source.portId).replace(/^p/i, '')] = autoFiberCfg;
+            const pNumSrc = String(source.portId).replace(/\D+/g, '');
+            if (pNumSrc) sourceDev.portsConfig[pNumSrc] = autoFiberCfg;
           }
           if (targetDev) {
             if (!targetDev.portsConfig) targetDev.portsConfig = {};
             targetDev.portsConfig[portId] = autoFiberCfg;
-            targetDev.portsConfig[String(portId).replace(/^p/i, '')] = autoFiberCfg;
+            const pNumTgt = String(portId).replace(/\D+/g, '');
+            if (pNumTgt) targetDev.portsConfig[pNumTgt] = autoFiberCfg;
           }
         }
 
@@ -1728,6 +1769,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           id: cableId,
           name: rolePrefix + cableId,
           role: effectiveRole,
+          isTrunk: !!isTrunk,
           from: { rackId: source.rackId, instanceId: source.instanceId, portId: source.portId },
           to: { rackId: devRack.id, instanceId, portId },
           color: effectiveColor,
@@ -1737,8 +1779,8 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         // Sync to 3D engine if active
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            const pIdxSrc = parseInt(String(source.portId).replace(/^p/i, ''), 10) || 1;
-            const pIdxTgt = parseInt(String(portId).replace(/^p/i, ''), 10) || 1;
+            const pIdxSrc = parseInt(String(source.portId).replace(/\D+/g, ''), 10) || 1;
+            const pIdxTgt = parseInt(String(portId).replace(/\D+/g, ''), 10) || 1;
             const dev3DSrc = sourceDev?.id || sourceDev?.instanceId;
             const dev3DTgt = targetDev?.id || targetDev?.instanceId;
             if (isSourceConfigured && !isTargetConfigured && dev3DTgt) {
@@ -1789,12 +1831,16 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           srcPortName: srcPort?.name || source.portId,
           tgtDeviceName: targetDev?.hostname || targetDev?.name || targetCat?.name || 'Hedef',
           tgtPortName: tgtPort?.name || portId
-        }, (approved) => {
-          if (isSwitchToSwitch && !approved) {
+        }, (decision) => {
+          if (decision === 'cancel') {
             cancelPendingConnection();
             return;
           }
-          commitConnection(approved);
+          if (decision === 'trunk' || decision === true) {
+            commitConnection(true);
+          } else {
+            commitConnection(false);
+          }
         });
       } else if (detectedUplink && !detectedUplink.requiresPrompt) {
         // Dedicated hardware uplink / SFP port: connect automatically without blocking modal

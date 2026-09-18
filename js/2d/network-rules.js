@@ -11,6 +11,16 @@
   const RS = window.RackStudio = window.RackStudio || {};
 
   /**
+   * Normalizes and checks if a port type is an SFP or QSFP transceiver cage.
+   * Matches 'sfp', 'sfp+', 'sfp28', 'qsfp', 'qsfp+', 'qsfp28'.
+   */
+  function isSfpCageType(type) {
+    if (!type) return false;
+    const t = String(type).toLowerCase().trim();
+    return t === 'sfp' || t === 'sfp+' || t === 'sfp28' || t === 'qsfp' || t === 'qsfp+' || t === 'qsfp28';
+  }
+
+  /**
    * Evaluates whether a port is classified as an Uplink / Core / Trunk port.
    * Checks port ID patterns, name patterns, type and speed attributes.
    */
@@ -36,7 +46,7 @@
 
     // 4. SFP / QSFP optical module ports on access switch models (e.g. 2960, 9200L, 9300L)
     const cat = catalog || (device && RS.HARDWARE_CATALOG ? RS.HARDWARE_CATALOG[device.catalogKey] : null);
-    if (cat && (pType === 'sfp' || pType === 'qsfp')) {
+    if (cat && isSfpCageType(pType)) {
       // If the device is primarily copper access switch with dedicated SFP cages
       const hasCopperPorts = Array.isArray(cat.ports) && cat.ports.some(p => p.type === 'rj45');
       if (hasCopperPorts) return true;
@@ -64,8 +74,7 @@
     const isFiber = isFiberConnection(sourceDev, sourcePort, targetDev, targetPort);
 
     // CRITICAL: Switch-to-Switch Interconnection Rules (Loop / STP Protection)
-    // Connecting two switches with standard access mode is strictly forbidden to prevent broadcast storms & loops.
-    // ANY switch-to-switch link must require confirmation and only be provisioned as 802.1Q TRUNK / UPLINK.
+    // Connecting two switches prompts for confirmation: 802.1Q Trunk is recommended, but Standard Access is permitted.
     if (isSrcSwitch && isTgtSwitch) {
       if (isFiber) {
         return {
@@ -73,11 +82,11 @@
           isTrunk: true,
           isFiber: true,
           isSwitchToSwitch: true,
-          disallowStandard: true,
+          disallowStandard: false,
           role: 'trunk',
           color: FIBER_SINGLEMODE_YELLOW,
           prefix: '[TRUNK-FIBER]',
-          reason: 'Switchler Arası Optik Fiber Trunk Hattı (Loop / STP Koruması). Standart Access moda izin verilmez!',
+          reason: 'Switchler Arası Optik Fiber Trunk Hattı (Loop / STP Koruması). 802.1Q Trunk önerilir, Standart Access seçilebilir.',
           requiresPrompt: true
         };
       }
@@ -86,11 +95,11 @@
           isUplink: true,
           isTrunk: true,
           isSwitchToSwitch: true,
-          disallowStandard: true,
+          disallowStandard: false,
           role: 'uplink',
           color: '#00d2ff',
           prefix: '[UPLINK]',
-          reason: 'Switchler Arası Donanımsal Uplink Port Hattı (Loop / STP Koruması). Standart Access moda izin verilmez!',
+          reason: 'Switchler Arası Donanımsal Uplink Port Hattı (Loop / STP Koruması). 802.1Q Trunk önerilir, Standart Access seçilebilir.',
           requiresPrompt: true
         };
       }
@@ -98,11 +107,11 @@
         isUplink: false,
         isTrunk: true,
         isSwitchToSwitch: true,
-        disallowStandard: true,
+        disallowStandard: false,
         role: 'trunk',
         color: '#7c3aed',
         prefix: '[TRUNK]',
-        reason: 'Switchler Arası 802.1Q Trunk Hattı (Loop / STP Koruması). Standart Access moda izin verilmez!',
+        reason: 'Switchler Arası 802.1Q Trunk Hattı (Loop / STP Koruması). 802.1Q Trunk önerilir, Standart Access seçilebilir.',
         requiresPrompt: true
       };
     }
@@ -146,7 +155,7 @@
     if (type === 'lc' || type === 'sc' || type === 'fiber') return true;
     const cat = catalog || (device && RS.HARDWARE_CATALOG ? RS.HARDWARE_CATALOG[device.catalogKey] : null);
     if (cat?.category === 'fiber') return true;
-    if (type === 'sfp') {
+    if (isSfpCageType(type)) {
       const speed = String(port.speed || '').toLowerCase();
       if (speed.includes('fiber') || cat?.category === 'fiber-switch') return true;
       return true; // SFP optical cage default
@@ -197,12 +206,12 @@
         isFiber: true,
         isTrunk: true,
         isSwitchToSwitch: true,
-        disallowStandard: true,
+        disallowStandard: false,
         color: FIBER_SINGLEMODE_YELLOW,
         role: 'trunk',
         prefix: '[TRUNK-FIBER]',
         media: mediaLabel,
-        reason: `Switchler Arası Single-Mode OS2 Fiber Trunk Bağlantısı (${mediaLabel}) (Loop / STP Koruması)`,
+        reason: `Switchler Arası Single-Mode OS2 Fiber Trunk Bağlantısı (${mediaLabel}) (Loop / STP Koruması). 802.1Q Trunk önerilir, Standart Access seçilebilir.`,
         requiresPrompt: true
       };
     }
@@ -240,18 +249,29 @@
    */
   function validateConnection(source, target, optionsOrState = {}, catalogMap = null, maybeStrict = null) {
     let strictMode = true;
-    let stateRef = RS.STATE;
-    let catalogRef = RS.HARDWARE_CATALOG;
+    let stateRef = RS.STATE || window.STATE;
+    let catalogRef = RS.HARDWARE_CATALOG || window.HARDWARE_CATALOG;
 
-    if (typeof optionsOrState === 'object' && optionsOrState !== null && optionsOrState.devices && Array.isArray(optionsOrState.devices)) {
-      // Unit test signature: (source, target, state, catalogMap, strictMode)
-      stateRef = optionsOrState;
-      if (catalogMap) catalogRef = catalogMap;
-      if (typeof maybeStrict === 'boolean') strictMode = maybeStrict;
-    } else if (typeof optionsOrState === 'object' && optionsOrState !== null) {
-      if (optionsOrState.strictMode !== undefined) strictMode = Boolean(optionsOrState.strictMode);
-      else if (RS.STATE?.strictCompliance !== false) strictMode = true;
-      else strictMode = false;
+    if (optionsOrState && typeof optionsOrState === 'object') {
+      if (Array.isArray(optionsOrState.devices) || Array.isArray(optionsOrState.racks)) {
+        stateRef = optionsOrState;
+      }
+      if (catalogMap) {
+        catalogRef = catalogMap;
+      }
+      if (typeof maybeStrict === 'boolean') {
+        strictMode = maybeStrict;
+      } else if (optionsOrState.strictMode !== undefined) {
+        strictMode = Boolean(optionsOrState.strictMode);
+      } else if (optionsOrState.strictCompliance !== undefined) {
+        strictMode = Boolean(optionsOrState.strictCompliance);
+      } else if (stateRef?.strictCompliance !== undefined) {
+        strictMode = Boolean(stateRef.strictCompliance);
+      } else if (RS.STATE?.strictCompliance !== false) {
+        strictMode = true;
+      } else {
+        strictMode = false;
+      }
     }
 
     if (!catalogRef) catalogRef = RS.HARDWARE_CATALOG || window.HARDWARE_CATALOG || {};
@@ -271,7 +291,7 @@
         const d = stateRef.devices.find(item => item.instanceId === instId);
         if (d) return { device: d, rack: null };
       }
-      const racks = stateRef?.racks || RS.STATE?.racks || [];
+      const racks = stateRef?.racks || RS.STATE?.racks || window.STATE?.racks || [];
       for (const r of racks) {
         const d = r.devices?.find(item => item.instanceId === instId);
         if (d) return { device: d, rack: r };
@@ -327,8 +347,8 @@
     if (strictMode) {
       const isFiberA = typeA === 'lc' || typeA === 'sc' || typeA === 'fiber';
       const isFiberB = typeB === 'lc' || typeB === 'sc' || typeB === 'fiber';
-      const isSfpA = typeA === 'sfp' || typeA === 'qsfp' || typeA === 'qsfp28';
-      const isSfpB = typeB === 'sfp' || typeB === 'qsfp' || typeB === 'qsfp28';
+      const isSfpA = isSfpCageType(typeA);
+      const isSfpB = isSfpCageType(typeB);
       const isCopperA = typeA === 'rj45';
       const isCopperB = typeB === 'rj45';
 
@@ -352,9 +372,11 @@
     }
 
     // Inter-panel pass-through warning between two different patch panels
+    // Connecting two distinct patch panels or fiber ODFs is standard structured cabling cross-connect.
+    // Do NOT return an amber warning that replaces the green #22c55e "Bağlantıyı Tamamla" tooltip.
     let passThroughWarning = null;
     if (isPatchA && isPatchB && source.instanceId !== target.instanceId) {
-      passThroughWarning = 'ℹ️ Patch Panel Ara Bağlantı: İki patch panel arası doğrudan aktarma (cross-connect) bağlantısı.';
+      passThroughWarning = null;
     }
 
     // 5. AUTOMATIC UPLINK & FIBER RECOGNITION
@@ -372,6 +394,7 @@
   // Export functions to global namespace
   RS.NetworkRules = {
     isPassivePatchPanel,
+    isSfpCageType,
     isUplinkPort,
     isFiberPort,
     isFiberConnection,
@@ -379,4 +402,5 @@
     detectUplinkConnection,
     validateConnection
   };
+  window.NetworkRules = RS.NetworkRules;
 })();

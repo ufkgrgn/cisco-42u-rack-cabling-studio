@@ -82,22 +82,34 @@
     if (devA) {
       if (!devA.portsConfig) devA.portsConfig = {};
       const pIdA = cable.from.portId;
-      const isNumA = /^p\d+$/i.test(String(pIdA)) || /^\d+$/.test(String(pIdA));
-      const pNumA = isNumA ? String(pIdA).replace(/^p/i, '') : String(pIdA);
+      const pNumA = String(pIdA).replace(/\D+/g, '');
       if (isStandard) {
         delete devA.portsConfig[pIdA];
-        if (isNumA) {
+        if (pNumA) {
           delete devA.portsConfig[pNumA];
           delete devA.portsConfig['p' + pNumA];
+          delete devA.portsConfig['pt' + pNumA];
+          delete devA.portsConfig['lc' + pNumA];
+          delete devA.portsConfig['sc' + pNumA];
         }
         delete devA.portsConfig['p' + pIdA];
       } else {
-        const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
+        const existingA = devA.portsConfig[pIdA] || (pNumA && devA.portsConfig[pNumA]) || {};
+        const cfg = {
+          ...existingA,
+          role: roleKey,
+          isTrunk: isTrunkRole,
+          color: resolvedColor,
+          autoCableColor: true
+        };
         delete devA.portsConfig['p' + pIdA];
         devA.portsConfig[pIdA] = cfg;
-        if (isNumA) {
+        if (pNumA) {
           devA.portsConfig[pNumA] = cfg;
           devA.portsConfig['p' + pNumA] = cfg;
+          if (String(pIdA).startsWith('pt')) devA.portsConfig['pt' + pNumA] = cfg;
+          if (String(pIdA).startsWith('lc')) devA.portsConfig['lc' + pNumA] = cfg;
+          if (String(pIdA).startsWith('sc')) devA.portsConfig['sc' + pNumA] = cfg;
         }
       }
     }
@@ -105,22 +117,34 @@
     if (devB) {
       if (!devB.portsConfig) devB.portsConfig = {};
       const pIdB = cable.to.portId;
-      const isNumB = /^p\d+$/i.test(String(pIdB)) || /^\d+$/.test(String(pIdB));
-      const pNumB = isNumB ? String(pIdB).replace(/^p/i, '') : String(pIdB);
+      const pNumB = String(pIdB).replace(/\D+/g, '');
       if (isStandard) {
         delete devB.portsConfig[pIdB];
-        if (isNumB) {
+        if (pNumB) {
           delete devB.portsConfig[pNumB];
           delete devB.portsConfig['p' + pNumB];
+          delete devB.portsConfig['pt' + pNumB];
+          delete devB.portsConfig['lc' + pNumB];
+          delete devB.portsConfig['sc' + pNumB];
         }
         delete devB.portsConfig['p' + pIdB];
       } else {
-        const cfg = { role: roleKey, isTrunk: isTrunkRole, color: resolvedColor, autoCableColor: true };
+        const existingB = devB.portsConfig[pIdB] || (pNumB && devB.portsConfig[pNumB]) || {};
+        const cfg = {
+          ...existingB,
+          role: roleKey,
+          isTrunk: isTrunkRole,
+          color: resolvedColor,
+          autoCableColor: true
+        };
         delete devB.portsConfig['p' + pIdB];
         devB.portsConfig[pIdB] = cfg;
-        if (isNumB) {
+        if (pNumB) {
           devB.portsConfig[pNumB] = cfg;
           devB.portsConfig['p' + pNumB] = cfg;
+          if (String(pIdB).startsWith('pt')) devB.portsConfig['pt' + pNumB] = cfg;
+          if (String(pIdB).startsWith('lc')) devB.portsConfig['lc' + pNumB] = cfg;
+          if (String(pIdB).startsWith('sc')) devB.portsConfig['sc' + pNumB] = cfg;
         }
       }
     }
@@ -289,8 +313,24 @@
     const rackShortA = rackA ? (rackA.name.length > 10 ? rackA.name.slice(0, 10) + '…' : rackA.name) : 'Kabin';
     const rackShortB = rackB ? (rackB.name.length > 10 ? rackB.name.slice(0, 10) + '…' : rackB.name) : 'Kabin';
 
-    const sourcePortCfg = devA?.portsConfig && (devA.portsConfig[c.from?.portId] || devA.portsConfig[String(c.from?.portId).replace('p', '')]);
-    const targetPortCfg = devB?.portsConfig && (devB.portsConfig[c.to?.portId] || devB.portsConfig[String(c.to?.portId).replace('p', '')]);
+    const fromNum = String(c.from?.portId || '').replace(/\D+/g, '');
+    const toNum = String(c.to?.portId || '').replace(/\D+/g, '');
+    const sourcePortCfg = devA?.portsConfig && (
+      devA.portsConfig[c.from?.portId] ||
+      (fromNum && devA.portsConfig[fromNum]) ||
+      (fromNum && devA.portsConfig['p' + fromNum]) ||
+      (fromNum && devA.portsConfig['pt' + fromNum]) ||
+      (fromNum && devA.portsConfig['lc' + fromNum]) ||
+      (fromNum && devA.portsConfig['sc' + fromNum])
+    );
+    const targetPortCfg = devB?.portsConfig && (
+      devB.portsConfig[c.to?.portId] ||
+      (toNum && devB.portsConfig[toNum]) ||
+      (toNum && devB.portsConfig['p' + toNum]) ||
+      (toNum && devB.portsConfig['pt' + toNum]) ||
+      (toNum && devB.portsConfig['lc' + toNum]) ||
+      (toNum && devB.portsConfig['sc' + toNum])
+    );
     const portRole = (c.role || (sourcePortCfg && sourcePortCfg.role) || (targetPortCfg && targetPortCfg.role) || (portA && portA.role) || (portB && portB.role) || '').toLowerCase();
 
     const roleColors = {
@@ -313,14 +353,15 @@
                          (c.name && c.name.startsWith('[FIBER]')) ||
                          (portTypeA === 'fiber' && portTypeB === 'fiber');
 
-    if (isOpticalRun) {
+    if (isOpticalRun && c.role !== 'trunk' && !c.isTrunk) {
       if (c.color !== '#facc15') c.color = '#facc15';
       if (c.role !== 'fiber') c.role = 'fiber';
       if (c.name && c.name.startsWith('[UPLINK]')) c.name = c.name.replace('[UPLINK]', '[FIBER]');
     }
 
-    const effectiveCardRole = isOpticalRun ? 'fiber' : (portRole || 'standard');
-    const rowAccentColor = isOpticalRun ? '#facc15' : (roleColors[effectiveCardRole] || c.color || '#38bdf8');
+    const isOpticalTrunk = (c.role === 'trunk' || Boolean(c.isTrunk));
+    const effectiveCardRole = (isOpticalRun && !isOpticalTrunk) ? 'fiber' : (portRole || 'standard');
+    const rowAccentColor = (isOpticalRun && !isOpticalTrunk) ? '#facc15' : (roleColors[effectiveCardRole] || c.color || '#38bdf8');
     tr.style.setProperty('--row-accent', rowAccentColor);
     tr.classList.add('schedule-cable-card');
     if (effectiveCardRole) tr.classList.add(`role-${effectiveCardRole}`);
@@ -404,7 +445,7 @@
       <td class="schedule-card-cell" colspan="3">
         <div class="card-legend-bar">
           <div class="card-legend-left role-select-trigger" data-cable-id="${c.id}" title="Kablo Rolü Ata / Değiştir (Tıkla)">
-            <span class="cable-color-dot" style="background:${isOpticalRun ? '#facc15' : c.color};box-shadow:0 0 6px ${isOpticalRun ? '#facc15' : c.color};"></span>
+            <span class="cable-color-dot" style="background:${(isOpticalRun && !isOpticalTrunk) ? '#facc15' : c.color};box-shadow:0 0 6px ${(isOpticalRun && !isOpticalTrunk) ? '#facc15' : c.color};"></span>
             <span class="cable-role-tag role-${effectiveCardRole}">${roleTagLetter} ${escapeHtml(roleBadgeText)} ▾</span>
             <span class="cable-id-badge" title="${escapeHtml(c.name || c.id)}">${escapeHtml(displayName)}</span>
           </div>
@@ -555,7 +596,7 @@
         const remotePortName = remotePortObj?.name || remotePortId;
         const remoteLabel = remoteDev?.panelLabel ? `Panel ${remoteDev.panelLabel}` : (remoteDev?.hostname || remoteCat?.name || 'Cihaz');
 
-        const isOptical = c.color === '#facc15' || c.name?.startsWith('[FIBER]') || c.role === 'fiber' || isFiberPort;
+        const isOptical = (c.color === '#facc15' || c.name?.startsWith('[FIBER]') || c.role === 'fiber' || isFiberPort) && c.role !== 'trunk' && !c.isTrunk;
         const effRole = isOptical ? 'fiber' : (c.role || 'standard');
         const roleColors = { trunk: '#7c3aed', uplink: '#00d2ff', 'trunk-ap': '#ec4899', poe: '#f59e0b', mgmt: '#059669', console: '#00bceb', routed: '#b91c1c', fiber: '#facc15', standard: '#334155' };
         const accent = roleColors[effRole] || c.color || '#38bdf8';
