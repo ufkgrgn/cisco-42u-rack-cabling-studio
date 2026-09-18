@@ -373,10 +373,9 @@
 
     // Inter-panel pass-through warning between two different patch panels
     // Connecting two distinct patch panels or fiber ODFs is standard structured cabling cross-connect.
-    // Do NOT return an amber warning that replaces the green #22c55e "Bağlantıyı Tamamla" tooltip.
     let passThroughWarning = null;
     if (isPatchA && isPatchB && source.instanceId !== target.instanceId) {
-      passThroughWarning = null;
+      passThroughWarning = "Patch Panel Ara Bağlantı (Cross-Connect): İki pasif panel arası köprü bağlantısı yapılıyor.";
     }
 
     // 5. AUTOMATIC UPLINK & FIBER RECOGNITION

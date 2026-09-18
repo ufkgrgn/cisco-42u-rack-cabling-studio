@@ -141,6 +141,14 @@
       }
     }, true);
 
+    // Snapshot Modal Action
+    document.getElementById('btn-snapshot-modal')?.addEventListener('click', (e) => {
+      e.stopImmediatePropagation();
+      if (window.RackStudio?.openSnapshotModal) {
+        window.RackStudio.openSnapshotModal();
+      }
+    }, true);
+
     // Unified Storage Actions in 2D Mode
     document.getElementById('btn-export-json-3d')?.addEventListener('click', (e) => {
       if (!window.is3DMode) {

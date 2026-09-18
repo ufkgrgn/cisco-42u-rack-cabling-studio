@@ -149,9 +149,14 @@
       setZoom(RS.ZOOM_STATE.scale * zoomFactor, e.clientX, e.clientY, false);
     }, { passive: false });
 
+    let panOriginClientX = 0;
+    let panOriginClientY = 0;
+
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 1 || (e.button === 0 && (e.altKey || e.spaceKey || e.target === canvas || e.target === RS.dom?.rackStage || e.target === RS.dom?.cablesSvg))) {
         RS.ZOOM_STATE.isPanning = true;
+        panOriginClientX = e.clientX;
+        panOriginClientY = e.clientY;
         RS.ZOOM_STATE.startX = e.clientX - RS.ZOOM_STATE.panX;
         RS.ZOOM_STATE.startY = e.clientY - RS.ZOOM_STATE.panY;
         RS.ZOOM_STATE.hasMoved = false;
@@ -162,9 +167,8 @@
 
     window.addEventListener('mousemove', (e) => {
       if (!RS.ZOOM_STATE.isPanning) return;
-      const dx = Math.abs(e.clientX - (RS.ZOOM_STATE.startX + RS.ZOOM_STATE.panX));
-      const dy = Math.abs(e.clientY - (RS.ZOOM_STATE.startY + RS.ZOOM_STATE.panY));
-      if (dx > 3 || dy > 3) {
+      const dist = Math.hypot(e.clientX - panOriginClientX, e.clientY - panOriginClientY);
+      if (dist > 4) {
         RS.ZOOM_STATE.hasMoved = true;
       }
       RS.ZOOM_STATE.panX = e.clientX - RS.ZOOM_STATE.startX;
@@ -179,6 +183,11 @@
         RS.ZOOM_STATE.isPanning = false;
         canvas.classList.remove('panning');
         if (RS.renderAllCables) RS.renderAllCables();
+        if (RS.ZOOM_STATE.hasMoved) {
+          setTimeout(() => {
+            if (RS.ZOOM_STATE) RS.ZOOM_STATE.hasMoved = false;
+          }, 250);
+        }
       }
     });
 

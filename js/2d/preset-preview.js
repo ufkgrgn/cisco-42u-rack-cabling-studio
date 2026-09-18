@@ -95,72 +95,153 @@
     }
   };
 
+  function getOrCreatePopup() {
+    let popup = document.getElementById("preset-preview-popup");
+    if (!popup) {
+      popup = document.createElement("div");
+      popup.id = "preset-preview-popup";
+      popup.style.position = "fixed";
+      popup.style.zIndex = "999999";
+      popup.style.display = "none";
+      popup.style.background = "rgba(15, 23, 42, 0.97)";
+      popup.style.backdropFilter = "blur(16px)";
+      popup.style.border = "1px solid rgba(56, 189, 248, 0.4)";
+      popup.style.borderRadius = "10px";
+      popup.style.boxShadow = "0 24px 50px rgba(0, 0, 0, 0.75), 0 0 25px rgba(56, 189, 248, 0.2)";
+      popup.style.pointerEvents = "auto";
+      popup.style.maxWidth = "580px";
+      popup.style.color = "#f8fafc";
+      popup.style.fontFamily = "system-ui, -apple-system, sans-serif";
+      document.body.appendChild(popup);
+    }
+    return popup;
+  }
+
   function renderMiniRack(rackDef) {
     const chips = rackDef.devices.map(d => {
       const col = CATEGORY_COLORS[d.category] || CATEGORY_COLORS.blank;
-      const h = Math.max(12, d.u * 14);
-      return "<div style=\"background:" + col.bg + ";color:" + col.label + ";font-size:9px;font-weight:700;height:" + h + "px;display:flex;align-items:center;padding:0 5px;border-radius:2px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;border-left:2px solid rgba(255,255,255,0.2);\">" + d.label + "</div>";
+      const h = Math.max(14, d.u * 15);
+      return `<div style="background:${col.bg};color:${col.label};font-size:9px;font-weight:700;height:${h}px;display:flex;align-items:center;justify-content:space-between;padding:0 6px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid rgba(255,255,255,0.25);">` +
+        `<span style="overflow:hidden;text-overflow:ellipsis;max-width:120px;">${d.label}</span>` +
+        `<span style="font-size:7.5px;opacity:0.75;margin-left:4px;font-family:monospace;font-weight:800;">${d.u}U</span>` +
+        `</div>`;
     }).join("");
-    return "<div style=\"margin-bottom:12px;\"><div style=\"font-size:9.5px;font-weight:700;color:#94a3b8;margin-bottom:4px;letter-spacing:0.4px;text-transform:uppercase;\">" + rackDef.name + "</div><div style=\"background:#0f172a;border:1px solid #334155;border-radius:4px;padding:6px 5px;min-width:160px;max-width:160px;\">" + chips + "</div></div>";
+
+    return `<div style="flex:1;min-width:145px;max-width:175px;">` +
+      `<div style="font-size:9.5px;font-weight:800;color:#38bdf8;margin-bottom:5px;letter-spacing:0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${rackDef.name}</div>` +
+      `<div style="background:#090d16;border:1px solid #1e293b;border-radius:6px;padding:6px 5px;position:relative;box-shadow:inset 0 2px 8px rgba(0,0,0,0.6);">` +
+      `<div style="margin:0 2px;">${chips}</div>` +
+      `</div></div>`;
   }
 
   function showPresetPopup(presetKey, anchorEl) {
-    const popup = document.getElementById("preset-preview-popup");
-    if (!popup) return;
+    const popup = getOrCreatePopup();
     const data = PRESET_DATA[presetKey];
     if (!data) return;
+
     const racksHtml = data.racks.map(renderMiniRack).join("");
-    popup.innerHTML = "<div style=\"padding:12px 14px;\"><div style=\"font-size:12px;font-weight:800;color:#38bdf8;margin-bottom:10px;border-bottom:1px solid #1e3a5f;padding-bottom:6px;\">📦 " + data.title + "</div><div style=\"display:flex;gap:10px;flex-wrap:wrap;\">" + racksHtml + "</div><div style=\"margin-top:10px;border-top:1px solid #1e293b;padding-top:8px;display:flex;gap:6px;\"><button class=\"preset-preview-load-btn\" data-preset=\"" + presetKey + "\" style=\"background:#1e3a5f;border:1px solid #38bdf8;color:#38bdf8;font-size:10px;font-weight:700;padding:4px 10px;border-radius:4px;cursor:pointer;\">⚡ Yükle</button><span style=\"font-size:9px;color:#64748b;align-self:center;\">veya butona tıklayın</span></div></div>";
+    popup.innerHTML = `
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid rgba(56,189,248,0.2);padding-bottom:8px;">
+          <div>
+            <div style="font-size:12.5px;font-weight:800;color:#f8fafc;">📦 ${data.title}</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:2px;">Önizleme wireframe şeması</div>
+          </div>
+          <span style="font-size:9.5px;font-weight:700;color:#38bdf8;background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);border-radius:4px;padding:2px 7px;white-space:nowrap;">
+            ${data.racks.length} Kabin · 42U
+          </span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;">
+          ${racksHtml}
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:9px;color:#64748b;">Mevcut topoloji sıfırlanacaktır</span>
+          <button class="preset-preview-load-btn" data-preset="${presetKey}" style="background:linear-gradient(135deg,#0284c7,#0ea5e9);border:none;color:#ffffff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:5px;cursor:pointer;box-shadow:0 2px 10px rgba(14,165,233,0.4);">
+            ⚡ Şablonu Yükle
+          </button>
+        </div>
+      </div>
+    `;
+
     const rect = anchorEl.getBoundingClientRect();
     popup.style.display = "block";
-    const popupH = 300;
+    popup.style.opacity = "1";
+
+    const popupW = popup.offsetWidth || 480;
+    const popupH = popup.offsetHeight || 280;
     const spaceBelow = window.innerHeight - rect.bottom;
-    popup.style.top = (spaceBelow < popupH ? (rect.top - popupH - 8) : (rect.bottom + 8)) + "px";
-    popup.style.left = Math.max(8, rect.left) + "px";
-    popup.querySelectorAll(".preset-preview-load-btn").forEach(function(btn) {
-      btn.addEventListener("click", function() {
+
+    if (spaceBelow < popupH && rect.top > popupH) {
+      popup.style.top = Math.max(8, rect.top - popupH - 8) + "px";
+    } else {
+      popup.style.top = (rect.bottom + 8) + "px";
+    }
+
+    const left = Math.max(12, Math.min(window.innerWidth - popupW - 16, rect.left));
+    popup.style.left = left + "px";
+
+    popup.querySelectorAll(".preset-preview-load-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
         hidePresetPopup();
-        var key = btn.dataset.preset;
+        const key = btn.dataset.preset;
         if (key === "mdf" && RS.loadMdfPreset) RS.loadMdfPreset();
         else if (key === "idf" && RS.loadIdfPreset) RS.loadIdfPreset();
         else if (key === "site" && RS.loadFullSitePreset) RS.loadFullSitePreset();
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
       });
     });
   }
 
   function hidePresetPopup() {
-    var popup = document.getElementById("preset-preview-popup");
+    const popup = document.getElementById("preset-preview-popup");
     if (popup) popup.style.display = "none";
   }
 
   function initPresetPreview() {
-    var hideTimer = null;
-    function bindTarget(el, presetKey) {
-      if (!el) return;
-      el.addEventListener("mouseenter", function() {
-        clearTimeout(hideTimer);
-        if (!window.is3DMode) showPresetPopup(presetKey, el);
-      });
-      el.addEventListener("mouseleave", function() {
-        hideTimer = setTimeout(hidePresetPopup, 250);
-      });
+    let hideTimer = null;
+
+    function handleEnter(el, presetKey) {
+      clearTimeout(hideTimer);
+      if (!window.is3DMode) showPresetPopup(presetKey, el);
     }
 
-    document.querySelectorAll(".preset-btn-wrap").forEach(function(wrap) {
-      bindTarget(wrap, wrap.dataset.preset);
+    function handleLeave() {
+      hideTimer = setTimeout(hidePresetPopup, 280);
+    }
+
+    // Direct event delegation for any preset trigger
+    document.addEventListener("mouseover", (e) => {
+      const trigger = e.target.closest("#btn-preset-mdf, #btn-preset-idf, #btn-preset-site, #btn-3d-preset-mdf, #btn-3d-preset-idf, #btn-3d-preset-site, .preset-btn-wrap");
+      if (trigger) {
+        let key = trigger.dataset.preset;
+        if (!key) {
+          if (trigger.id.includes("mdf")) key = "mdf";
+          else if (trigger.id.includes("idf")) key = "idf";
+          else if (trigger.id.includes("site")) key = "site";
+        }
+        if (key) handleEnter(trigger, key);
+      }
     });
 
-    bindTarget(document.getElementById("btn-3d-preset-mdf"), "mdf");
-    bindTarget(document.getElementById("btn-3d-preset-idf"), "idf");
-    bindTarget(document.getElementById("btn-3d-preset-site"), "site");
+    document.addEventListener("mouseout", (e) => {
+      const trigger = e.target.closest("#btn-preset-mdf, #btn-preset-idf, #btn-preset-site, #btn-3d-preset-mdf, #btn-3d-preset-idf, #btn-3d-preset-site, .preset-btn-wrap");
+      if (trigger) handleLeave();
+    });
 
-    var popup = document.getElementById("preset-preview-popup");
-    if (popup) {
-      popup.addEventListener("mouseenter", function() { clearTimeout(hideTimer); });
-      popup.addEventListener("mouseleave", function() { hideTimer = setTimeout(hidePresetPopup, 250); });
-    }
-    document.addEventListener("click", function(e) {
-      if (!e.target.closest(".preset-btn-wrap") && !e.target.closest("#preset-preview-popup") && !e.target.closest(".preset-btn")) hidePresetPopup();
+    // Ensure popup itself handles hover
+    const popup = getOrCreatePopup();
+    popup.addEventListener("mouseenter", () => clearTimeout(hideTimer));
+    popup.addEventListener("mouseleave", () => handleLeave());
+
+    // Hide on click outside or escape key
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#preset-preview-popup") && !e.target.closest("#btn-preset-mdf, #btn-preset-idf, #btn-preset-site, #btn-3d-preset-mdf, #btn-3d-preset-idf, #btn-3d-preset-site, .preset-btn-wrap")) {
+        hidePresetPopup();
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") hidePresetPopup();
     });
   }
 

@@ -148,9 +148,118 @@
     }
   }
 
+  /**
+   * Resizes a rack's height in U units.
+   * Ensures devices are not clipped; returns false if occupied slots would be cut off.
+   */
+  function resizeRackHeight(rackId, newHeightU) {
+    const rack = RS.STATE.racks.find(r => r.id === rackId);
+    if (!rack) return false;
+    newHeightU = Math.max(12, Math.min(60, Math.round(newHeightU)));
+    if (newHeightU === rack.heightU) return true;
+
+    // Check if any device would be cut off (devices are placed from 1 to topU)
+    // Note: in this studio, topU is the top unit of device.
+    // If shrinking, cannot shrink below the highest occupied slot or lowest occupied slot depending on coordinate system.
+    // In our system, slot 1 is bottom, slot heightU is top.
+    // So shrinking from 42U to 30U cuts off slots 31-42.
+    // Therefore, any device with topU > newHeightU would be cut off.
+    const highestOccupiedU = rack.devices.reduce((max, d) => Math.max(max, d.topU), 0);
+    if (newHeightU < highestOccupiedU) {
+      if (RS.showTemporaryTooltip) {
+        RS.showTemporaryTooltip(window.innerWidth / 2, window.innerHeight / 2, `⚠️ Kabin U${highestOccupiedU} seviyesindeki cihazdan daha aşağıya küçültülemez.`);
+      }
+      return false;
+    }
+
+    rack.heightU = newHeightU;
+    rack.units = Array(newHeightU + 1).fill(null);
+    rack.devices.forEach(d => {
+      for (let u = d.topU - d.uHeight + 1; u <= d.topU; u++) {
+        if (u <= newHeightU) rack.units[u] = d.instanceId;
+      }
+    });
+
+    if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
+    renderRackTabs();
+    if (RS.renderMountedDevices) RS.renderMountedDevices();
+    if (RS.renderScheduleTable) RS.renderScheduleTable();
+    if (RS.renderAllCables) RS.renderAllCables();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    return true;
+  }
+
+  /**
+   * Move a rack left (-1) or right (+1) in the visual ordering
+   */
+  function moveRackOrder(rackId, direction) {
+    const idx = RS.STATE.racks.findIndex(r => r.id === rackId);
+    if (idx === -1) return;
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= RS.STATE.racks.length) return;
+
+    const [moved] = RS.STATE.racks.splice(idx, 1);
+    RS.STATE.racks.splice(targetIdx, 0, moved);
+
+    if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
+    renderRackTabs();
+    if (RS.renderMountedDevices) RS.renderMountedDevices();
+    if (RS.renderScheduleTable) RS.renderScheduleTable();
+    if (RS.renderAllCables) RS.renderAllCables();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+  }
+
+  /**
+   * Duplicate a rack and all of its mounted devices (without cables)
+   */
+  function duplicateRack(rackId) {
+    const srcRack = RS.STATE.racks.find(r => r.id === rackId);
+    if (!srcRack) return null;
+
+    do { RS.STATE.rackCounter++; } while (RS.STATE.racks.some(r => r.id === `rack-${RS.STATE.rackCounter}`));
+    const newId = `rack-${RS.STATE.rackCounter}`;
+    const newName = `${srcRack.name} (Kopya)`;
+    const newRack = {
+      id: newId,
+      name: newName,
+      heightU: srcRack.heightU || 42,
+      units: Array((srcRack.heightU || 42) + 1).fill(null),
+      devices: []
+    };
+
+    RS.STATE.racks.push(newRack);
+    RS.STATE.activeRackId = newId;
+
+    // Duplicate devices with fresh instance IDs
+    if (srcRack.devices && srcRack.devices.length > 0) {
+      srcRack.devices.forEach(dev => {
+        if (RS.mountDeviceAt) {
+          RS.mountDeviceAt(dev.catalogKey, dev.topU, newId);
+        }
+      });
+    }
+
+    if (RS.STATE.viewMode !== 'multi') {
+      if (RS.setViewMode) RS.setViewMode('multi');
+      else RS.STATE.viewMode = 'multi';
+    } else {
+      if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
+      renderRackTabs();
+      if (RS.renderMountedDevices) RS.renderMountedDevices();
+      if (RS.renderScheduleTable) RS.renderScheduleTable();
+      if (RS.renderAllCables) RS.renderAllCables();
+    }
+
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    return newRack;
+  }
+
   RS.renderRackTabs = renderRackTabs;
   RS.switchActiveRack = switchActiveRack;
   RS.addNewRack = addNewRack;
   RS.renameActiveRack = renameActiveRack;
   RS.deleteRack = deleteRack;
+  RS.resizeRackHeight = resizeRackHeight;
+  RS.moveRackOrder = moveRackOrder;
+  RS.duplicateRack = duplicateRack;
 })();

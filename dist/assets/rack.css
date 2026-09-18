@@ -2262,3 +2262,75 @@
 .rack-float-add-right {
   right: 20px;
 }
+
+/* =====================================================
+   F2: Rack Bottom Resize Handle
+   ===================================================== */
+.rack-resize-handle {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 14px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  z-index: 20;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  user-select: none;
+}
+.rack-resize-handle:hover,
+.rack-resize-handle.active {
+  background: #0284c7;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+.rack-resize-grip {
+  width: 24px;
+  height: 2px;
+  background: #64748b;
+  border-radius: 1px;
+}
+.rack-resize-handle:hover .rack-resize-grip,
+.rack-resize-handle.active .rack-resize-grip {
+  background: #ffffff;
+}
+
+/* =====================================================
+   U4: Rack Hover Action Bar (Taşı & Çoğalt)
+   ===================================================== */
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.rack-action-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1.2;
+  transition: all 0.15s;
+}
+.rack-action-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+}
+.rack-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+}

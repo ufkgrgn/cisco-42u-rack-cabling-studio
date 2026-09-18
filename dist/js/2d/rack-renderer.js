@@ -156,6 +156,60 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     canvas.appendChild(makeAddBtn('right'));
   }
 
+  /**
+   * Binds pointer events on a rack's bottom resize handle to allow dragging to change U height (12U-60U).
+   */
+  function _bindRackResizeHandle(handleEl, rack) {
+    if (!handleEl || !rack) return;
+    let startY = 0;
+    let startU = 0;
+    let isDragging = false;
+
+    const onPointerMove = (e) => {
+      if (!isDragging) return;
+      const deltaY = e.clientY - startY;
+      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
+      // Moving down increases U height, moving up decreases U height
+      const deltaU = Math.round(deltaY / uHeightPx);
+      const targetU = Math.max(12, Math.min(60, startU + deltaU));
+
+      if (RS.showTemporaryTooltip) {
+        RS.showTemporaryTooltip(e.clientX, e.clientY - 30, `📐 Kabin Boyutu: ${targetU}U (Bırakıldığında uygulanır)`);
+      }
+    };
+
+    const onPointerUp = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      handleEl.classList.remove('active');
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      const deltaY = e.clientY - startY;
+      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
+      const deltaU = Math.round(deltaY / uHeightPx);
+      const targetU = Math.max(12, Math.min(60, startU + deltaU));
+
+      if (targetU !== startU && RS.resizeRackHeight) {
+        RS.resizeRackHeight(rack.id, targetU);
+      }
+    };
+
+    handleEl.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.stopPropagation();
+      e.preventDefault();
+      isDragging = true;
+      startY = e.clientY;
+      startU = rack.heightU || 42;
+      handleEl.classList.add('active');
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+    });
+  }
+
   function renderRackRailsAndSlots(onSlotClick) {
     if (typeof onSlotClick === 'function') STATE.onSlotClick = onSlotClick;
     const clickHandler = typeof onSlotClick === 'function' ? onSlotClick : STATE.onSlotClick;
@@ -182,12 +236,16 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
             </span>
             <span class="rack-header-meta">${heightU}U · ${devCount} Cihaz</span>
             <span class="rack-header-actions">
-              ${canDelete ? `<button class="rack-hdr-btn rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕</button>` : ''}
+              <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)">⧉ Çoğalt</button>
+              ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
             </span>
           </div>
           <div class="rack-rail left" id="rail-left"></div>
           <div class="rack-main-space" id="rack-space"></div>
           <div class="rack-rail right" id="rail-right"></div>
+          <div class="rack-resize-handle" id="rack-resize-handle" title="Kabin Yüksekliğini Ayarlamak İçin Sürükleyin (Alt Kenar)">
+            <span class="rack-resize-grip"></span>
+          </div>
           <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
@@ -202,6 +260,12 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
       initDomReferences();
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
+
+      // Wire bottom resize handle for single rack
+      const resizeHandle = document.getElementById('rack-resize-handle');
+      if (resizeHandle) {
+        _bindRackResizeHandle(resizeHandle, activeRack);
+      }
 
       // Wire header actions for single rack
       const sHdr = rackStage.querySelector('.rack-header-plate');
@@ -241,6 +305,13 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (RS.deleteRack) RS.deleteRack(activeRack.id);
+          });
+        }
+        const dupBtn = sHdr.querySelector('.rack-hdr-duplicate');
+        if (dupBtn) {
+          dupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.duplicateRack) RS.duplicateRack(activeRack.id);
           });
         }
       }
@@ -301,10 +372,36 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           </span>
           <span class="rack-header-meta">${rack.heightU || 42}U · ${devCount} Cihaz</span>
           <span class="rack-header-actions">
-            ${canDelete ? `<button class="rack-hdr-btn rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕</button>` : ''}
+            <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı">←</button>
+            <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı">→</button>
+            <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt">⧉ Çoğalt</button>
+            ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
           </span>
         `;
         cont.appendChild(headerPlate);
+
+        // Header action handlers
+        const moveLeftBtn = headerPlate.querySelector('.rack-hdr-move-left');
+        if (moveLeftBtn) {
+          moveLeftBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.moveRackOrder) RS.moveRackOrder(rack.id, -1);
+          });
+        }
+        const moveRightBtn = headerPlate.querySelector('.rack-hdr-move-right');
+        if (moveRightBtn) {
+          moveRightBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.moveRackOrder) RS.moveRackOrder(rack.id, 1);
+          });
+        }
+        const dupBtn = headerPlate.querySelector('.rack-hdr-duplicate');
+        if (dupBtn) {
+          dupBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.duplicateRack) RS.duplicateRack(rack.id);
+          });
+        }
 
         // Inline rename on header name click
         const nameEl = headerPlate.querySelector('.rack-header-name-editable');
@@ -368,6 +465,14 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         railR.className = 'rack-rail right';
         railR.id = `rack-${rack.id}-rail-right`;
         cont.appendChild(railR);
+
+        // Bottom resize handle for multi rack container
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'rack-resize-handle';
+        resizeHandle.title = 'Kabin Yüksekliğini Ayarlamak İçin Sürükleyin (Alt Kenar)';
+        resizeHandle.innerHTML = '<span class="rack-resize-grip"></span>';
+        cont.appendChild(resizeHandle);
+        _bindRackResizeHandle(resizeHandle, rack);
 
         const rHeightU = rack.heightU || 42;
         for (let u = rHeightU; u >= 1; u--) {
