@@ -108,13 +108,31 @@
     }
     const rackToDelete = RS.STATE.racks.find(r => r.id === rackId);
     if (!rackToDelete) return;
-    if (confirm(`"${rackToDelete.name}" kabinini ve içindeki tüm cihazları silmek istediğinize emin misiniz?`)) {
+
+    const deviceCount = rackToDelete.devices ? rackToDelete.devices.length : 0;
+    const cableCount = RS.STATE.cables
+      ? RS.STATE.cables.filter(c => c.from.rackId === rackId || c.to.rackId === rackId).length
+      : 0;
+
+    let confirmMsg = `"${rackToDelete.name}" kabinini silmek istediğinize emin misiniz?`;
+    if (deviceCount > 0 || cableCount > 0) {
+      const parts = [];
+      if (deviceCount > 0) parts.push(`${deviceCount} cihaz`);
+      if (cableCount > 0) parts.push(`${cableCount} kablo bağlantısı`);
+      confirmMsg += `\n\n⚠️ Bu kabinde ${parts.join(' ve ')} bulunmaktadır. Bunların tamamı silinecektir.`;
+    }
+
+    if (confirm(confirmMsg)) {
       // Remove cables attached to this rack
       RS.STATE.cables = RS.STATE.cables.filter(c => c.from.rackId !== rackId && c.to.rackId !== rackId);
+      // Remove the rack itself
       RS.STATE.racks = RS.STATE.racks.filter(r => r.id !== rackId);
+      // Switch active rack if we just deleted it
       if (RS.STATE.activeRackId === rackId) {
         RS.STATE.activeRackId = RS.STATE.racks[0].id;
       }
+      // Full re-render sequence: rails must come first to rebuild DOM, then devices
+      if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
       renderRackTabs();
       if (RS.renderMountedDevices) RS.renderMountedDevices();
       if (RS.renderScheduleTable) RS.renderScheduleTable();

@@ -2075,5 +2075,153 @@
 }
 
 
+/* =====================================================
+   Inline Rack Controls (Canvas-based rack management)
+   ===================================================== */
+
+/* Multi-rack header actions area */
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.rack-header-name-editable {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 3px;
+  transition: background 0.15s;
+}
+.rack-header-name-editable:hover {
+  background: rgba(56, 189, 248, 0.12);
+  outline: 1px dashed #38bdf8;
+}
+.rack-header-name-editable[contenteditable="true"] {
+  background: rgba(56, 189, 248, 0.18);
+  outline: 1px solid #38bdf8;
+  cursor: text;
+  color: #f0f9ff;
+  min-width: 80px;
+}
+
+/* Small action buttons in rack header (multi-rack mode) */
+.rack-hdr-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.rack-hdr-delete {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.25);
+}
+.rack-hdr-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+/* Single-rack inline controls bar */
+.rack-inline-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+
+.rack-inline-name-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.rack-inline-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 8px;
+  transition: background 0.15s;
+}
+.rack-inline-name:hover {
+  background: rgba(56, 189, 248, 0.1);
+  outline: 1px dashed #38bdf8;
+}
+.rack-inline-name[contenteditable="true"] {
+  background: rgba(56, 189, 248, 0.18);
+  outline: 1px solid #38bdf8;
+  cursor: text;
+  color: #f0f9ff;
+  min-width: 120px;
+}
+
+.rack-inline-meta {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Add/Delete buttons in single-rack controls bar */
+.rack-ctrl-btn {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  color: #94a3b8;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.rack-ctrl-btn:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+.rack-delete-btn {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.rack-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
 
 
+/* =====================================================
+   Preset Template Hover Wireframe Preview Popup
+   ===================================================== */
+.preset-preview-popup {
+  position: fixed;
+  z-index: 9999;
+  background: #0f172a;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(56,189,248,0.12);
+  max-width: 560px;
+  pointer-events: auto;
+  animation: presetPopupIn 0.15s ease-out;
+}
+@keyframes presetPopupIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+.preset-btn-wrap {
+  position: relative;
+}

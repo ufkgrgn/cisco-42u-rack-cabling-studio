@@ -46,7 +46,7 @@
         <button type="button" class="segmented-btn" id="btn-view-3d">🎮 3D Stüdyo</button>
       </div>
 
-      <label class="device-label-control" for="device-label-mode">
+      <label class="device-label-control" for="device-label-mode" id="device-label-control" data-context="3d-only" style="display:none;">
         <span>Etiket:</span>
         <select id="device-label-mode" title="Cihazlarda gösterilecek bilgi">
           <option value="name">İsim</option>
@@ -100,11 +100,20 @@
       </label>
 
       <!-- Presets Group -->
-      <div class="hud-btn-group">
-        <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
-        <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
-        <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF Çoklu Kabin)">⚡ Saha</button>
+      <div class="hud-btn-group" id="preset-btn-group">
+        <div class="preset-btn-wrap" data-preset="mdf">
+          <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">⚡ MDF</button>
+        </div>
+        <div class="preset-btn-wrap" data-preset="idf">
+          <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">⚡ IDF</button>
+        </div>
+        <div class="preset-btn-wrap" data-preset="site">
+          <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF Çoklu Kabin)">⚡ Saha</button>
+        </div>
       </div>
+
+      <!-- Preset hover preview popup (filled by preset-preview.js) -->
+      <div id="preset-preview-popup" class="preset-preview-popup" style="display:none;"></div>
 
       <!-- Tools Group -->
       <div class="hud-btn-group">
@@ -1650,6 +1659,7 @@
   <script src="js/2d/schedule-table.js"></script>
   <script src="js/2d/topology-io.js"></script>
   <script src="js/2d/presets.js"></script>
+  <script src="js/2d/preset-preview.js"></script>
   <script src="js/2d/app.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/catalog-ui.js"></script>

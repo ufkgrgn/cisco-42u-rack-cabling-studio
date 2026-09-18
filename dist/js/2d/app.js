@@ -339,6 +339,15 @@
 
   function bindGlobalEvents() {
     window.addEventListener('click', (e) => {
+      // Do NOT cancel a pending cable connection when the user is panning/zooming.
+      // ZOOM_STATE.hasMoved is set true in zoom-manager whenever a mousedown→mousemove
+      // drag occurs, so any synthetic "click" that fires after a pan is ignored here.
+      const wasPanDrag = RS.ZOOM_STATE && RS.ZOOM_STATE.hasMoved;
+      if (wasPanDrag) {
+        // Reset hasMoved so the next genuine click works normally
+        RS.ZOOM_STATE.hasMoved = false;
+        return;
+      }
       if (!e.target.closest('.port')) {
         cancelPendingConnection();
       }

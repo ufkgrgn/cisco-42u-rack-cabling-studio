@@ -278,6 +278,7 @@
     const perfControl = document.querySelector('label[for="performance-mode"]');
     const btnWizard = document.getElementById('btn-3d-wizard-modal');
     const fpsCounter = document.getElementById('fps-counter');
+    const deviceLabelControl = document.getElementById('device-label-control');
 
     if (window.is3DMode) {
       if (wrapper3D) wrapper3D.style.display = 'block';
@@ -289,6 +290,7 @@
       if (perfControl) perfControl.style.display = 'inline-flex';
       if (btnWizard) btnWizard.style.display = 'inline-flex';
       if (fpsCounter) fpsCounter.style.display = 'inline-block';
+      if (deviceLabelControl) deviceLabelControl.style.display = 'inline-flex';
       if (window.__STUDIO3D__) {
         window.__STUDIO3D__.resume();
         const container = document.getElementById('studio3d-container');
@@ -310,6 +312,7 @@
       if (perfControl) perfControl.style.display = 'none';
       if (btnWizard) btnWizard.style.display = 'none';
       if (fpsCounter) fpsCounter.style.display = 'none';
+      if (deviceLabelControl) deviceLabelControl.style.display = 'none';
       if (window.__STUDIO3D__) window.__STUDIO3D__.pause();
     }
     if (typeof window.updateTelemetry === 'function') window.updateTelemetry();

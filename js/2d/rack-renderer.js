@@ -121,9 +121,20 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       // SINGLE RACK FOCUS MODE
       const activeRack = getActiveRack() || STATE.racks?.[0];
       const heightU = activeRack?.heightU || 42;
+      const canDelete = STATE.racks.length > 1;
+      const deviceCount = activeRack.devices ? activeRack.devices.length : 0;
 
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
+          <div class="rack-inline-controls" id="rack-inline-controls">
+            <button class="rack-ctrl-btn rack-add-left" title="Sola Yeni Kabin Ekle" data-add-direction="left">＋ Sol</button>
+            <div class="rack-inline-name-wrap">
+              <span class="rack-inline-name" id="rack-inline-name" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
+              <span class="rack-inline-meta">${heightU}U · ${deviceCount} Cihaz</span>
+            </div>
+            ${canDelete ? `<button class="rack-ctrl-btn rack-delete-btn" title="Bu kabini sil" data-rack-id="${activeRack.id}">✕ Sil</button>` : '<span></span>'}
+            <button class="rack-ctrl-btn rack-add-right" title="Sağa Yeni Kabin Ekle" data-add-direction="right">＋ Sağ</button>
+          </div>
           <div class="rack-rail left" id="rail-left"></div>
           <div class="rack-main-space" id="rack-space"></div>
           <div class="rack-rail right" id="rail-right"></div>
@@ -141,6 +152,77 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
       initDomReferences();
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
+
+      // Wire inline rack controls
+      const nameEl = document.getElementById('rack-inline-name');
+      if (nameEl) {
+        nameEl.addEventListener('click', () => {
+          const current = activeRack.name;
+          nameEl.setAttribute('contenteditable', 'true');
+          nameEl.focus();
+          // Select all text
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          const commit = () => {
+            nameEl.removeAttribute('contenteditable');
+            const newName = nameEl.textContent.trim();
+            if (newName && newName !== current) {
+              activeRack.name = newName;
+              if (RS.renderRackTabs) RS.renderRackTabs();
+              if (RS.renderScheduleTable) RS.renderScheduleTable();
+            } else {
+              nameEl.textContent = current; // restore on cancel
+            }
+          };
+          nameEl.addEventListener('blur', commit, { once: true });
+          nameEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+            if (ev.key === 'Escape') {
+              nameEl.textContent = current;
+              nameEl.removeAttribute('contenteditable');
+              nameEl.blur();
+            }
+          }, { once: true });
+        });
+      }
+
+      const controls = document.getElementById('rack-inline-controls');
+      if (controls) {
+        controls.addEventListener('click', (e) => {
+          const addBtn = e.target.closest('.rack-add-left, .rack-add-right');
+          if (addBtn) {
+            const direction = addBtn.dataset.addDirection;
+            if (RS.addNewRack) {
+              const newRack = RS.addNewRack();
+              // If adding to left, reorder: move new rack before current active
+              if (newRack && direction === 'left') {
+                const newIdx = STATE.racks.findIndex(r => r.id === newRack.id);
+                const activeIdx = STATE.racks.findIndex(r => r.id === activeRack.id);
+                if (newIdx !== -1 && activeIdx !== -1 && newIdx !== activeIdx - 1) {
+                  STATE.racks.splice(newIdx, 1);
+                  const insertAt = STATE.racks.findIndex(r => r.id === activeRack.id);
+                  STATE.racks.splice(insertAt, 0, newRack);
+                  if (RS.renderRackTabs) RS.renderRackTabs();
+                }
+              }
+              // Switch to multi mode to show both racks
+              if (STATE.viewMode !== 'multi') {
+                STATE.viewMode = 'multi';
+                const modeToggle = document.getElementById('btn-view-multi');
+                if (modeToggle) modeToggle.click();
+              } else {
+                renderRackRailsAndSlots(STATE.onSlotClick);
+              }
+            }
+          }
+          const delBtn = e.target.closest('.rack-delete-btn');
+          if (delBtn) {
+            if (RS.deleteRack) RS.deleteRack(delBtn.dataset.rackId);
+          }
+        });
+      }
 
       for (let u = heightU; u >= 1; u--) {
         const { leftU, rightU, slot } = createRackUnitAndSlot(activeRack, u, clickHandler, true);
@@ -181,20 +263,66 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         cont.dataset.rackId = rack.id;
         cont.id = `rack-container-${rack.id}`;
 
+        const canDelete = STATE.racks.length > 1;
+        const devCount = rack.devices ? rack.devices.length : 0;
+
         const headerPlate = document.createElement('div');
         headerPlate.className = 'rack-header-plate';
         headerPlate.dataset.rackId = rack.id;
         headerPlate.innerHTML = `
           <span class="rack-header-title">
             <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
-            ${escapeHtml(rack.name)}
+            <span class="rack-header-name-editable" data-rack-id="${rack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(rack.name)}</span>
           </span>
-          <span class="rack-header-meta">${rack.heightU || 42}U · ${rack.devices ? rack.devices.length : 0} Cihaz</span>
+          <span class="rack-header-meta">${rack.heightU || 42}U · ${devCount} Cihaz</span>
+          <span class="rack-header-actions">
+            ${canDelete ? `<button class="rack-hdr-btn rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕</button>` : ''}
+          </span>
         `;
         cont.appendChild(headerPlate);
 
+        // Inline rename on header name click
+        const nameEl = headerPlate.querySelector('.rack-header-name-editable');
+        if (nameEl) {
+          nameEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const current = rack.name;
+            nameEl.setAttribute('contenteditable', 'true');
+            nameEl.focus();
+            const range = document.createRange();
+            range.selectNodeContents(nameEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            const commit = () => {
+              nameEl.removeAttribute('contenteditable');
+              const newName = nameEl.textContent.trim();
+              if (newName && newName !== current) {
+                rack.name = newName;
+                if (RS.renderRackTabs) RS.renderRackTabs();
+                if (RS.renderScheduleTable) RS.renderScheduleTable();
+              } else {
+                nameEl.textContent = current;
+              }
+            };
+            nameEl.addEventListener('blur', commit, { once: true });
+            nameEl.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+              if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
+            }, { once: true });
+          });
+        }
+
+        // Delete button handler
+        const delBtn = headerPlate.querySelector('.rack-hdr-delete');
+        if (delBtn) {
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.deleteRack) RS.deleteRack(rack.id);
+          });
+        }
+
         cont.addEventListener('click', (e) => {
-          if (e.target.closest('.port') || e.target.closest('.dev-btn')) return;
+          if (e.target.closest('.port') || e.target.closest('.dev-btn') || e.target.closest('.rack-header-plate')) return;
           if (STATE.activeRackId !== rack.id) {
             switchActiveRack(rack.id);
           }
@@ -1446,15 +1574,29 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           return;
         }
 
-        if (validation.warning && !validation.warning.includes('Patch Panel Ara Bağlantı')) {
-          dom.tooltip.innerHTML = `
-            <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid #78350f; padding-bottom:3px; margin-bottom:4px;">
-              ⚠️ Bağlantı Uyarısı
-            </div>
-            <div style="color:#fde68a; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
-            <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-            <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
-          `;
+        if (validation.warning) {
+          const isPatchPassThrough = validation.warning.includes('Patch Panel Ara Bağlantı') || validation.warning.includes('Patch Panel Çapraz');
+          if (isPatchPassThrough) {
+            // Panel-to-panel cross-connect: show blue info card (allowed, just informational)
+            dom.tooltip.innerHTML = `
+              <div style="font-weight:800; font-size:0.75rem; color:#38bdf8; border-bottom:1px solid #0369a1; padding-bottom:3px; margin-bottom:4px;">
+                ℹ️ Panel Çapraz Aktarma
+              </div>
+              <div style="color:#bae6fd; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+            `;
+          } else {
+            // Other warnings (e.g. same-panel loopback)
+            dom.tooltip.innerHTML = `
+              <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid #78350f; padding-bottom:3px; margin-bottom:4px;">
+                ⚠️ Bağlantı Uyarısı
+              </div>
+              <div style="color:#fde68a; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+            `;
+          }
           return;
         }
 
