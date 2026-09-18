@@ -245,7 +245,10 @@
         if (!stored) { try { legacy = localStorage.getItem(KEY); } catch (_) { /* May be disabled while IDB is available. */ } }
         const saved = stored || legacy;
         // Never replace edits made while the database was opening.
-        if (saved && revision === 0) { restore(saved); status('Son yerel proje geri yüklendi'); }
+        if (saved && revision === 0) {
+          restore(saved);
+          status('Son yerel proje geri yüklendi');
+        }
         recoveryPending = false;
         if (legacy || revision > 0) await save();
         bar.dataset.ready = 'true';

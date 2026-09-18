@@ -133,6 +133,14 @@
       }
     }, true);
 
+    // 2D Reset / Clear Action
+    document.getElementById('btn-2d-clear-action')?.addEventListener('click', (e) => {
+      if (!window.is3DMode) {
+        e.stopImmediatePropagation();
+        document.getElementById('btn-clear-all')?.click();
+      }
+    }, true);
+
     // Unified Storage Actions in 2D Mode
     document.getElementById('btn-export-json-3d')?.addEventListener('click', (e) => {
       if (!window.is3DMode) {

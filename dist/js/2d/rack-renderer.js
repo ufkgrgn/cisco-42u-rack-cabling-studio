@@ -140,12 +140,13 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
           }
         }
         // Switch to multi mode so both racks are visible
-        if (STATE.viewMode !== 'multi') {
-          STATE.viewMode = 'multi';
-          const modeToggle = document.getElementById('btn-view-multi');
-          if (modeToggle) modeToggle.click();
+        if (RS.setViewMode) {
+          RS.setViewMode('multi');
         } else {
-          renderRackRailsAndSlots(STATE.onSlotClick);
+          STATE.viewMode = 'multi';
+          const modeToggle = document.getElementById('btn-view-mode-multi') || document.getElementById('btn-view-multi');
+          if (modeToggle) modeToggle.click();
+          else renderRackRailsAndSlots(STATE.onSlotClick);
         }
       });
       return btn;
@@ -169,8 +170,21 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       const activeRack = getActiveRack() || STATE.racks?.[0];
       const heightU = activeRack?.heightU || 42;
 
+      const canDelete = STATE.racks.length > 1;
+      const devCount = activeRack.devices ? activeRack.devices.length : 0;
+
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
+          <div class="rack-header-plate" data-rack-id="${activeRack.id}">
+            <span class="rack-header-title">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
+              <span class="rack-header-name-editable" data-rack-id="${activeRack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
+            </span>
+            <span class="rack-header-meta">${heightU}U · ${devCount} Cihaz</span>
+            <span class="rack-header-actions">
+              ${canDelete ? `<button class="rack-hdr-btn rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕</button>` : ''}
+            </span>
+          </div>
           <div class="rack-rail left" id="rail-left"></div>
           <div class="rack-main-space" id="rack-space"></div>
           <div class="rack-rail right" id="rail-right"></div>
@@ -188,6 +202,47 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       `;
       initDomReferences();
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
+
+      // Wire header actions for single rack
+      const sHdr = rackStage.querySelector('.rack-header-plate');
+      if (sHdr) {
+        const nameEl = sHdr.querySelector('.rack-header-name-editable');
+        if (nameEl) {
+          nameEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const current = activeRack.name;
+            nameEl.setAttribute('contenteditable', 'true');
+            nameEl.focus();
+            const range = document.createRange();
+            range.selectNodeContents(nameEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            const commit = () => {
+              nameEl.removeAttribute('contenteditable');
+              const newName = nameEl.textContent.trim();
+              if (newName && newName !== current) {
+                activeRack.name = newName;
+                if (RS.renderRackTabs) RS.renderRackTabs();
+                if (RS.renderScheduleTable) RS.renderScheduleTable();
+              } else {
+                nameEl.textContent = current;
+              }
+            };
+            nameEl.addEventListener('blur', commit, { once: true });
+            nameEl.addEventListener('keydown', (ev) => {
+              if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+              if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
+            }, { once: true });
+          });
+        }
+        const delBtn = sHdr.querySelector('.rack-hdr-delete');
+        if (delBtn) {
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (RS.deleteRack) RS.deleteRack(activeRack.id);
+          });
+        }
+      }
 
       // Inject floating + buttons into the viewport canvas (NOT the scaled rack-stage)
       // so they are unaffected by zoom/pan transforms and stay visually beside the rack.
@@ -690,10 +745,17 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
         const cat = HARDWARE_CATALOG[dev.catalogKey];
         if (!cat) return;
 
-        // Find the slot element for this device
-        let slotEl = isMulti
-          ? document.getElementById(`rack-${rack.id}-slot-u${dev.topU}`)
-          : document.getElementById(`rack-slot-u${dev.topU}`);
+        // Find the slot element for this device (handles single and multi rack mode gracefully)
+        let slotEl = document.getElementById(`rack-${rack.id}-slot-u${dev.topU}`);
+        if (!slotEl) {
+          slotEl = document.getElementById(`rack-slot-u${dev.topU}`);
+        }
+        if (!slotEl) {
+          const rackCont = document.getElementById(`rack-container-${rack.id}`) || document.getElementById('rack-container');
+          if (rackCont) {
+            slotEl = rackCont.querySelector(`.rack-slot[data-u="${dev.topU}"]`);
+          }
+        }
         if (!slotEl) return;
 
         const devEl = document.createElement('div');

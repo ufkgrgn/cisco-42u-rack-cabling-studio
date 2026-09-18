@@ -250,6 +250,7 @@
       dom.btnPresetMdf.addEventListener('click', () => {
         if (confirm("MDF Ana Dağıtım Kabini şablonu yüklensin mi? (Mevcut topoloji sıfırlanır)")) {
           loadMdfPreset();
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
         }
       });
     }
@@ -258,6 +259,7 @@
       dom.btnPresetIdf.addEventListener('click', () => {
         if (confirm("IDF Kat Kenar Kabini şablonu yüklensin mi? (Mevcut topoloji sıfırlanır)")) {
           loadIdfPreset();
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
         }
       });
     }
@@ -266,6 +268,7 @@
       dom.btnPresetSite.addEventListener('click', () => {
         if (confirm("Tüm Saha Topolojisi (MDF + IDF-1 + IDF-2 Çoklu Kabin) yüklensin mi?")) {
           loadFullSitePreset();
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
         }
       });
     }
@@ -283,10 +286,12 @@
           STATE.rackCounter = 1;
           STATE.highlightedCableId = null;
           cancelPendingConnection();
+          renderRackRailsAndSlots();
           renderRackTabs();
           renderMountedDevices();
           renderScheduleTable();
           renderAllCables();
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
         }
       });
     }
