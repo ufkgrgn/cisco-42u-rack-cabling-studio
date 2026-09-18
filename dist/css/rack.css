@@ -2225,3 +2225,40 @@
 .preset-btn-wrap {
   position: relative;
 }
+
+/* Floating add rack buttons on viewport canvas */
+.rack-float-add-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+.rack-float-add-btn:hover {
+  opacity: 1;
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #7dd3fc;
+  scale: 1.15;
+}
+.rack-float-add-left {
+  left: 20px;
+}
+.rack-float-add-right {
+  right: 20px;
+}

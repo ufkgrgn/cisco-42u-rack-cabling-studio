@@ -135,23 +135,32 @@
 
   function initPresetPreview() {
     var hideTimer = null;
-    document.querySelectorAll(".preset-btn-wrap").forEach(function(wrap) {
-      var presetKey = wrap.dataset.preset;
-      wrap.addEventListener("mouseenter", function() {
+    function bindTarget(el, presetKey) {
+      if (!el) return;
+      el.addEventListener("mouseenter", function() {
         clearTimeout(hideTimer);
-        if (!window.is3DMode) showPresetPopup(presetKey, wrap);
+        if (!window.is3DMode) showPresetPopup(presetKey, el);
       });
-      wrap.addEventListener("mouseleave", function() {
+      el.addEventListener("mouseleave", function() {
         hideTimer = setTimeout(hidePresetPopup, 250);
       });
+    }
+
+    document.querySelectorAll(".preset-btn-wrap").forEach(function(wrap) {
+      bindTarget(wrap, wrap.dataset.preset);
     });
+
+    bindTarget(document.getElementById("btn-3d-preset-mdf"), "mdf");
+    bindTarget(document.getElementById("btn-3d-preset-idf"), "idf");
+    bindTarget(document.getElementById("btn-3d-preset-site"), "site");
+
     var popup = document.getElementById("preset-preview-popup");
     if (popup) {
       popup.addEventListener("mouseenter", function() { clearTimeout(hideTimer); });
       popup.addEventListener("mouseleave", function() { hideTimer = setTimeout(hidePresetPopup, 250); });
     }
     document.addEventListener("click", function(e) {
-      if (!e.target.closest(".preset-btn-wrap") && !e.target.closest("#preset-preview-popup")) hidePresetPopup();
+      if (!e.target.closest(".preset-btn-wrap") && !e.target.closest("#preset-preview-popup") && !e.target.closest(".preset-btn")) hidePresetPopup();
     });
   }
 

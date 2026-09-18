@@ -108,6 +108,53 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
 }
 
 // --- RACK MODULE ---
+
+  /**
+   * Injects two floating "+" buttons into the viewport canvas (parent of rack-stage)
+   * so they sit beside the rack without being affected by the zoom/pan transform.
+   * Buttons are absolutely positioned and use CSS transitions for a subtle hover reveal.
+   */
+  function _injectFloatingRackButtons(activeRack) {
+    const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
+    if (!canvas) return;
+
+    // Remove previously injected floating buttons
+    canvas.querySelectorAll('.rack-float-add-btn').forEach(b => b.remove());
+
+    function makeAddBtn(direction) {
+      const btn = document.createElement('button');
+      btn.className = 'rack-float-add-btn rack-float-add-' + direction;
+      btn.title = direction === 'left' ? 'Sola Yeni Kabin Ekle' : 'Sağa Yeni Kabin Ekle';
+      btn.textContent = '+';
+      btn.addEventListener('click', () => {
+        if (!RS.addNewRack) return;
+        const newRack = RS.addNewRack();
+        if (newRack && direction === 'left') {
+          const newIdx = STATE.racks.findIndex(r => r.id === newRack.id);
+          const activeIdx = STATE.racks.findIndex(r => r.id === activeRack.id);
+          if (newIdx !== -1 && activeIdx !== -1) {
+            STATE.racks.splice(newIdx, 1);
+            const insertAt = STATE.racks.findIndex(r => r.id === activeRack.id);
+            STATE.racks.splice(insertAt, 0, newRack);
+            if (RS.renderRackTabs) RS.renderRackTabs();
+          }
+        }
+        // Switch to multi mode so both racks are visible
+        if (STATE.viewMode !== 'multi') {
+          STATE.viewMode = 'multi';
+          const modeToggle = document.getElementById('btn-view-multi');
+          if (modeToggle) modeToggle.click();
+        } else {
+          renderRackRailsAndSlots(STATE.onSlotClick);
+        }
+      });
+      return btn;
+    }
+
+    canvas.appendChild(makeAddBtn('left'));
+    canvas.appendChild(makeAddBtn('right'));
+  }
+
   function renderRackRailsAndSlots(onSlotClick) {
     if (typeof onSlotClick === 'function') STATE.onSlotClick = onSlotClick;
     const clickHandler = typeof onSlotClick === 'function' ? onSlotClick : STATE.onSlotClick;
@@ -118,23 +165,12 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     rackStage.classList.toggle('multi-rack-stage', isMulti);
 
     if (!isMulti) {
-      // SINGLE RACK FOCUS MODE
+      // SINGLE RACK FOCUS MODE — rack renders exactly as before, no controls inside
       const activeRack = getActiveRack() || STATE.racks?.[0];
       const heightU = activeRack?.heightU || 42;
-      const canDelete = STATE.racks.length > 1;
-      const deviceCount = activeRack.devices ? activeRack.devices.length : 0;
 
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
-          <div class="rack-inline-controls" id="rack-inline-controls">
-            <button class="rack-ctrl-btn rack-add-left" title="Sola Yeni Kabin Ekle" data-add-direction="left">＋ Sol</button>
-            <div class="rack-inline-name-wrap">
-              <span class="rack-inline-name" id="rack-inline-name" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
-              <span class="rack-inline-meta">${heightU}U · ${deviceCount} Cihaz</span>
-            </div>
-            ${canDelete ? `<button class="rack-ctrl-btn rack-delete-btn" title="Bu kabini sil" data-rack-id="${activeRack.id}">✕ Sil</button>` : '<span></span>'}
-            <button class="rack-ctrl-btn rack-add-right" title="Sağa Yeni Kabin Ekle" data-add-direction="right">＋ Sağ</button>
-          </div>
           <div class="rack-rail left" id="rail-left"></div>
           <div class="rack-main-space" id="rack-space"></div>
           <div class="rack-rail right" id="rail-right"></div>
@@ -153,76 +189,9 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
       initDomReferences();
       if (!dom.railLeft || !dom.railRight || !dom.rackSpace) return;
 
-      // Wire inline rack controls
-      const nameEl = document.getElementById('rack-inline-name');
-      if (nameEl) {
-        nameEl.addEventListener('click', () => {
-          const current = activeRack.name;
-          nameEl.setAttribute('contenteditable', 'true');
-          nameEl.focus();
-          // Select all text
-          const range = document.createRange();
-          range.selectNodeContents(nameEl);
-          window.getSelection().removeAllRanges();
-          window.getSelection().addRange(range);
-          const commit = () => {
-            nameEl.removeAttribute('contenteditable');
-            const newName = nameEl.textContent.trim();
-            if (newName && newName !== current) {
-              activeRack.name = newName;
-              if (RS.renderRackTabs) RS.renderRackTabs();
-              if (RS.renderScheduleTable) RS.renderScheduleTable();
-            } else {
-              nameEl.textContent = current; // restore on cancel
-            }
-          };
-          nameEl.addEventListener('blur', commit, { once: true });
-          nameEl.addEventListener('keydown', (ev) => {
-            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
-            if (ev.key === 'Escape') {
-              nameEl.textContent = current;
-              nameEl.removeAttribute('contenteditable');
-              nameEl.blur();
-            }
-          }, { once: true });
-        });
-      }
-
-      const controls = document.getElementById('rack-inline-controls');
-      if (controls) {
-        controls.addEventListener('click', (e) => {
-          const addBtn = e.target.closest('.rack-add-left, .rack-add-right');
-          if (addBtn) {
-            const direction = addBtn.dataset.addDirection;
-            if (RS.addNewRack) {
-              const newRack = RS.addNewRack();
-              // If adding to left, reorder: move new rack before current active
-              if (newRack && direction === 'left') {
-                const newIdx = STATE.racks.findIndex(r => r.id === newRack.id);
-                const activeIdx = STATE.racks.findIndex(r => r.id === activeRack.id);
-                if (newIdx !== -1 && activeIdx !== -1 && newIdx !== activeIdx - 1) {
-                  STATE.racks.splice(newIdx, 1);
-                  const insertAt = STATE.racks.findIndex(r => r.id === activeRack.id);
-                  STATE.racks.splice(insertAt, 0, newRack);
-                  if (RS.renderRackTabs) RS.renderRackTabs();
-                }
-              }
-              // Switch to multi mode to show both racks
-              if (STATE.viewMode !== 'multi') {
-                STATE.viewMode = 'multi';
-                const modeToggle = document.getElementById('btn-view-multi');
-                if (modeToggle) modeToggle.click();
-              } else {
-                renderRackRailsAndSlots(STATE.onSlotClick);
-              }
-            }
-          }
-          const delBtn = e.target.closest('.rack-delete-btn');
-          if (delBtn) {
-            if (RS.deleteRack) RS.deleteRack(delBtn.dataset.rackId);
-          }
-        });
-      }
+      // Inject floating + buttons into the viewport canvas (NOT the scaled rack-stage)
+      // so they are unaffected by zoom/pan transforms and stay visually beside the rack.
+      _injectFloatingRackButtons(activeRack);
 
       for (let u = heightU; u >= 1; u--) {
         const { leftU, rightU, slot } = createRackUnitAndSlot(activeRack, u, clickHandler, true);
