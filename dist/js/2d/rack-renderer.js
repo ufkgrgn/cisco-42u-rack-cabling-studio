@@ -224,6 +224,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
                 activeRack.name = newName;
                 if (RS.renderRackTabs) RS.renderRackTabs();
                 if (RS.renderScheduleTable) RS.renderScheduleTable();
+                document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
               } else {
                 nameEl.textContent = current;
               }
@@ -324,6 +325,7 @@ function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
                 rack.name = newName;
                 if (RS.renderRackTabs) RS.renderRackTabs();
                 if (RS.renderScheduleTable) RS.renderScheduleTable();
+                document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
               } else {
                 nameEl.textContent = current;
               }

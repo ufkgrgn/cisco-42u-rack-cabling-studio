@@ -83,6 +83,7 @@
     if (RS.renderMountedDevices) RS.renderMountedDevices();
     if (RS.renderScheduleTable) RS.renderScheduleTable();
     if (RS.renderAllCables) RS.renderAllCables();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     requestAnimationFrame(() => {
       if (RS.fitRackToScreen) RS.fitRackToScreen(false);
     });
@@ -93,11 +94,12 @@
     const activeRack = RS.getActiveRack ? RS.getActiveRack() : null;
     if (!activeRack) return;
     const currentName = activeRack.name;
-    const newName = prompt("Kabin adını girin:", currentName);
-    if (newName && newName.trim()) {
+    const newName = prompt("Kabin Adını Düzenle:", currentName);
+    if (newName && newName.trim() && newName.trim() !== currentName) {
       activeRack.name = newName.trim();
       renderRackTabs();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     }
   }
 
@@ -131,12 +133,18 @@
       if (RS.STATE.activeRackId === rackId) {
         RS.STATE.activeRackId = RS.STATE.racks[0].id;
       }
+      // If only 1 rack remains, ensure viewMode is single or handles it cleanly
+      if (RS.STATE.racks.length <= 1 && RS.STATE.viewMode === 'multi') {
+        if (RS.setViewMode) RS.setViewMode('single');
+        else RS.STATE.viewMode = 'single';
+      }
       // Full re-render sequence: rails must come first to rebuild DOM, then devices
       if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
       renderRackTabs();
       if (RS.renderMountedDevices) RS.renderMountedDevices();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
       if (RS.renderAllCables) RS.renderAllCables();
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     }
   }
 
