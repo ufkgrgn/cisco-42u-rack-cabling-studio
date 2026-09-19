@@ -148,6 +148,9 @@
       document.querySelectorAll(`#schedule-tbody .tree-cable-row[data-cable-id="${cableId}"]`).forEach(row => {
         row.classList.remove('hovered');
       });
+      document.querySelectorAll('.port.port-cable-hover').forEach(el => {
+        el.classList.remove('port-cable-hover');
+      });
       if (activeHoveredCableId === cableId) {
         restoreHoveredCable();
         activeHoveredCableId = null;
@@ -175,6 +178,9 @@
       document.querySelectorAll(`#schedule-tbody .tree-cable-row[data-cable-id="${activeHoveredCableId}"]`).forEach(row => {
         row.classList.remove('hovered');
       });
+      document.querySelectorAll('.port.port-cable-hover').forEach(el => {
+        el.classList.remove('port-cable-hover');
+      });
       restoreHoveredCable();
     }
 
@@ -191,6 +197,18 @@
 
     const boots = Array.from(document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`));
     boots.forEach(b => b.classList.add('hovered'));
+
+    const cableObj = (STATE.cables || []).find(item => item.id === cableId);
+    if (cableObj) {
+      if (cableObj.from?.instanceId && cableObj.from?.portId) {
+        const el = document.getElementById(`port-${cableObj.from.instanceId}-${cableObj.from.portId}`);
+        if (el) el.classList.add('port-cable-hover');
+      }
+      if (cableObj.to?.instanceId && cableObj.to?.portId) {
+        const el = document.getElementById(`port-${cableObj.to.instanceId}-${cableObj.to.portId}`);
+        if (el) el.classList.add('port-cable-hover');
+      }
+    }
 
     document.querySelectorAll(`#schedule-tbody tr[data-cable-id="${cableId}"]`).forEach(row => {
       row.classList.add('hovered-row');
@@ -216,8 +234,8 @@
       cablesGroup.insertBefore(placeholder, c);
 
       let bootPlaceholder = null;
-      if (connectorsGroup && boots.length && boots[0].parentNode === connectorsGroup) {
-        bootPlaceholder = document.createComment(`boot-placeholder-${cableId}`);
+      if (connectorsGroup && boots.length > 0) {
+        bootPlaceholder = document.createComment(`hover-boot-placeholder-${cableId}`);
         connectorsGroup.insertBefore(bootPlaceholder, boots[0]);
         boots.forEach(b => connectorsGroup.appendChild(b));
       }
@@ -234,9 +252,15 @@
   function setDeviceCablesHover(instanceId, isHovered) {
     const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
     if (!isHovered) {
-      if (activeHoveredDeviceId === instanceId) {
+      if (!instanceId || activeHoveredDeviceId === instanceId) {
         activeHoveredDeviceId = null;
         if (svgEl) svgEl.classList.remove('has-cable-hovered');
+        if (STATE.cableRenderMode === 'pixi' && RS.setPixiCableGroupHover) {
+          RS.setPixiCableGroupHover([]);
+        }
+        document.querySelectorAll('.port.port-cable-hover').forEach(el => {
+          el.classList.remove('port-cable-hover');
+        });
         document.querySelectorAll('.cable-path.hovered, .cable-casing.hovered, .cable-boot.hovered, .cable-boot-pin.hovered').forEach(el => {
           el.classList.remove('hovered');
         });
@@ -257,6 +281,10 @@
       (c.from && c.from.instanceId === instanceId) || (c.to && c.to.instanceId === instanceId)
     );
 
+    if (STATE.cableRenderMode === 'pixi' && RS.setPixiCableGroupHover) {
+      RS.setPixiCableGroupHover(deviceCables.map(c => c.id));
+    }
+
     deviceCables.forEach(c => {
       const p = document.getElementById(`svg-cable-${c.id}`);
       const casing = document.getElementById(`svg-cable-casing-${c.id}`);
@@ -267,6 +295,16 @@
       });
       const treeRow = document.querySelector(`.tree-cable-row[data-cable-id="${c.id}"]`);
       if (treeRow) treeRow.classList.add('hovered');
+
+      // Highlight the connected ports on both ends
+      if (c.from?.instanceId && c.from?.portId) {
+        const el = document.getElementById(`port-${c.from.instanceId}-${c.from.portId}`);
+        if (el) el.classList.add('port-cable-hover');
+      }
+      if (c.to?.instanceId && c.to?.portId) {
+        const el = document.getElementById(`port-${c.to.instanceId}-${c.to.portId}`);
+        if (el) el.classList.add('port-cable-hover');
+      }
     });
   }
 

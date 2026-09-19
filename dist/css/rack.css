@@ -1106,6 +1106,14 @@
   outline: 1.5px solid #facc15;
 }
 
+.port.port-cable-hover {
+  filter: brightness(1.75) !important;
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.75), inset 0 0 3px rgba(56, 189, 248, 0.6) !important;
+  z-index: 6 !important;
+}
+
 .port.selected {
   outline: 2px solid #00e5ff !important;
   outline-offset: 1px !important;
