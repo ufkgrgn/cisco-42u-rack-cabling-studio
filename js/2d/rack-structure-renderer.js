@@ -412,7 +412,7 @@
           <div class="rack-resize-handle" id="rack-resize-handle" title="Kabin Yüksekliğini Ayarlamak İçin Sürükleyin (Alt Kenar)">
             <span class="rack-resize-grip"></span>
           </div>
-          <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:${STATE.cableRenderMode === 'pixi' ? 'none' : 'block'};">
             <defs>
               <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
                 <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>
@@ -422,6 +422,7 @@
             <g id="connectors-group"></g>
             <g id="dring-overlay-group"></g>
           </svg>
+          <canvas class="cables-pixi-layer" id="cables-pixi-canvas" style="display:${STATE.cableRenderMode === 'pixi' ? 'block' : 'none'};"></canvas>
         </div>
       `;
       initDomReferences();
@@ -531,7 +532,16 @@
         <g id="connectors-group"></g>
         <g id="dring-overlay-group"></g>
       `;
+      if (STATE.cableRenderMode === 'pixi') {
+        svg.style.display = 'none';
+      }
       rackStage.appendChild(svg);
+
+      const pCanvas = document.createElement('canvas');
+      pCanvas.id = 'cables-pixi-canvas';
+      pCanvas.className = 'cables-pixi-layer';
+      pCanvas.style.display = STATE.cableRenderMode === 'pixi' ? 'block' : 'none';
+      rackStage.appendChild(pCanvas);
 
       STATE.racks.forEach((rack) => {
         const isAct = rack.id === STATE.activeRackId;

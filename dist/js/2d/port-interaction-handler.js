@@ -388,7 +388,7 @@
           (c.to.instanceId === instanceId && c.to.portId === portId)
         );
         if (connectedCable) {
-          highlightCable(connectedCable.id);
+          highlightCable(connectedCable.id, true);
           const rect = portEl.getBoundingClientRect();
           showCableQuickHud(connectedCable.id, rect.left + rect.width / 2, rect.top);
         }

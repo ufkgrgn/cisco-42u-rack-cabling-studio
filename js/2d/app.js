@@ -62,6 +62,10 @@
 
     requestAnimationFrame(() => {
       fitRackToScreen(false);
+      requestAnimationFrame(() => {
+        if (RS.invalidatePixiCableGeometry) RS.invalidatePixiCableGeometry();
+        if (RS.renderAllCables) RS.renderAllCables();
+      });
     });
   }
 

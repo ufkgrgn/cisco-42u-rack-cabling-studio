@@ -2734,3 +2734,11 @@
   border-color: #ef4444;
   color: #fca5a5;
 }
+
+/* Flash highlight ring for focused device */
+.device-focused {
+  outline: 2px solid #00e5ff !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.8) !important;
+  transition: box-shadow 0.3s ease, outline 0.3s ease;
+}

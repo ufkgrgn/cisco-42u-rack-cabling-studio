@@ -1168,6 +1168,12 @@
   transform: translateX(2px);
 }
 
+.tree-cable-row.active {
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 1px #00e5ff, 0 0 12px rgba(0, 229, 255, 0.5);
+  background: rgba(8, 47, 73, 0.92);
+}
+
 .tree-branch-symbol {
   color: #64748b;
   font-family: monospace;

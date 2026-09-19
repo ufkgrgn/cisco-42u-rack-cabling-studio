@@ -23,6 +23,7 @@
 
   let quickHudEl = null;
   let contextMenuEl = null;
+  let lastHudOpenTime = 0;
 
   function hideCableQuickHud() {
     if (quickHudEl) {
@@ -38,9 +39,36 @@
     }
   }
 
+  function formatCompactHudName(name, id) {
+    if (!name || name === id) return id;
+    if (name.includes('➔') || name.includes('->')) {
+      const sep = name.includes('➔') ? '➔' : '->';
+      const parts = name.split(sep);
+      if (parts.length === 2) {
+        const p1 = parts[0].trim()
+          .replace(/^Cisco\s+(Catalyst\s+)?/i, '')
+          .replace(/\s+\d+\s+Port\s+Gigabit\s+PoE\+?$/i, '')
+          .replace(/^(\d+\s+Port\s+Cat\d+e?\s+RJ45\s+Patch\s+Panel)/i, 'Cat6 PP-24')
+          .replace(/^ODF\s+\d+\s+Port\s+(LC|SC)\s+(OS2|OM4)\s+Fiber\s+Patch\s+Panel/i, 'ODF-24 $1')
+          .replace(/\s+Patch\s+Panel$/i, ' PP');
+        const p2 = parts[1].trim()
+          .replace(/^Cisco\s+(Catalyst\s+)?/i, '')
+          .replace(/\s+\d+\s+Port\s+Gigabit\s+PoE\+?$/i, '')
+          .replace(/^(\d+\s+Port\s+Cat\d+e?\s+RJ45\s+Patch\s+Panel)/i, 'Cat6 PP-24')
+          .replace(/^ODF\s+\d+\s+Port\s+(LC|SC)\s+(OS2|OM4)\s+Fiber\s+Patch\s+Panel/i, 'ODF-24 $1')
+          .replace(/\s+Patch\s+Panel$/i, ' PP');
+        return `${p1} ➔ ${p2}`;
+      }
+    }
+    return name;
+  }
+
   function showCableQuickHud(cableId, clientX, clientY) {
     hideCableQuickHud();
     hideCableContextMenu();
+    lastHudOpenTime = Date.now();
+    if (dom?.tooltip) dom.tooltip.style.display = 'none';
+    highlightCable(cableId, true);
 
     const cable = STATE.cables.find(c => c.id === cableId);
     if (!cable) return;
@@ -60,9 +88,11 @@
     const currentDuct = cable.ductSide || 'auto';
     const ductIcon = currentDuct === 'left' ? '⬅️ Sol' : (currentDuct === 'right' ? '➡️ Sağ' : '⚖️ Oto');
     const ductTitle = `Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
+    const fullName = cable.name || cable.id;
+    const compactName = formatCompactHudName(fullName, cable.id);
 
     hud.innerHTML = `
-      <span class="hud-title"><span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} <span class="hud-length-val" style="color:#94a3b8; font-size:0.72rem; margin-left:4px;">${Number(cable.lengthMeters || 0).toFixed(1)}m</span></span>
+      <span class="hud-title" title="${escapeHtml(fullName)}"><span style="color:${cable.color};">●</span> ${escapeHtml(compactName)} <span class="hud-length-val" style="color:#94a3b8; font-size:0.72rem; margin-left:4px;">${Number(cable.lengthMeters || 0).toFixed(1)}m</span></span>
       <button type="button" class="hud-btn-duct" title="${escapeHtml(ductTitle)}">${escapeHtml(ductIcon)}</button>
       <button type="button" class="hud-btn-settings" title="Tüm Kablo Ayarları & Menü">⚙️ Menü</button>
       <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
@@ -108,8 +138,11 @@
   }
 
   function showCableContextMenu(cableId, clientX, clientY) {
-    hideCableQuickHud();
     hideCableContextMenu();
+    hideCableQuickHud();
+    lastHudOpenTime = Date.now();
+    if (dom?.tooltip) dom.tooltip.style.display = 'none';
+    highlightCable(cableId, true);
 
     const cable = STATE.cables.find(c => c.id === cableId);
     if (!cable) return;
@@ -147,6 +180,7 @@
       <div class="menu-item" id="ctx-change-color">
         🎨 Renk Değiştir
       </div>
+      <div id="ctx-color-swatches" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;"></div>
       <div class="menu-divider"></div>
       <div class="menu-item" id="ctx-cancel">
         ✕ Kapat
@@ -189,9 +223,38 @@
       renameCable2D(cable.id);
     });
 
+    const CABLE_COLORS = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+    const swatchContainer = menu.querySelector('#ctx-color-swatches');
+    if (swatchContainer) {
+      CABLE_COLORS.forEach(clr => {
+        const swatch = document.createElement('span');
+        swatch.className = 'context-color-swatch';
+        swatch.dataset.color = clr;
+        swatch.style.cssText = `display:inline-block;width:16px;height:16px;border-radius:50%;background:${clr};cursor:pointer;border:2px solid ${clr === cable.color ? '#fff' : 'transparent'};box-sizing:border-box;transition:transform 0.1s;`;
+        swatch.title = clr;
+        swatch.addEventListener('mouseenter', () => {
+          if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, clr);
+        });
+        swatch.addEventListener('mouseleave', () => {
+          if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, null);
+        });
+        swatch.addEventListener('click', (e) => {
+          e.stopPropagation();
+          cable.color = clr;
+          if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, null);
+          renderAllCables();
+          renderScheduleTable();
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+          hideCableContextMenu();
+          highlightCable(cableId, true);
+        });
+        swatchContainer.appendChild(swatch);
+      });
+    }
+
     menu.querySelector('#ctx-change-color').addEventListener('click', (e) => {
       e.stopPropagation();
-      const colors = ['#0070d2', '#00d2ff', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#ffffff'];
+      const colors = CABLE_COLORS;
       const currentIdx = colors.indexOf(cable.color);
       cable.color = colors[(currentIdx + 1) % colors.length];
       renderAllCables();
@@ -240,10 +303,19 @@
     window.__CABLE_INTERACTIONS_BOUND__ = true;
 
     document.addEventListener('click', (e) => {
+      if (Date.now() - lastHudOpenTime < 250) {
+        return;
+      }
       if (e.target.closest('#cable-quick-hud') || e.target.closest('#cable-context-menu')) {
         return;
       }
       if (e.target.closest('.cable-path') || e.target.closest('.cable-boot')) {
+        return;
+      }
+      if (e.target.closest('#schedule-table, #schedule-tbody, [data-cable-id], .schedule-cable-card, .tree-cable-row')) {
+        return;
+      }
+      if (STATE?.cableRenderMode === 'pixi' && RS.hitTestPixiCable && RS.hitTestPixiCable(e.clientX, e.clientY)) {
         return;
       }
       if (quickHudEl || contextMenuEl || STATE.highlightedCableId) {

@@ -53,6 +53,7 @@
       renderRackTabs();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
       if (RS.renderAllCables) RS.renderAllCables();
+      if (RS.focusOnRack) RS.focusOnRack(rackId);
     } else {
       if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
       renderRackTabs();
@@ -86,6 +87,10 @@
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     requestAnimationFrame(() => {
       if (RS.fitRackToScreen) RS.fitRackToScreen(false);
+      requestAnimationFrame(() => {
+        if (RS.invalidatePixiCableGeometry) RS.invalidatePixiCableGeometry();
+        if (RS.renderAllCables) RS.renderAllCables();
+      });
     });
     return newRack;
   }
@@ -251,6 +256,13 @@
     }
 
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    requestAnimationFrame(() => {
+      if (RS.fitRackToScreen) RS.fitRackToScreen(false);
+      requestAnimationFrame(() => {
+        if (RS.invalidatePixiCableGeometry) RS.invalidatePixiCableGeometry();
+        if (RS.renderAllCables) RS.renderAllCables();
+      });
+    });
     return newRack;
   }
 

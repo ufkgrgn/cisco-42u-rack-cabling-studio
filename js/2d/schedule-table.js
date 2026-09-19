@@ -486,6 +486,7 @@
     tr.addEventListener('click', (e) => {
       if (e.target.closest('.del-cable-btn') || e.target.closest('.role-select-trigger') || e.target.closest('.duct-select-trigger') || e.target.closest('.clickable-endpoint')) return;
       highlightCable(c.id);
+      if (RS.focusOnCable) RS.focusOnCable(c.id);
     });
 
     tr.addEventListener('dblclick', (e) => {
@@ -518,6 +519,7 @@
         e.stopPropagation();
         const instId = ep.dataset.instanceId;
         const pId = ep.dataset.portId;
+        if (RS.focusOnDevice) RS.focusOnDevice(instId);
         if (window.PortConfigEditor) {
           window.PortConfigEditor.open(instId, pId, '2d');
         }
@@ -686,10 +688,12 @@
         const cId = row.dataset.cableId;
         row.addEventListener('mouseenter', (e) => {
           e.stopPropagation();
+          row.classList.add('hovered');
           setCableHover(cId, true);
         });
         row.addEventListener('mouseleave', (e) => {
           e.stopPropagation();
+          row.classList.remove('hovered');
           setCableHover(cId, false);
         });
         row.addEventListener('click', (e) => {

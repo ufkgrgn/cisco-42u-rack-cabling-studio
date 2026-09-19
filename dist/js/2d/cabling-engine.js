@@ -12,9 +12,20 @@
 
   const RS = window.RackStudio = window.RackStudio || {};
 
-  // Preserve public API namespace references for backward compatibility
-  RS.renderAllCables = RS.renderAllCables || function (...args) {
-    return RS.renderAllCables ? RS.renderAllCables(...args) : undefined;
+  // Preserve public API namespace references with dual-engine dispatch (PixiJS GPU / SVG)
+  const existingSvgRenderer = RS.renderAllCablesSVG || (typeof RS.renderAllCables === 'function' ? RS.renderAllCables : null);
+  if (existingSvgRenderer) RS.renderAllCablesSVG = existingSvgRenderer;
+
+  RS.renderAllCables = function (...args) {
+    if (RS.STATE && RS.STATE.cableRenderMode === 'pixi' && typeof RS.renderAllCablesPixi === 'function') {
+      return RS.renderAllCablesPixi(...args);
+    }
+    if (typeof RS.renderAllCablesSVG === 'function') {
+      return RS.renderAllCablesSVG(...args);
+    }
+    if (typeof existingSvgRenderer === 'function') {
+      return existingSvgRenderer(...args);
+    }
   };
   RS.cancelPendingConnection = RS.cancelPendingConnection || function (...args) {
     return RS.cancelPendingConnection ? RS.cancelPendingConnection(...args) : undefined;

@@ -47,18 +47,39 @@ const assert = require('node:assert/strict');
       }
       window.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
       const sorted=[...intervals].sort((a,b)=>a-b);
+      api.setCableRenderMode('pixi');
+      await new Promise(resolve=>setTimeout(resolve,300));
+      api.renderAllCables();
+      const retainedBefore=api.getPixiCableInteractionState().renderStats;
+      const retainedRenderCalls=100;
+      const retainedStart=performance.now();
+      for(let i=0;i<retainedRenderCalls;i++) api.renderAllCables();
+      const retainedBatchMs=performance.now()-retainedStart;
+      const pixiState=api.getPixiCableInteractionState();
+      const retainedAfter=pixiState.renderStats;
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
         baselineFrameIntervalP95Ms:baseline[Math.floor(baseline.length*.95)],
         validationMs,importMs,panFrames:intervals.length,frameIntervalP50Ms:sorted[Math.floor(sorted.length*.5)],
         frameIntervalP95Ms:sorted[Math.floor(sorted.length*.95)],maxFrameIntervalMs:sorted.at(-1),
         intervalsAbove20Ms:intervals.filter(n=>n>20).length,
+        pixiDisplayCount:pixiState.displayCount,
+        retainedRenderCalls,
+        retainedBatchMs,
+        retainedAverageMs:retainedBatchMs/retainedRenderCalls,
+        retainedFastPathHits:retainedAfter.fastPathHits-retainedBefore.fastPathHits,
+        retainedDomRectReadDelta:retainedAfter.domRectReads-retainedBefore.domRectReads,
+        retainedDisplayAllocationDelta:retainedAfter.createdDisplays-retainedBefore.createdDisplays,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
     }, targetRackCount);
     assert.equal(results.renderedDevices,30);
     assert.equal(results.renderedCables,200);
+    assert.equal(results.pixiDisplayCount,200);
+    assert.equal(results.retainedFastPathHits,results.retainedRenderCalls);
+    assert.equal(results.retainedDomRectReadDelta,0);
+    assert.equal(results.retainedDisplayAllocationDelta,0);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
     fs.writeFileSync(path.join(__dirname,'performance-results.json'),JSON.stringify(report,null,2)+'\n');

@@ -143,6 +143,7 @@
           const bezel = devEl.querySelector('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
           bezel?.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (RS.focusOnDevice) RS.focusOnDevice(dev.instanceId);
             window.DeviceMetadataEditor?.open2D(dev.instanceId);
           });
         }

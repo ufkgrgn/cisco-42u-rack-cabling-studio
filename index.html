@@ -1504,6 +1504,9 @@
           <button class="btn" id="btn-tidy-cables" style="font-size:0.7rem; padding:3px 8px;" title="Tüm kabloları sıkılaştır ve kanallara hizala">
             Sıkılaştır
           </button>
+          <button class="btn" id="btn-toggle-cable-engine" style="font-size:0.7rem; padding:3px 8px;" title="Kablo Çizim Motorunu Değiştir (SVG / PixiJS GPU)">
+            <span id="cable-engine-indicator">🎨 SVG</span>
+          </button>
         </div>
 
         <!-- Right: Zoom & Pan Navigation Controls -->
@@ -1565,6 +1568,7 @@
               <g id="connectors-group"></g>
               <g id="dring-overlay-group"></g>
             </svg>
+            <canvas class="cables-pixi-layer" id="cables-pixi-canvas" style="display:none;"></canvas>
 
           </div>
 
@@ -1636,6 +1640,9 @@
   <!-- Standalone Application Entry Point (Supports both file:/// and web servers) -->
   </div>
 
+  <!-- Vendor PixiJS v8 Engine (Loaded before modular scripts) -->
+  <script src="js/pixi.min.js"></script>
+
   <!-- 2D Workspace Modular Scripts (Direct Browser Execution, Zero Bundler) -->
   <script src="js/2d/utils.js"></script>
   <script src="js/2d/catalog.js"></script>
@@ -1654,6 +1661,7 @@
   <script src="js/2d/rack-renderer.js"></script>
   <script src="js/2d/cable-routing.js"></script>
   <script src="js/2d/cables-svg-renderer.js"></script>
+  <script src="js/2d/cables-pixi-renderer.js"></script>
   <script src="js/2d/cable-hud.js"></script>
   <script src="js/2d/switch-autofill.js"></script>
   <script src="js/2d/cabling-engine.js"></script>

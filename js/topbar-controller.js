@@ -230,6 +230,44 @@
       });
     }
 
+    // Dual Cable Engine Toggle: SVG vs PixiJS GPU
+    const btnToggleEngine = document.getElementById('btn-toggle-cable-engine');
+    const engineIndicator = document.getElementById('cable-engine-indicator');
+    if (btnToggleEngine) {
+      const updateEngineUI = (mode) => {
+        if (engineIndicator) {
+          if (mode === 'pixi') {
+            engineIndicator.textContent = '⚡ GPU (Pixi)';
+            engineIndicator.style.color = '#38bdf8';
+            btnToggleEngine.title = 'Aktif Motor: PixiJS GPU (WebGPU/WebGL). SVG motoruna geçmek için tıklayın.';
+          } else {
+            engineIndicator.textContent = '🎨 SVG';
+            engineIndicator.style.color = '#e2e8f0';
+            btnToggleEngine.title = 'Aktif Motor: Standart SVG DOM. PixiJS GPU motoruna geçmek için tıklayın.';
+          }
+        }
+      };
+
+      const savedMode = localStorage.getItem('rackstudio_cable_mode') || 'svg';
+      if (window.RackStudio?.setCableRenderMode && savedMode === 'pixi') {
+        window.RackStudio.setCableRenderMode(savedMode);
+      }
+      updateEngineUI(savedMode);
+
+      btnToggleEngine.addEventListener('click', () => {
+        const RS = window.RackStudio;
+        if (!RS) return;
+        const currentMode = RS.STATE?.cableRenderMode || 'svg';
+        const nextMode = currentMode === 'svg' ? 'pixi' : 'svg';
+        if (RS.setCableRenderMode) {
+          RS.setCableRenderMode(nextMode);
+        } else if (RS.STATE) {
+          RS.STATE.cableRenderMode = nextMode;
+        }
+        updateEngineUI(nextMode);
+      });
+    }
+
     // Periodically refresh telemetry
     setInterval(updateTelemetry, 1500);
     updateTelemetry();

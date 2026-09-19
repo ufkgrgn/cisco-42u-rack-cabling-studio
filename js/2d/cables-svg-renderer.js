@@ -60,13 +60,32 @@
     return { deviceName, portName };
   }
 
+  function shortenDeviceName(name) {
+    if (!name) return '';
+    return String(name)
+      .replace(/^Cisco\s+(Catalyst\s+)?/i, '')
+      .replace(/\s+\d+\s+Port\s+Gigabit\s+PoE\+?$/i, '')
+      .replace(/^(\d+\s+Port\s+Cat\d+e?\s+RJ45\s+Patch\s+Panel)/i, 'Cat6 PP-24')
+      .replace(/^ODF\s+\d+\s+Port\s+(LC|SC)\s+(OS2|OM4)\s+Fiber\s+Patch\s+Panel/i, 'ODF-24 $1')
+      .replace(/\s+Patch\s+Panel$/i, ' PP')
+      .trim();
+  }
+
   function getCableLabel(activeRack, cable) {
     const from = getCableEndpointInfo(activeRack, cable.from);
     const to = getCableEndpointInfo(activeRack, cable.to);
+    const fromDev = shortenDeviceName(from.deviceName) || from.deviceName;
+    const toDev = shortenDeviceName(to.deviceName) || to.deviceName;
     const isFiber = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
-    const fiberTag = isFiber ? '[FIBER OS2] ' : '';
-    const endpoints = `${from.deviceName} / ${from.portName} ➔ ${to.deviceName} / ${to.portName}`;
-    return cable.name ? `${fiberTag}${cable.name}: ${endpoints}` : `${fiberTag}${endpoints}`;
+    const fiberTag = isFiber ? '[FIBER] ' : '';
+    const endpoints = `${fromDev} / ${from.portName} ➔ ${toDev} / ${to.portName}`;
+    if (cable.name) {
+      if (cable.name.includes('➔') || cable.name.includes('->')) {
+        return `${fiberTag}${cable.name}`;
+      }
+      return `${fiberTag}${cable.name}: ${endpoints}`;
+    }
+    return `${fiberTag}${endpoints}`;
   }
 
   function renameCable2D(cableId) {
@@ -106,23 +125,32 @@
     activeHoveredCableId = null;
   }
 
-  function setCableHover(cableId, isHovered) {
+  function setCableHover(cableId, isHovered, source) {
+    if (source !== 'pixi' && STATE.cableRenderMode === 'pixi' && RS.setPixiCableHover) {
+      RS.setPixiCableHover(cableId, isHovered);
+    }
+
     const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
     const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
     const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
 
     if (!isHovered) {
+      const p = document.getElementById(`svg-cable-${cableId}`);
+      const c = document.getElementById(`svg-cable-casing-${cableId}`);
+      if (p) p.classList.remove('hovered');
+      if (c) c.classList.remove('hovered');
+      document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`).forEach(b => {
+        b.classList.remove('hovered');
+      });
+      document.querySelectorAll(`#schedule-tbody tr[data-cable-id="${cableId}"]`).forEach(row => {
+        row.classList.remove('hovered-row');
+      });
+      document.querySelectorAll(`#schedule-tbody .tree-cable-row[data-cable-id="${cableId}"]`).forEach(row => {
+        row.classList.remove('hovered');
+      });
       if (activeHoveredCableId === cableId) {
-        const p = document.getElementById(`svg-cable-${cableId}`);
-        const c = document.getElementById(`svg-cable-casing-${cableId}`);
-        if (p) p.classList.remove('hovered');
-        if (c) c.classList.remove('hovered');
-        document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`).forEach(b => {
-          b.classList.remove('hovered');
-        });
-        const tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
-        if (tableRow) tableRow.classList.remove('hovered-row');
         restoreHoveredCable();
+        activeHoveredCableId = null;
       }
       if (svgEl && !activeHoveredCableId) {
         svgEl.classList.remove('has-cable-hovered');
@@ -141,10 +169,16 @@
       document.querySelectorAll(`.cable-boot[data-cable-id="${activeHoveredCableId}"], .cable-boot-pin[data-cable-id="${activeHoveredCableId}"]`).forEach(b => {
         b.classList.remove('hovered');
       });
-      const prevRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${activeHoveredCableId}"]`);
-      if (prevRow) prevRow.classList.remove('hovered-row');
+      document.querySelectorAll(`#schedule-tbody tr[data-cable-id="${activeHoveredCableId}"]`).forEach(row => {
+        row.classList.remove('hovered-row');
+      });
+      document.querySelectorAll(`#schedule-tbody .tree-cable-row[data-cable-id="${activeHoveredCableId}"]`).forEach(row => {
+        row.classList.remove('hovered');
+      });
       restoreHoveredCable();
     }
+
+    activeHoveredCableId = cableId;
 
     if (svgEl) {
       svgEl.classList.add('has-cable-hovered');
@@ -158,13 +192,22 @@
     const boots = Array.from(document.querySelectorAll(`.cable-boot[data-cable-id="${cableId}"], .cable-boot-pin[data-cable-id="${cableId}"]`));
     boots.forEach(b => b.classList.add('hovered'));
 
-    let tableRow = document.querySelector(`#schedule-tbody tr[data-cable-id="${cableId}"]`);
-    if (!tableRow && RS.ensureCableVisibleInSchedule) {
-      tableRow = RS.ensureCableVisibleInSchedule(cableId);
-    }
-    if (tableRow) {
-      tableRow.classList.add('hovered-row');
-      tableRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.querySelectorAll(`#schedule-tbody tr[data-cable-id="${cableId}"]`).forEach(row => {
+      row.classList.add('hovered-row');
+    });
+    document.querySelectorAll(`#schedule-tbody .tree-cable-row[data-cable-id="${cableId}"]`).forEach(row => {
+      row.classList.add('hovered');
+    });
+    if (RS.ensureCableVisibleInSchedule) {
+      const tableRow = RS.ensureCableVisibleInSchedule(cableId);
+      if (tableRow) {
+        if (tableRow.tagName === 'TR') {
+          tableRow.classList.add('hovered-row');
+        } else {
+          tableRow.classList.add('hovered');
+        }
+        tableRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
 
     // Temporarily bring the hovered cable & casing to the very top of cablesGroup (SVG z-order)
@@ -183,7 +226,6 @@
       cablesGroup.appendChild(p);
 
       hoveredPlaceholder = { placeholder, casing: c, path: p, bootPlaceholder, boots, cableId };
-      activeHoveredCableId = cableId;
     }
   }
 
@@ -270,6 +312,7 @@
 
     svgEl.addEventListener('mouseover', (e) => {
       if (STATE.pendingConnection) return;
+      if (document.getElementById('cable-quick-hud') || document.getElementById('cable-context-menu')) return;
       const el = e.target.closest('[data-cable-id]');
       if (el && el.dataset.cableId) {
         setCableHover(el.dataset.cableId, true);
@@ -290,6 +333,10 @@
 
     svgEl.addEventListener('mousemove', (e) => {
       if (STATE.pendingConnection) return;
+      if (document.getElementById('cable-quick-hud') || document.getElementById('cable-context-menu')) {
+        if (dom.tooltip) dom.tooltip.style.display = 'none';
+        return;
+      }
       if (dom.tooltip && dom.tooltip.style.display !== 'none') {
         dom.tooltip.style.left = `${e.clientX + 10}px`;
         dom.tooltip.style.top = `${e.clientY - 10}px`;
@@ -299,6 +346,10 @@
 
   function showCableTooltip(e, cableId) {
     if (STATE.pendingConnection || !dom.tooltip) return;
+    if (document.getElementById('cable-quick-hud') || document.getElementById('cable-context-menu')) {
+      dom.tooltip.style.display = 'none';
+      return;
+    }
     const cable = (STATE.cables || []).find(c => c.id === cableId);
     if (!cable) return;
     const activeRack = getActiveRack();
@@ -834,8 +885,14 @@
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
-  function highlightCable(cableId) {
-    STATE.highlightedCableId = (cableId && STATE.highlightedCableId !== cableId) ? cableId : null;
+  function highlightCable(cableId, force = null) {
+    if (force === true) {
+      STATE.highlightedCableId = cableId || null;
+    } else if (force === false) {
+      STATE.highlightedCableId = null;
+    } else {
+      STATE.highlightedCableId = (cableId && STATE.highlightedCableId !== cableId) ? cableId : null;
+    }
     if (!STATE.highlightedCableId) {
       hideCableQuickHud();
       hideCableContextMenu();
@@ -909,6 +966,7 @@
   RS.showCableTooltip = showCableTooltip;
   RS.getOrCreateSvgElement = getOrCreateSvgElement;
   RS.renderAllCables = renderAllCables;
+  RS.renderAllCablesSVG = renderAllCables;
   RS.disconnectCable = disconnectCable;
   RS.highlightCable = highlightCable;
   RS.addDirectCable = addDirectCable;
