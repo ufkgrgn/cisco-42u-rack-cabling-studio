@@ -1656,60 +1656,293 @@
   filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
 }
 
+.dev-btn.autofill-device-btn {
+  color: #38bdf8;
+  font-size: 0.82rem;
+  transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+
+.dev-btn.autofill-device-btn:hover {
+  color: #00e5ff;
+  transform: scale(1.22);
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.75));
+}
+
+/* Switch Auto-Fill Popover */
+.switch-autofill-popover {
+  position: fixed;
+  z-index: 99999;
+  width: 320px;
+  background: rgba(15, 23, 42, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.2);
+  padding: 12px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9;
+  user-select: none;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.autofill-pop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+}
+
+.autofill-pop-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.autofill-pop-icon {
+  font-size: 16px;
+  color: #38bdf8;
+}
+
+.autofill-pop-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.autofill-pop-subtitle {
+  font-size: 10.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 230px;
+}
+
+.autofill-pop-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.autofill-pop-close:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.autofill-pop-field {
+  margin-bottom: 10px;
+}
+
+.autofill-pop-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.autofill-pop-select {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  color: #f8fafc;
+  font-size: 11.5px;
+  padding: 6px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.autofill-pop-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px #38bdf8;
+}
+
+.autofill-pop-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.autofill-pop-checkbox-row input[type="checkbox"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+.autofill-pop-summary {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px dashed rgba(56, 189, 248, 0.3);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #38bdf8;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.autofill-pop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.autofill-pop-btn-cancel {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.autofill-pop-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #64748b;
+}
+
+.autofill-pop-btn-submit {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.autofill-pop-btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.6);
+}
+
+.autofill-pop-btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Auto-Fill Success / Undo Toast */
+.autofill-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100000;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.2);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f8fafc;
+  animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.autofill-toast-icon {
+  font-size: 18px;
+  color: #38bdf8;
+}
+
+.autofill-toast-body {
+  min-width: 0;
+}
+
+.autofill-toast-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.4px;
+}
+
+.autofill-toast-msg {
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.autofill-toast-undo {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #0284c7;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.autofill-toast-undo:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.autofill-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+
+.autofill-toast-close:hover {
+  color: #ef4444;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ==========================================================================
    2D LOD (LEVEL OF DETAIL) SYSTEM FOR MULTI-RACK SCALE & PERFORMANCE
    ========================================================================== */
-/* LOD MACRO (< 40% Zoom): Hide subpixel port holes, screws, and micro text */
-[data-lod="macro"] .cisco-bezel-screws,
-[data-lod="macro"] .cisco-led-dot,
-[data-lod="macro"] .hole,
-[data-lod="macro"] .dring-bracket,
-[data-lod="macro"] .organizer-brush,
+/* At macro zoom (< 40%), only hide tiny floating interactive controls to prevent misclicks.
+   All ports, labels, screws, LEDs, and cables remain 100% visible and crisp at high resolution. */
 [data-lod="macro"] .device-controls {
   display: none !important;
 }
 
-/* Preserve port layout boxes for SVG cable endpoint geometry. display:none
-   made every getBoundingClientRect() return zero after a macro-LOD refresh. */
-[data-lod="macro"] :is(.port-grid, .port-grid-24, .port-grid-48, .fiber-adapter-ports, .port) {
-  visibility: hidden !important;
+/* Disable hit testing once at the retained-scene root while dragging or zooming.
+   Preserves all layer rasterization in GPU VRAM with ZERO tile invalidations. */
+.rack-stage.panning-active,
+.rack-stage.zooming-active {
   pointer-events: none !important;
-}
-
-[data-lod="macro"] .cables-svg-layer {
-  opacity: 0.6;
-}
-
-/* LOD MEDIUM (40% - 75% Zoom): Hide micro labels and fine screw details */
-[data-lod="medium"] .cisco-bezel-screws,
-[data-lod="medium"] .port-number-label,
-[data-lod="medium"] .hole {
-  display: none !important;
-}
-
-/* Disable hit testing once at the retained-scene root while dragging. */
-.rack-stage.panning-active {
-  pointer-events: none !important;
-}
-
-/* Limit raster-effect invalidation to the elements that actually use those
-   effects. A universal descendant selector caused a full-tree style recalc. */
-.rack-stage.panning-active :is(
-  .mounted-device,
-  .device-faceplate,
-  .rack-container,
-  .rack-header-plate,
-  .port,
-  .cable-path,
-  .cable-casing,
-  .cable-boot
-),
-.rack-stage.panning-active :is(.mounted-device, .device-faceplate, .rack-container, .port)::before,
-.rack-stage.panning-active :is(.mounted-device, .device-faceplate, .rack-container, .port)::after {
-  box-shadow: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-  transition: none !important;
+  user-select: none !important;
 }
 
 /* ==========================================================================
@@ -1750,7 +1983,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 5px 12px;
+  padding: 4px 8px;
   box-sizing: border-box;
   user-select: none;
   z-index: 10;
@@ -1762,7 +1995,10 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  height: 24px;
+  height: 25px;
+  gap: 6px;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
 }
 
 .rack-header-bottom-tier {
@@ -1773,17 +2009,22 @@
   height: 22px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   padding-top: 2px;
+  white-space: nowrap !important;
 }
 
 .rack-header-title {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
   color: #38bdf8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap !important;
+  overflow: hidden;
 }
 
 .rack-header-name-editable {
@@ -1791,6 +2032,10 @@
   padding: 1px 4px;
   border-radius: 3px;
   transition: background 0.15s;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
 }
 
 .rack-header-name-editable:hover {
@@ -1802,6 +2047,7 @@
   font-size: 10px;
   opacity: 0.5;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .rack-header-rename-hint:hover {
@@ -1809,22 +2055,27 @@
 }
 
 .rack-header-standard-badge {
-  font-size: 9.5px;
+  font-size: 9px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-weight: 800;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   color: #38bdf8;
   background: rgba(14, 165, 233, 0.12);
   border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: 4px;
   text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap !important;
 }
 
 .rack-header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
 }
 
 .rack-header-meta-group {
@@ -2450,19 +2701,28 @@
 .rack-header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
 }
 .rack-action-btn {
   background: rgba(30, 41, 59, 0.85);
   border: 1px solid #334155;
   border-radius: 4px;
   color: #94a3b8;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 5px;
   line-height: 1.2;
+  white-space: nowrap;
   transition: all 0.15s;
+}
+.rack-action-btn.rack-hdr-move-left,
+.rack-action-btn.rack-hdr-move-right {
+  padding: 2px 4px;
+  font-size: 10px;
 }
 .rack-action-btn:hover {
   background: rgba(56, 189, 248, 0.2);

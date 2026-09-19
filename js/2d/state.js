@@ -59,10 +59,20 @@
       rebuildStateIndexes();
     }
     let dev = STATE.deviceById.get(id);
-    if (!dev) {
-      // Fallback rebuild in case a device was added directly without indexing
-      rebuildStateIndexes();
-      dev = STATE.deviceById.get(id);
+    if (!dev && Array.isArray(STATE.racks)) {
+      for (let i = 0; i < STATE.racks.length; i++) {
+        const r = STATE.racks[i];
+        if (r && Array.isArray(r.devices)) {
+          for (let j = 0; j < r.devices.length; j++) {
+            if (r.devices[j] && r.devices[j].instanceId === id) {
+              dev = r.devices[j];
+              STATE.deviceById.set(id, dev);
+              return dev;
+            }
+          }
+        }
+      }
+      return null;
     }
     return dev || null;
   }
@@ -73,18 +83,19 @@
       rebuildStateIndexes();
     }
     let rack = STATE.rackById.get(id);
-    if (!rack) {
-      rebuildStateIndexes();
-      rack = STATE.rackById.get(id);
+    if (!rack && Array.isArray(STATE.racks)) {
+      rack = STATE.racks.find(r => r && r.id === id) || null;
+      if (rack) STATE.rackById.set(id, rack);
     }
     return rack || null;
   }
 
   function getActiveRack() {
-    let r = getRackById(STATE.activeRackId);
-    if (!r && STATE.racks.length > 0) {
+    if (!Array.isArray(STATE.racks) || STATE.racks.length === 0) return null;
+    let r = STATE.racks.find(rack => rack && rack.id === STATE.activeRackId);
+    if (!r) {
       r = STATE.racks[0];
-      STATE.activeRackId = r.id;
+      if (r) STATE.activeRackId = r.id;
     }
     return r;
   }
@@ -169,9 +180,9 @@
     dom.btnExportVisio = document.getElementById('btn-export-visio');
     dom.btnExportJson = document.getElementById('btn-export-json');
     dom.btnImportJson = document.getElementById('btn-import-json');
-    dom.btnPresetMdf = document.getElementById('btn-preset-mdf');
-    dom.btnPresetIdf = document.getElementById('btn-preset-idf');
-    dom.btnPresetSite = document.getElementById('btn-preset-site');
+    dom.btnPresetMdf = document.getElementById('btn-preset-mdf') || document.getElementById('btn-3d-preset-mdf');
+    dom.btnPresetIdf = document.getElementById('btn-preset-idf') || document.getElementById('btn-3d-preset-idf');
+    dom.btnPresetSite = document.getElementById('btn-preset-site') || document.getElementById('btn-3d-preset-site');
     dom.btnClearAll = document.getElementById('btn-clear-all');
     dom.btnClearCables = document.getElementById('btn-clear-cables');
     dom.btnZoomIn = document.getElementById('btn-zoom-in');

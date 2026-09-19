@@ -116,7 +116,11 @@
     document.getElementById('btn-3d-preset-mdf')?.addEventListener('click', (e) => {
       if (!window.is3DMode) {
         e.stopImmediatePropagation();
-        document.getElementById('btn-preset-mdf')?.click();
+        if (window.RackStudio?.loadMdfPreset) {
+          window.RackStudio.loadMdfPreset();
+        } else {
+          document.getElementById('btn-preset-mdf')?.click();
+        }
         updateTelemetry();
       }
     }, true);
@@ -124,7 +128,11 @@
     document.getElementById('btn-3d-preset-idf')?.addEventListener('click', (e) => {
       if (!window.is3DMode) {
         e.stopImmediatePropagation();
-        document.getElementById('btn-preset-idf')?.click();
+        if (window.RackStudio?.loadIdfPreset) {
+          window.RackStudio.loadIdfPreset();
+        } else {
+          document.getElementById('btn-preset-idf')?.click();
+        }
         updateTelemetry();
       }
     }, true);
@@ -132,7 +140,11 @@
     document.getElementById('btn-3d-preset-site')?.addEventListener('click', (e) => {
       if (!window.is3DMode) {
         e.stopImmediatePropagation();
-        document.getElementById('btn-preset-site')?.click();
+        if (window.RackStudio?.loadFullSitePreset) {
+          window.RackStudio.loadFullSitePreset();
+        } else {
+          document.getElementById('btn-preset-site')?.click();
+        }
         updateTelemetry();
       }
     }, true);

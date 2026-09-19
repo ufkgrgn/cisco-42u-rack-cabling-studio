@@ -137,17 +137,28 @@
     dlAnchor.remove();
   }
 
+  function isBuiltinKey(key) {
+    const builtinKeys = RS.BUILTIN_KEYS || BUILTIN_KEYS;
+    if (builtinKeys && builtinKeys.has(key)) return true;
+    if (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG.some(m => m.id === key)) return true;
+    return false;
+  }
+
   function validateTopology(data) {
     if (!data || typeof data !== 'object') throw new Error('Geçersiz proje.');
     const customCatalog = JSON.parse(JSON.stringify(data.customCatalog || {}));
     if (Array.isArray(customCatalog) || typeof customCatalog !== 'object') throw new Error('Geçersiz katalog.');
     const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(value);
     for (const [key, cat] of Object.entries(customCatalog)) {
-      if (!validId(key) || ['__proto__','constructor','prototype'].includes(key) || BUILTIN_KEYS.has(key) || !cat || !Number.isInteger(cat.u) || cat.u < 1 || cat.u > 60 || !Array.isArray(cat.ports) || typeof cat.name !== 'string') throw new Error('Geçersiz özel cihaz: ' + key);
+      if (!validId(key) || ['__proto__','constructor','prototype'].includes(key) || isBuiltinKey(key) || !cat || !Number.isInteger(cat.u) || cat.u < 1 || cat.u > 60 || !Array.isArray(cat.ports) || typeof cat.name !== 'string') throw new Error('Geçersiz özel cihaz: ' + key);
       const ids = new Set();
       for (const port of cat.ports) { if (!validId(port.id) || ids.has(port.id)) throw new Error('Geçersiz port.'); ids.add(port.id); }
     }
-    const catalog = Object.fromEntries([...BUILTIN_KEYS].map(key => [key, HARDWARE_CATALOG[key]]));
+    const builtinKeys = RS.BUILTIN_KEYS || BUILTIN_KEYS || new Set();
+    const catalog = Object.fromEntries([...builtinKeys].filter(k => HARDWARE_CATALOG[k]).map(key => [key, HARDWARE_CATALOG[key]]));
+    if (Array.isArray(window.CISCO_MASTER_CATALOG)) {
+      window.CISCO_MASTER_CATALOG.forEach(m => { if (!catalog[m.id]) catalog[m.id] = m; });
+    }
     Object.assign(catalog, customCatalog);
     const legacy = !Array.isArray(data.racks);
     const sourceRacks = legacy ? [{id:'rack-1', name:'MDF - Dağıtım Kabini', heightU:data.heightU || 42, devices:data.devices}] : data.racks;
@@ -159,7 +170,7 @@
       rackIds.add(source.id);
       const units = Array(heightU + 1).fill(null);
       const devices = source.devices.map(dev => {
-        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : null;
+        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : (catalog[dev.catalogKey] || null);
         if (!cat || !validId(dev.instanceId) || deviceIds.has(dev.instanceId) || !Number.isInteger(dev.topU) || dev.topU > heightU || dev.topU - cat.u < 0 || (dev.uHeight !== undefined && dev.uHeight !== cat.u)) throw new Error('Geçersiz cihaz veya U konumu.');
         for(let u = dev.topU - cat.u + 1; u <= dev.topU; u++) { if(units[u]) throw new Error('Cihaz yerleşimleri çakışıyor.'); units[u] = dev.instanceId; }
         deviceIds.add(dev.instanceId); deviceMap.set(dev.instanceId, {rackId:source.id, cat});
@@ -208,7 +219,9 @@
 
   function loadCustomTopology(data) {
     const next = validateTopology(data);
-    for (const key of Object.keys(HARDWARE_CATALOG)) if (!BUILTIN_KEYS.has(key)) delete HARDWARE_CATALOG[key];
+    for (const key of Object.keys(HARDWARE_CATALOG)) {
+      if (!isBuiltinKey(key)) delete HARDWARE_CATALOG[key];
+    }
     Object.assign(HARDWARE_CATALOG, next.customCatalog);
     Object.assign(STATE, next);
     if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();

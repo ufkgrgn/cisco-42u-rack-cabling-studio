@@ -42,17 +42,9 @@
     }
 
     // Dynamic 2D Level of Detail (LOD) tiering
-    const currentLod = RS.ZOOM_STATE.scale < 0.42 ? 'macro' : (RS.ZOOM_STATE.scale < 0.78 ? 'medium' : 'detail');
+    const currentLod = RS.ZOOM_STATE.scale < 0.35 ? 'macro' : 'detail';
     if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
       RS.dom.rackStage.setAttribute('data-lod', currentLod);
-    }
-
-    // Only dispatch zoom changed event if scale actually changed (pure pan does not change scale)
-    if (RS.ZOOM_STATE.scale !== lastDispatchedScale) {
-      lastDispatchedScale = RS.ZOOM_STATE.scale;
-      window.dispatchEvent(new CustomEvent('rack-zoom-changed', {
-        detail: { scale: RS.ZOOM_STATE.scale, panX: RS.ZOOM_STATE.panX, panY: RS.ZOOM_STATE.panY }
-      }));
     }
   }
 
@@ -95,6 +87,13 @@
     scheduleViewportContentRefresh(smooth ? 300 : 0);
   }
 
+  let cachedCanvasRect = null;
+  function getCanvasRect(canvas) {
+    if (!cachedCanvasRect) cachedCanvasRect = canvas.getBoundingClientRect();
+    return cachedCanvasRect;
+  }
+  window.addEventListener('resize', () => { cachedCanvasRect = null; });
+
   function setZoom(targetScale, pivotX, pivotY, smooth = false) {
     const canvas = RS.dom?.viewportCanvas;
     if (!canvas) return;
@@ -103,7 +102,7 @@
     const nextScale = Math.max(RS.ZOOM_STATE.minScale, Math.min(RS.ZOOM_STATE.maxScale, targetScale));
     if (prevScale === nextScale) return;
 
-    const rect = canvas.getBoundingClientRect();
+    const rect = getCanvasRect(canvas);
     const cx = (pivotX !== undefined) ? (pivotX - rect.left) : (canvas.clientWidth / 2);
     const cy = (pivotY !== undefined) ? (pivotY - rect.top) : (canvas.clientHeight / 2);
 
@@ -218,10 +217,41 @@
       scheduleViewportContentRefresh(0);
     }
 
+    let wheelZoomFrameId = 0;
+    let pendingZoomMultiplier = 1;
+    let wheelPivotX = 0;
+    let wheelPivotY = 0;
+    let wheelCleanupTimer = 0;
+
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
+      if (wheelCleanupTimer) {
+        clearTimeout(wheelCleanupTimer);
+        wheelCleanupTimer = 0;
+      }
+      RS.dom?.rackStage?.classList.add('zooming-active');
+      canvas.classList.add('zooming');
+
       const zoomFactor = e.deltaY < 0 ? 1.12 : (1 / 1.12);
-      setZoom(RS.ZOOM_STATE.scale * zoomFactor, e.clientX, e.clientY, false);
+      pendingZoomMultiplier *= zoomFactor;
+      wheelPivotX = e.clientX;
+      wheelPivotY = e.clientY;
+
+      if (!wheelZoomFrameId) {
+        wheelZoomFrameId = requestAnimationFrame(() => {
+          wheelZoomFrameId = 0;
+          const targetScale = RS.ZOOM_STATE.scale * pendingZoomMultiplier;
+          pendingZoomMultiplier = 1;
+          setZoom(targetScale, wheelPivotX, wheelPivotY, false);
+        });
+      }
+
+      wheelCleanupTimer = setTimeout(() => {
+        RS.dom?.rackStage?.classList.remove('zooming-active');
+        canvas.classList.remove('zooming');
+        cachedCanvasRect = null;
+        wheelCleanupTimer = 0;
+      }, 150);
     }, { passive: false });
 
     let panOriginClientX = 0;
@@ -262,6 +292,7 @@
     let lastTouchCenter = { x: 0, y: 0 };
     canvas.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
+        RS.dom?.rackStage?.classList.add('zooming-active');
         lastTouchDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -292,6 +323,7 @@
     }, { passive: true });
 
     canvas.addEventListener('touchend', () => {
+      RS.dom?.rackStage?.classList.remove('zooming-active');
       endPan();
       lastTouchDist = 0;
     });

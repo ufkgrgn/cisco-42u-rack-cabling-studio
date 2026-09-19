@@ -29,6 +29,8 @@
     STATE.cables = [];
     STATE.cableCounter = 0;
     STATE.highlightedCableId = null;
+    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+    renderRackRailsAndSlots();
 
     const r = STATE.racks[0];
 
@@ -79,6 +81,8 @@
     renderMountedDevices();
     renderScheduleTable();
     setTimeout(renderAllCables, 50);
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
   }
 
   function loadIdfPreset() {
@@ -95,6 +99,8 @@
     STATE.cables = [];
     STATE.cableCounter = 0;
     STATE.highlightedCableId = null;
+    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+    renderRackRailsAndSlots();
 
     const r = STATE.racks[0];
 
@@ -139,6 +145,8 @@
     renderMountedDevices();
     renderScheduleTable();
     setTimeout(renderAllCables, 50);
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
   }
 
   function loadFullSitePreset() {
@@ -154,6 +162,8 @@
     STATE.cables = [];
     STATE.cableCounter = 0;
     STATE.rackCounter = 3;
+    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+    renderRackRailsAndSlots();
 
     const r1 = STATE.racks[0];
     const r2 = STATE.racks[1];
@@ -216,6 +226,8 @@
     renderMountedDevices();
     renderScheduleTable();
     setTimeout(renderAllCables, 50);
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
   }
 
   RS.loadMdfPreset = loadMdfPreset;
