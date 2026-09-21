@@ -46,6 +46,8 @@
   let layoutCacheWasExplicitlyInvalidated = false;
   let lastVisibleCableOrder = [];
   let lastChannelUsage = { left: 0, right: 0 };
+  let cableTransactionDepth = 0;
+  const queuedTransactionCableIds = new Set();
   const cableDisplays = new Map();
   const batchedRackGroups = new Map();
   const spatialGrid = new Map();
@@ -113,7 +115,12 @@
     spatialIncrementalUpdates: 0,
     spatialFullRebuilds: 0,
     incrementalBatchUpdates: 0,
-    fullBatchRebuilds: 0
+    fullBatchRebuilds: 0,
+    batchTransactions: 0,
+    transactionFlushes: 0,
+    transactionCables: 0,
+    transactionRendersAvoided: 0,
+    maxTransactionSize: 0
   };
 
   document.addEventListener('visibilitychange', () => {
@@ -1743,10 +1750,45 @@
 
   function appendSingleCablePixi(cable) {
     if (!cable) return;
+    if (cableTransactionDepth > 0) {
+      queuedTransactionCableIds.add(cable.id);
+      performanceTelemetry.transactionCables++;
+      performanceTelemetry.transactionRendersAvoided++;
+      return { queued: true, cableId: cable.id };
+    }
     renderAllCablesPixi();
   }
 
+  function beginPixiCableTransaction() {
+    if (cableTransactionDepth === 0) {
+      queuedTransactionCableIds.clear();
+      performanceTelemetry.batchTransactions++;
+    }
+    cableTransactionDepth++;
+    return cableTransactionDepth;
+  }
+
+  function flushPixiCableTransaction() {
+    if (queuedTransactionCableIds.size === 0) return 0;
+    const cableCount = queuedTransactionCableIds.size;
+    queuedTransactionCableIds.clear();
+    performanceTelemetry.transactionFlushes++;
+    performanceTelemetry.maxTransactionSize = Math.max(performanceTelemetry.maxTransactionSize, cableCount);
+    renderAllCablesPixi();
+    return cableCount;
+  }
+
+  function endPixiCableTransaction() {
+    if (cableTransactionDepth === 0) return 0;
+    cableTransactionDepth--;
+    if (cableTransactionDepth > 0) return 0;
+    return flushPixiCableTransaction();
+  }
+
   RS.appendSingleCablePixi = appendSingleCablePixi;
+  RS.beginPixiCableTransaction = beginPixiCableTransaction;
+  RS.flushPixiCableTransaction = flushPixiCableTransaction;
+  RS.endPixiCableTransaction = endPixiCableTransaction;
   RS.renderAllCablesPixi = renderAllCablesPixi;
   RS.setCableRenderMode = setCableRenderMode;
   RS.setPixiViewportRendererV2 = enabled => {
@@ -1859,6 +1901,13 @@
       spatialFullRebuilds: performanceTelemetry.spatialFullRebuilds,
       incrementalBatchUpdates: performanceTelemetry.incrementalBatchUpdates,
       fullBatchRebuilds: performanceTelemetry.fullBatchRebuilds,
+      batchTransactions: performanceTelemetry.batchTransactions,
+      transactionFlushes: performanceTelemetry.transactionFlushes,
+      transactionCables: performanceTelemetry.transactionCables,
+      transactionRendersAvoided: performanceTelemetry.transactionRendersAvoided,
+      maxTransactionSize: performanceTelemetry.maxTransactionSize,
+      pendingTransactionCables: queuedTransactionCableIds.size,
+      cableTransactionDepth,
       retainedEndpointCount: endpointWorldCache.size,
       retainedRackGeometryCount: rackRailWorldCache.size,
       retainedOrganizerCount: organizerWorldYCache.size,

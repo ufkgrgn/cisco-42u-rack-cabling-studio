@@ -587,6 +587,69 @@ async function run() {
     assert.equal(retainedGeometry.after.performance.incrementalBatchUpdates, retainedGeometry.before.performance.incrementalBatchUpdates + 1, 'append-only geometry must extend the existing Pixi batch');
     assert.equal(retainedGeometry.after.performance.fullBatchRebuilds, retainedGeometry.before.performance.fullBatchRebuilds, 'append-only geometry must not rebuild existing Pixi batches');
 
+    const transactionState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      const swDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const patchDev = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      const before = RS.getPixiCableInteractionState();
+      RS.beginPixiCableTransaction();
+      for (let port = 5; port <= 10; port++) {
+        const cable = {
+          id: `cable-transaction-${port}`,
+          from: { rackId: rack.id, instanceId: swDev.instanceId, portId: `p${port}` },
+          to: { rackId: rack.id, instanceId: patchDev.instanceId, portId: `pt${port}` },
+          color: '#0ea5e9'
+        };
+        RS.STATE.cables.push(cable);
+        RS.appendSingleCable(cable);
+      }
+      const queued = RS.getPixiCableInteractionState();
+      const flushedCount = RS.endPixiCableTransaction();
+      const after = RS.getPixiCableInteractionState();
+      return { before, queued, after, flushedCount };
+    });
+    assert.equal(transactionState.queued.displayCount, transactionState.before.displayCount, 'transaction appends must not mutate the GPU scene before flush');
+    assert.equal(transactionState.queued.performance.totalRenders, transactionState.before.performance.totalRenders, 'transaction appends must avoid per-cable GPU submits');
+    assert.equal(transactionState.queued.performance.pendingTransactionCables, 6);
+    assert.equal(transactionState.flushedCount, 6);
+    assert.equal(transactionState.after.displayCount, transactionState.before.displayCount + 6);
+    assert.equal(transactionState.after.performance.totalRenders, transactionState.before.performance.totalRenders + 1, 'six transaction appends must submit one GPU render');
+    assert.equal(transactionState.after.performance.incrementalGeometryPasses, transactionState.before.performance.incrementalGeometryPasses + 1);
+    assert.equal(transactionState.after.performance.incrementalCablesProcessed, transactionState.before.performance.incrementalCablesProcessed + 6);
+    assert.equal(transactionState.after.performance.spatialIncrementalUpdates, transactionState.before.performance.spatialIncrementalUpdates + 6);
+    assert.equal(transactionState.after.performance.incrementalBatchUpdates, transactionState.before.performance.incrementalBatchUpdates + 6);
+    assert.equal(transactionState.after.performance.spatialFullRebuilds, transactionState.before.performance.spatialFullRebuilds);
+    assert.equal(transactionState.after.performance.fullBatchRebuilds, transactionState.before.performance.fullBatchRebuilds);
+    assert.equal(transactionState.after.performance.transactionRendersAvoided, transactionState.before.performance.transactionRendersAvoided + 6);
+    assert.equal(transactionState.after.performance.transactionFlushes, transactionState.before.performance.transactionFlushes + 1);
+    assert.equal(transactionState.after.performance.cableTransactionDepth, 0);
+
+    const autoFillTransaction = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      const srcDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const tgtDev = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      const before = RS.getPixiPerformanceTelemetry();
+      const portPairs = Array.from({ length: 6 }, (_, index) => {
+        const port = index + 11;
+        return {
+          srcPort: { id: `p${port}`, name: `Gi1/0/${port}`, type: 'copper' },
+          tgtPort: { id: `pt${port}`, name: `Port ${port}`, type: 'copper' },
+          color: '#2563eb', role: 'access', isTrunk: false
+        };
+      });
+      RS.runSequentialAutoPatch({
+        rackId: rack.id, srcDev, tgtDev, portPairs, batchId: 'autofill-transaction-regression'
+      });
+      await new Promise(resolve => setTimeout(resolve, 450));
+      return { before, after: RS.getPixiPerformanceTelemetry() };
+    });
+    assert.equal(autoFillTransaction.after.batchTransactions, autoFillTransaction.before.batchTransactions + 1, 'Auto-Fill must open one Pixi transaction');
+    assert.equal(autoFillTransaction.after.transactionFlushes, autoFillTransaction.before.transactionFlushes + 2, 'six Auto-Fill cables must render as two micro-batches');
+    assert.equal(autoFillTransaction.after.transactionRendersAvoided, autoFillTransaction.before.transactionRendersAvoided + 6, 'Auto-Fill must avoid one render per cable');
+    assert.equal(autoFillTransaction.after.cableTransactionDepth, 0, 'Auto-Fill must close its Pixi transaction');
+
     const explicitLayoutInvalidation = await page.evaluate(() => {
       const RS = window.RackStudio;
       const before = RS.getPixiPerformanceTelemetry();

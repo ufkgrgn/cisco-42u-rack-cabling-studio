@@ -93,6 +93,24 @@ const assert = require('node:assert/strict');
       api.appendSingleCable(mutationCable);
       const retainedMutationMs=performance.now()-mutationStart;
       const mutationAfter=api.getPixiCableInteractionState();
+      const bulkBefore=api.getPixiCableInteractionState();
+      const allEndpoints=racks[0].devices.flatMap(d=>model.ports.map(p=>({rackId:racks[0].id,instanceId:d.instanceId,portId:p.id})));
+      api.beginPixiCableTransaction();
+      const bulkStart=performance.now();
+      for(let i=0;i<12;i++) {
+        const cable={
+          id:`bench-bulk-mutation-${i}`,
+          from:{...allEndpoints[251+i]},
+          to:{...allEndpoints[651+i]},
+          color:'#0ea5e9',lengthMeters:2
+        };
+        api.STATE.cables.push(cable);
+        api.appendSingleCable(cable);
+      }
+      const bulkQueued=api.getPixiCableInteractionState();
+      const bulkFlushedCount=api.endPixiCableTransaction();
+      const retainedBulkMutationMs=performance.now()-bulkStart;
+      const bulkAfter=api.getPixiCableInteractionState();
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
@@ -131,6 +149,17 @@ const assert = require('node:assert/strict');
         retainedMutationSpatialRebuilds:mutationAfter.performance.spatialFullRebuilds-mutationBefore.performance.spatialFullRebuilds,
         retainedMutationBatchUpdates:mutationAfter.performance.incrementalBatchUpdates-mutationBefore.performance.incrementalBatchUpdates,
         retainedMutationBatchRebuilds:mutationAfter.performance.fullBatchRebuilds-mutationBefore.performance.fullBatchRebuilds,
+        retainedBulkMutationMs,
+        bulkFlushedCount,
+        bulkQueuedRenders:bulkQueued.performance.totalRenders-bulkBefore.performance.totalRenders,
+        bulkRenderSubmits:bulkAfter.performance.totalRenders-bulkBefore.performance.totalRenders,
+        bulkIncrementalPasses:bulkAfter.performance.incrementalGeometryPasses-bulkBefore.performance.incrementalGeometryPasses,
+        bulkCablesProcessed:bulkAfter.performance.incrementalCablesProcessed-bulkBefore.performance.incrementalCablesProcessed,
+        bulkSpatialUpdates:bulkAfter.performance.spatialIncrementalUpdates-bulkBefore.performance.spatialIncrementalUpdates,
+        bulkSpatialRebuilds:bulkAfter.performance.spatialFullRebuilds-bulkBefore.performance.spatialFullRebuilds,
+        bulkBatchUpdates:bulkAfter.performance.incrementalBatchUpdates-bulkBefore.performance.incrementalBatchUpdates,
+        bulkBatchRebuilds:bulkAfter.performance.fullBatchRebuilds-bulkBefore.performance.fullBatchRebuilds,
+        bulkRendersAvoided:bulkAfter.performance.transactionRendersAvoided-bulkBefore.performance.transactionRendersAvoided,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
@@ -159,6 +188,17 @@ const assert = require('node:assert/strict');
     assert.equal(results.retainedMutationSpatialRebuilds,0);
     assert.equal(results.retainedMutationBatchUpdates,1);
     assert.equal(results.retainedMutationBatchRebuilds,0);
+    assert.ok(results.retainedBulkMutationMs <= 60, `retained bulk cable mutation regression: ${results.retainedBulkMutationMs}ms`);
+    assert.equal(results.bulkFlushedCount,12);
+    assert.equal(results.bulkQueuedRenders,0);
+    assert.equal(results.bulkRenderSubmits,1);
+    assert.equal(results.bulkIncrementalPasses,1);
+    assert.equal(results.bulkCablesProcessed,12);
+    assert.equal(results.bulkSpatialUpdates,12);
+    assert.equal(results.bulkSpatialRebuilds,0);
+    assert.equal(results.bulkBatchUpdates,12);
+    assert.equal(results.bulkBatchRebuilds,0);
+    assert.equal(results.bulkRendersAvoided,12);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
     const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';

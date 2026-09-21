@@ -177,6 +177,7 @@
 
   // --- SWITCH-BASED SMART AUTO-FILL (SEQUENTIAL DOMINO PATCHING) ---
   let activeAutoPatchTimer = null;
+  let activeAutoPatchUsesPixiTransaction = false;
 
   function undoAutoPatch(batchId) {
     if (!batchId) return;
@@ -549,7 +550,14 @@
     if (activeAutoPatchTimer) {
       clearInterval(activeAutoPatchTimer);
       activeAutoPatchTimer = null;
+      if (activeAutoPatchUsesPixiTransaction) RS.endPixiCableTransaction?.();
+      activeAutoPatchUsesPixiTransaction = false;
     }
+
+    activeAutoPatchUsesPixiTransaction = STATE.cableRenderMode === 'pixi'
+      && typeof RS.beginPixiCableTransaction === 'function'
+      && typeof RS.endPixiCableTransaction === 'function';
+    if (activeAutoPatchUsesPixiTransaction) RS.beginPixiCableTransaction();
 
     if (dom.connectionStatusHint) {
       dom.connectionStatusHint.innerHTML = `<span style="color:#38bdf8; font-weight:600;">⚡ Otomatik kablolama: 0/${portPairs.length} port...</span>`;
@@ -563,9 +571,15 @@
         clearInterval(activeAutoPatchTimer);
         activeAutoPatchTimer = null;
 
+        const completedPixiTransaction = activeAutoPatchUsesPixiTransaction;
+        if (completedPixiTransaction) {
+          RS.endPixiCableTransaction();
+          activeAutoPatchUsesPixiTransaction = false;
+        }
+
         renderMountedDevices();
         renderScheduleTable();
-        renderAllCables();
+        if (!completedPixiTransaction) renderAllCables();
 
         if (RS.updateRackHeaderTelemetry) {
           RS.updateRackHeaderTelemetry(rackId);
@@ -630,6 +644,9 @@
       }
 
       idx++;
+      if (activeAutoPatchUsesPixiTransaction && idx % 3 === 0) {
+        RS.flushPixiCableTransaction?.();
+      }
       if (dom.connectionStatusHint) {
         dom.connectionStatusHint.innerHTML = `<span style="color:#38bdf8; font-weight:600;">⚡ Otomatik kablolama: <b>${idx}/${portPairs.length}</b> port bağlandı...</span>`;
       }
