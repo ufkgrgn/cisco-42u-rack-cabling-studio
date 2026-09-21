@@ -33,6 +33,10 @@ class Studio3D {
     this.lastTime = performance.now();
     this.frameCount = 0;
     this.selectedDeviceId = null;
+    this.isDirty = true;
+    this.interactiveTargets = [];
+    this._hoverRafId = null;
+    this._lastHoverEvent = null;
 
     this.initThree();
     this.setPerformanceMode(this.state.performanceMode, false);
@@ -110,6 +114,7 @@ class Studio3D {
     this.controls.minDistance = 2.5;
     this.controls.maxDistance = 45;
     this.controls.target.set(0, midY, 0);
+    this.controls.addEventListener('change', () => { this.isDirty = true; });
 
     // High-end multi-point studio & datacenter lighting
     this.lights.ambient = new THREE.AmbientLight(0xffffff, 1.4);
@@ -225,7 +230,23 @@ class Studio3D {
       const rect = dom.getBoundingClientRect();
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      this.handleHover(e);
+      this._lastHoverEvent = e;
+      if (!this._hoverRafId) {
+        this._hoverRafId = requestAnimationFrame(() => {
+          this._hoverRafId = null;
+          if (this._lastHoverEvent) {
+            this.handleHover(this._lastHoverEvent);
+          }
+        });
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.pause();
+      } else {
+        this.resume();
+      }
     });
 
     dom.addEventListener('click', (e) => {
@@ -308,7 +329,8 @@ class Studio3D {
       this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+      const targets = (this.interactiveTargets && this.interactiveTargets.length) ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+      const intersects = this.raycaster.intersectObjects(targets, true);
       for (const hit of intersects) {
         if (hit.object.userData && hit.object.userData.isPort) {
           e.preventDefault();
@@ -325,7 +347,8 @@ class Studio3D {
 
   handleHover(e) {
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+    const targets = (this.interactiveTargets && this.interactiveTargets.length) ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+    const intersects = this.raycaster.intersectObjects(targets, true);
 
     let foundPort = null;
     let foundCable = null;
@@ -410,7 +433,8 @@ class Studio3D {
 
   handleClick(e) {
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+    const targets = (this.interactiveTargets && this.interactiveTargets.length) ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+    const intersects = this.raycaster.intersectObjects(targets, true);
 
     for (const hit of intersects) {
       // 1. Port Click
@@ -598,6 +622,10 @@ class Studio3D {
   }
 
   // --- ANIMATION LOOP (Sustained 60 FPS) ---
+  markDirty() {
+    this.isDirty = true;
+  }
+
   animate() {
     if (this.isPaused) return;
     this.animFrameId = requestAnimationFrame(() => this.animate());
@@ -614,6 +642,7 @@ class Studio3D {
       if (fpsEl) fpsEl.textContent = this.fps + ' FPS';
     }
 
+    let ledChanged = false;
     if (now - this.lastLedUpdate >= this.ledUpdateInterval) {
       this.lastLedUpdate = now;
       this.ledObjects.forEach(led => {
@@ -624,13 +653,21 @@ class Studio3D {
             led.mesh.material.color.setHex(isOn ? led.offColor : led.baseColor);
             led.mesh.material.emissive.setHex(isOn ? led.offColor : led.baseColor);
             led.blinkTimer = Math.floor(Math.random() * 5) + 1;
+            ledChanged = true;
           }
         }
       });
     }
 
-    this.controls.update();
+    const controlsMoved = this.controls.update();
+    if (controlsMoved || ledChanged) {
+      this.isDirty = true;
+    }
+
+    if (!this.isDirty) return;
+
     this.renderer.render(this.scene, this.camera);
+    this.isDirty = false;
   }
 }
 

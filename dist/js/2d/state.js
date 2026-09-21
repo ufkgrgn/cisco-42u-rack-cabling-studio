@@ -62,6 +62,23 @@
       rebuildStateIndexes();
     }
     let dev = STATE.deviceById.get(id);
+    if (dev) {
+      // Verify device still exists in STATE.racks before returning cached entry
+      let exists = false;
+      if (Array.isArray(STATE.racks)) {
+        for (let i = 0; i < STATE.racks.length; i++) {
+          const r = STATE.racks[i];
+          if (r && Array.isArray(r.devices) && r.devices.some(d => d && (d === dev || d.instanceId === id))) {
+            exists = true;
+            break;
+          }
+        }
+      }
+      if (exists) return dev;
+      STATE.deviceById.delete(id);
+      rebuildStateIndexes();
+      return STATE.deviceById.get(id) || null;
+    }
     if (!dev && Array.isArray(STATE.racks)) {
       for (let i = 0; i < STATE.racks.length; i++) {
         const r = STATE.racks[i];

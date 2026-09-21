@@ -287,20 +287,24 @@
     menu.style.visibility = 'visible';
   }
 
-  function highlightDropSlots(targetU, catalogKey, isOver) {
+  function highlightDropSlots(targetU, catalogKey, isOver, targetRackId) {
     document.querySelectorAll('.rack-slot.drag-valid, .rack-slot.drag-invalid').forEach(el => {
       el.classList.remove('drag-valid', 'drag-invalid');
     });
     if (!isOver || !targetU) return;
-    const cat = catalogKey ? HARDWARE_CATALOG[catalogKey] : (STATE.selectedLibraryItem ? HARDWARE_CATALOG[STATE.selectedLibraryItem] : null);
-    const reqU = cat ? cat.u : 1;
+    const targetRack = (targetRackId && RS.getRackById ? RS.getRackById(targetRackId) : null) ||
+                       (targetRackId && STATE.racks ? STATE.racks.find(r => r && r.id === targetRackId) : null) ||
+                       getActiveRack();
+    const cat = catalogKey
+      ? (HARDWARE_CATALOG[catalogKey] || (RS.catalog && RS.catalog[catalogKey]) || (STATE.customCatalog && STATE.customCatalog[catalogKey]) || (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[catalogKey]))
+      : (STATE.selectedLibraryItem ? (HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]) || (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[STATE.selectedLibraryItem])) : null);
+    const reqU = cat ? (cat.u || 1) : 1;
     const endU = targetU - reqU + 1;
-    const activeRack = getActiveRack();
     const isOut = endU < 1;
     let isBlocked = isOut;
-    if (activeRack && !isOut) {
+    if (targetRack && !isOut) {
       for (let u = endU; u <= targetU; u++) {
-        if (activeRack.units && activeRack.units[u] !== null) {
+        if (targetRack.units && targetRack.units[u] !== null) {
           isBlocked = true;
           break;
         }
@@ -308,7 +312,8 @@
     }
     const cls = isBlocked ? 'drag-invalid' : 'drag-valid';
     for (let u = Math.max(1, endU); u <= targetU; u++) {
-      const el = document.getElementById(`rack-slot-u${u}`);
+      let el = targetRack ? document.querySelector(`.rack-slot[data-rack-id="${targetRack.id}"][data-u="${u}"]`) : null;
+      if (!el) el = document.getElementById(`rack-slot-u${u}`);
       if (el) el.classList.add(cls);
     }
   }

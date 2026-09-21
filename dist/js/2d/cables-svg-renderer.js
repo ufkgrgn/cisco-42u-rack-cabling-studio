@@ -564,30 +564,68 @@
                     document.querySelector(`.port[data-instance-id="${instB}"]`);
       }
 
-      if (!portFromEl || !portToEl) return;
+      const isInterRack = cable.from?.rackId !== cable.to?.rackId;
+      if (!portFromEl && !portToEl) return;
 
-      const rectA = getPortRect(portFromEl);
-      const rectB = getPortRect(portToEl);
-      if (!rectA || !rectB) return;
-      if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
+      let isStub = false;
+      let isFromMounted = true;
+      let stubBadgeText = '';
+      let isRightExit = true;
+      let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
-      // Exact unscaled SVG user coordinate calculation via SVG CTM transform
-      const p1 = clientToSvg(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
-      const p2 = clientToSvg(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
-      const x1 = p1.x;
-      const y1 = p1.y;
-      const x2 = p2.x;
-      const y2 = p2.y;
+      if (isInterRack && (!portFromEl || !portToEl)) {
+        isStub = true;
+        isFromMounted = !!portFromEl;
+        const localPortEl = isFromMounted ? portFromEl : portToEl;
+        const remoteEndpoint = isFromMounted ? cable.to : cable.from;
+        const rectLocal = getPortRect(localPortEl);
+        if (!rectLocal || (rectLocal.width === 0 && rectLocal.height === 0)) return;
+
+        const pLocal = clientToSvg(rectLocal.left + rectLocal.width / 2, rectLocal.top + rectLocal.height / 2);
+        const boundsLocal = getRackRailBounds(activeRack?.id);
+        const activeIdx = (STATE.racks || []).findIndex(r => r && r.id === activeRack?.id);
+        const remoteIdx = (STATE.racks || []).findIndex(r => r && r.id === remoteEndpoint.rackId);
+        isRightExit = remoteIdx >= activeIdx;
+
+        const remoteRack = (RS.getRackById ? RS.getRackById(remoteEndpoint.rackId) : null) || (STATE.racks || []).find(r => r && r.id === remoteEndpoint.rackId);
+        const remoteDev = (RS.getDeviceById ? RS.getDeviceById(remoteEndpoint.instanceId) : null) || remoteRack?.devices?.find(d => d && d.instanceId === remoteEndpoint.instanceId);
+        const remoteU = remoteDev?.topU ? `U${remoteDev.topU}` : '';
+        const remoteName = remoteRack ? (remoteRack.name.length > 12 ? remoteRack.name.substring(0, 10) + '..' : remoteRack.name) : (remoteEndpoint.rackId || 'Kabin');
+        stubBadgeText = `➔ ${remoteName} ${remoteU}`.trim();
+
+        const stubX = isRightExit ? boundsLocal.right + 24 : boundsLocal.left - 24;
+        const stubY = pLocal.y;
+
+        x1 = isFromMounted ? pLocal.x : stubX;
+        y1 = isFromMounted ? pLocal.y : stubY;
+        x2 = isFromMounted ? stubX : pLocal.x;
+        y2 = isFromMounted ? stubY : pLocal.y;
+      } else {
+        if (!portFromEl || !portToEl) return;
+        const rectA = getPortRect(portFromEl);
+        const rectB = getPortRect(portToEl);
+        if (!rectA || !rectB) return;
+        if (rectA.width === 0 && rectA.height === 0 && rectB.width === 0 && rectB.height === 0) return;
+
+        // Exact unscaled SVG user coordinate calculation via SVG CTM transform
+        const p1 = clientToSvg(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
+        const p2 = clientToSvg(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
+        x1 = p1.x;
+        y1 = p1.y;
+        x2 = p2.x;
+        y2 = p2.y;
+      }
 
       const dy = Math.abs(y2 - y1);
       const dx = Math.abs(x2 - x1);
 
       let pathD = '';
 
-      // Check for inter-rack cable (horizontal span across cabinets)
-      const isInterRack = cable.from.rackId !== cable.to.rackId;
-
-      if (isInterRack && STATE.cableRoutingMode === 'direct') {
+      if (isStub) {
+        const ctrlX1 = isRightExit ? Math.max(x1, x2) - 10 : Math.min(x1, x2) + 10;
+        pathD = `M ${x1} ${y1} C ${ctrlX1} ${y1}, ${x2} ${y2}, ${x2} ${y2}`;
+        if (cable.lengthMeters == null) cable.lengthMeters = 3.0;
+      } else if (isInterRack && STATE.cableRoutingMode === 'direct') {
         // Inter-rack cable in DIRECT mode: aerial Bézier arc above cabinets
         const overheadY = Math.min(y1, y2) - 80 - (leftChannelUsage++ % 6) * 8;
         pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
@@ -821,6 +859,45 @@
       cablesFrag.appendChild(path);
 
       if (connectorsGroup) {
+        if (isStub) {
+          const localX = isFromMounted ? x1 : x2;
+          const localY = isFromMounted ? y1 : y2;
+          const destX = isFromMounted ? x2 : x1;
+          const destY = isFromMounted ? y2 : y1;
+
+          const boot = getOrCreateSvgElement('circle', `svg-cable-boot-a-${cable.id}`);
+          boot.setAttribute('cx', localX);
+          boot.setAttribute('cy', localY);
+          boot.setAttribute('r', '3.4');
+          boot.setAttribute('fill', '#090d16');
+          boot.setAttribute('stroke', cable.color);
+          boot.setAttribute('stroke-width', '1.6');
+          boot.style.color = cable.color;
+          boot.style.setProperty('--cable-color', cable.color);
+          boot.setAttribute('class', 'cable-boot');
+          boot.setAttribute('data-cable-id', cable.id);
+
+          const pin = getOrCreateSvgElement('circle', `svg-cable-pin-a-${cable.id}`);
+          pin.setAttribute('cx', localX);
+          pin.setAttribute('cy', localY);
+          pin.setAttribute('r', '1.2');
+          pin.setAttribute('fill', cable.color);
+          pin.setAttribute('class', 'cable-boot-pin');
+          pin.setAttribute('data-cable-id', cable.id);
+
+          const badge = getOrCreateSvgElement('g', `svg-cable-badge-${cable.id}`);
+          badge.setAttribute('class', 'cable-stub-badge');
+          badge.setAttribute('data-cable-id', cable.id);
+          const badgeW = Math.max(76, stubBadgeText.length * 6.5 + 16);
+          const badgeH = 18;
+          const bx = isRightExit ? destX + 4 : destX - badgeW - 4;
+          const by = destY - badgeH / 2;
+          badge.innerHTML = `<rect x="${bx}" y="${by}" width="${badgeW}" height="${badgeH}" rx="4" fill="#0f172a" stroke="${cable.color}" stroke-width="1.2" /><text x="${bx + badgeW / 2}" y="${by + 12}" fill="#e2e8f0" font-size="9" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif">${escapeHtml(stubBadgeText)}</text>`;
+
+          connectorsFrag.appendChild(boot);
+          connectorsFrag.appendChild(pin);
+          connectorsFrag.appendChild(badge);
+        } else {
         const bootA = getOrCreateSvgElement('circle', `svg-cable-boot-a-${cable.id}`);
         bootA.setAttribute('cx', x1);
         bootA.setAttribute('cy', y1);
@@ -865,6 +942,7 @@
         connectorsFrag.appendChild(pinA);
         connectorsFrag.appendChild(bootB);
         connectorsFrag.appendChild(pinB);
+        }
       }
     });
 
@@ -1007,6 +1085,102 @@
   RS.ensureCableDelegation = ensureCableDelegation;
   RS.showCableTooltip = showCableTooltip;
   RS.getOrCreateSvgElement = getOrCreateSvgElement;
+  function appendSingleCable(cable) {
+    if (!cable) return;
+    if (STATE.cableRenderMode === 'pixi' && RS.appendSingleCablePixi) {
+      return RS.appendSingleCablePixi(cable);
+    }
+    const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
+    const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
+    if (!cablesGroup) {
+      renderAllCables();
+      return;
+    }
+
+    const instA = cable.from?.instanceId || cable.from?.deviceId;
+    const instB = cable.to?.instanceId || cable.to?.deviceId;
+    const portIdA = cable.from?.portId || ('p' + cable.from?.portIdx);
+    const portIdB = cable.to?.portId || ('p' + cable.to?.portIdx);
+
+    let portFromEl = document.getElementById(`port-${instA}-${portIdA}`) ||
+                     document.querySelector(`.port[data-instance-id="${instA}"][data-port-id="${portIdA}"]`);
+    let portToEl = document.getElementById(`port-${instB}-${portIdB}`) ||
+                   document.querySelector(`.port[data-instance-id="${instB}"][data-port-id="${portIdB}"]`);
+
+    if (!portFromEl || !portToEl) {
+      renderAllCables();
+      return;
+    }
+
+    const rectA = portFromEl.getBoundingClientRect();
+    const rectB = portToEl.getBoundingClientRect();
+    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
+    if (!svgEl || !svgEl.getScreenCTM) return;
+    const ctmInv = svgEl.getScreenCTM().inverse();
+    const svgPoint = svgEl.createSVGPoint();
+    const clientToSvg = (cx, cy) => {
+      svgPoint.x = cx;
+      svgPoint.y = cy;
+      const pt = svgPoint.matrixTransform(ctmInv);
+      return { x: pt.x, y: pt.y };
+    };
+
+    const p1 = clientToSvg(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
+    const p2 = clientToSvg(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
+    const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+    const tightSag = Math.min(22, Math.max(8, Math.abs(y2 - y1) * 0.12));
+    const ymid = (y1 + y2) / 2;
+    const cp1x = x1 + (x2 - x1) * 0.25;
+    const cp1y = ymid + (y2 >= y1 ? tightSag : -tightSag);
+    const cp2x = x1 + (x2 - x1) * 0.75;
+    const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
+    const pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+
+    const isFiberCable = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
+    const casing = getOrCreateSvgElement('path', `svg-cable-casing-${cable.id}`);
+    casing.setAttribute('d', pathD);
+    casing.setAttribute('class', `cable-casing ${isFiberCable ? 'cable-casing-fiber' : ''}`.trim());
+    casing.setAttribute('data-cable-id', cable.id);
+    casing.style.setProperty('--cable-color', cable.color);
+    cablesGroup.appendChild(casing);
+
+    const path = getOrCreateSvgElement('path', `svg-cable-${cable.id}`);
+    path.setAttribute('d', pathD);
+    path.setAttribute('stroke', cable.color);
+    path.setAttribute('stroke-width', isFiberCable ? '2.8' : '2.6');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.style.color = cable.color;
+    path.style.setProperty('--cable-color', cable.color);
+    path.setAttribute('class', `cable-path ${isFiberCable ? 'cable-fiber' : ''}`.trim());
+    path.setAttribute('data-cable-id', cable.id);
+    cablesGroup.appendChild(path);
+
+    if (connectorsGroup) {
+      const bootA = getOrCreateSvgElement('circle', `svg-cable-boot-a-${cable.id}`);
+      bootA.setAttribute('cx', x1); bootA.setAttribute('cy', y1); bootA.setAttribute('r', '3.4');
+      bootA.setAttribute('fill', '#090d16'); bootA.setAttribute('stroke', cable.color); bootA.setAttribute('stroke-width', '1.6');
+      bootA.setAttribute('class', 'cable-boot'); bootA.setAttribute('data-cable-id', cable.id);
+
+      const pinA = getOrCreateSvgElement('circle', `svg-cable-pin-a-${cable.id}`);
+      pinA.setAttribute('cx', x1); pinA.setAttribute('cy', y1); pinA.setAttribute('r', '1.2');
+      pinA.setAttribute('fill', cable.color); pinA.setAttribute('class', 'cable-boot-pin'); pinA.setAttribute('data-cable-id', cable.id);
+
+      const bootB = getOrCreateSvgElement('circle', `svg-cable-boot-b-${cable.id}`);
+      bootB.setAttribute('cx', x2); bootB.setAttribute('cy', y2); bootB.setAttribute('r', '3.4');
+      bootB.setAttribute('fill', '#090d16'); bootB.setAttribute('stroke', cable.color); bootB.setAttribute('stroke-width', '1.6');
+      bootB.setAttribute('class', 'cable-boot'); bootB.setAttribute('data-cable-id', cable.id);
+
+      const pinB = getOrCreateSvgElement('circle', `svg-cable-pin-b-${cable.id}`);
+      pinB.setAttribute('cx', x2); pinB.setAttribute('cy', y2); pinB.setAttribute('r', '1.2');
+      pinB.setAttribute('fill', cable.color); pinB.setAttribute('class', 'cable-boot-pin'); pinB.setAttribute('data-cable-id', cable.id);
+
+      connectorsGroup.appendChild(bootA); connectorsGroup.appendChild(pinA);
+      connectorsGroup.appendChild(bootB); connectorsGroup.appendChild(pinB);
+    }
+  }
+
+  RS.appendSingleCable = appendSingleCable;
   RS.renderAllCables = renderAllCables;
   RS.renderAllCablesSVG = renderAllCables;
   RS.disconnectCable = disconnectCable;

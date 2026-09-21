@@ -34,6 +34,7 @@
   };
 
   function renderMountedDevices() {
+    ensureDeviceFaceplateDelegation();
     const isMulti = STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
     const activeRack = getActiveRack();
 
@@ -135,71 +136,7 @@
 
         slotEl.appendChild(devEl);
 
-        if (!['organizer', 'blank'].includes(cat.category)) {
-          devEl.addEventListener('dblclick', (e) => {
-            if (e.target.closest('.port, .del-device-btn, .color-device-cables-btn, .clear-device-cables-btn, .autofill-device-btn')) return;
-            window.DeviceMetadataEditor?.open2D(dev.instanceId);
-          });
-          const bezel = devEl.querySelector('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
-          bezel?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (RS.focusOnDevice) RS.focusOnDevice(dev.instanceId);
-            window.DeviceMetadataEditor?.open2D(dev.instanceId);
-          });
-        }
-
-        const autoFillBtn = devEl.querySelector('.autofill-device-btn');
-        if (autoFillBtn) {
-          autoFillBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (RS.openSwitchAutoFillPopover) {
-              RS.openSwitchAutoFillPopover(autoFillBtn, dev.instanceId);
-            }
-          });
-        }
-
-        const colorBtn = devEl.querySelector('.color-device-cables-btn');
-        if (colorBtn) {
-          colorBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (RS.openSwitchBulkColorPopover) {
-              RS.openSwitchBulkColorPopover(colorBtn, dev.instanceId);
-            }
-          });
-        }
-
-        const clearCablesBtn = devEl.querySelector('.clear-device-cables-btn');
-        if (clearCablesBtn) {
-          clearCablesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            clearDeviceCables(dev.instanceId, clearCablesBtn);
-          });
-        }
-
-        const delBtn = devEl.querySelector('.del-device-btn');
-        if (delBtn) {
-          delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const devCables = (STATE.cables || []).filter(c => c.from.instanceId === dev.instanceId || c.to.instanceId === dev.instanceId);
-            const devName = dev.hostname || dev.name || dev.panelLabel || cat.name || 'Cihaz';
-            showInlineDeleteConfirm(delBtn, devName, { category: cat.category, cableCount: devCables.length }, () => {
-              removeDevice(dev.instanceId);
-            });
-          });
-        }
-
-        const toggleCoverBtn = devEl.querySelector('.finger-toggle-btn');
-        if (toggleCoverBtn) {
-          toggleCoverBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dev.coverOpen = !dev.coverOpen;
-            renderMountedDevices();
-            if (typeof RS.renderAllCables === 'function') {
-              RS.renderAllCables();
-            }
-            document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
-          });
-        }
+        // Listeners for devices, bezels, and action buttons are delegated at #rack-stage
       });
     });
 
@@ -730,6 +667,104 @@
         ${inner}
       </div>
     `;
+  }
+
+
+  function ensureDeviceFaceplateDelegation() {
+    const stage = dom.rackStage || document.getElementById('rack-stage');
+    if (!stage || stage.__DEVICE_FACEPLATE_DELEGATED__) return;
+    stage.__DEVICE_FACEPLATE_DELEGATED__ = true;
+
+    // Faceplate double click
+    stage.addEventListener('dblclick', (e) => {
+      const devEl = e.target.closest('.mounted-device');
+      if (devEl && !e.target.closest('.port, .del-device-btn, .color-device-cables-btn, .clear-device-cables-btn, .autofill-device-btn, .finger-toggle-btn')) {
+        const instId = devEl.dataset.instanceId || devEl.id;
+        window.DeviceMetadataEditor?.open2D(instId);
+      }
+    });
+
+    // Bezel click
+    stage.addEventListener('click', (e) => {
+      const bezel = e.target.closest('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
+      if (bezel) {
+        e.stopPropagation();
+        const devEl = bezel.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        if (instId) {
+          if (RS.focusOnDevice) RS.focusOnDevice(instId);
+          window.DeviceMetadataEditor?.open2D(instId);
+        }
+        return;
+      }
+
+      const autoFillBtn = e.target.closest('.autofill-device-btn');
+      if (autoFillBtn) {
+        e.stopPropagation();
+        const devEl = autoFillBtn.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        if (RS.openSwitchAutoFillPopover && instId) {
+          RS.openSwitchAutoFillPopover(autoFillBtn, instId);
+        }
+        return;
+      }
+
+      const colorBtn = e.target.closest('.color-device-cables-btn');
+      if (colorBtn) {
+        e.stopPropagation();
+        const devEl = colorBtn.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        if (RS.openSwitchBulkColorPopover && instId) {
+          RS.openSwitchBulkColorPopover(colorBtn, instId);
+        }
+        return;
+      }
+
+      const clearCablesBtn = e.target.closest('.clear-device-cables-btn');
+      if (clearCablesBtn) {
+        e.stopPropagation();
+        const devEl = clearCablesBtn.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        if (instId) {
+          clearDeviceCables(instId, clearCablesBtn);
+        }
+        return;
+      }
+
+      const delBtn = e.target.closest('.del-device-btn');
+      if (delBtn) {
+        e.stopPropagation();
+        const devEl = delBtn.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        if (instId) {
+          const dev = RS.getDeviceById ? RS.getDeviceById(instId) : null;
+          const cat = dev ? (HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]) || {}) : {};
+          const devCables = (STATE.cables || []).filter(c => c.from.instanceId === instId || c.to.instanceId === instId);
+          const devName = dev?.hostname || dev?.name || dev?.panelLabel || cat.name || 'Cihaz';
+          showInlineDeleteConfirm(delBtn, devName, { category: cat.category, cableCount: devCables.length }, () => {
+            removeDevice(instId);
+          });
+        }
+        return;
+      }
+
+      const toggleCoverBtn = e.target.closest('.finger-toggle-btn');
+      if (toggleCoverBtn) {
+        e.stopPropagation();
+        const devEl = toggleCoverBtn.closest('.mounted-device');
+        const instId = devEl?.dataset?.instanceId || devEl?.id;
+        const dev = RS.getDeviceById ? RS.getDeviceById(instId) : null;
+        if (dev) {
+          dev.coverOpen = !dev.coverOpen;
+          renderMountedDevices();
+          if (typeof RS.renderAllCables === 'function') {
+            RS.renderAllCables();
+          }
+          document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+        }
+        return;
+      }
+    });
   }
 
   RS.renderMountedDevices = renderMountedDevices;

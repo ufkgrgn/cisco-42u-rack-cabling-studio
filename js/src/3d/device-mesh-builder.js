@@ -3,7 +3,8 @@ import {
   escapeTooltipHtml, 
   getDeviceVisualKind, 
   getDevicePortLayout,
-  inferSwitchUplinks 
+  inferSwitchUplinks,
+  disposeObject3D
 } from './helpers.js';
 import { 
   CATALOG, 
@@ -649,10 +650,13 @@ export function registerDeviceMeshMethods(Studio3D) {
 
   Studio3D.prototype.rebuildAllDevices = function() {
     while (this.devicesGroup.children.length > 0) {
-      this.devicesGroup.remove(this.devicesGroup.children[0]);
+      const child = this.devicesGroup.children[0];
+      disposeObject3D(child);
+      this.devicesGroup.remove(child);
     }
     this.ledObjects = [];
     this.state.devices.forEach(d => this.buildDevice3D(Object.assign(d, { deviceLabelMode: this.state.deviceLabelMode })));
+    this.markDirty?.();
   };
 
   Studio3D.prototype.getPortWorldPosition = function(devId, portIdx) {

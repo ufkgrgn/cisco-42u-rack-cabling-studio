@@ -135,6 +135,7 @@
       RS.STATE.cables = RS.STATE.cables.filter(c => c.from.rackId !== rackId && c.to.rackId !== rackId);
       // Remove the rack itself
       RS.STATE.racks = RS.STATE.racks.filter(r => r.id !== rackId);
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
       // Switch active rack if we just deleted it
       if (RS.STATE.activeRackId === rackId) {
         RS.STATE.activeRackId = RS.STATE.racks[0].id;

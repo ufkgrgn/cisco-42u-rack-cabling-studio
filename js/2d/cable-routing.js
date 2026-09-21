@@ -275,7 +275,6 @@
   function renderOrganizerOverlays(activeRack, clientToSvg) {
     const overlayGroup = dom.dringOverlayGroup || document.getElementById('dring-overlay-group');
     if (!overlayGroup) return;
-    overlayGroup.innerHTML = '';
 
     const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
     if (!svgEl) return;
@@ -295,10 +294,29 @@
     }
     if (!toSvg) return;
 
+    // Phase 1: Batch all DOM getBoundingClientRect() reads BEFORE writing any SVG nodes
+    const dringElements = Array.from(document.querySelectorAll('.dring-faceplate .dring-loop'));
+    const dringRects = dringElements.map(el => el.getBoundingClientRect());
+
+    const brushElements = Array.from(document.querySelectorAll('.brush-faceplate .brush-slot'));
+    const brushRects = brushElements.map(el => el.getBoundingClientRect());
+
+    const fingerPlates = Array.from(document.querySelectorAll('.finger-duct-faceplate'));
+    const fingerData = fingerPlates.map(fpEl => {
+      const tines = Array.from(fpEl.querySelectorAll('.finger-tine'));
+      const tineRects = tines.map(tEl => tEl.getBoundingClientRect());
+      const coverEl = fpEl.querySelector('.finger-duct-cover');
+      const coverRect = coverEl ? coverEl.getBoundingClientRect() : null;
+      const labelEl = fpEl.querySelector('.finger-duct-label');
+      const labelText = labelEl ? (labelEl.textContent || '') : '';
+      return { tineRects, coverRect, labelText };
+    });
+
+    // Phase 2: Batch DOM writes using a DocumentFragment
+    const frag = document.createDocumentFragment();
+
     // 1. D-Ring Overlays
-    const drings = document.querySelectorAll('.dring-faceplate .dring-loop');
-    drings.forEach(loopEl => {
-      const rect = loopEl.getBoundingClientRect();
+    dringRects.forEach(rect => {
       if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
       const p1 = toSvg(rect.left, rect.top);
@@ -379,13 +397,11 @@
       apBorder.setAttribute('stroke-width', '1');
       g.appendChild(apBorder);
 
-      overlayGroup.appendChild(g);
+      frag.appendChild(g);
     });
 
     // 2. Brush Pass-Through Overlays (.brush-faceplate .brush-slot)
-    const brushSlots = document.querySelectorAll('.brush-faceplate .brush-slot');
-    brushSlots.forEach(slotEl => {
-      const rect = slotEl.getBoundingClientRect();
+    brushRects.forEach(rect => {
       if (!rect || rect.width <= 0 || rect.height <= 0) return;
 
       const p1 = toSvg(rect.left, rect.top);
@@ -444,16 +460,13 @@
       hl.setAttribute('stroke-width', '0.75');
       g.appendChild(hl);
 
-      overlayGroup.appendChild(g);
+      frag.appendChild(g);
     });
 
     // 3. Finger Duct Overlays (.finger-duct-faceplate)
-    const fingerPlates = document.querySelectorAll('.finger-duct-faceplate');
-    fingerPlates.forEach(fpEl => {
+    fingerData.forEach(item => {
       // Individual slotted finger tines
-      const tines = fpEl.querySelectorAll('.finger-tine');
-      tines.forEach(tEl => {
-        const r = tEl.getBoundingClientRect();
+      item.tineRects.forEach(r => {
         if (!r || r.width <= 0 || r.height <= 0) return;
         const p1 = toSvg(r.left, r.top);
         const p2 = toSvg(r.right, r.bottom);
@@ -468,74 +481,55 @@
         tineRect.setAttribute('height', th.toFixed(2));
         tineRect.setAttribute('rx', '1.5');
         tineRect.setAttribute('class', 'finger-duct-svg-tine');
-        overlayGroup.appendChild(tineRect);
+        frag.appendChild(tineRect);
       });
 
       // Snap-on duct cover overlay
-      const coverEl = fpEl.querySelector('.finger-duct-cover');
-      if (coverEl) {
-        const cr = coverEl.getBoundingClientRect();
-        if (cr && cr.width > 0 && cr.height > 0) {
-          const cp1 = toSvg(cr.left, cr.top);
-          const cp2 = toSvg(cr.right, cr.bottom);
-          const cw = cp2.x - cp1.x;
-          const ch = cp2.y - cp1.y;
-          if (cw > 0 && ch > 0) {
-            const isOpen = coverEl.classList.contains('open');
-            const cg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            cg.setAttribute('style', 'pointer-events:none;');
+      if (item.coverRect && item.coverRect.width > 0 && item.coverRect.height > 0) {
+        const cr = item.coverRect;
+        const cp1 = toSvg(cr.left, cr.top);
+        const cp2 = toSvg(cr.right, cr.bottom);
+        const cw = cp2.x - cp1.x;
+        const ch = cp2.y - cp1.y;
+        if (cw > 0 && ch > 0) {
+          const coverG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          coverG.setAttribute('class', 'finger-duct-svg-cover');
 
-            const coverRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            coverRect.setAttribute('x', cp1.x.toFixed(2));
-            coverRect.setAttribute('y', cp1.y.toFixed(2));
-            coverRect.setAttribute('width', cw.toFixed(2));
-            coverRect.setAttribute('height', ch.toFixed(2));
-            coverRect.setAttribute('rx', '3');
-            coverRect.setAttribute('class', `finger-duct-svg-cover ${isOpen ? 'open' : ''}`);
-            cg.appendChild(coverRect);
+          const bodyRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          bodyRect.setAttribute('x', cp1.x.toFixed(2));
+          bodyRect.setAttribute('y', cp1.y.toFixed(2));
+          bodyRect.setAttribute('width', cw.toFixed(2));
+          bodyRect.setAttribute('height', ch.toFixed(2));
+          bodyRect.setAttribute('rx', '2');
+          bodyRect.setAttribute('class', 'finger-duct-svg-cover-body');
+          coverG.appendChild(bodyRect);
 
-            if (!isOpen) {
-              // Highlight rim
-              const ctl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-              ctl.setAttribute('x1', (cp1.x + 4).toFixed(2));
-              ctl.setAttribute('y1', (cp1.y + 1).toFixed(2));
-              ctl.setAttribute('x2', (cp2.x - 4).toFixed(2));
-              ctl.setAttribute('y2', (cp1.y + 1).toFixed(2));
-              ctl.setAttribute('stroke', 'rgba(255, 255, 255, 0.15)');
-              ctl.setAttribute('stroke-width', '0.75');
-              cg.appendChild(ctl);
+          const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          highlight.setAttribute('x1', (cp1.x + 2).toFixed(2));
+          highlight.setAttribute('y1', (cp1.y + 0.8).toFixed(2));
+          highlight.setAttribute('x2', (cp2.x - 2).toFixed(2));
+          highlight.setAttribute('y2', (cp1.y + 0.8).toFixed(2));
+          highlight.setAttribute('stroke', 'rgba(255, 255, 255, 0.22)');
+          highlight.setAttribute('stroke-width', '0.75');
+          coverG.appendChild(highlight);
 
-              // Grip center ribs
-              const midX = cp1.x + cw / 2;
-              const midY = cp1.y + ch / 2;
-              for (let ox = -6; ox <= 6; ox += 3) {
-                const grip = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                grip.setAttribute('x1', (midX + ox).toFixed(2));
-                grip.setAttribute('y1', (midY - 4).toFixed(2));
-                grip.setAttribute('x2', (midX + ox).toFixed(2));
-                grip.setAttribute('y2', (midY + 4).toFixed(2));
-                grip.setAttribute('stroke', '#334155');
-                grip.setAttribute('stroke-width', '1.2');
-                cg.appendChild(grip);
-              }
-            } else {
-              // Cover is open: draw subtle text indicator in SVG
-              const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-              text.setAttribute('x', (cp1.x + 12).toFixed(2));
-              text.setAttribute('y', (cp1.y + ch / 2 + 3).toFixed(2));
-              text.setAttribute('fill', '#3b82f6');
-              text.setAttribute('font-size', '8');
-              text.setAttribute('font-family', 'monospace');
-              text.setAttribute('letter-spacing', '0.5');
-              text.textContent = '2U KANAL AÇIK [KABLOLAR GÖRÜNÜR]';
-              cg.appendChild(text);
-            }
-
-            overlayGroup.appendChild(cg);
+          if (item.labelText) {
+            const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textNode.setAttribute('x', ((cp1.x + cp2.x) / 2).toFixed(2));
+            textNode.setAttribute('y', (cp1.y + ch / 2 + 3).toFixed(2));
+            textNode.setAttribute('text-anchor', 'middle');
+            textNode.setAttribute('class', 'finger-duct-svg-cover-text');
+            textNode.textContent = item.labelText;
+            coverG.appendChild(textNode);
           }
+
+          frag.appendChild(coverG);
         }
       }
     });
+
+    overlayGroup.innerHTML = '';
+    overlayGroup.appendChild(frag);
   }
 
   const renderDRingOverlays = renderOrganizerOverlays;

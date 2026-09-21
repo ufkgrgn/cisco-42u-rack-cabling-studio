@@ -1117,24 +1117,64 @@
                     document.querySelector(`.port[data-instance-id="${instB}"]`);
       }
 
-      if (!portFromEl || !portToEl) return;
+      const isInterRack = cable.from?.rackId !== cable.to?.rackId;
+      if (!portFromEl && !portToEl) return;
 
-      const rectA = getPortRect(portFromEl);
-      const rectB = getPortRect(portToEl);
-      if (!rectA || !rectB) return;
-      seenCableIds.add(cable.id);
+      let isStub = false;
+      let isFromMounted = true;
+      let stubBadgeText = '';
+      let isRightExit = true;
+      let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
-      const p1 = clientToPixi(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
-      const p2 = clientToPixi(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
-      const x1 = p1.x;
-      const y1 = p1.y;
-      const x2 = p2.x;
-      const y2 = p2.y;
+      if (isInterRack && (!portFromEl || !portToEl)) {
+        isStub = true;
+        isFromMounted = !!portFromEl;
+        const localPortEl = isFromMounted ? portFromEl : portToEl;
+        const remoteEndpoint = isFromMounted ? cable.to : cable.from;
+        const rectLocal = getPortRect(localPortEl);
+        if (!rectLocal || (rectLocal.width === 0 && rectLocal.height === 0)) return;
+
+        seenCableIds.add(cable.id);
+        const pLocal = clientToPixi(rectLocal.left + rectLocal.width / 2, rectLocal.top + rectLocal.height / 2);
+        const boundsLocal = getRackRailBounds(activeRack?.id);
+        const activeIdx = (STATE.racks || []).findIndex(r => r && r.id === activeRack?.id);
+        const remoteIdx = (STATE.racks || []).findIndex(r => r && r.id === remoteEndpoint.rackId);
+        isRightExit = remoteIdx >= activeIdx;
+
+        const remoteRack = (RS.getRackById ? RS.getRackById(remoteEndpoint.rackId) : null) || (STATE.racks || []).find(r => r && r.id === remoteEndpoint.rackId);
+        const remoteDev = (RS.getDeviceById ? RS.getDeviceById(remoteEndpoint.instanceId) : null) || remoteRack?.devices?.find(d => d && d.instanceId === remoteEndpoint.instanceId);
+        const remoteU = remoteDev?.topU ? `U${remoteDev.topU}` : '';
+        const remoteName = remoteRack ? (remoteRack.name.length > 12 ? remoteRack.name.substring(0, 10) + '..' : remoteRack.name) : (remoteEndpoint.rackId || 'Kabin');
+        stubBadgeText = `➔ ${remoteName} ${remoteU}`.trim();
+
+        const stubX = isRightExit ? boundsLocal.right + 24 : boundsLocal.left - 24;
+        const stubY = pLocal.y;
+
+        x1 = isFromMounted ? pLocal.x : stubX;
+        y1 = isFromMounted ? pLocal.y : stubY;
+        x2 = isFromMounted ? stubX : pLocal.x;
+        y2 = isFromMounted ? stubY : pLocal.y;
+      } else {
+        if (!portFromEl || !portToEl) return;
+        const rectA = getPortRect(portFromEl);
+        const rectB = getPortRect(portToEl);
+        if (!rectA || !rectB) return;
+        seenCableIds.add(cable.id);
+
+        const p1 = clientToPixi(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
+        const p2 = clientToPixi(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
+        x1 = p1.x;
+        y1 = p1.y;
+        x2 = p2.x;
+        y2 = p2.y;
+      }
 
       let pathD = '';
-      const isInterRack = cable.from.rackId !== cable.to.rackId;
 
-      if (isInterRack && STATE.cableRoutingMode === 'direct') {
+      if (isStub) {
+        const ctrlX1 = isRightExit ? Math.max(x1, x2) - 10 : Math.min(x1, x2) + 10;
+        pathD = `M ${x1} ${y1} C ${ctrlX1} ${y1}, ${x2} ${y2}, ${x2} ${y2}`;
+      } else if (isInterRack && STATE.cableRoutingMode === 'direct') {
         const overheadY = Math.min(y1, y2) - 80 - (leftChannelUsage++ % 6) * 8;
         pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
       } else if (isInterRack && STATE.cableRoutingMode === 'structured') {

@@ -39,9 +39,33 @@ const escapeTooltipHtml = value => String(value ?? '').replace(/[&<>"']/g, ch =>
     return 0;
   }
 
+function disposeObject3D(obj) {
+  if (!obj) return;
+  obj.traverse(child => {
+    if (child.geometry) {
+      child.geometry.dispose();
+    }
+    if (child.material) {
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => {
+        if (!m) return;
+        ['map', 'lightMap', 'bumpMap', 'normalMap', 'specularMap', 'envMap', 'roughnessMap', 'metalnessMap', 'emissiveMap'].forEach(texKey => {
+          if (m[texKey] && typeof m[texKey].dispose === 'function') {
+            m[texKey].dispose();
+          }
+        });
+        if (typeof m.dispose === 'function') {
+          m.dispose();
+        }
+      });
+    }
+  });
+}
+
 export {
   escapeTooltipHtml,
   getDeviceVisualKind,
   getDevicePortLayout,
-  inferSwitchUplinks
+  inferSwitchUplinks,
+  disposeObject3D
 };

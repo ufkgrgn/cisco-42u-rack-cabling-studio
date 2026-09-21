@@ -53,53 +53,7 @@
     slot.dataset.rackId = rack.id;
     slot.id = isSingleOrActive ? `rack-slot-u${u}` : `rack-${rack.id}-slot-u${u}`;
 
-    // Single click: informs the user without mounting (prevents accidental placement during pan/click)
-    slot.addEventListener('click', (e) => {
-      if (e.target.closest('.mounted-device')) return;
-      if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
-      if (STATE.selectedLibraryItem) {
-        const item = HARDWARE_CATALOG[STATE.selectedLibraryItem];
-        const name = item ? item.name : 'Donanım';
-        showTemporaryTooltip(e.clientX, e.clientY, `[${name}] eklemek için [${rack.name}] U${u} yuvasına ÇİFT TIKLAYIN veya sürükleyip bırakın.`);
-      }
-    });
-
-    // Double click: mounts the device safely
-    slot.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      if (e.target.closest('.mounted-device')) return;
-      if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
-      if (clickHandler) clickHandler(u, e, rack.id);
-    });
-
-    // Drag and drop support
-    slot.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-      const draggedDev = window.__RACK_DRAGGED_DEVICE__ || STATE.selectedLibraryItem;
-      highlightDropSlots(u, draggedDev, true, rack.id);
-    });
-
-    slot.addEventListener('dragleave', (e) => {
-      if (!slot.contains(e.relatedTarget)) {
-        highlightDropSlots(u, null, false, rack.id);
-      }
-    });
-
-    slot.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      highlightDropSlots(u, null, false, rack.id);
-      const devId = e.dataTransfer.getData('application/x-rack-device') || 
-                    e.dataTransfer.getData('text/plain') || 
-                    window.__RACK_DRAGGED_DEVICE__ || 
-                    STATE.selectedLibraryItem;
-      window.__RACK_DRAGGED_DEVICE__ = null;
-      if (!devId) return;
-      if (typeof window.mountDeviceFromAction === 'function') {
-        window.mountDeviceFromAction(devId, u, e, rack.id);
-      }
-    });
+    // Listeners are delegated at #rack-stage for high performance
 
     return { leftU, rightU, slot };
   }
@@ -728,5 +682,89 @@
   RS.updateRackHeaderTelemetry = updateRackHeaderTelemetry;
   RS.refreshVisibleRackContent = refreshVisibleRackContent;
   RS.configureMultiRackVisibility = configureMultiRackVisibility;
+
+  // Event delegation at #rack-stage for slots and mounted devices (NEW-2 & SEC-E1)
+  function ensureRackStageDelegation() {
+    const stage = dom.rackStage || document.getElementById('rack-stage');
+    if (!stage || stage.__RACK_STAGE_DELEGATED__) return;
+    stage.__RACK_STAGE_DELEGATED__ = true;
+
+    // Single click on rack slot
+    stage.addEventListener('click', (e) => {
+      const slot = e.target.closest('.rack-slot');
+      if (slot && !e.target.closest('.mounted-device')) {
+        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
+        if (STATE.selectedLibraryItem) {
+          const u = Number(slot.dataset.u);
+          const rackId = slot.dataset.rackId;
+          const rack = (RS.getRackById ? RS.getRackById(rackId) : null) || STATE.racks?.find(r => r.id === rackId) || getActiveRack();
+          const item = HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]);
+          const name = item ? item.name : 'Donanım';
+          showTemporaryTooltip(e.clientX, e.clientY, `[${name}] eklemek için [${rack ? rack.name : 'Kabin'}] U${u} yuvasına ÇİFT TIKLAYIN veya sürükleyip bırakın.`);
+        }
+      }
+    });
+
+    // Double click on rack slot
+    stage.addEventListener('dblclick', (e) => {
+      const slot = e.target.closest('.rack-slot');
+      if (slot && !e.target.closest('.mounted-device')) {
+        e.stopPropagation();
+        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
+        const u = Number(slot.dataset.u);
+        const rackId = slot.dataset.rackId;
+        if (typeof window.handleSlotDoubleClick === 'function') {
+          window.handleSlotDoubleClick(u, e, rackId);
+        } else if (typeof window.mountDeviceFromAction === 'function' && STATE.selectedLibraryItem) {
+          window.mountDeviceFromAction(STATE.selectedLibraryItem, u, e, rackId);
+        }
+      }
+    });
+
+    // Dragover on rack slot
+    stage.addEventListener('dragover', (e) => {
+      const slot = e.target.closest('.rack-slot');
+      if (slot) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        const u = Number(slot.dataset.u);
+        const rackId = slot.dataset.rackId;
+        const draggedDev = window.__RACK_DRAGGED_DEVICE__ || STATE.selectedLibraryItem;
+        highlightDropSlots(u, draggedDev, true, rackId);
+      }
+    });
+
+    // Dragleave on rack slot
+    stage.addEventListener('dragleave', (e) => {
+      const slot = e.target.closest('.rack-slot');
+      if (slot && !slot.contains(e.relatedTarget)) {
+        const u = Number(slot.dataset.u);
+        const rackId = slot.dataset.rackId;
+        highlightDropSlots(u, null, false, rackId);
+      }
+    });
+
+    // Drop on rack slot
+    stage.addEventListener('drop', (e) => {
+      const slot = e.target.closest('.rack-slot');
+      if (slot) {
+        e.preventDefault();
+        e.stopPropagation();
+        const u = Number(slot.dataset.u);
+        const rackId = slot.dataset.rackId;
+        highlightDropSlots(u, null, false, rackId);
+        const devId = e.dataTransfer.getData('application/x-rack-device') || 
+                      e.dataTransfer.getData('text/plain') || 
+                      window.__RACK_DRAGGED_DEVICE__ || 
+                      STATE.selectedLibraryItem;
+        window.__RACK_DRAGGED_DEVICE__ = null;
+        if (!devId) return;
+        if (typeof window.mountDeviceFromAction === 'function') {
+          window.mountDeviceFromAction(devId, u, e, rackId);
+        }
+      }
+    });
+  }
+
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
 })();

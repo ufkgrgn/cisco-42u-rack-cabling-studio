@@ -113,6 +113,15 @@
           })
         };
         localStorage.setItem('cisco-rack-studio-project', JSON.stringify(canonicalProj));
+        document.dispatchEvent(new CustomEvent('rackstudio:change', {
+          bubbles: true,
+          detail: { immediate: true, project: canonicalProj }
+        }));
+        if (typeof window !== 'undefined' && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent('rackstudio:change', {
+            detail: { immediate: true, project: canonicalProj }
+          }));
+        }
       } catch (e) {}
     }
 

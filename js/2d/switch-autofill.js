@@ -623,7 +623,11 @@
       if (srcEl) srcEl.classList.add('occupied');
       if (tgtEl) tgtEl.classList.add('occupied');
 
-      renderAllCables();
+      if (RS.appendSingleCable) {
+        RS.appendSingleCable(cable);
+      } else {
+        renderAllCables();
+      }
 
       idx++;
       if (dom.connectionStatusHint) {

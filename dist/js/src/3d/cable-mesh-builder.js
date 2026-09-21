@@ -1,4 +1,5 @@
 import { sfx } from './audio.js';
+import { disposeObject3D } from './helpers.js';
 import { 
   CABLE_COLORS, 
   U_HEIGHT, 
@@ -407,8 +408,11 @@ export function registerCableMeshMethods(Studio3D) {
 
   Studio3D.prototype.rebuildAllCables = function() {
     while (this.cablesGroup.children.length > 0) {
-      this.cablesGroup.remove(this.cablesGroup.children[0]);
+      const child = this.cablesGroup.children[0];
+      disposeObject3D(child);
+      this.cablesGroup.remove(child);
     }
     this.state.cables.forEach(c => this.buildCable3D(c));
+    this.markDirty?.();
   };
 }

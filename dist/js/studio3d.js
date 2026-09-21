@@ -87,6 +87,28 @@
     if (ports.length > 24 && ports.length <= 32) return ports.length - 24;
     return 0;
   }
+  function disposeObject3D(obj) {
+    if (!obj) return;
+    obj.traverse((child) => {
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          ["map", "lightMap", "bumpMap", "normalMap", "specularMap", "envMap", "roughnessMap", "metalnessMap", "emissiveMap"].forEach((texKey) => {
+            if (m[texKey] && typeof m[texKey].dispose === "function") {
+              m[texKey].dispose();
+            }
+          });
+          if (typeof m.dispose === "function") {
+            m.dispose();
+          }
+        });
+      }
+    });
+  }
 
   // js/src/3d/catalog3d.js
   var CATALOG = [
@@ -663,6 +685,15 @@
           })
         };
         localStorage.setItem("cisco-rack-studio-project", JSON.stringify(canonicalProj));
+        document.dispatchEvent(new CustomEvent("rackstudio:change", {
+          bubbles: true,
+          detail: { immediate: true, project: canonicalProj }
+        }));
+        if (typeof window !== "undefined" && window.dispatchEvent) {
+          window.dispatchEvent(new CustomEvent("rackstudio:change", {
+            detail: { immediate: true, project: canonicalProj }
+          }));
+        }
       } catch (e) {
       }
     }
@@ -2004,10 +2035,13 @@
     };
     Studio3D2.prototype.rebuildAllDevices = function() {
       while (this.devicesGroup.children.length > 0) {
-        this.devicesGroup.remove(this.devicesGroup.children[0]);
+        const child = this.devicesGroup.children[0];
+        disposeObject3D(child);
+        this.devicesGroup.remove(child);
       }
       this.ledObjects = [];
       this.state.devices.forEach((d) => this.buildDevice3D(Object.assign(d, { deviceLabelMode: this.state.deviceLabelMode })));
+      this.markDirty?.();
     };
     Studio3D2.prototype.getPortWorldPosition = function(devId, portIdx) {
       const devGroup = this.devicesGroup.getObjectByName(devId);
@@ -2394,9 +2428,12 @@
     };
     Studio3D2.prototype.rebuildAllCables = function() {
       while (this.cablesGroup.children.length > 0) {
-        this.cablesGroup.remove(this.cablesGroup.children[0]);
+        const child = this.cablesGroup.children[0];
+        disposeObject3D(child);
+        this.cablesGroup.remove(child);
       }
       this.state.cables.forEach((c) => this.buildCable3D(c));
+      this.markDirty?.();
     };
   }
 
@@ -2419,6 +2456,10 @@
       this.lastTime = performance.now();
       this.frameCount = 0;
       this.selectedDeviceId = null;
+      this.isDirty = true;
+      this.interactiveTargets = [];
+      this._hoverRafId = null;
+      this._lastHoverEvent = null;
       this.initThree();
       this.setPerformanceMode(this.state.performanceMode, false);
       this.buildDatacenterRoom();
@@ -2484,6 +2525,9 @@
       this.controls.minDistance = 2.5;
       this.controls.maxDistance = 45;
       this.controls.target.set(0, midY, 0);
+      this.controls.addEventListener("change", () => {
+        this.isDirty = true;
+      });
       this.lights.ambient = new THREE.AmbientLight(16777215, 1.4);
       this.scene.add(this.lights.ambient);
       this.lights.hemi = new THREE.HemisphereLight(15792639, 1976635, 1.7);
@@ -2583,7 +2627,22 @@
         const rect = dom.getBoundingClientRect();
         this.mouse.x = (e.clientX - rect.left) / rect.width * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        this.handleHover(e);
+        this._lastHoverEvent = e;
+        if (!this._hoverRafId) {
+          this._hoverRafId = requestAnimationFrame(() => {
+            this._hoverRafId = null;
+            if (this._lastHoverEvent) {
+              this.handleHover(this._lastHoverEvent);
+            }
+          });
+        }
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          this.pause();
+        } else {
+          this.resume();
+        }
       });
       dom.addEventListener("click", (e) => {
         this.handleClick(e);
@@ -2655,7 +2714,8 @@
         this.mouse.x = (e.clientX - rect.left) / rect.width * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+        const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+        const intersects = this.raycaster.intersectObjects(targets, true);
         for (const hit of intersects) {
           if (hit.object.userData && hit.object.userData.isPort) {
             e.preventDefault();
@@ -2671,7 +2731,8 @@
     }
     handleHover(e) {
       this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+      const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+      const intersects = this.raycaster.intersectObjects(targets, true);
       let foundPort = null;
       let foundCable = null;
       for (const hit of intersects) {
@@ -2744,7 +2805,8 @@
     }
     handleClick(e) {
       this.raycaster.setFromCamera(this.mouse, this.camera);
-      const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+      const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
+      const intersects = this.raycaster.intersectObjects(targets, true);
       for (const hit of intersects) {
         if (hit.object.userData && hit.object.userData.isPort) {
           const portData = hit.object.userData;
@@ -2908,6 +2970,9 @@
       this.animate();
     }
     // --- ANIMATION LOOP (Sustained 60 FPS) ---
+    markDirty() {
+      this.isDirty = true;
+    }
     animate() {
       if (this.isPaused) return;
       this.animFrameId = requestAnimationFrame(() => this.animate());
@@ -2922,6 +2987,7 @@
         const fpsEl = document.getElementById("fps-counter");
         if (fpsEl) fpsEl.textContent = this.fps + " FPS";
       }
+      let ledChanged = false;
       if (now - this.lastLedUpdate >= this.ledUpdateInterval) {
         this.lastLedUpdate = now;
         this.ledObjects.forEach((led) => {
@@ -2932,12 +2998,18 @@
               led.mesh.material.color.setHex(isOn ? led.offColor : led.baseColor);
               led.mesh.material.emissive.setHex(isOn ? led.offColor : led.baseColor);
               led.blinkTimer = Math.floor(Math.random() * 5) + 1;
+              ledChanged = true;
             }
           }
         });
       }
-      this.controls.update();
+      const controlsMoved = this.controls.update();
+      if (controlsMoved || ledChanged) {
+        this.isDirty = true;
+      }
+      if (!this.isDirty) return;
       this.renderer.render(this.scene, this.camera);
+      this.isDirty = false;
     }
   };
   registerRackSceneMethods(Studio3D);

@@ -71,9 +71,12 @@
 
   function mountDeviceFromAction(catalogKey, targetU, e, targetRackId) {
     if (!catalogKey) return false;
-    const catalogItem = HARDWARE_CATALOG[catalogKey];
+    const catalogItem = HARDWARE_CATALOG[catalogKey] ||
+      (RS.catalog && RS.catalog[catalogKey]) ||
+      (STATE.customCatalog && STATE.customCatalog[catalogKey]) ||
+      (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[catalogKey]);
     if (!catalogItem) return false;
-    const requiredU = catalogItem.u;
+    const requiredU = catalogItem.u || 1;
     const startU = targetU;
     const endU = targetU - requiredU + 1;
 
@@ -290,6 +293,7 @@
           STATE.rackCounter = 1;
           STATE.highlightedCableId = null;
           cancelPendingConnection();
+          if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
           renderRackRailsAndSlots();
           renderRackTabs();
           renderMountedDevices();
@@ -375,10 +379,6 @@
         setZoom(ZOOM_STATE.scale * 1.2, undefined, undefined, true);
       } else if (e.key === '-' || e.key === '_') {
         setZoom(ZOOM_STATE.scale / 1.2, undefined, undefined, true);
-      } else if (e.key === '0') {
-        setZoom(1.0, undefined, undefined, true);
-      } else if (e.key === 'f' || e.key === 'F') {
-        fitRackToScreen(true);
       } else if (e.key === 'Escape') {
         cancelPendingConnection();
       }

@@ -193,6 +193,7 @@
       }
       rack.devices = [];
       rack.units = Array((rack.heightU || 42) + 1).fill(null);
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
       renderRackTabs();
       renderMountedDevices();
       renderScheduleTable();

@@ -799,33 +799,33 @@
     // Standard list modes: Clone and sort cables
     const cablesList = [...STATE.cables];
 
-    if (scheduleSortMode === 'u') {
-      cablesList.sort((a, b) => {
-        const devA1 = RS.getDeviceById ? RS.getDeviceById(a.from?.instanceId) : null;
-        const devA2 = RS.getDeviceById ? RS.getDeviceById(a.to?.instanceId) : null;
-        const maxUA = Math.max(devA1?.topU || 0, devA2?.topU || 0);
-
-        const devB1 = RS.getDeviceById ? RS.getDeviceById(b.from?.instanceId) : null;
-        const devB2 = RS.getDeviceById ? RS.getDeviceById(b.to?.instanceId) : null;
-        const maxUB = Math.max(devB1?.topU || 0, devB2?.topU || 0);
-
-        if (maxUB !== maxUA) return maxUB - maxUA;
-        return (a.id || '').localeCompare(b.id || '');
+    if (scheduleSortMode === 'u' || scheduleSortMode === 'panel') {
+      const cableMeta = new Map();
+      cablesList.forEach(c => {
+        const dev1 = RS.getDeviceById ? RS.getDeviceById(c.from?.instanceId) : null;
+        const dev2 = RS.getDeviceById ? RS.getDeviceById(c.to?.instanceId) : null;
+        cableMeta.set(c.id, {
+          maxU: Math.max(dev1?.topU || 0, dev2?.topU || 0),
+          panel: (dev1?.panelLabel || dev2?.panelLabel || dev1?.hostname || dev2?.hostname || '').toLowerCase()
+        });
       });
-    } else if (scheduleSortMode === 'panel') {
-      cablesList.sort((a, b) => {
-        const devA1 = RS.getDeviceById ? RS.getDeviceById(a.from?.instanceId) : null;
-        const devA2 = RS.getDeviceById ? RS.getDeviceById(a.to?.instanceId) : null;
-        const panelA = devA1?.panelLabel || devA2?.panelLabel || devA1?.hostname || devA2?.hostname || '';
 
-        const devB1 = RS.getDeviceById ? RS.getDeviceById(b.from?.instanceId) : null;
-        const devB2 = RS.getDeviceById ? RS.getDeviceById(b.to?.instanceId) : null;
-        const panelB = devB1?.panelLabel || devB2?.panelLabel || devB1?.hostname || devB2?.hostname || '';
-
-        const cmp = panelA.localeCompare(panelB);
-        if (cmp !== 0) return cmp;
-        return (a.id || '').localeCompare(b.id || '');
-      });
+      if (scheduleSortMode === 'u') {
+        cablesList.sort((a, b) => {
+          const maxUA = cableMeta.get(a.id)?.maxU || 0;
+          const maxUB = cableMeta.get(b.id)?.maxU || 0;
+          if (maxUB !== maxUA) return maxUB - maxUA;
+          return (a.id || '').localeCompare(b.id || '');
+        });
+      } else if (scheduleSortMode === 'panel') {
+        cablesList.sort((a, b) => {
+          const panelA = cableMeta.get(a.id)?.panel || '';
+          const panelB = cableMeta.get(b.id)?.panel || '';
+          const cmp = panelA.localeCompare(panelB);
+          if (cmp !== 0) return cmp;
+          return (a.id || '').localeCompare(b.id || '');
+        });
+      }
     }
 
     // Progressive virtualization: render first 100 rows to keep DOM lightweight

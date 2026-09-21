@@ -46,6 +46,23 @@
     fiber:      { label: 'Fiber',            icon: '🟡', color: '#facc15' },
   };
 
+  function getPortAliases(portId) {
+    const pIdStr = String(portId || '');
+    const numMatch = pIdStr.match(/\d+$/);
+    const num = numMatch ? numMatch[0] : '';
+    const aliases = new Set([pIdStr]);
+    if (num) {
+      aliases.add(num);
+      aliases.add('p' + num);
+      aliases.add('pt' + num);
+      aliases.add('port' + num);
+      aliases.add('port-' + num);
+      aliases.add('lc' + num);
+      aliases.add('sc' + num);
+    }
+    return Array.from(aliases);
+  }
+
   function cyclePortRole(instanceId, portId, portType) {
     const isFiber = ['lc', 'sc', 'sfp', 'sfp+', 'qsfp28'].includes((portType || '').toLowerCase());
     const cycle = isFiber ? PORT_ROLE_CYCLES.fiber : PORT_ROLE_CYCLES.copper;
@@ -59,27 +76,34 @@
     // Ensure portsConfig exists
     if (!dev.portsConfig) dev.portsConfig = {};
 
-    const pIdStr = String(portId || '');
-    const pNumStr = pIdStr.replace(/^p/i, '');
-    // Resolve the key used in portsConfig
-    const cfgKey = (dev.portsConfig[portId] !== undefined)     ? portId
-                 : (dev.portsConfig[pNumStr] !== undefined)    ? pNumStr
-                 : (dev.portsConfig['p' + pNumStr] !== undefined) ? 'p' + pNumStr
-                 : portId; // default to portId
+    const canonicalKey = String(portId || '');
+    const aliases = getPortAliases(portId);
 
-    const currentCfg = dev.portsConfig[cfgKey];
+    // Resolve existing config from canonical key or any alias
+    let currentCfg = dev.portsConfig[canonicalKey];
+    if (currentCfg === undefined) {
+      for (const a of aliases) {
+        if (dev.portsConfig[a] !== undefined) {
+          currentCfg = dev.portsConfig[a];
+          break;
+        }
+      }
+    }
+
     const currentRole = currentCfg?.role || null;
+
+    // Purge numeric/prefix aliases completely
+    aliases.forEach(a => {
+      delete dev.portsConfig[a];
+    });
 
     // Find current index in cycle
     const idx = cycle.indexOf(currentRole);
     const nextRole = cycle[(idx + 1) % cycle.length];
 
-    if (nextRole === null) {
-      // Clear config completely
-      delete dev.portsConfig[cfgKey];
-    } else {
+    if (nextRole !== null) {
       const meta = PORT_ROLE_META[nextRole] || {};
-      dev.portsConfig[cfgKey] = {
+      dev.portsConfig[canonicalKey] = {
         ...(currentCfg || {}),
         role: nextRole,
         color: meta.color,
@@ -815,6 +839,7 @@
 
   RS.PORT_ROLE_CYCLES = PORT_ROLE_CYCLES;
   RS.PORT_ROLE_META = PORT_ROLE_META;
+  RS.getPortAliases = getPortAliases;
   RS.cyclePortRole = cyclePortRole;
   RS.showPortRoleCycleToast = showPortRoleCycleToast;
   RS.bindPortInteractions = bindPortInteractions;
