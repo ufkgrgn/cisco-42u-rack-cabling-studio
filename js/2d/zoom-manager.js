@@ -50,7 +50,7 @@
       RS.dom.rackStage.style.transform = transformValue;
       lastTransformValue = transformValue;
     }
-    RS.setPixiInteractionMode?.(true);
+    RS.setPixiInteractionMode?.(true, true);
     RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
