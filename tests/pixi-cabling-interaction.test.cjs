@@ -91,6 +91,17 @@ async function run() {
     assert.equal(retainedRender.after.domRectReads, retainedRender.before.domRectReads, 'retained render must not read DOM geometry');
     assert.equal(retainedRender.after.createdDisplays, retainedRender.before.createdDisplays, 'retained render must not allocate cable displays');
 
+    const cameraDedup = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const before = RS.getPixiPerformanceTelemetry();
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE);
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE);
+      const after = RS.getPixiPerformanceTelemetry();
+      return { before, after };
+    });
+    assert.ok(cameraDedup.after.totalRenders - cameraDedup.before.totalRenders <= 1, 'identical camera synchronization must render at most once');
+    assert.ok(cameraDedup.after.duplicateCameraSkips > cameraDedup.before.duplicateCameraSkips, 'duplicate camera work must be measured as skipped');
+
     await page.mouse.move(endpoint.x, endpoint.y);
     await page.waitForTimeout(80);
     const hoverState = await page.evaluate(() => ({
@@ -526,7 +537,7 @@ async function run() {
       const RS = window.RackStudio;
       RS.setCableRenderMode('pixi');
       await new Promise(resolve => setTimeout(resolve, 50));
-      const countBefore = RS.getPixiCableInteractionState().displayCount;
+      const stateBefore = RS.getPixiCableInteractionState();
 
       const rack = RS.getActiveRack();
       const swDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
@@ -539,11 +550,30 @@ async function run() {
       };
       RS.STATE.cables.push(newCable);
       RS.appendSingleCable(newCable);
-      const countAfter = RS.getPixiCableInteractionState().displayCount;
+      const stateAfter = RS.getPixiCableInteractionState();
 
-      return { countBefore, countAfter };
+      return { stateBefore, stateAfter };
     });
-    assert.equal(incrementalPixiState.countAfter, incrementalPixiState.countBefore + 1, 'RS.appendSingleCable in Pixi mode must incrementally update displayCount immediately');
+    assert.equal(incrementalPixiState.stateAfter.displayCount, incrementalPixiState.stateBefore.displayCount + 1, 'RS.appendSingleCable in Pixi mode must incrementally update displayCount immediately');
+    assert.equal(incrementalPixiState.stateAfter.performance.totalRenders, incrementalPixiState.stateBefore.performance.totalRenders + 1, 'one geometry pass must submit exactly one GPU render');
+    assert.ok(incrementalPixiState.stateAfter.performance.avoidedFocusRenders > incrementalPixiState.stateBefore.performance.avoidedFocusRenders, 'geometry rebuild must fold focus painting into the final scene render');
+
+    const duplicateStateUpdates = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.setPixiCableGroupHover([]);
+      RS.syncPixiCableSelection();
+      RS.previewPixiCableColor('cable-incremental-pixi', null);
+      const before = RS.getPixiPerformanceTelemetry();
+      RS.setPixiCableGroupHover([]);
+      RS.syncPixiCableSelection();
+      RS.previewPixiCableColor('cable-incremental-pixi', null);
+      const after = RS.getPixiPerformanceTelemetry();
+      return { before, after };
+    });
+    assert.equal(duplicateStateUpdates.after.totalRenders, duplicateStateUpdates.before.totalRenders, 'unchanged focus, selection and preview state must not redraw Pixi');
+    assert.ok(duplicateStateUpdates.after.duplicateFocusSkips > duplicateStateUpdates.before.duplicateFocusSkips);
+    assert.ok(duplicateStateUpdates.after.duplicateSelectionSkips > duplicateStateUpdates.before.duplicateSelectionSkips);
+    assert.ok(duplicateStateUpdates.after.duplicatePreviewSkips > duplicateStateUpdates.before.duplicatePreviewSkips);
 
     const resolutionProfile = await page.evaluate(() => {
       const RS = window.RackStudio;

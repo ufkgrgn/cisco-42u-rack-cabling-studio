@@ -37,6 +37,8 @@
   let viewportResizeObserver = null;
   let currentRenderResolution = 0;
   let interactionResolutionActive = false;
+  let lastCameraSignature = null;
+  let lastSelectionCableId = null;
   let hoveredCableId = null;
   let groupHoveredCableIds = new Set();
   let lastSceneSignature = null;
@@ -83,8 +85,19 @@
     resizeEvents: [],
     renderReasons: Object.create(null),
     totalRenders: 0,
-    resolutionChanges: 0
+    resolutionChanges: 0,
+    avoidedFocusRenders: 0,
+    duplicateCameraSkips: 0,
+    duplicateFocusSkips: 0,
+    duplicateSelectionSkips: 0,
+    duplicatePreviewSkips: 0
   };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !pixiApp || STATE.cableRenderMode !== 'pixi') return;
+    lastCameraSignature = null;
+    syncPixiViewportCamera(RS.ZOOM_STATE, true, 'visibility-resume');
+  });
 
   function recordTimedEvent(events) {
     const now = performance.now();
@@ -625,7 +638,7 @@
     }
   }
 
-  function refreshCableFocus(fullyRedrawIds = new Set()) {
+  function refreshCableFocus(fullyRedrawIds = new Set(), shouldRender = true) {
     if (usesBatchedViewportRenderer()) {
       const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
       for (const [id, display] of cableDisplays) {
@@ -634,7 +647,8 @@
         display.glowAlpha = (hovered || (!hasHoverFocus && id === STATE.highlightedCableId)) ? 1 : 0;
       }
       rebuildBatchedFocus();
-      renderPixi('focus');
+      if (shouldRender) renderPixi('focus');
+      else performanceTelemetry.avoidedFocusRenders++;
       return;
     }
     const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
@@ -650,7 +664,8 @@
       display.glow.alpha = 0;
       display.boots.forEach(boot => { boot.alpha = alpha; });
     }
-    renderPixi('focus');
+    if (shouldRender) renderPixi('focus');
+    else performanceTelemetry.avoidedFocusRenders++;
   }
 
   function schedulePixiTooltip(e, cableId) {
@@ -907,9 +922,15 @@
     return pixiCanvas;
   }
 
-  function syncPixiViewportCamera(camera = RS.ZOOM_STATE || {}) {
+  function syncPixiViewportCamera(camera = RS.ZOOM_STATE || {}, force = false, reason = 'camera') {
     if (!pixiApp || STATE.pixiViewportRendererV2 === false) return;
     const scale = Number.isFinite(camera.scale) ? camera.scale : 1;
+    const cameraSignature = `${camera.panX || 0}:${camera.panY || 0}:${scale}:${pixiApp.renderer.screen.width}:${pixiApp.renderer.screen.height}`;
+    if (!force && cameraSignature === lastCameraSignature) {
+      performanceTelemetry.duplicateCameraSkips++;
+      return false;
+    }
+    lastCameraSignature = cameraSignature;
     // The canvas is viewport-sized and must remain anchored to that viewport.
     // Applying a second CSS camera here changes getBoundingClientRect(), while
     // ports and rack content use rackStage's camera. Geometry refreshes during
@@ -936,7 +957,7 @@
     };
     updateVisibility(cablesContainer);
     updateVisibility(connectorsContainer);
-    renderPixi('camera');
+    return renderPixi(reason);
   }
 
   function getOrCreatePixiCanvas(parentContainer, width, height) {
@@ -969,7 +990,7 @@
       }
       // ResizeObserver runs after layout and before paint. Repaint here rather
       // than one rAF later, otherwise the browser can show one stretched frame.
-      syncPixiViewportCamera(RS.ZOOM_STATE);
+      syncPixiViewportCamera(RS.ZOOM_STATE, true, 'resize');
     });
     viewportResizeObserver.observe(viewport);
   }
@@ -1132,7 +1153,7 @@
         }
         renderStats.fastPathHits++;
         renderStats.lastDurationMs = performance.now() - renderStartedAt;
-        if (rendererResized) syncPixiViewportCamera(RS.ZOOM_STATE);
+        if (rendererResized) syncPixiViewportCamera(RS.ZOOM_STATE, true, 'resize');
         else if (styleChangedIds.size) renderPixi('style');
         return;
       }
@@ -1511,7 +1532,7 @@
     rebuildSpatialIndex();
     if (usesBatchedViewportRenderer()) {
       rebuildBatchedBase();
-      refreshCableFocus();
+      refreshCableFocus(new Set(), false);
     }
 
     // One retained Graphics object batches all D-ring foreground hoops.
@@ -1546,10 +1567,11 @@
     lastSceneSignature = sceneSignature;
     renderStats.lastDurationMs = performance.now() - renderStartedAt;
     if (STATE.pixiViewportRendererV2 !== false) {
-      pixiApp.stage.position.set(RS.ZOOM_STATE?.panX || 0, RS.ZOOM_STATE?.panY || 0);
-      pixiApp.stage.scale.set(RS.ZOOM_STATE?.scale || 1);
+      lastCameraSignature = null;
+      syncPixiViewportCamera(RS.ZOOM_STATE, true, 'scene');
+    } else {
+      renderPixi('scene');
     }
-    renderPixi('scene');
   }
 
   function setCableRenderMode(mode) {
@@ -1602,17 +1624,29 @@
     setPixiHover(isHovered ? cableId : null);
   };
   RS.setPixiCableGroupHover = cableIds => {
+    const nextGroup = new Set(Array.isArray(cableIds) ? cableIds : []);
+    if (!hoveredCableId && nextGroup.size === groupHoveredCableIds.size && Array.from(nextGroup).every(id => groupHoveredCableIds.has(id))) {
+      performanceTelemetry.duplicateFocusSkips++;
+      return false;
+    }
     const changed = new Set(groupHoveredCableIds);
     if (hoveredCableId) changed.add(hoveredCableId);
     hoveredCableId = null;
-    groupHoveredCableIds = new Set(Array.isArray(cableIds) ? cableIds : []);
+    groupHoveredCableIds = nextGroup;
     groupHoveredCableIds.forEach(id => changed.add(id));
     refreshCableFocus(changed);
+    return true;
   };
   RS.syncPixiCableSelection = () => {
+    if (lastSelectionCableId === STATE.highlightedCableId) {
+      performanceTelemetry.duplicateSelectionSkips++;
+      return false;
+    }
+    lastSelectionCableId = STATE.highlightedCableId || null;
     if (usesBatchedViewportRenderer()) rebuildBatchedFocus();
     else for (const id of cableDisplays.keys()) redrawCableDisplay(id);
     renderPixi('selection-sync');
+    return true;
   };
   RS.invalidatePixiCableGeometry = cableIds => {
     if (Array.isArray(cableIds)) cableIds.forEach(id => removeCableFromSpatialIndex(id));
@@ -1621,18 +1655,32 @@
   RS.previewPixiCableColor = (cableId, color) => {
     const display = cableDisplays.get(cableId);
     if (!display) return;
-    display.previewColorNum = color ? hexColorToNumber(color) : null;
+    const nextPreviewColor = color ? hexColorToNumber(color) : null;
+    if ((display.previewColorNum ?? null) === nextPreviewColor) {
+      performanceTelemetry.duplicatePreviewSkips++;
+      return false;
+    }
+    display.previewColorNum = nextPreviewColor;
     redrawCableDisplay(cableId);
     renderPixi('color-preview');
+    return true;
   };
   // Alias used by cable-hud.js for preview hover on color swatches
   RS.setPixiCablePreviewColor = RS.previewPixiCableColor;
   RS.hitTestPixiCable = (clientX, clientY) => hitCableAt(clientX, clientY);
   RS.syncPixiViewportCamera = syncPixiViewportCamera;
   RS.updatePixiResolutionForZoom = () => applyPixiResolution(false, 'zoom-settled');
-  RS.setPixiInteractionMode = active => {
+  RS.setPixiInteractionMode = (active, deferRender = false) => {
     interactionResolutionActive = !!active;
-    return applyPixiResolution(interactionResolutionActive, active ? 'interaction-start' : 'interaction-end');
+    if (!deferRender) return applyPixiResolution(interactionResolutionActive, active ? 'interaction-start' : 'interaction-end');
+    if (!pixiApp || !lastWidth || !lastHeight) return currentRenderResolution;
+    const target = calculatePixiResolution(lastWidth, lastHeight, interactionResolutionActive);
+    if (Math.abs(target - currentRenderResolution) < 0.1) return currentRenderResolution;
+    pixiApp.renderer.resolution = target;
+    pixiApp.renderer.resize(lastWidth, lastHeight);
+    currentRenderResolution = target;
+    performanceTelemetry.resolutionChanges++;
+    return currentRenderResolution;
   };
   RS.setPixiPerformanceMode = mode => {
     if (!Object.hasOwn(PIXI_PERFORMANCE_PROFILES, mode)) return false;
@@ -1655,6 +1703,11 @@
       resizeEventsPerSecond: eventsPerSecond(performanceTelemetry.resizeEvents),
       totalRenders: performanceTelemetry.totalRenders,
       resolutionChanges: performanceTelemetry.resolutionChanges,
+      avoidedFocusRenders: performanceTelemetry.avoidedFocusRenders,
+      duplicateCameraSkips: performanceTelemetry.duplicateCameraSkips,
+      duplicateFocusSkips: performanceTelemetry.duplicateFocusSkips,
+      duplicateSelectionSkips: performanceTelemetry.duplicateSelectionSkips,
+      duplicatePreviewSkips: performanceTelemetry.duplicatePreviewSkips,
       renderReasons: { ...performanceTelemetry.renderReasons },
       resolution,
       framebufferWidth,
