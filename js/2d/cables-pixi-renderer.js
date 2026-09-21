@@ -120,6 +120,11 @@
     spatialFullRebuilds: 0,
     incrementalBatchUpdates: 0,
     fullBatchRebuilds: 0,
+    incrementalStylePasses: 0,
+    incrementalStyleCables: 0,
+    partialColorBatchRebuilds: 0,
+    partialColorBatchCablesProcessed: 0,
+    avoidedFullStyleBatchRebuilds: 0,
     batchTransactions: 0,
     transactionFlushes: 0,
     transactionCables: 0,
@@ -443,6 +448,94 @@
       }
     }
     performanceTelemetry.incrementalBatchUpdates += pending.length;
+    renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + (focusContainer?.children?.length || 0);
+    return true;
+  }
+
+  function createStubBadge(display, group, color) {
+    if (!display.isStub || !display.stubPoint || !display.stubBadgeText) return;
+    const destX = display.stubPoint.x;
+    const destY = display.stubPoint.y;
+    const badgeW = Math.max(76, display.stubBadgeText.length * 6.5 + 16);
+    const badgeH = 18;
+    const bx = display.isRightExit ? destX + 4 : destX - badgeW - 4;
+    const by = destY - badgeH / 2;
+    group.connectors.roundRect(bx, by, badgeW, badgeH, 4)
+      .fill(0x0f172a)
+      .stroke({ width: 1.2, color });
+    if (!window.PIXI?.Text) return;
+    try {
+      const textObj = new window.PIXI.Text({
+        text: display.stubBadgeText,
+        style: { fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 9, fontWeight: '600', fill: 0xe2e8f0 }
+      });
+      textObj.x = bx + badgeW / 2;
+      textObj.y = by + 2;
+      textObj.anchor?.set ? textObj.anchor.set(0.5, 0) : (textObj.anchor = { x: 0.5, y: 0 });
+      group.badges.push(textObj);
+    } catch (_) {
+      try {
+        const textObj = new window.PIXI.Text(display.stubBadgeText, {
+          fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: 9, fontWeight: '600', fill: 0xe2e8f0
+        });
+        textObj.x = bx + badgeW / 2;
+        textObj.y = by + 2;
+        textObj.anchor?.set ? textObj.anchor.set(0.5, 0) : (textObj.anchor = { x: 0.5, y: 0 });
+        group.badges.push(textObj);
+      } catch (_) {}
+    }
+  }
+
+  function rebuildBatchedStyleGroups(previousColorsByCableId) {
+    if (!usesBatchedViewportRenderer() || !previousColorsByCableId.size) return false;
+    const affectedByRack = new Map();
+    for (const [cableId, previousColor] of previousColorsByCableId) {
+      const display = cableDisplays.get(cableId);
+      const rackKey = display?.rackKey || '__cross__';
+      const rackGroup = batchedRackGroups.get(rackKey);
+      if (!display || !rackGroup?.cableBatch || !rackGroup.connectorBatch) return false;
+      if (!affectedByRack.has(rackKey)) affectedByRack.set(rackKey, new Set());
+      affectedByRack.get(rackKey).add(previousColor);
+      affectedByRack.get(rackKey).add(display.colorNum);
+    }
+
+    let processedDisplays = 0;
+    for (const [rackKey, colors] of affectedByRack) {
+      const rackGroup = batchedRackGroups.get(rackKey);
+      for (const color of colors) {
+        const previousGroup = rackGroup.byColor.get(color);
+        if (previousGroup) {
+          previousGroup.core?.parent?.removeChild(previousGroup.core);
+          previousGroup.connectors?.parent?.removeChild(previousGroup.connectors);
+          previousGroup.badges?.forEach(badge => {
+            badge.parent?.removeChild(badge);
+            badge.destroy?.();
+          });
+          previousGroup.core?.destroy?.();
+          previousGroup.connectors?.destroy?.();
+          rackGroup.byColor.delete(color);
+        }
+        const displays = rackGroup.displays.filter(display => display.colorNum === color);
+        if (!displays.length) continue;
+        const group = { core: new window.PIXI.Graphics(), connectors: new window.PIXI.Graphics(), badges: [] };
+        group.core.eventMode = 'none';
+        group.connectors.eventMode = 'none';
+        displays.forEach(display => {
+          parseSvgPathD(group.core, display.pathD);
+          display.endpoints.forEach(point => appendConnector(group.connectors, point, color, false));
+          createStubBadge(display, group, color);
+        });
+        group.core.stroke({ width: CABLE_VISUAL_STYLE.coreWidth, color, alpha: 1, cap: 'round', join: 'round' });
+        rackGroup.cableBatch.addChild(group.core);
+        rackGroup.connectorBatch.addChild(group.connectors);
+        group.badges.forEach(badge => rackGroup.connectorBatch.addChild(badge));
+        rackGroup.byColor.set(color, group);
+        processedDisplays += displays.length;
+      }
+    }
+    performanceTelemetry.partialColorBatchRebuilds += Array.from(affectedByRack.values()).reduce((sum, colors) => sum + colors.size, 0);
+    performanceTelemetry.partialColorBatchCablesProcessed += processedDisplays;
+    performanceTelemetry.avoidedFullStyleBatchRebuilds++;
     renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + (focusContainer?.children?.length || 0);
     return true;
   }
@@ -1300,6 +1393,7 @@
     if (!sceneChanged && visibleCables.length === cableDisplays.size) {
       let geometryChanged = false;
       const styleChangedIds = new Set();
+      const previousColorsByCableId = new Map();
       for (const cable of visibleCables) {
         const display = cableDisplays.get(cable.id);
         if (!display || display.geometrySignature !== cableGeometrySignature(cable)) {
@@ -1308,18 +1402,23 @@
         }
         const colorNum = hexColorToNumber(cable.color || '#2563eb');
         if (display.colorNum !== colorNum) {
+          previousColorsByCableId.set(cable.id, display.colorNum);
           display.colorNum = colorNum;
           styleChangedIds.add(cable.id);
         }
       }
       if (!geometryChanged) {
         if (usesBatchedViewportRenderer() && styleChangedIds.size) {
-          rebuildBatchedBase();
+          if (!rebuildBatchedStyleGroups(previousColorsByCableId)) rebuildBatchedBase();
           rebuildBatchedFocus();
         } else {
           styleChangedIds.forEach(redrawCableDisplay);
         }
         renderStats.fastPathHits++;
+        if (styleChangedIds.size) {
+          performanceTelemetry.incrementalStylePasses++;
+          performanceTelemetry.incrementalStyleCables += styleChangedIds.size;
+        }
         renderStats.lastDurationMs = performance.now() - renderStartedAt;
         if (rendererResized) syncPixiViewportCamera(RS.ZOOM_STATE, true, 'resize');
         else if (styleChangedIds.size) renderPixi('style');
@@ -1952,6 +2051,11 @@
       spatialFullRebuilds: performanceTelemetry.spatialFullRebuilds,
       incrementalBatchUpdates: performanceTelemetry.incrementalBatchUpdates,
       fullBatchRebuilds: performanceTelemetry.fullBatchRebuilds,
+      incrementalStylePasses: performanceTelemetry.incrementalStylePasses,
+      incrementalStyleCables: performanceTelemetry.incrementalStyleCables,
+      partialColorBatchRebuilds: performanceTelemetry.partialColorBatchRebuilds,
+      partialColorBatchCablesProcessed: performanceTelemetry.partialColorBatchCablesProcessed,
+      avoidedFullStyleBatchRebuilds: performanceTelemetry.avoidedFullStyleBatchRebuilds,
       batchTransactions: performanceTelemetry.batchTransactions,
       transactionFlushes: performanceTelemetry.transactionFlushes,
       transactionCables: performanceTelemetry.transactionCables,

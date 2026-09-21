@@ -119,6 +119,13 @@ const assert = require('node:assert/strict');
       api.renderAllCables();
       const retainedRemovalMs=performance.now()-removalStart;
       const removalAfter=api.getPixiCableInteractionState();
+      const styleBefore=api.getPixiCableInteractionState();
+      const styledCables=api.STATE.cables.filter(cable=>cable.id.startsWith('bench-bulk-mutation-')).slice(0,8);
+      styledCables.forEach(cable=>{cable.color='#22c55e';});
+      const styleStart=performance.now();
+      api.renderAllCables();
+      const retainedStyleMutationMs=performance.now()-styleStart;
+      const styleAfter=api.getPixiCableInteractionState();
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
@@ -176,6 +183,16 @@ const assert = require('node:assert/strict');
         removalCablesProcessed:removalAfter.performance.incrementalCablesRemoved-removalBefore.performance.incrementalCablesRemoved,
         removalSpatialUpdates:removalAfter.performance.spatialIncrementalRemovals-removalBefore.performance.spatialIncrementalRemovals,
         removalRenderSubmits:removalAfter.performance.totalRenders-removalBefore.performance.totalRenders,
+        retainedStyleMutationMs,
+        styleCableCount:styledCables.length,
+        styleDomRectReads:styleAfter.renderStats.domRectReads-styleBefore.renderStats.domRectReads,
+        styleFullGeometryPasses:styleAfter.performance.fullGeometryPasses-styleBefore.performance.fullGeometryPasses,
+        styleFullBatchRebuilds:styleAfter.performance.fullBatchRebuilds-styleBefore.performance.fullBatchRebuilds,
+        styleIncrementalPasses:styleAfter.performance.incrementalStylePasses-styleBefore.performance.incrementalStylePasses,
+        styleCablesProcessed:styleAfter.performance.incrementalStyleCables-styleBefore.performance.incrementalStyleCables,
+        stylePartialBatchRebuilds:styleAfter.performance.partialColorBatchRebuilds-styleBefore.performance.partialColorBatchRebuilds,
+        styleAvoidedFullBatchRebuilds:styleAfter.performance.avoidedFullStyleBatchRebuilds-styleBefore.performance.avoidedFullStyleBatchRebuilds,
+        styleRenderSubmits:styleAfter.performance.totalRenders-styleBefore.performance.totalRenders,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
@@ -223,6 +240,16 @@ const assert = require('node:assert/strict');
     assert.equal(results.removalCablesProcessed,1);
     assert.equal(results.removalSpatialUpdates,1);
     assert.equal(results.removalRenderSubmits,1);
+    assert.ok(results.retainedStyleMutationMs <= 30, `retained cable style regression: ${results.retainedStyleMutationMs}ms`);
+    assert.equal(results.styleCableCount,8);
+    assert.equal(results.styleDomRectReads,0);
+    assert.equal(results.styleFullGeometryPasses,0);
+    assert.equal(results.styleFullBatchRebuilds,0);
+    assert.equal(results.styleIncrementalPasses,1);
+    assert.equal(results.styleCablesProcessed,8);
+    assert.ok(results.stylePartialBatchRebuilds >= 2);
+    assert.equal(results.styleAvoidedFullBatchRebuilds,1);
+    assert.equal(results.styleRenderSubmits,1);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
     const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';

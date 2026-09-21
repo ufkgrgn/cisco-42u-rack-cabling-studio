@@ -669,6 +669,25 @@ async function run() {
     assert.equal(incrementalRemoval.after.performance.spatialIncrementalRemovals, incrementalRemoval.before.performance.spatialIncrementalRemovals + 1);
     assert.equal(incrementalRemoval.after.performance.totalRenders, incrementalRemoval.before.performance.totalRenders + 1, 'incremental removal must submit one GPU render');
 
+    const incrementalStyle = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const cable = RS.STATE.cables.find(item => item.id === 'cable-transaction-9');
+      const before = RS.getPixiCableInteractionState();
+      cable.color = '#ef4444';
+      RS.renderAllCables();
+      const after = RS.getPixiCableInteractionState();
+      return { before, after };
+    });
+    assert.equal(incrementalStyle.after.colorByCable['cable-transaction-9'], 0xef4444, 'retained cable display must publish the committed color');
+    assert.equal(incrementalStyle.after.renderStats.domRectReads, incrementalStyle.before.renderStats.domRectReads, 'color change must not read DOM geometry');
+    assert.equal(incrementalStyle.after.performance.fullGeometryPasses, incrementalStyle.before.performance.fullGeometryPasses, 'color change must not rebuild geometry');
+    assert.equal(incrementalStyle.after.performance.fullBatchRebuilds, incrementalStyle.before.performance.fullBatchRebuilds, 'color change must not rebuild every Pixi batch');
+    assert.equal(incrementalStyle.after.performance.incrementalStylePasses, incrementalStyle.before.performance.incrementalStylePasses + 1);
+    assert.equal(incrementalStyle.after.performance.incrementalStyleCables, incrementalStyle.before.performance.incrementalStyleCables + 1);
+    assert.ok(incrementalStyle.after.performance.partialColorBatchRebuilds > incrementalStyle.before.performance.partialColorBatchRebuilds);
+    assert.equal(incrementalStyle.after.performance.avoidedFullStyleBatchRebuilds, incrementalStyle.before.performance.avoidedFullStyleBatchRebuilds + 1);
+    assert.equal(incrementalStyle.after.performance.totalRenders, incrementalStyle.before.performance.totalRenders + 1, 'color change must submit one GPU render');
+
     const explicitLayoutInvalidation = await page.evaluate(() => {
       const RS = window.RackStudio;
       const before = RS.getPixiPerformanceTelemetry();
