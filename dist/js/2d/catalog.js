@@ -671,8 +671,19 @@
 
   const BUILTIN_KEYS = new Set(Object.keys(HARDWARE_CATALOG));
 
+  function resolveCatalogItem(key) {
+    if (!key) return null;
+    return (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) ||
+           (RS.catalog && RS.catalog[key]) ||
+           (RS.STATE?.customCatalog && RS.STATE.customCatalog[key]) ||
+           (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === key) : window.CISCO_MASTER_CATALOG?.[key]) ||
+           (Array.isArray(RS.CISCO_MASTER_CATALOG) ? RS.CISCO_MASTER_CATALOG.find(m => m && m.id === key) : RS.CISCO_MASTER_CATALOG?.[key]) ||
+           null;
+  }
+
   RS.HARDWARE_CATALOG = HARDWARE_CATALOG;
   RS.catalog = HARDWARE_CATALOG;
   RS.BUILTIN_KEYS = BUILTIN_KEYS;
+  RS.resolveCatalogItem = resolveCatalogItem;
   window.HARDWARE_CATALOG = HARDWARE_CATALOG;
 })();

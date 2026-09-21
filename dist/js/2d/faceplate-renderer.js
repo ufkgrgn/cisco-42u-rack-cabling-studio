@@ -680,6 +680,9 @@
       const devEl = e.target.closest('.mounted-device');
       if (devEl && !e.target.closest('.port, .del-device-btn, .color-device-cables-btn, .clear-device-cables-btn, .autofill-device-btn, .finger-toggle-btn')) {
         const instId = devEl.dataset.instanceId || devEl.id;
+        const dev = RS.getDeviceById ? RS.getDeviceById(instId) : null;
+        const cat = dev ? (HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]) || (RS.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) || {}) : {};
+        if (['organizer', 'blank'].includes(cat.category)) return;
         window.DeviceMetadataEditor?.open2D(instId);
       }
     });

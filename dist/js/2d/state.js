@@ -46,7 +46,10 @@
         if (Array.isArray(r.devices)) {
           for (let j = 0; j < r.devices.length; j++) {
             const d = r.devices[j];
-            if (d && d.instanceId) devMap.set(d.instanceId, d);
+            if (d && d.instanceId) {
+              d.rackId = d.rackId || r.id;
+              devMap.set(d.instanceId, d);
+            }
           }
         }
       }
@@ -65,11 +68,18 @@
     if (dev) {
       // Verify device still exists in STATE.racks before returning cached entry
       let exists = false;
-      if (Array.isArray(STATE.racks)) {
+      if (dev.rackId && STATE.rackById) {
+        const r = STATE.rackById.get(dev.rackId);
+        if (r && Array.isArray(r.devices) && r.devices.includes(dev)) {
+          exists = true;
+        }
+      }
+      if (!exists && Array.isArray(STATE.racks)) {
         for (let i = 0; i < STATE.racks.length; i++) {
           const r = STATE.racks[i];
           if (r && Array.isArray(r.devices) && r.devices.some(d => d && (d === dev || d.instanceId === id))) {
             exists = true;
+            dev.rackId = r.id;
             break;
           }
         }

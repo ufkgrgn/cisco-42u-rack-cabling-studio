@@ -413,6 +413,7 @@ export function registerCableMeshMethods(Studio3D) {
       this.cablesGroup.remove(child);
     }
     this.state.cables.forEach(c => this.buildCable3D(c));
+    this.updateInteractiveTargets?.();
     this.markDirty?.();
   };
 }

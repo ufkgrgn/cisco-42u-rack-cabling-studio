@@ -656,6 +656,7 @@ export function registerDeviceMeshMethods(Studio3D) {
     }
     this.ledObjects = [];
     this.state.devices.forEach(d => this.buildDevice3D(Object.assign(d, { deviceLabelMode: this.state.deviceLabelMode })));
+    this.updateInteractiveTargets?.();
     this.markDirty?.();
   };
 

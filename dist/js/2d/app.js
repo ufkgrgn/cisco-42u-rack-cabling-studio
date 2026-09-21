@@ -71,10 +71,12 @@
 
   function mountDeviceFromAction(catalogKey, targetU, e, targetRackId) {
     if (!catalogKey) return false;
-    const catalogItem = HARDWARE_CATALOG[catalogKey] ||
+    const catalogItem = RS.resolveCatalogItem ? RS.resolveCatalogItem(catalogKey) : (
+      HARDWARE_CATALOG[catalogKey] ||
       (RS.catalog && RS.catalog[catalogKey]) ||
       (STATE.customCatalog && STATE.customCatalog[catalogKey]) ||
-      (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[catalogKey]);
+      (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === catalogKey) : window.CISCO_MASTER_CATALOG?.[catalogKey])
+    );
     if (!catalogItem) return false;
     const requiredU = catalogItem.u || 1;
     const startU = targetU;
@@ -420,14 +422,10 @@
     );
 
     if (isReset) {
-      delete dev.portsConfig[pIdStr];
-      if (pNumStr) {
-        delete dev.portsConfig[pNumStr];
-        delete dev.portsConfig['p' + pNumStr];
-        delete dev.portsConfig['pt' + pNumStr];
-        delete dev.portsConfig['lc' + pNumStr];
-        delete dev.portsConfig['sc' + pNumStr];
-      }
+      const aliases = (RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr]);
+      aliases.forEach(a => {
+        delete dev.portsConfig[a];
+      });
       delete dev.portsConfig['p' + pIdStr];
       if (portName) delete dev.portsConfig[portName];
 
@@ -449,19 +447,14 @@
           if (found) { otherDev = found; break; }
         }
         if (otherDev && otherDev.portsConfig) {
-          const oIdStr = String(otherEndpoint.portId || '');
-          const oNumStr = oIdStr.replace(/\D+/g, '');
           const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
+          const oNumStr = String(otherEndpoint.portId || '').replace(/\D+/g, '');
           const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
-          delete otherDev.portsConfig[oIdStr];
-          if (oNumStr) {
-            delete otherDev.portsConfig[oNumStr];
-            delete otherDev.portsConfig['p' + oNumStr];
-            delete otherDev.portsConfig['pt' + oNumStr];
-            delete otherDev.portsConfig['lc' + oNumStr];
-            delete otherDev.portsConfig['sc' + oNumStr];
-          }
-          delete otherDev.portsConfig['p' + oIdStr];
+          const oAliases = (RS.getPortAliases ? RS.getPortAliases(otherEndpoint.portId) : [String(otherEndpoint.portId || '')]);
+          oAliases.forEach(a => {
+            delete otherDev.portsConfig[a];
+          });
+          delete otherDev.portsConfig['p' + otherEndpoint.portId];
           if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
         }
 
@@ -500,17 +493,14 @@
         poeState: config.poeState || 'auto'
       };
 
+      const aliases = (RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr]);
+      aliases.forEach(a => {
+        delete dev.portsConfig[a];
+      });
       delete dev.portsConfig['p' + pIdStr];
       if (portName) delete dev.portsConfig[portName];
 
       dev.portsConfig[pIdStr] = cleanCfg;
-      if (pNumStr) {
-        dev.portsConfig[pNumStr] = cleanCfg;
-        dev.portsConfig['p' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('pt')) dev.portsConfig['pt' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('lc')) dev.portsConfig['lc' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('sc')) dev.portsConfig['sc' + pNumStr] = cleanCfg;
-      }
 
       if (config.autoCableColor !== false) {
         const connectedCable = STATE.cables.find(c =>

@@ -2041,6 +2041,7 @@
       }
       this.ledObjects = [];
       this.state.devices.forEach((d) => this.buildDevice3D(Object.assign(d, { deviceLabelMode: this.state.deviceLabelMode })));
+      this.updateInteractiveTargets?.();
       this.markDirty?.();
     };
     Studio3D2.prototype.getPortWorldPosition = function(devId, portIdx) {
@@ -2433,6 +2434,7 @@
         this.cablesGroup.remove(child);
       }
       this.state.cables.forEach((c) => this.buildCable3D(c));
+      this.updateInteractiveTargets?.();
       this.markDirty?.();
     };
   }
@@ -2489,6 +2491,7 @@
       } else if (!initialLoaded) {
         this.buildRack(this.state.rackHeightU);
       }
+      this.updateInteractiveTargets();
       if (this.container.closest("#studio3d-wrapper")?.style.display === "none") {
         this.isPaused = true;
       } else {
@@ -2728,6 +2731,24 @@
           }
         }
       });
+    }
+    updateInteractiveTargets() {
+      const targets = [];
+      if (this.devicesGroup) {
+        this.devicesGroup.traverse((child) => {
+          if (child.userData && (child.userData.isPort || child.userData.isDeviceBody)) {
+            targets.push(child);
+          }
+        });
+      }
+      if (this.cablesGroup) {
+        this.cablesGroup.traverse((child) => {
+          if (child.userData && child.userData.isCable) {
+            targets.push(child);
+          }
+        });
+      }
+      this.interactiveTargets = targets;
     }
     handleHover(e) {
       this.raycaster.setFromCamera(this.mouse, this.camera);

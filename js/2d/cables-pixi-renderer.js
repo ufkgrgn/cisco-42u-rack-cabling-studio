@@ -185,13 +185,54 @@
       const color = display.colorNum;
       let group = rackGroup.byColor.get(color);
       if (!group) {
-        group = { core: new window.PIXI.Graphics(), connectors: new window.PIXI.Graphics() };
+        group = { core: new window.PIXI.Graphics(), connectors: new window.PIXI.Graphics(), badges: [] };
         group.core.eventMode = 'none';
         group.connectors.eventMode = 'none';
         rackGroup.byColor.set(color, group);
       }
       parseSvgPathD(group.core, display.pathD);
       display.endpoints.forEach(point => appendConnector(group.connectors, point, color, false));
+      if (display.isStub && display.stubPoint && display.stubBadgeText) {
+        const destX = display.stubPoint.x;
+        const destY = display.stubPoint.y;
+        const badgeW = Math.max(76, display.stubBadgeText.length * 6.5 + 16);
+        const badgeH = 18;
+        const bx = display.isRightExit ? destX + 4 : destX - badgeW - 4;
+        const by = destY - badgeH / 2;
+        group.connectors.roundRect(bx, by, badgeW, badgeH, 4)
+          .fill(0x0f172a)
+          .stroke({ width: 1.2, color });
+        if (window.PIXI && window.PIXI.Text) {
+          try {
+            const textObj = new window.PIXI.Text({
+              text: display.stubBadgeText,
+              style: {
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontSize: 9,
+                fontWeight: '600',
+                fill: 0xe2e8f0
+              }
+            });
+            textObj.x = bx + badgeW / 2;
+            textObj.y = by + 2;
+            textObj.anchor?.set ? textObj.anchor.set(0.5, 0) : (textObj.anchor = { x: 0.5, y: 0 });
+            group.badges.push(textObj);
+          } catch (_) {
+            try {
+              const textObj = new window.PIXI.Text(display.stubBadgeText, {
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                fontSize: 9,
+                fontWeight: '600',
+                fill: 0xe2e8f0
+              });
+              textObj.x = bx + badgeW / 2;
+              textObj.y = by + 2;
+              textObj.anchor?.set ? textObj.anchor.set(0.5, 0) : (textObj.anchor = { x: 0.5, y: 0 });
+              group.badges.push(textObj);
+            } catch (_) {}
+          }
+        }
+      }
     }
     byRack.forEach((rackGroup, rackKey) => {
       const cableBatch = new window.PIXI.Container();
@@ -214,6 +255,9 @@
         group.core.stroke({ width: CABLE_VISUAL_STYLE.coreWidth, color, alpha: 1, cap: 'round', join: 'round' });
         cableBatch.addChild(group.core);
         connectorBatch.addChild(group.connectors);
+        if (group.badges && group.badges.length) {
+          group.badges.forEach(b => connectorBatch.addChild(b));
+        }
       });
       cablesContainer.addChild(cableBatch);
       connectorsContainer.addChild(connectorBatch);
@@ -490,14 +534,30 @@
     display.glow.alpha = visuallyFocused ? 1 : 0;
     display.boots.forEach((boot, index) => {
       const point = display.endpoints[index];
-      const radius = selected ? 4.0 : (hovered ? 3.8 : 3.4);
-      const pinRadius = selected ? 1.6 : (hovered ? 1.4 : 1.2);
-      boot.clear();
-      boot.circle(point.x, point.y, radius)
-        .fill(0x090d16)
-        .stroke({ width: selected || hovered ? 2.0 : 1.6, color: activeColor });
-      boot.circle(point.x, point.y, pinRadius).fill(activeColor);
-      boot.alpha = display.core.alpha;
+      if (point) {
+        const radius = selected ? 4.0 : (hovered ? 3.8 : 3.4);
+        const pinRadius = selected ? 1.6 : (hovered ? 1.4 : 1.2);
+        boot.clear();
+        boot.circle(point.x, point.y, radius)
+          .fill(0x090d16)
+          .stroke({ width: selected || hovered ? 2.0 : 1.6, color: activeColor });
+        boot.circle(point.x, point.y, pinRadius).fill(activeColor);
+        boot.alpha = display.core.alpha;
+      } else if (display.isStub && index === 1 && display.stubPoint) {
+        const destX = display.stubPoint.x;
+        const destY = display.stubPoint.y;
+        const badgeW = Math.max(76, (display.stubBadgeText || '').length * 6.5 + 16);
+        const badgeH = 18;
+        const bx = display.isRightExit ? destX + 4 : destX - badgeW - 4;
+        const by = destY - badgeH / 2;
+        boot.clear();
+        boot.roundRect(bx, by, badgeW, badgeH, 4)
+          .fill(0x0f172a)
+          .stroke({ width: 1.2, color: activeColor });
+        boot.alpha = display.core.alpha;
+      } else {
+        boot.clear();
+      }
     });
     if ((hovered || selected) && display.core.parent === cablesContainer) {
       cablesContainer.addChild(display.glow, display.casing, display.core);
@@ -1360,7 +1420,11 @@
       display.colorNum = colorNum;
       display.geometrySignature = geometrySignature;
       display.rackKey = cable.from?.rackId && cable.from.rackId === cable.to?.rackId ? cable.from.rackId : '__cross__';
-      display.endpoints = [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+      display.isStub = isStub;
+      display.stubBadgeText = stubBadgeText;
+      display.stubPoint = isStub ? { x: isFromMounted ? x2 : x1, y: isFromMounted ? y2 : y1 } : null;
+      display.isRightExit = isRightExit;
+      display.endpoints = isStub ? [{ x: isFromMounted ? x1 : x2, y: isFromMounted ? y1 : y2 }] : [{ x: x1, y: y1 }, { x: x2, y: y2 }];
       if (!usesBatchedViewportRenderer()) {
         redrawCableDisplay(cable.id);
         cablesContainer.addChild(display.glow, display.casing, display.core);

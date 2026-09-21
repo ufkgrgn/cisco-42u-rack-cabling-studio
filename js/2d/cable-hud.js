@@ -295,9 +295,11 @@
     const targetRack = (targetRackId && RS.getRackById ? RS.getRackById(targetRackId) : null) ||
                        (targetRackId && STATE.racks ? STATE.racks.find(r => r && r.id === targetRackId) : null) ||
                        getActiveRack();
-    const cat = catalogKey
-      ? (HARDWARE_CATALOG[catalogKey] || (RS.catalog && RS.catalog[catalogKey]) || (STATE.customCatalog && STATE.customCatalog[catalogKey]) || (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[catalogKey]))
-      : (STATE.selectedLibraryItem ? (HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]) || (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG[STATE.selectedLibraryItem])) : null);
+    const cat = RS.resolveCatalogItem
+      ? RS.resolveCatalogItem(catalogKey || STATE.selectedLibraryItem)
+      : (catalogKey
+        ? (HARDWARE_CATALOG[catalogKey] || (RS.catalog && RS.catalog[catalogKey]) || (STATE.customCatalog && STATE.customCatalog[catalogKey]) || (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === catalogKey) : window.CISCO_MASTER_CATALOG?.[catalogKey]))
+        : (STATE.selectedLibraryItem ? (HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]) || (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === STATE.selectedLibraryItem) : window.CISCO_MASTER_CATALOG?.[STATE.selectedLibraryItem])) : null));
     const reqU = cat ? (cat.u || 1) : 1;
     const endU = targetU - reqU + 1;
     const isOut = endU < 1;
