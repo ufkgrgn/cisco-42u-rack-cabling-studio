@@ -69,13 +69,34 @@
     });
   }
 
-  function mountDeviceFromAction(catalogKey, targetU, e, targetRackId) {
+  function mountDeviceFromAction(arg1, arg2, arg3, arg4) {
+    let catalogKey, targetU, e, targetRackId;
+
+    // Handle swapped signatures e.g. (rackId, targetU, catalogKey) or (rackId, targetU, e, catalogKey)
+    if (typeof arg1 === 'string' && STATE.racks?.some(r => r.id === arg1)) {
+      targetRackId = arg1;
+      targetU = Number(arg2);
+      if (typeof arg3 === 'string') {
+        catalogKey = arg3;
+        e = arg4;
+      } else {
+        e = arg3;
+        catalogKey = arg4;
+      }
+    } else {
+      catalogKey = arg1;
+      targetU = Number(arg2);
+      e = (arg3 && typeof arg3 === 'object' && ('clientX' in arg3 || 'preventDefault' in arg3 || 'dataTransfer' in arg3)) ? arg3 : null;
+      targetRackId = (typeof arg3 === 'string' ? arg3 : arg4);
+    }
+
     if (!catalogKey) return false;
-    const catalogItem = RS.resolveCatalogItem ? RS.resolveCatalogItem(catalogKey) : (
+    const catalogItem = (RS.resolveCatalogItem ? RS.resolveCatalogItem(catalogKey) : null) || (
       HARDWARE_CATALOG[catalogKey] ||
       (RS.catalog && RS.catalog[catalogKey]) ||
       (STATE.customCatalog && STATE.customCatalog[catalogKey]) ||
-      (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === catalogKey) : window.CISCO_MASTER_CATALOG?.[catalogKey])
+      (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === catalogKey) : window.CISCO_MASTER_CATALOG?.[catalogKey]) ||
+      (Array.isArray(RS.CISCO_MASTER_CATALOG) ? RS.CISCO_MASTER_CATALOG.find(m => m && m.id === catalogKey) : RS.CISCO_MASTER_CATALOG?.[catalogKey])
     );
     if (!catalogItem) return false;
     const requiredU = catalogItem.u || 1;
@@ -87,7 +108,7 @@
       return false;
     }
 
-    const targetRack = targetRackId ? STATE.racks.find(r => r.id === targetRackId) : getActiveRack();
+    const targetRack = targetRackId ? (STATE.racks?.find(r => r.id === targetRackId) || getActiveRack()) : getActiveRack();
     if (!targetRack) return false;
 
     for (let u = endU; u <= startU; u++) {
@@ -97,7 +118,7 @@
       }
     }
 
-    const mounted = mountDeviceAt(catalogKey, startU, targetRackId);
+    const mounted = mountDeviceAt(catalogItem.id || catalogKey, startU, targetRack.id);
     renderRackTabs();
     renderMountedDevices();
     renderAllCables();
@@ -141,6 +162,9 @@
         highlightDropSlots(null, null, false);
       });
       card.addEventListener('click', () => {
+        // catalog-ui owns selection and its single reusable detail inspector once
+        // a legacy card has been upgraded. Avoid toggling the same selection twice.
+        if (card.dataset.catalogEnhanced === 'true') return;
         document.querySelectorAll('.device-card').forEach(c => c.classList.remove('active')); 
         const devId = card.dataset.deviceId;
         if (STATE.selectedLibraryItem === devId) {

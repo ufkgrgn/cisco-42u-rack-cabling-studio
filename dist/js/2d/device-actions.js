@@ -27,18 +27,73 @@
   const updateRackHeaderTelemetry = (...args) => RS.updateRackHeaderTelemetry && RS.updateRackHeaderTelemetry(...args);
 
   const resolveCatalogItem = (key) => {
-    if (!key) return null;
-    return (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) ||
-           (RS.catalog && RS.catalog[key]) ||
-           (STATE.customCatalog && STATE.customCatalog[key]) ||
-           (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m.id === key) : null) ||
-           null;
-  };
+    if (!key || typeof key !== 'string') return null;
+    const cleanKey = key.trim();
+    const lowerKey = cleanKey.toLowerCase();
+    const noPrefix = lowerKey.replace(/^cisco-m-/, '').replace(/^cisco-/, '');
+    const withPrefix = 'cisco-m-' + noPrefix;
 
-  function mountDeviceAt(catalogKey, topU, targetRackId) {
+    // 1. Direct key lookups across primary catalogs
+    const direct = (HARDWARE_CATALOG && (HARDWARE_CATALOG[cleanKey] || HARDWARE_CATALOG[lowerKey] || HARDWARE_CATALOG[withPrefix])) ||
+                   (RS.catalog && (RS.catalog[cleanKey] || RS.catalog[lowerKey] || RS.catalog[withPrefix])) ||
+                   (STATE && STATE.customCatalog && (STATE.customCatalog[cleanKey] || STATE.customCatalog[lowerKey])) ||
+                   null;
+    if (direct) return direct;
+
+    // 2. Lookup in CISCO_MASTER_CATALOG (array or object) by id or modelTag
+    const masterList = Array.isArray(window.CISCO_MASTER_CATALOG)
+      ? window.CISCO_MASTER_CATALOG
+      : (Array.isArray(RS.CISCO_MASTER_CATALOG) ? RS.CISCO_MASTER_CATALOG : null);
+
+    if (masterList) {
+      const match = masterList.find(m => {
+        if (!m) return false;
+        if (m.id === cleanKey || m.id?.toLowerCase() === lowerKey || m.id === withPrefix) return true;
+        if (m.modelTag && m.modelTag.toLowerCase() === lowerKey) return true;
+        if (m.modelTag && m.modelTag.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey.replace(/[^a-z0-9]/g, '')) return true;
+        return false;
+      });
+      if (match) return match;
+    } else {
+      const masterDict = window.CISCO_MASTER_CATALOG || RS.CISCO_MASTER_CATALOG;
+      if (masterDict && (masterDict[cleanKey] || masterDict[lowerKey] || masterDict[withPrefix])) {
+        return masterDict[cleanKey] || masterDict[lowerKey] || masterDict[withPrefix];
+      }
+    }
+
+    // 3. Fallback scan HARDWARE_CATALOG by modelTag
+    if (HARDWARE_CATALOG) {
+      for (const k in HARDWARE_CATALOG) {
+        const item = HARDWARE_CATALOG[k];
+        if (item && item.modelTag && (
+          item.modelTag.toLowerCase() === lowerKey ||
+          item.modelTag.toLowerCase().replace(/[^a-z0-9]/g, '') === lowerKey.replace(/[^a-z0-9]/g, '')
+        )) {
+          return item;
+        }
+      }
+    }
+
+    return null;
+  };
+  RS.resolveCatalogItem = resolveCatalogItem;
+
+  function mountDeviceAt(arg1, arg2, arg3) {
+    let catalogKey = arg1;
+    let topU = Number(arg2);
+    let targetRackId = arg3;
+
+    // Support swapped signature: mountDeviceAt(rackId, topU, catalogKey)
+    if (typeof arg1 === 'string' && STATE.racks?.some(r => r.id === arg1)) {
+      if (typeof arg3 === 'string' && !STATE.racks?.some(r => r.id === arg3)) {
+        targetRackId = arg1;
+        catalogKey = arg3;
+      }
+    }
+
     const cat = resolveCatalogItem(catalogKey);
     if (!cat) return null;
-    const targetRack = targetRackId ? STATE.racks.find(r => r.id === targetRackId) : getActiveRack();
+    const targetRack = targetRackId ? (STATE.racks?.find(r => r.id === targetRackId) || getActiveRack()) : getActiveRack();
     if (!targetRack) return null;
 
     const endU = topU - cat.u + 1;
@@ -50,7 +105,7 @@
     }
     const devObj = {
       instanceId,
-      catalogKey,
+      catalogKey: cat.id || catalogKey,
       topU,
       uHeight: cat.u
     };

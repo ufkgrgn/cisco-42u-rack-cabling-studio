@@ -497,8 +497,14 @@
     const occupiedCount = cat.ports ? cat.ports.filter(p => p.type !== 'power' && occupiedPortKeys.has(portKey(dev.instanceId, p.id))).length : 0;
     const connectablePortsCount = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
     const hasFreePorts = isSwitch && connectablePortsCount > occupiedCount;
+    const faceplateStencil = isSwitch && cat.faceplate?.stencil ? cat.faceplate : null;
+    const portsRect = faceplateStencil?.portsRect || { left: 32, top: 12, width: 58, height: 76 };
+    const faceplateStyle = faceplateStencil
+      ? ` style="--fp-ports-left:${Number(portsRect.left) || 0}%;--fp-ports-top:${Number(portsRect.top) || 0}%;--fp-ports-width:${Number(portsRect.width) || 100}%;--fp-ports-height:${Number(portsRect.height) || 100}%;"`
+      : '';
     return `
-      <div class="device-faceplate ${typeClass}">
+      <div class="device-faceplate ${typeClass}${faceplateStencil ? ' stencil-faceplate' : ''}"${faceplateStyle}>
+        ${faceplateStencil ? `<img class="rack-faceplate-stencil" src="assets/stencils/${encodeURIComponent(faceplateStencil.stencil)}" alt="" draggable="false" aria-hidden="true">` : ''}
         <div class="device-controls">
           ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>` : ''}
           ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}

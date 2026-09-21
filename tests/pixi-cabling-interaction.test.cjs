@@ -442,6 +442,108 @@ async function run() {
     assert.equal(bulkDisconnectState.cableCount, 0, 'device cable clear must remove all matching state entries immediately');
     assert.equal(bulkDisconnectState.displayCount, 0, 'device cable clear must empty retained Pixi displays immediately');
     assert.equal(bulkDisconnectState.spatialCellCount, 0, 'device cable clear must empty the Pixi spatial index immediately');
+
+    // Test: Port role badge color preservation on switch & patch panel when connected vs disconnected
+    const portRoleState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      const swDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const patchDev = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      if (!swDev.portsConfig) swDev.portsConfig = {};
+      // Configure port p1 with role: 'routed' (Red 'R')
+      swDev.portsConfig['p1'] = { role: 'routed', color: '#b91c1c' };
+      RS.renderMountedDevices();
+
+      const swPort1 = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
+      const swPort1Before = {
+        hasSpecial: swPort1.classList.contains('port-special'),
+        hasRouted: swPort1.classList.contains('port-routed'),
+        hasConnected: swPort1.classList.contains('connected'),
+        borderColor: getComputedStyle(swPort1).borderColor,
+        beforeBg: getComputedStyle(swPort1, '::before').backgroundColor,
+        beforeContent: getComputedStyle(swPort1, '::before').content
+      };
+
+      // Connect cable to port p1 -> pt1
+      RS.STATE.cables.push({
+        id: 'cable-role-test',
+        from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p1' },
+        to: { rackId: rack.id, instanceId: patchDev.instanceId, portId: 'pt1' },
+        color: '#b91c1c',
+        role: 'routed'
+      });
+      RS.renderMountedDevices();
+      RS.renderAllCables();
+
+      const swPort1Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
+      const swPort1After = {
+        hasSpecial: swPort1Connected.classList.contains('port-special'),
+        hasRouted: swPort1Connected.classList.contains('port-routed'),
+        hasConnected: swPort1Connected.classList.contains('connected'),
+        borderColor: getComputedStyle(swPort1Connected).borderColor,
+        beforeBg: getComputedStyle(swPort1Connected, '::before').backgroundColor,
+        beforeContent: getComputedStyle(swPort1Connected, '::before').content
+      };
+
+      // Also check standard unconfigured port (port p2 -> pt2) when connected gets green link LED
+      RS.STATE.cables.push({
+        id: 'cable-std-test',
+        from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p2' },
+        to: { rackId: rack.id, instanceId: patchDev.instanceId, portId: 'pt2' },
+        color: '#0070d2'
+      });
+      RS.renderMountedDevices();
+      RS.renderAllCables();
+
+      const swPort2Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p2"]`);
+      const swPort2After = {
+        hasSpecial: swPort2Connected.classList.contains('port-special'),
+        hasConnected: swPort2Connected.classList.contains('connected'),
+        beforeBg: getComputedStyle(swPort2Connected, '::before').backgroundColor
+      };
+
+      return { swPort1Before, swPort1After, swPort2After };
+    });
+
+    // Routed port 1 must keep its red 'R' badge and red border when connected (NOT green)
+    assert.ok(portRoleState.swPort1Before.hasSpecial, 'routed port must have port-special class');
+    assert.equal(portRoleState.swPort1Before.beforeBg, 'rgb(185, 28, 28)', 'routed port ::before must be red before connect');
+    assert.ok(portRoleState.swPort1Before.beforeContent.includes('R'), 'routed port ::before content must be R before connect');
+
+    assert.ok(portRoleState.swPort1After.hasConnected, 'routed port must have connected class');
+    assert.equal(portRoleState.swPort1After.beforeBg, 'rgb(185, 28, 28)', 'routed port ::before must RETAIN red background when connected (not turn green)');
+    assert.ok(portRoleState.swPort1After.beforeContent.includes('R'), 'routed port ::before content must RETAIN R badge when connected');
+    assert.equal(portRoleState.swPort1After.borderColor, 'rgb(185, 28, 28)', 'routed port border must remain red');
+
+    // Standard unconfigured port 2 must show green link LED when connected
+    assert.equal(portRoleState.swPort2After.hasSpecial, false, 'unconfigured port must not have port-special class');
+    assert.equal(portRoleState.swPort2After.hasConnected, true, 'unconfigured port must have connected class');
+    assert.equal(portRoleState.swPort2After.beforeBg, 'rgb(34, 197, 94)', 'unconfigured port ::before must be green LED when connected');
+
+    // Test: Incremental Pixi dispatch via RS.appendSingleCable
+    const incrementalPixiState = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      RS.setCableRenderMode('pixi');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const countBefore = RS.getPixiCableInteractionState().displayCount;
+
+      const rack = RS.getActiveRack();
+      const swDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const patchDev = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      const newCable = {
+        id: 'cable-incremental-pixi',
+        from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p3' },
+        to: { rackId: rack.id, instanceId: patchDev.instanceId, portId: 'pt3' },
+        color: '#7c3aed'
+      };
+      RS.STATE.cables.push(newCable);
+      RS.appendSingleCable(newCable);
+      const countAfter = RS.getPixiCableInteractionState().displayCount;
+
+      return { countBefore, countAfter };
+    });
+    assert.equal(incrementalPixiState.countAfter, incrementalPixiState.countBefore + 1, 'RS.appendSingleCable in Pixi mode must incrementally update displayCount immediately');
+
     assert.deepEqual(pageErrors, []);
   } finally {
     await browser.close();

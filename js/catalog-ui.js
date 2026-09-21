@@ -4,12 +4,67 @@
     const api = window.RackStudio;
     const sidebar = document.querySelector('.sidebar-left');
     if (!api || !sidebar) return;
+    const escapeHtml = api.escapeHtml || (value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]));
     const make = (tag, text, className) => {
       const node = document.createElement(tag);
       if (text !== undefined) node.textContent = text;
       if (className) node.className = className;
       return node;
     };
+    const stencilHoverPreview = make('div', undefined, 'catalog-stencil-hover-preview');
+    const stencilHoverImage = document.createElement('img');
+    stencilHoverImage.alt = '';
+    stencilHoverPreview.setAttribute('aria-hidden', 'true');
+    stencilHoverPreview.append(stencilHoverImage);
+    document.body.append(stencilHoverPreview);
+
+    function hideStencilHoverPreview() {
+      stencilHoverPreview.classList.remove('visible');
+    }
+
+    function showStencilHoverPreview(sourceImage, anchor) {
+      if (!sourceImage?.src) return;
+      stencilHoverImage.src = sourceImage.currentSrc || sourceImage.src;
+      stencilHoverImage.alt = sourceImage.alt || '';
+      const anchorRect = anchor.getBoundingClientRect();
+      const previewWidth = Math.min(420, Math.max(280, window.innerWidth * .28));
+      const previewHeight = Math.min(132, Math.max(92, previewWidth * .29));
+      const gap = 12;
+      let left = anchorRect.right + gap;
+      if (left + previewWidth > window.innerWidth - gap) left = Math.max(gap, anchorRect.left - previewWidth - gap);
+      const top = Math.min(
+        Math.max(gap, anchorRect.top + (anchorRect.height - previewHeight) / 2),
+        Math.max(gap, window.innerHeight - previewHeight - gap)
+      );
+      stencilHoverPreview.style.setProperty('--preview-width', `${previewWidth}px`);
+      stencilHoverPreview.style.setProperty('--preview-height', `${previewHeight}px`);
+      stencilHoverPreview.style.left = `${Math.round(left)}px`;
+      stencilHoverPreview.style.top = `${Math.round(top)}px`;
+      requestAnimationFrame(() => stencilHoverPreview.classList.add('visible'));
+    }
+
+    function createGeneratedStencil(item, sku) {
+      const portCount = Math.min(48, Math.max(4, getAccessPortCount(item) || 24));
+      const columns = Math.min(24, Math.ceil(portCount / (portCount > 24 ? 2 : 1)));
+      const rows = Math.ceil(portCount / columns);
+      const portWidth = Math.min(12, 286 / columns);
+      const startX = 244;
+      const ports = Array.from({ length: portCount }, (_, index) => {
+        const row = Math.floor(index / columns);
+        const column = index % columns;
+        const x = startX + column * (portWidth + 2);
+        const y = rows === 1 ? 31 : 20 + row * 23;
+        return `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="1.8" fill="#07111d" stroke="#38bdf8" stroke-width="1"/><circle cx="${(x + portWidth / 2).toFixed(1)}" cy="${y + 7.5}" r="1.5" fill="#22c55e"/>`;
+      }).join('');
+      const label = escapeHtml(item.modelTag || sku || item.name || 'NETWORK DEVICE');
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 80" role="img"><defs><linearGradient id="chassis" x1="0" x2="0" y2="1"><stop stop-color="#26384b"/><stop offset="1" stop-color="#101923"/></linearGradient></defs><rect x="8" y="12" width="584" height="56" rx="5" fill="url(#chassis)" stroke="#64748b" stroke-width="2"/><rect x="1" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><rect x="587" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><circle cx="7" cy="40" r="2" fill="#94a3b8"/><circle cx="593" cy="40" r="2" fill="#94a3b8"/><text x="28" y="36" fill="#38bdf8" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="700">${label}</text><text x="28" y="53" fill="#94a3b8" font-family="ui-sans-serif,Arial" font-size="8">MODEL-AWARE FALLBACK</text><circle cx="203" cy="32" r="3" fill="#22c55e"/><circle cx="214" cy="32" r="3" fill="#22c55e"/>${ports}</svg>`;
+      const img = document.createElement('img');
+      img.className = 'hw-stencil-preview hw-generated-stencil';
+      img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+      img.alt = `${sku} oluşturulmuş ön panel önizlemesi`;
+      img.setAttribute('draggable', 'false');
+      return img;
+    }
     const normalize = value => String(value || '').toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9]/g, '');
     let favorites = new Set();
     try { const saved = JSON.parse(localStorage.getItem('rackstudio.favorites') || '[]'); if (Array.isArray(saved)) favorites = new Set(saved.filter(v => typeof v === 'string')); } catch (_) { /* Optional preference storage. */ }
@@ -28,6 +83,31 @@
       search.dispatchEvent(new Event('input'));
     });
     searchWrapper.append(search, clearBtn);
+
+    // Quick Filter Chips: [Tümü], [48 Port], [24 Port], [PoE+], [Fiber/SFP]
+    let activeQuickFilter = 'all';
+    const quickChipsWrapper = make('div', undefined, 'catalog-quick-chips');
+    const quickChips = [
+      { id: 'all', label: 'Tümü' },
+      { id: '48p', label: '48 Port' },
+      { id: '24p', label: '24 Port' },
+      { id: 'poe', label: 'PoE+' },
+      { id: 'fiber', label: 'Fiber/SFP' }
+    ];
+    const quickChipButtons = [];
+    quickChips.forEach(chipDef => {
+      const btn = make('button', chipDef.label, `quick-filter-chip ${chipDef.id === 'all' ? 'active' : ''}`);
+      btn.type = 'button';
+      btn.dataset.filter = chipDef.id;
+      btn.addEventListener('click', () => {
+        if (activeQuickFilter === chipDef.id) return;
+        activeQuickFilter = chipDef.id;
+        quickChipButtons.forEach(b => b.classList.toggle('active', b.dataset.filter === activeQuickFilter));
+        filter();
+      });
+      quickChipButtons.push(btn);
+      quickChipsWrapper.append(btn);
+    });
 
     // Accessible hidden controls (category, units, favoriteLabel, count)
     // Preserved for test compatibility and accessibility while keeping UI clean & compact
@@ -52,7 +132,7 @@
     btnModeCategory.title = 'Fonksiyonel kategorilere göre Switch Tree yapısı';
     viewModeSegmented.append(btnModeSeries, btnModeCategory);
 
-    toolbar.append(searchWrapper, viewModeSegmented, accessibleGroup);
+    toolbar.append(searchWrapper, quickChipsWrapper, viewModeSegmented, accessibleGroup);
 
     const drawer = sidebar.querySelector('.sidebar-drawer') || sidebar;
     const stream = sidebar.querySelector('.sidebar-device-stream');
@@ -106,17 +186,6 @@
           sidebar.classList.remove('collapsed');
         }
       }
-    }
-
-    if (railToggleBtn) {
-      railToggleBtn.addEventListener('click', () => {
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        if (typeof window.setLeftSidebarCollapsed === 'function') {
-          window.setLeftSidebarCollapsed(!isCollapsed);
-        } else {
-          sidebar.classList.toggle('collapsed', !isCollapsed);
-        }
-      });
     }
 
     railButtons.forEach(btn => {
@@ -425,32 +494,404 @@
     }
 
     const status = document.getElementById('status-selection-text');
+    const detailPanel = make('section', undefined, 'catalog-selection-detail');
+    detailPanel.hidden = true;
+    detailPanel.setAttribute('aria-live', 'polite');
+    if (stream) drawer.insertBefore(detailPanel, stream);
+
+    function renderSelectionDetail(key) {
+      const item = key && ((api.resolveCatalogItem ? api.resolveCatalogItem(key) : null) || api.catalog?.[key] || window.RackStudio.HARDWARE_CATALOG?.[key]);
+      detailPanel.replaceChildren();
+      detailPanel.hidden = !item;
+      sidebar.classList.toggle('placement-mode', !!item);
+      document.body.classList.toggle('catalog-placement-mode', !!item);
+      if (!item) return;
+
+      const close = make('button', '×', 'catalog-detail-close');
+      close.type = 'button';
+      close.setAttribute('aria-label', 'Donanım seçimini kapat');
+      close.addEventListener('click', () => selectCustom(key));
+      const visual = make('div', undefined, 'catalog-detail-visual');
+      const stencilUrl = resolveStencil(item, key);
+      if (stencilUrl) {
+        const img = document.createElement('img');
+        img.src = stencilUrl;
+        img.alt = item.modelTag || item.name;
+        img.loading = 'eager';
+        img.decoding = 'async';
+        img.onerror = () => visual.classList.add('catalog-detail-visual-fallback');
+        visual.append(img);
+      }
+      const copy = make('div', undefined, 'catalog-detail-copy');
+      copy.append(
+        make('strong', item.modelTag || item.name, 'catalog-detail-model'),
+        make('span', item.name, 'catalog-detail-name'),
+        make('span', `${item.u || 1}U · ${getDeviceSpecChips(item).join(' · ') || 'Donanım'}`, 'catalog-detail-spec')
+      );
+      const mount = make('button', 'İlk boş U’ya ekle', 'catalog-detail-mount');
+      mount.type = 'button';
+      mount.addEventListener('click', () => mountCardDeviceToRack(key));
+      detailPanel.append(close, visual, copy, mount);
+    }
+
     function selectCustom(key) {
       api.STATE.selectedLibraryItem = api.STATE.selectedLibraryItem === key ? null : key;
       sidebar.querySelectorAll('.device-card').forEach(card => card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem));
-      if (status) status.textContent = api.STATE.selectedLibraryItem ? `Seçili: ${api.catalog[key].name}. Kabinde boş bir U seviyesine çift tıklayın veya sürükleyin.` : 'Kütüphaneden bir donanım seçin.';
+      renderSelectionDetail(api.STATE.selectedLibraryItem);
+      if (status) status.textContent = api.STATE.selectedLibraryItem ? `Seçili: ${api.catalog[key].name}. Masaüstünde sürükleyin; tablette boş bir U seviyesine dokunun.` : 'Kütüphaneden bir donanım seçin.';
+      if (api.STATE.selectedLibraryItem && window.matchMedia('(max-width: 1199px)').matches && typeof window.setLeftSidebarCollapsed === 'function') {
+        window.setLeftSidebarCollapsed(true);
+      }
     }
+    const LEGACY_FRONT_STENCILS = [
+      '1u_CISCO_C9200_24_FRONT.svg','1U__CISCO_C9200-24T Front.svg','4u_C9404R Front.svg','C1111-8PLTEEA_Front.svg',
+      'C9120AXE_Front.svg','C9120AXI_Front.svg','C9120AXP_Front.svg','C9200-24P Front.svg','C9200-24P_Front.svg',
+      'C9200-24T_Front.svg','C9200-48P Front.svg','C9200-48P_Front.svg','C9200-48T Front.svg','C9200-48T_Front.svg',
+      'C9200CX-12P-2X2G Front.svg','C9200CX-12P-2X2G_Front.svg','C9200CX-12P-2XGH Front.svg','C9200CX-12P-2XGH_Front.svg',
+      'C9200CX-12T-2X2G Front.svg','C9200CX-12T-2X2G_Front.svg','C9200CX-8P-2X2G Front.svg','C9200CX-8P-2X2G_Front.svg',
+      'C9200CX-8P-2XGH Front.svg','C9200CX-8P-2XGH_Front.svg','C9200CX-8UXG-2X Front.svg','C9200CX-8UXG-2XH Front.svg',
+      'C9200CX-8UXG-2XH_Front.svg','C9200CX-8UXG-2X_Front.svg','C9200L-24P-4G Front.svg','C9200L-24P-4G_Front.svg',
+      'C9200L-24P-4X_Front.svg','C9200L-24T-4G_Front.svg','C9200L-24T-4X_Front.svg','C9200L-48P-4G Front.svg',
+      'C9200L-48P-4G_Front.svg','C9200L-48P-4X_Front.svg','C9200L-48T-4G_Front.svg','C9200L-48T-4X_Front.svg',
+      'C9300-24P Front.svg','C9300-24P_Front.svg','C9300-24S Front.svg','C9300-24S_Front.svg','C9300-24U Front.svg',
+      'C9300-24U_Front.svg','C9300-48P Front.svg','C9300-48P_Front.svg','C9300-48S Front.svg','C9300-48S_Front.svg',
+      'C9300-48U Front.svg','C9300-48U_Front.svg','C9300L-24P-4G Front.svg','C9300L-24P-4G_Front.svg',
+      'C9300L-24P-4X_Front.svg','C9300L-24T-4G_Front.svg','C9300L-24T-4X_Front.svg','C9300L-48P-4G Front.svg',
+      'C9300L-48P-4G_Front.svg','C9300L-48P-4X_Front.svg','C9300L-48T-4G_Front.svg','C9300L-48T-4X_Front.svg',
+      'C9300LM-24U-4Y Front.svg','C9300LM-24U-4Y_Front.svg','C9300LM-48T-4Y Front.svg','C9300LM-48T-4Y_Front.svg',
+      'C9300LM-48U-4Y_Front.svg','C9300LM-48UX-4Y_Front.svg','C9300X-12Y Front.svg','C9300X-12Y_Front.svg',
+      'C9300X-24HX Front.svg','C9300X-24HX_Front.svg','C9300X-24Y Front.svg','C9300X-24Y_Front.svg',
+      'C9300X-48HX Front.svg','C9300X-48HXN Front.svg','C9300X-48HXN_Front.svg','C9300X-48HX_Front.svg',
+      'C9300X-48TX Front.svg','C9300X-48TX_Front.svg','C9404R_Front.svg','C9407R_Front.svg','C9410R_Front.svg',
+      'C9500-16X Front.svg','C9500-16X_Front.svg','C9500-24Y4C Front.svg','C9500-24Y4C_Front.svg','C9500-32C Front.svg',
+      'C9500-32C_Front.svg','C9500-32QC_Front.svg','C9500-40X.svg','C9500-48Y4C_Front.svg','C9500X-28C8D_Front.svg',
+      'C9500X-60L4D_Front.svg','C9606-FAN_Front.svg','C9606R_Front.svg','C9610R_Front.svg','C9800-40-K9 Front.svg',
+      'C9800-40-K9_Front.svg','C9800-80-K9 Front.svg','C9800-80-K9_Front.svg','C9800-L-C-K9 Front.svg',
+      'C9800-L-C-K9_Front.svg','C9800-L-F-K9 Front.svg','C9800-L-F-K9_Front.svg','Cisco_ISR_C1111-4P_Front.svg',
+      'Cisco_ISR_C1111-8P_Front.svg','Cisco_R42610_Front.svg','Cisco_R42610_Front_2.svg','ISR1100-4GLTE_Front.svg',
+      'ISR1100-4G_Front.svg','ISR1100-6G_Front.svg','N3K-C3016Q-40GE_Front.svg','N3K-C3048TP_Front.svg',
+      'N3K-C3064PQ_Front.svg','N3K-C3064TQ-10GT_Front.svg','N3K-C3132Q-40GE_Front.svg','N3K-C3164Q-40GE_Front.svg',
+      'N3K-C3172PQ-10GE_Front.svg','N3K-C3172TQ-10GT_Front.svg','N3K-C3548P-10G_Front.svg','N5K-C5010P-BF_Front.svg',
+      'N5K-C5548P-FA_Front.svg','N5K-C5548UP-FA_Front.svg','N5K-C5596UP-FA_Front.svg','N5K-C5672UP-16G_Front.svg',
+      'WS-C2960S-24PD-L_Front.svg','WS-C2960S-24PS-L_Front.svg','WS-C2960S-24TD-L_Front.svg','WS-C2960S-24TS-L_Front.svg',
+      'WS-C2960S-24TS-S_Front.svg','WS-C2960S-48FPD-L_Front.svg','WS-C2960S-48FPS-L_Front.svg','WS-C2960S-48LPD-L_Front.svg',
+      'WS-C2960S-48LPS-L_Front.svg','WS-C2960S-48TD-L_Front.svg','WS-C2960S-48TS-L_Front.svg','WS-C2960S-48TS-S_Front.svg',
+      'WS-C4948E-F_Front.svg','WS-C4948E_Front.svg','WS-C4948_Front.svg'
+    ];
+    const FRONT_STENCILS = Array.isArray(window.RACK_STENCIL_MANIFEST) && window.RACK_STENCIL_MANIFEST.length
+      ? window.RACK_STENCIL_MANIFEST
+      : LEGACY_FRONT_STENCILS;
+    const STENCIL_BY_NORMALIZED_NAME = new Map(FRONT_STENCILS.map(file => [normalize(file), file]));
+    const stencilCoverage = { matched: [], missing: [] };
+    window.RACK_STENCIL_COVERAGE = stencilCoverage;
+
+    function recordStencilCoverage(deviceId, stencilUrl) {
+      const target = stencilUrl ? stencilCoverage.matched : stencilCoverage.missing;
+      const other = stencilUrl ? stencilCoverage.missing : stencilCoverage.matched;
+      const otherIndex = other.findIndex(entry => entry.deviceId === deviceId);
+      if (otherIndex >= 0) other.splice(otherIndex, 1);
+      if (!target.some(entry => entry.deviceId === deviceId)) target.push({ deviceId, stencilUrl: stencilUrl || null });
+    }
+
+    function resolveStencil(item, deviceId) {
+      if (!item) return null;
+      const tag = (item.modelTag || '').replace(/[\(\)]/g, '').trim();
+      const id = (deviceId || '').trim();
+
+      // 1. Direct candidate matching
+      const exactCandidates = [
+        tag + '_Front.svg', tag + ' Front.svg', tag + '.svg',
+        'WS-' + tag + '_Front.svg', tag.replace(/^WS-/, '') + '_Front.svg',
+        id + '_Front.svg', id.replace(/^cisco-m-/, '').toUpperCase() + '_Front.svg'
+      ];
+      for (const c of exactCandidates) {
+        const f = STENCIL_BY_NORMALIZED_NAME.get(normalize(c));
+        if (f) return 'assets/stencils/' + f;
+      }
+
+      // 2. Clean base tag without trailing suffixes (-S, -I, -L, etc.)
+      const cleanTag = tag.split(' ')[0].replace(/-(S|I|L|FX|10GE|K9)$/i, '');
+      const baseCandidates = [
+        cleanTag + '_Front.svg', cleanTag + ' Front.svg', cleanTag + '.svg',
+        cleanTag.replace(/^WS-/, '') + '_Front.svg',
+        'WS-' + cleanTag + '_Front.svg'
+      ];
+      for (const c of baseCandidates) {
+        const f = STENCIL_BY_NORMALIZED_NAME.get(normalize(c));
+        if (f) return 'assets/stencils/' + f;
+      }
+
+      // 3. Catalyst 2960 family alias to authentic 2960S stencils
+      if (/2960/i.test(tag) || /2960/i.test(id)) {
+        const is48 = /48/i.test(tag) || /48/i.test(id);
+        const isPoe = /p|poe/i.test(tag) || /p|poe/i.test(id);
+        if (is48 && isPoe) return 'assets/stencils/WS-C2960S-48FPS-L_Front.svg';
+        if (is48) return 'assets/stencils/WS-C2960S-48TS-L_Front.svg';
+        if (isPoe) return 'assets/stencils/WS-C2960S-24PS-L_Front.svg';
+        return 'assets/stencils/WS-C2960S-24TS-L_Front.svg';
+      }
+
+      // 4. Substring normalized matching
+      const norm = cleanTag.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      if (norm.length >= 5) {
+        const f = FRONT_STENCILS.find(s => normalize(s).includes(norm));
+        if (f) return 'assets/stencils/' + f;
+      }
+
+      return null;
+    }
+
+    function getDeviceSpecChips(item) {
+      const chips = [];
+      if (!item) return chips;
+
+      if (item.poeBudget) {
+        chips.push(item.poeBudget);
+      }
+      if (item.uplinkSummary) {
+        chips.push(item.uplinkSummary.split('(')[0].trim());
+      }
+
+      if (chips.length === 0 && Array.isArray(item.ports) && item.ports.length > 0) {
+        const rj45Ports = item.ports.filter(p => p.type === 'rj45');
+        const sfpPorts = item.ports.filter(p => p.type && (p.type.includes('sfp') || p.type.includes('qsfp') || p.type.includes('fiber') || p.type === 'lc' || p.type === 'sc'));
+
+        const hasPoe = item.ports.some(p => /poe|upoe/i.test(p.speed || '')) || /poe|upoe/i.test(item.name || '') || /poe|upoe/i.test(item.desc || '');
+        const poeWattMatch = ((item.desc || '') + ' ' + (item.name || '')).match(/(\d+W)\b/i);
+        const poeWatt = poeWattMatch ? ' (' + poeWattMatch[1] + ')' : '';
+
+        if (rj45Ports.length > 0) {
+          const is10G = rj45Ports.some(p => /10g|mgig/i.test(p.speed || ''));
+          const speedStr = is10G ? 'mGig' : '1G';
+          const poeStr = hasPoe ? ' PoE+' + poeWatt : '';
+          chips.push(rj45Ports.length + 'x ' + speedStr + poeStr);
+        } else if (item.category === 'patch') {
+          chips.push(item.ports.length + 'x RJ45 Cat6');
+        }
+
+        if (sfpPorts.length > 0) {
+          const is100G = sfpPorts.some(p => /100g|qsfp28/i.test(p.speed || ''));
+          const is25G = sfpPorts.some(p => /25g|sfp28/i.test(p.speed || ''));
+          const is10G = sfpPorts.some(p => /10g|sfp\+/i.test(p.speed || ''));
+          const speed = is100G ? '100G QSFP28' : (is25G ? '25G SFP28' : (is10G ? '10G SFP+' : '1G SFP'));
+          chips.push(sfpPorts.length + 'x ' + speed);
+        } else if (item.category === 'fiber') {
+          chips.push(item.ports.length + 'x Fiber LC');
+        }
+      }
+
+      if (chips.length === 0) {
+        if (item.category === 'pdu') chips.push('8x Schuko', '16A 250V');
+        else if (item.category === 'organizer') chips.push('Kablo Düzenleme', (item.u || 1) + 'U');
+        else if (item.category === 'blank') chips.push('Kör Panel', (item.u || 1) + 'U');
+        else if (item.ports && item.ports.length) chips.push(item.ports.length + ' Port');
+      }
+
+      return chips;
+    }
+
+    function mountCardDeviceToRack(deviceId) {
+      const activeRack = (typeof api.getActiveRack === 'function') ? api.getActiveRack() : api.STATE?.racks?.[0];
+      if (!activeRack) return;
+      const item = (api.resolveCatalogItem ? api.resolveCatalogItem(deviceId) : null) || api.catalog?.[deviceId] || (window.RackStudio.HARDWARE_CATALOG && window.RackStudio.HARDWARE_CATALOG[deviceId]);
+      if (!item) return;
+      const uHeight = item.u || 1;
+      const heightU = activeRack.heightU || 42;
+      let placedU = null;
+      for (let topU = heightU; topU >= uHeight; topU--) {
+        let free = true;
+        for (let u = topU - uHeight + 1; u <= topU; u++) {
+          if (activeRack.units && activeRack.units[u] !== null) {
+            free = false;
+            break;
+          }
+        }
+        if (free) {
+          placedU = topU;
+          break;
+        }
+      }
+
+      if (placedU === null) {
+        alert(`Kabinde (${activeRack.name}) ${uHeight}U yüksekliğinde boş yer bulunamadı.`);
+        return;
+      }
+
+      if (typeof window.mountDeviceFromAction === 'function') {
+        window.mountDeviceFromAction(deviceId, placedU, null, activeRack.id);
+      } else if (typeof api.mountDeviceAt === 'function') {
+        api.mountDeviceAt(deviceId, placedU, activeRack.id);
+        if (api.renderRackTabs) api.renderRackTabs();
+        if (api.renderMountedDevices) api.renderMountedDevices();
+        if (api.renderAllCables) api.renderAllCables();
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+      }
+      const toast = document.getElementById('studio-toast');
+      if (toast) {
+        toast.textContent = `✓ ${item.name || deviceId} U${placedU} seviyesine monte edildi!`;
+        toast.className = 'show';
+        setTimeout(() => { toast.className = ''; }, 3000);
+      }
+    }
+
     function decorate(card) {
-      if (card.dataset.catalogEnhanced) return;
-      card.dataset.catalogEnhanced = 'true'; card.tabIndex = 0;
+      if (card.dataset.catalogDecorated) return;
+      card.dataset.catalogDecorated = 'true';
+      card.dataset.catalogEnhanced = 'true';
+      card.tabIndex = 0;
       card.setAttribute('draggable', 'true');
+
+      const key = card.dataset.deviceId;
+      if (!key) return;
+
+      const item = (api.resolveCatalogItem ? api.resolveCatalogItem(key) : null) || api.catalog?.[key] || (window.RackStudio.HARDWARE_CATALOG && window.RackStudio.HARDWARE_CATALOG[key]);
+      if (!item) return;
+
       card.addEventListener('dragstart', event => {
-        const key = card.dataset.deviceId;
-        if (!key) return;
         window.__RACK_DRAGGED_DEVICE__ = key;
-        event.dataTransfer.setData('text/plain', key);
-        event.dataTransfer.setData('application/x-rack-device', key);
-        event.dataTransfer.effectAllowed = 'copy';
+        if (event.dataTransfer) {
+          event.dataTransfer.setData('text/plain', key);
+          event.dataTransfer.setData('application/x-rack-device', key);
+          event.dataTransfer.effectAllowed = 'copy';
+        }
         card.classList.add('dragging');
       });
+
       card.addEventListener('dragend', () => {
         card.classList.remove('dragging');
         window.__RACK_DRAGGED_DEVICE__ = null;
+        if (api.highlightDropSlots) api.highlightDropSlots(null, null, false);
       });
-      card.addEventListener('keydown', event => { if (event.target === card && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); card.click(); } });
-      const favorite = make('button', '', 'catalog-star'); favorite.type = 'button';
-      function update() { const chosen = favorites.has(card.dataset.deviceId); favorite.textContent = chosen ? '★' : '☆'; favorite.setAttribute('aria-label', chosen ? 'Favorilerden çıkar' : 'Favorilere ekle'); favorite.setAttribute('aria-pressed', String(chosen)); }
-      update(); favorite.addEventListener('click', event => { event.stopPropagation(); const key = card.dataset.deviceId; favorites.has(key) ? favorites.delete(key) : favorites.add(key); try { localStorage.setItem('rackstudio.favorites', JSON.stringify([...favorites])); } catch (_) {} update(); filter(); }); card.append(favorite);
+
+      card.addEventListener('keydown', event => {
+        if (event.target === card && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          selectCustom(key);
+        }
+      });
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.catalog-star') || e.target.closest('.btn-card-quick-mount')) return;
+        selectCustom(key);
+      });
+
+      // Build upgraded card DOM
+      const sku = item.modelTag || item.name || key;
+      card.title = `${sku} - ${item.name} (${item.u || 1}U)`;
+
+      // 1. Header
+      const header = make('div', undefined, 'hw-card-header');
+      const skuWrap = make('div', undefined, 'hw-sku-wrap');
+      const skuTag = make('span', sku, 'hw-sku-tag');
+      skuTag.title = sku;
+      const devName = make('span', item.name, 'device-name');
+      devName.title = item.name;
+      skuWrap.append(skuTag, devName);
+
+      const topBadges = make('div', undefined, 'hw-card-top-badges');
+      const uBadge = make('span', `${item.u || 1}U`, 'device-u-badge');
+      const favorite = make('button', '', 'catalog-star');
+      favorite.type = 'button';
+      favorite.setAttribute('draggable', 'false');
+      function updateFav() {
+        const chosen = favorites.has(key);
+        favorite.textContent = chosen ? '★' : '☆';
+        favorite.setAttribute('aria-label', chosen ? 'Favorilerden çıkar' : 'Favorilere ekle');
+        favorite.setAttribute('aria-pressed', String(chosen));
+      }
+      updateFav();
+      favorite.addEventListener('click', event => {
+        event.stopPropagation();
+        event.preventDefault();
+        favorites.has(key) ? favorites.delete(key) : favorites.add(key);
+        try { localStorage.setItem('rackstudio.favorites', JSON.stringify([...favorites])); } catch (_) {}
+        updateFav();
+        filter();
+      });
+      topBadges.append(uBadge, favorite);
+      header.append(skuWrap, topBadges);
+
+      // 2. Visual Stencil or Fallback Mini-Bezel
+      const visualContainer = make('div', undefined, 'hw-visual-container');
+      const stencilUrl = resolveStencil(item, key);
+      recordStencilCoverage(key, stencilUrl);
+
+      let fallbackBezel = card.querySelector('.hw-mini-bezel');
+      if (!fallbackBezel) {
+        const isCisco = item.logo === 'CISCO' || (item.series && item.series !== 'custom');
+        const bezelClass = isCisco ? (item.series ? `bezel-${item.series}` : 'bezel-switch') : 'bezel-custom';
+        const bezelTag = isCisco ? (item.modelTag || 'CISCO') : 'CUSTOM';
+        fallbackBezel = make('div', undefined, 'hw-mini-bezel ' + bezelClass);
+        fallbackBezel.innerHTML = `<div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div><div class="mini-bezel-face"><span class="mini-cisco-text">${escapeHtml(bezelTag)}</span><span class="mini-led-dot mini-led-cyan"></span></div><div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>`;
+      }
+
+      if (stencilUrl) {
+        const img = document.createElement('img');
+        let hoverSource = img;
+        img.className = 'hw-stencil-preview';
+        img.src = stencilUrl;
+        img.alt = sku;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.setAttribute('draggable', 'false');
+        img.onerror = () => {
+          img.style.display = 'none';
+          const generated = createGeneratedStencil(item, sku);
+          hoverSource = generated;
+          visualContainer.append(generated);
+        };
+        fallbackBezel.style.display = 'none';
+        visualContainer.append(img, fallbackBezel);
+        visualContainer.tabIndex = 0;
+        visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(hoverSource, visualContainer));
+        visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
+        visualContainer.addEventListener('mouseenter', () => showStencilHoverPreview(hoverSource, visualContainer));
+        visualContainer.addEventListener('mouseleave', hideStencilHoverPreview);
+        visualContainer.addEventListener('focusin', () => showStencilHoverPreview(hoverSource, visualContainer));
+        visualContainer.addEventListener('focusout', hideStencilHoverPreview);
+      } else {
+        const generated = createGeneratedStencil(item, sku);
+        fallbackBezel.style.display = 'none';
+        visualContainer.append(generated, fallbackBezel);
+        visualContainer.tabIndex = 0;
+        visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(generated, visualContainer));
+        visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
+        visualContainer.addEventListener('mouseenter', () => showStencilHoverPreview(generated, visualContainer));
+        visualContainer.addEventListener('mouseleave', hideStencilHoverPreview);
+        visualContainer.addEventListener('focusin', () => showStencilHoverPreview(generated, visualContainer));
+        visualContainer.addEventListener('focusout', hideStencilHoverPreview);
+      }
+
+      // 3. Spec Chips
+      const specChipsWrap = make('div', undefined, 'hw-spec-chips');
+      const chips = getDeviceSpecChips(item);
+      chips.forEach(chipText => {
+        const chip = make('span', chipText, 'hw-spec-chip' + (/poe|upoe/i.test(chipText) ? ' poe' : (/sfp|qsfp|uplink/i.test(chipText) ? ' uplink' : '')));
+        specChipsWrap.append(chip);
+      });
+
+      // 4. Action Button "+ Kabine Ekle"
+      const footer = make('div', undefined, 'hw-card-footer');
+      const mountBtn = make('button', '+', 'btn-card-quick-mount');
+      mountBtn.type = 'button';
+      mountBtn.setAttribute('draggable', 'false');
+      mountBtn.setAttribute('aria-label', `${item.name} cihazını ilk boş U seviyesine ekle`);
+      mountBtn.title = 'Aktif kabindeki ilk boş U pozisyonuna monte et';
+      mountBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        mountCardDeviceToRack(key);
+      });
+      footer.append(mountBtn);
+
+      // 5. Hidden description for search / tests
+      const descEl = make('div', item.desc || '', 'device-desc');
+      descEl.style.display = 'none';
+
+      // Two-row card: transparent stencil above, concise metadata below.
+      const infoRow = make('div', undefined, 'hw-card-info-row');
+      infoRow.append(header, specChipsWrap, footer);
+      card.replaceChildren(visualContainer, infoRow, descEl);
     }
     // --- Switch-Tree Style Catalog Series & Category Architecture ---
     function getDeviceSeriesGroup(deviceId, item) {
@@ -525,8 +966,9 @@
       const groupsMap = new Map();
 
       allDeviceCards.forEach(card => {
+        decorate(card);
         const key = card.dataset.deviceId;
-        const item = api.catalog[key];
+        const item = (api.resolveCatalogItem ? api.resolveCatalogItem(key) : null) || api.catalog[key] || (window.RackStudio.HARDWARE_CATALOG && window.RackStudio.HARDWARE_CATALOG[key]);
         const groupInfo = (catalogViewMode === 'series')
           ? getDeviceSeriesGroup(key, item)
           : getDeviceCategoryGroup(key, item);
@@ -597,13 +1039,56 @@
       filter();
     });
 
+    function getAccessPortCount(item) {
+      const ports = Array.isArray(item?.ports) ? item.ports : [];
+      const accessPorts = ports.filter(port => !/^(up|qsfp|mgmt|console)/i.test(String(port.id || '')) && !/uplink|management|console/i.test(String(port.speed || '')));
+      return accessPorts.length || ports.length;
+    }
+
+    function matchesCategory(item, selectedCategory) {
+      if (!selectedCategory) return true;
+      if (selectedCategory === 'switch') return ['switch', 'fiber-switch', 'compact'].includes(item.category);
+      if (selectedCategory === 'fiber') return item.category === 'fiber' || item.category === 'fiber-switch';
+      return item.category === selectedCategory;
+    }
+
     function filter() {
       const query = normalize(search.value); let visible = 0; let total = 0;
       sidebar.querySelectorAll('.device-card').forEach(card => {
-        decorate(card); const item = api.catalog[card.dataset.deviceId]; if (!item) { card.hidden = true; return; }
+        decorate(card);
+        const item = (api.resolveCatalogItem ? api.resolveCatalogItem(card.dataset.deviceId) : null) || api.catalog[card.dataset.deviceId] || (window.RackStudio.HARDWARE_CATALOG && window.RackStudio.HARDWARE_CATALOG[card.dataset.deviceId]);
+        if (!item) { card.hidden = true; return; }
         total++;
-        const matches = (!query || normalize([item.name, item.modelTag, item.desc, card.dataset.deviceId].join(' ')).includes(query)) && (!category.value || item.category === category.value) && (!units.value || item.u === Number(units.value)) && (!favoriteOnly.checked || favorites.has(card.dataset.deviceId));
-        card.hidden = !matches; if (matches) visible++;
+
+        let quickMatch = true;
+        if (activeQuickFilter === '48p') {
+          const is48 = getAccessPortCount(item) === 48 || /(?:^|-)48(?:P|T|S|U|X|Y|\b)/i.test(`${item.modelTag || ''} ${item.name || ''}`);
+          if (!is48) quickMatch = false;
+        } else if (activeQuickFilter === '24p') {
+          const is24 = getAccessPortCount(item) === 24 || /(?:^|-)24(?:P|T|S|U|X|Y|\b)/i.test(`${item.modelTag || ''} ${item.name || ''}`);
+          if (!is24) quickMatch = false;
+        } else if (activeQuickFilter === 'poe') {
+          const isPoe = /poe|upoe/i.test(item.poeBudget || '') ||
+                        (item.ports && item.ports.some(p => /poe|upoe/i.test(p.speed || ''))) ||
+                        /poe|upoe/i.test(item.name || '') ||
+                        /poe|upoe/i.test(item.desc || '');
+          if (!isPoe) quickMatch = false;
+        } else if (activeQuickFilter === 'fiber') {
+          const isFiber = item.category === 'fiber' ||
+                          item.category === 'fiber-switch' ||
+                          (item.ports && item.ports.every(p => p.type && (p.type.includes('sfp') || p.type.includes('qsfp') || p.type === 'lc' || p.type === 'sc'))) ||
+                          (item.ports && item.ports.some(p => p.type && (p.type.includes('sfp') || p.type.includes('qsfp') || p.type === 'lc' || p.type === 'sc'))) ||
+                          /fiber|sfp|odf/i.test(item.desc || '');
+          if (!isFiber) quickMatch = false;
+        }
+
+        const matches = quickMatch &&
+                        (!query || normalize([item.name, item.modelTag, item.desc, card.dataset.deviceId].join(' ')).includes(query)) &&
+                        matchesCategory(item, category.value) &&
+                        (!units.value || item.u === Number(units.value)) &&
+                        (!favoriteOnly.checked || favorites.has(card.dataset.deviceId));
+        card.hidden = !matches;
+        if (matches) visible++;
       });
 
       // Update tree group cards visibility and model counts
@@ -689,6 +1174,7 @@
         });
       }
       sidebar.querySelectorAll('.device-card').forEach(card => card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem));
+      renderSelectionDetail(api.STATE.selectedLibraryItem);
       filter();
     }
     form.addEventListener('submit', event => {

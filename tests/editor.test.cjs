@@ -38,6 +38,7 @@ test('rack editor resize, placement guards, move, history and recovery', async (
     await page.waitForFunction(() => document.querySelector('#studio-save').textContent === 'Yerel kayıt tamam');
     await page.reload();
     await page.waitForSelector('.studio-editor[data-ready="true"]');
+    await page.waitForTimeout(100);
     assert.equal(await top(), 25);
     assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().heightU), 48);
     const bounds = await page.locator('.mounted-device').first().boundingBox();
@@ -47,10 +48,25 @@ test('rack editor resize, placement guards, move, history and recovery', async (
     await page.mouse.move(bounds.x + 2, bounds.y + 2 + step * 2, {steps:4});
     await page.mouse.up();
     assert.equal(await top(), 23);
+
+    const catalogCard = page.locator('.device-card[data-device-id]:not([hidden])').first();
+    const catalogKey = await catalogCard.getAttribute('data-device-id');
+    const targetSlot = page.locator('.rack-slot[data-u="40"]').first();
+    await catalogCard.dragTo(targetSlot);
+    await page.waitForFunction(
+      ({key, topU}) => window.RackStudio.getActiveRack().devices.some(device => device.catalogKey === key && device.topU === topU),
+      {key: catalogKey, topU: 40}
+    );
+    assert.equal(
+      await page.locator('.rack-slot.drag-valid, .rack-slot.drag-invalid').count(),
+      0,
+      'catalog drag/drop must clear all slot highlights'
+    );
+
     await page.locator('[data-command="duplicate"]').click();
-    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().devices.length), 2);
+    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().devices.length), 3);
     await page.locator('[data-command="delete"]').click();
-    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().devices.length), 1);
+    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().devices.length), 2);
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 });
@@ -72,5 +88,31 @@ test('legacy localStorage project migrates into IndexedDB', async () => {
     await page.reload();
     await page.waitForSelector('.studio-editor[data-ready="true"]');
     assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().name), 'Legacy');
+  } finally { await browser.close(); }
+});
+
+test('tablet catalog is an overlay and supports tap-to-place', async () => {
+  const browser = await chromium.launch({channel:process.env.BROWSER_CHANNEL || 'msedge',headless:true});
+  try {
+    const page = await browser.newPage({viewport:{width:820,height:1100}, hasTouch:true});
+    await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
+    await page.waitForSelector('.studio-editor[data-ready="true"]');
+    await page.evaluate(() => {
+      localStorage.removeItem('rack-studio-project-v2');
+      window.RackStudio.loadCustomTopology({racks:[{id:'rack-1',name:'Tablet',heightU:42,devices:[]}],cables:[]});
+      window.setLeftSidebarCollapsed(false);
+    });
+    const viewportWidthBefore = await page.locator('#rack-viewport').evaluate(el => el.getBoundingClientRect().width);
+    const card = page.locator('.sidebar-left .device-card[data-device-id]:not([hidden])').first();
+    const key = await card.getAttribute('data-device-id');
+    await card.click();
+    await page.waitForFunction(() => document.getElementById('sidebar-left').classList.contains('collapsed'));
+    const viewportWidthAfter = await page.locator('#rack-viewport').evaluate(el => el.getBoundingClientRect().width);
+    assert.equal(Math.round(viewportWidthAfter), Math.round(viewportWidthBefore), 'overlay sidebar must not resize the rack viewport');
+    await page.locator('.rack-slot[data-u="35"]').first().evaluate(slot => slot.click());
+    await page.waitForFunction(
+      ({key, topU}) => window.RackStudio.getActiveRack().devices.some(device => device.catalogKey === key && device.topU === topU),
+      {key, topU:35}
+    );
   } finally { await browser.close(); }
 });

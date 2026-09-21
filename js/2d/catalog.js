@@ -95,6 +95,7 @@
       modelTag: 'C9500-24Y4C',
       powerWatts: 950,
       heatBtu: 3241,
+      faceplate: { stencil: 'C9500-24Y4C_Front.svg', portsRect: { left: 37, top: 15, width: 50, height: 70 } },
       desc: 'Kampüs çekirdek omurga, 24x 1/10/25G SFP28 (25GE1/0/1 - 25GE1/0/24) ve 4x 40/100G QSFP28 uplink (100GE1/0/25 - 100GE1/0/28).',
       ports: [
         ...Array.from({ length: 24 }, (_, i) => ({

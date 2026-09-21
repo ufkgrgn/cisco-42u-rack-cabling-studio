@@ -673,6 +673,7 @@
       initDomReferences();
       configureMultiRackVisibility(rackStage, true);
     }
+    ensureRackStageDelegation();
   }
 
   RS.createRackUnitAndSlot = createRackUnitAndSlot;
@@ -689,6 +690,48 @@
     if (!stage || stage.__RACK_STAGE_DELEGATED__) return;
     stage.__RACK_STAGE_DELEGATED__ = true;
 
+    function resolveDropSlot(e) {
+      const direct = e.target?.closest?.('.rack-slot[data-u], .rack-unit[data-u]');
+      if (direct) {
+        return {
+          element: direct,
+          u: Number(direct.dataset.u),
+          rackId: direct.dataset.rackId || direct.closest('.rack-container')?.dataset.rackId || getActiveRack()?.id
+        };
+      }
+
+      const stack = typeof document.elementsFromPoint === 'function'
+        ? document.elementsFromPoint(e.clientX, e.clientY)
+        : [];
+      const stackedSlot = stack.map(el => el.closest?.('.rack-slot[data-u], .rack-unit[data-u]')).find(Boolean);
+      if (stackedSlot) {
+        return {
+          element: stackedSlot,
+          u: Number(stackedSlot.dataset.u),
+          rackId: stackedSlot.dataset.rackId || stackedSlot.closest('.rack-container')?.dataset.rackId || getActiveRack()?.id
+        };
+      }
+
+      const container = e.target?.closest?.('.rack-container') ||
+        stack.map(el => el.closest?.('.rack-container')).find(Boolean);
+      if (!container) return null;
+      let nearest = null;
+      let nearestDistance = Infinity;
+      container.querySelectorAll('.rack-slot[data-u]').forEach(slot => {
+        const rect = slot.getBoundingClientRect();
+        const distance = Math.abs(e.clientY - (rect.top + rect.height / 2));
+        if (distance < nearestDistance) {
+          nearest = slot;
+          nearestDistance = distance;
+        }
+      });
+      return nearest ? {
+        element: nearest,
+        u: Number(nearest.dataset.u),
+        rackId: nearest.dataset.rackId || container.dataset.rackId || getActiveRack()?.id
+      } : null;
+    }
+
     // Single click on rack slot
     stage.addEventListener('click', (e) => {
       const slot = e.target.closest('.rack-slot');
@@ -696,9 +739,16 @@
         if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
         if (STATE.selectedLibraryItem) {
           const u = Number(slot.dataset.u);
-          const rackId = slot.dataset.rackId;
+          const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
+          const touchPlacement = window.matchMedia?.('(hover: none), (pointer: coarse)')?.matches || window.innerWidth <= 1024;
+          if (touchPlacement && typeof window.mountDeviceFromAction === 'function') {
+            e.preventDefault();
+            e.stopPropagation();
+            window.mountDeviceFromAction(STATE.selectedLibraryItem, u, e, rackId);
+            return;
+          }
           const rack = (RS.getRackById ? RS.getRackById(rackId) : null) || STATE.racks?.find(r => r.id === rackId) || getActiveRack();
-          const item = HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]);
+          const item = (RS.resolveCatalogItem ? RS.resolveCatalogItem(STATE.selectedLibraryItem) : null) || HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]);
           const name = item ? item.name : 'Donanım';
           showTemporaryTooltip(e.clientX, e.clientY, `[${name}] eklemek için [${rack ? rack.name : 'Kabin'}] U${u} yuvasına ÇİFT TIKLAYIN veya sürükleyip bırakın.`);
         }
@@ -712,7 +762,7 @@
         e.stopPropagation();
         if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
         const u = Number(slot.dataset.u);
-        const rackId = slot.dataset.rackId;
+        const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
         if (typeof window.handleSlotDoubleClick === 'function') {
           window.handleSlotDoubleClick(u, e, rackId);
         } else if (typeof window.mountDeviceFromAction === 'function' && STATE.selectedLibraryItem) {
@@ -721,50 +771,52 @@
       }
     });
 
-    // Dragover on rack slot
+    // Dragover on rack stage / slots
     stage.addEventListener('dragover', (e) => {
-      const slot = e.target.closest('.rack-slot');
-      if (slot) {
+      const target = resolveDropSlot(e);
+      if (target && Number.isInteger(target.u)) {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        const u = Number(slot.dataset.u);
-        const rackId = slot.dataset.rackId;
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
         const draggedDev = window.__RACK_DRAGGED_DEVICE__ || STATE.selectedLibraryItem;
-        highlightDropSlots(u, draggedDev, true, rackId);
+        highlightDropSlots(target.u, draggedDev, true, target.rackId);
       }
     });
 
-    // Dragleave on rack slot
+    // Dragleave on rack stage / slots
     stage.addEventListener('dragleave', (e) => {
-      const slot = e.target.closest('.rack-slot');
-      if (slot && !slot.contains(e.relatedTarget)) {
-        const u = Number(slot.dataset.u);
-        const rackId = slot.dataset.rackId;
-        highlightDropSlots(u, null, false, rackId);
-      }
+      if (!e.relatedTarget || !stage.contains(e.relatedTarget)) highlightDropSlots(null, null, false);
     });
 
-    // Drop on rack slot
+    // Drop on rack slot / rails
     stage.addEventListener('drop', (e) => {
-      const slot = e.target.closest('.rack-slot');
-      if (slot) {
+      const target = resolveDropSlot(e);
+      if (target && Number.isInteger(target.u)) {
         e.preventDefault();
         e.stopPropagation();
-        const u = Number(slot.dataset.u);
-        const rackId = slot.dataset.rackId;
-        highlightDropSlots(u, null, false, rackId);
-        const devId = e.dataTransfer.getData('application/x-rack-device') || 
-                      e.dataTransfer.getData('text/plain') || 
+        highlightDropSlots(null, null, false);
+        const devId = e.dataTransfer?.getData('application/x-rack-device') ||
+                      e.dataTransfer?.getData('text/plain') ||
                       window.__RACK_DRAGGED_DEVICE__ || 
                       STATE.selectedLibraryItem;
         window.__RACK_DRAGGED_DEVICE__ = null;
         if (!devId) return;
         if (typeof window.mountDeviceFromAction === 'function') {
-          window.mountDeviceFromAction(devId, u, e, rackId);
+          window.mountDeviceFromAction(devId, target.u, e, target.rackId);
+        } else if (typeof RS.mountDeviceAt === 'function') {
+          RS.mountDeviceAt(devId, target.u, target.rackId);
         }
       }
     });
   }
 
+  RS.ensureRackStageDelegation = ensureRackStageDelegation;
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureRackStageDelegation);
+    } else {
+      ensureRackStageDelegation();
+    }
+  }
 })();

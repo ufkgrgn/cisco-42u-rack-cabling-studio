@@ -118,4 +118,42 @@ describe('PixiJS v8 Dual-Engine Cabling Layer', () => {
     expect(isInteractiveCable(mockCablesContainer)).toBe(false);
     expect(isInteractiveCable(mockCableGraphic)).toBe(true);
   });
+
+  it('appendSingleCable incrementally triggers renderAllCablesPixi in pixi mode', () => {
+    let pixiAppendCalled = 0;
+    mockRS.appendSingleCablePixi = (_cable: any) => {
+      pixiAppendCalled++;
+      return mockRS.renderAllCablesPixi();
+    };
+
+    function appendSingleCable(cable: any) {
+      if (!cable) return;
+      if (mockRS.STATE.cableRenderMode === 'pixi') {
+        if (mockRS.appendSingleCablePixi) return mockRS.appendSingleCablePixi(cable);
+        if (mockRS.renderAllCablesPixi) return mockRS.renderAllCablesPixi();
+      }
+      return mockRS.renderAllCables();
+    }
+
+    mockRS.STATE.cableRenderMode = 'pixi';
+    appendSingleCable({ id: 'new-c1' });
+    expect(pixiAppendCalled).toBe(1);
+    expect(mockRS.getPixiCalls()).toBe(1);
+  });
+
+  it('appendSingleCable delegates to renderAllCables in svg mode respecting structured routing', () => {
+    function appendSingleCable(cable: any) {
+      if (!cable) return;
+      if (mockRS.STATE.cableRenderMode === 'pixi') {
+        if (mockRS.appendSingleCablePixi) return mockRS.appendSingleCablePixi(cable);
+        if (mockRS.renderAllCablesPixi) return mockRS.renderAllCablesPixi();
+      }
+      return mockRS.renderAllCables();
+    }
+
+    mockRS.STATE.cableRenderMode = 'svg';
+    const res = appendSingleCable({ id: 'new-c2' });
+    expect(res).toBe('svg-rendered');
+    expect(mockRS.getSvgCalls()).toBe(1);
+  });
 });

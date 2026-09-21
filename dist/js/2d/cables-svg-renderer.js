@@ -1087,97 +1087,14 @@
   RS.getOrCreateSvgElement = getOrCreateSvgElement;
   function appendSingleCable(cable) {
     if (!cable) return;
-    if (STATE.cableRenderMode === 'pixi' && RS.appendSingleCablePixi) {
-      return RS.appendSingleCablePixi(cable);
+    if (STATE.cableRenderMode === 'pixi') {
+      if (RS.appendSingleCablePixi) return RS.appendSingleCablePixi(cable);
+      if (RS.renderAllCablesPixi) return RS.renderAllCablesPixi();
     }
-    const cablesGroup = dom.cablesGroup || document.getElementById('cables-group');
-    const connectorsGroup = dom.connectorsGroup || document.getElementById('connectors-group');
-    if (!cablesGroup) {
-      renderAllCables();
-      return;
+    if (RS.renderAllCables) {
+      return RS.renderAllCables();
     }
-
-    const instA = cable.from?.instanceId || cable.from?.deviceId;
-    const instB = cable.to?.instanceId || cable.to?.deviceId;
-    const portIdA = cable.from?.portId || ('p' + cable.from?.portIdx);
-    const portIdB = cable.to?.portId || ('p' + cable.to?.portIdx);
-
-    let portFromEl = document.getElementById(`port-${instA}-${portIdA}`) ||
-                     document.querySelector(`.port[data-instance-id="${instA}"][data-port-id="${portIdA}"]`);
-    let portToEl = document.getElementById(`port-${instB}-${portIdB}`) ||
-                   document.querySelector(`.port[data-instance-id="${instB}"][data-port-id="${portIdB}"]`);
-
-    if (!portFromEl || !portToEl) {
-      renderAllCables();
-      return;
-    }
-
-    const rectA = portFromEl.getBoundingClientRect();
-    const rectB = portToEl.getBoundingClientRect();
-    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
-    if (!svgEl || !svgEl.getScreenCTM) return;
-    const ctmInv = svgEl.getScreenCTM().inverse();
-    const svgPoint = svgEl.createSVGPoint();
-    const clientToSvg = (cx, cy) => {
-      svgPoint.x = cx;
-      svgPoint.y = cy;
-      const pt = svgPoint.matrixTransform(ctmInv);
-      return { x: pt.x, y: pt.y };
-    };
-
-    const p1 = clientToSvg(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
-    const p2 = clientToSvg(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
-    const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
-    const tightSag = Math.min(22, Math.max(8, Math.abs(y2 - y1) * 0.12));
-    const ymid = (y1 + y2) / 2;
-    const cp1x = x1 + (x2 - x1) * 0.25;
-    const cp1y = ymid + (y2 >= y1 ? tightSag : -tightSag);
-    const cp2x = x1 + (x2 - x1) * 0.75;
-    const cp2y = ymid + (y2 >= y1 ? tightSag : -tightSag);
-    const pathD = `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
-
-    const isFiberCable = cable.role === 'fiber' || cable.color === '#facc15' || cable.name?.includes('[FIBER]');
-    const casing = getOrCreateSvgElement('path', `svg-cable-casing-${cable.id}`);
-    casing.setAttribute('d', pathD);
-    casing.setAttribute('class', `cable-casing ${isFiberCable ? 'cable-casing-fiber' : ''}`.trim());
-    casing.setAttribute('data-cable-id', cable.id);
-    casing.style.setProperty('--cable-color', cable.color);
-    cablesGroup.appendChild(casing);
-
-    const path = getOrCreateSvgElement('path', `svg-cable-${cable.id}`);
-    path.setAttribute('d', pathD);
-    path.setAttribute('stroke', cable.color);
-    path.setAttribute('stroke-width', isFiberCable ? '2.8' : '2.6');
-    path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('stroke-linejoin', 'round');
-    path.style.color = cable.color;
-    path.style.setProperty('--cable-color', cable.color);
-    path.setAttribute('class', `cable-path ${isFiberCable ? 'cable-fiber' : ''}`.trim());
-    path.setAttribute('data-cable-id', cable.id);
-    cablesGroup.appendChild(path);
-
-    if (connectorsGroup) {
-      const bootA = getOrCreateSvgElement('circle', `svg-cable-boot-a-${cable.id}`);
-      bootA.setAttribute('cx', x1); bootA.setAttribute('cy', y1); bootA.setAttribute('r', '3.4');
-      bootA.setAttribute('fill', '#090d16'); bootA.setAttribute('stroke', cable.color); bootA.setAttribute('stroke-width', '1.6');
-      bootA.setAttribute('class', 'cable-boot'); bootA.setAttribute('data-cable-id', cable.id);
-
-      const pinA = getOrCreateSvgElement('circle', `svg-cable-pin-a-${cable.id}`);
-      pinA.setAttribute('cx', x1); pinA.setAttribute('cy', y1); pinA.setAttribute('r', '1.2');
-      pinA.setAttribute('fill', cable.color); pinA.setAttribute('class', 'cable-boot-pin'); pinA.setAttribute('data-cable-id', cable.id);
-
-      const bootB = getOrCreateSvgElement('circle', `svg-cable-boot-b-${cable.id}`);
-      bootB.setAttribute('cx', x2); bootB.setAttribute('cy', y2); bootB.setAttribute('r', '3.4');
-      bootB.setAttribute('fill', '#090d16'); bootB.setAttribute('stroke', cable.color); bootB.setAttribute('stroke-width', '1.6');
-      bootB.setAttribute('class', 'cable-boot'); bootB.setAttribute('data-cable-id', cable.id);
-
-      const pinB = getOrCreateSvgElement('circle', `svg-cable-pin-b-${cable.id}`);
-      pinB.setAttribute('cx', x2); pinB.setAttribute('cy', y2); pinB.setAttribute('r', '1.2');
-      pinB.setAttribute('fill', cable.color); pinB.setAttribute('class', 'cable-boot-pin'); pinB.setAttribute('data-cable-id', cable.id);
-
-      connectorsGroup.appendChild(bootA); connectorsGroup.appendChild(pinA);
-      connectorsGroup.appendChild(bootB); connectorsGroup.appendChild(pinB);
-    }
+    renderAllCables();
   }
 
   RS.appendSingleCable = appendSingleCable;

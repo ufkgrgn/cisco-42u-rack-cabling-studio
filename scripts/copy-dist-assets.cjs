@@ -8,6 +8,8 @@ const distJs = path.join(distDir, 'js');
 
 const srcCss = path.join(rootDir, 'css');
 const distCss = path.join(distDir, 'css');
+const srcAssets = path.join(rootDir, 'assets');
+const distAssets = path.join(distDir, 'assets');
 
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
@@ -21,4 +23,9 @@ if (fs.existsSync(srcJs)) {
 if (fs.existsSync(srcCss)) {
   fs.cpSync(srcCss, distCss, { recursive: true });
   console.log(`[build:dist] Successfully copied css/ to dist/css/ (${fs.readdirSync(distCss).length} files)`);
+}
+
+if (fs.existsSync(srcAssets)) {
+  fs.cpSync(srcAssets, distAssets, { recursive: true });
+  console.log(`[build:dist] Successfully copied assets/ to dist/assets/`);
 }

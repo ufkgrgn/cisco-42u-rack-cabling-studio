@@ -530,15 +530,15 @@
   pointer-events: none;
 }
 
-/* Link LED: green indicator inside port body, with glow */
-.faceplate-switch .port-rj45.connected {
+/* Link LED: green indicator inside port body, with glow (only for standard ports without special role badge) */
+.faceplate-switch .port-rj45:not(.port-special):not(.port-trunk).connected {
   border-color: #166534;
   background: #071410;
 }
 
-.faceplate-switch .port-rj45.connected::before {
-  background: #22c55e !important;
-  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6) !important;
+.faceplate-switch .port-rj45:not(.port-special):not(.port-trunk).connected::before {
+  background: #22c55e;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6);
 }
 
 /* ============================================================================
@@ -695,13 +695,13 @@
   box-shadow: 0 0 4px rgba(249, 115, 22, 0.5);
 }
 
-.faceplate-patch-panel .port-rj45.connected {
+.faceplate-patch-panel .port-rj45:not(.port-special):not(.port-trunk).connected {
   border-color: #fb923c;
   background: #130c06;
   box-shadow: 0 0 3px rgba(249, 115, 22, 0.4);
 }
 
-.faceplate-patch-panel .port-rj45.connected::before {
+.faceplate-patch-panel .port-rj45:not(.port-special):not(.port-trunk).connected::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -889,6 +889,71 @@
   align-items: center;
 }
 
+/* Hybrid Cisco faceplate: authentic stencil below, live DOM ports above it.
+   Per-model normalized rectangles keep hit targets aligned while the rack scales. */
+.device-faceplate.stencil-faceplate {
+  padding: 0;
+  gap: 0;
+  background: #080b10;
+  isolation: isolate;
+}
+
+.rack-faceplate-stencil {
+  position: absolute;
+  inset: 1px 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 2px);
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  filter: saturate(1.06) contrast(1.04) brightness(.96);
+}
+
+.stencil-faceplate .cisco-integrated-bezel {
+  display: none;
+}
+
+.stencil-faceplate .ports-area {
+  position: absolute;
+  left: var(--fp-ports-left);
+  top: var(--fp-ports-top);
+  width: var(--fp-ports-width);
+  height: var(--fp-ports-height);
+  padding: 0;
+  gap: 2px;
+  z-index: 2;
+  overflow: visible !important;
+  justify-content: flex-start;
+}
+
+.stencil-faceplate .port-group {
+  gap: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.stencil-faceplate .port-row { gap: 1px; }
+.stencil-faceplate .port {
+  opacity: .18;
+  outline: 1px solid rgba(125, 211, 252, .22);
+  background-color: rgba(2, 6, 23, .12);
+  transition: opacity .12s ease, outline-color .12s ease, filter .12s ease;
+}
+.stencil-faceplate .port:hover,
+.stencil-faceplate .port:focus-visible,
+.stencil-faceplate .port.connected,
+.stencil-faceplate .port.port-special {
+  opacity: 1;
+  outline-color: rgba(103, 232, 249, .9);
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, .75));
+}
+
+.stencil-faceplate .device-controls {
+  z-index: 5;
+}
+
 /* Port Visuals (Clean Enterprise) */
 .port {
   position: relative;
@@ -930,9 +995,9 @@
   pointer-events: none;
 }
 
-.port-rj45.connected::before {
-  background: #22c55e !important;
-  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6) !important;
+.port-rj45:not(.port-special):not(.port-trunk).connected::before {
+  background: #22c55e;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6);
 }
 
 .port-rj45::after {
@@ -1150,6 +1215,16 @@
   z-index: 4;
 }
 
+.port.port-special.connected,
+.port.port-trunk.connected,
+.faceplate-switch .port.port-special.connected,
+.faceplate-switch .port.port-trunk.connected,
+.faceplate-patch-panel .port.port-special.connected,
+.faceplate-patch-panel .port.port-trunk.connected {
+  border-color: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  background: #080c14 !important;
+}
+
 .port.port-special::before,
 .port.port-trunk::before {
   content: var(--port-badge-text, "T") !important;
@@ -1176,6 +1251,18 @@
   z-index: 6 !important;
   box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 0.5px 1.5px rgba(0, 0, 0, 0.4) !important;
   pointer-events: none !important;
+}
+
+.port.port-special.connected::before,
+.port.port-trunk.connected::before,
+.faceplate-switch .port.port-special.connected::before,
+.faceplate-switch .port.port-trunk.connected::before,
+.faceplate-patch-panel .port.port-special.connected::before,
+.faceplate-patch-panel .port.port-trunk.connected::before {
+  content: var(--port-badge-text, "T") !important;
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  color: var(--port-badge-color, #ffffff) !important;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 0.5px 1.5px rgba(0, 0, 0, 0.4) !important;
 }
 
 .port.port-trunk {
@@ -1961,7 +2048,7 @@
   flex-direction: row !important;
   align-items: flex-start !important;
   gap: 64px !important;
-  padding: 40px 60px 80px 60px;
+  padding: 76px 60px 80px 60px;
   width: max-content !important;
   box-sizing: content-box;
 }
@@ -1970,7 +2057,6 @@
   flex-shrink: 0 !important;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  contain: layout paint style;
 }
 
 
@@ -2777,3 +2863,14 @@
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.8) !important;
   transition: box-shadow 0.3s ease, outline 0.3s ease;
 }
+
+/* Sidebar drawer width adjustment for full SKU visibility */
+.sidebar-left {
+  width: 360px;
+  min-width: 360px;
+}
+.sidebar-left.collapsed {
+  width: 44px;
+  min-width: 44px;
+}
+

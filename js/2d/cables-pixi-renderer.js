@@ -1515,6 +1515,12 @@
     }
   }
 
+  function appendSingleCablePixi(cable) {
+    if (!cable) return;
+    renderAllCablesPixi();
+  }
+
+  RS.appendSingleCablePixi = appendSingleCablePixi;
   RS.renderAllCablesPixi = renderAllCablesPixi;
   RS.setCableRenderMode = setCableRenderMode;
   RS.setPixiViewportRendererV2 = enabled => {

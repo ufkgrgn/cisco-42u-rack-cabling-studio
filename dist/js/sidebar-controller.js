@@ -8,6 +8,13 @@
     const sidebarLeft = document.getElementById('sidebar-left');
     const btnToggleLeft = document.getElementById('btn-toggle-left-sidebar');
     const railBtnToggle = document.getElementById('rail-btn-toggle');
+    const sidebarScrim = document.createElement('button');
+    sidebarScrim.type = 'button';
+    sidebarScrim.className = 'sidebar-scrim';
+    sidebarScrim.setAttribute('aria-label', 'Donanım kataloğunu kapat');
+    document.body.append(sidebarScrim);
+
+    const isOverlaySidebar = () => window.matchMedia('(max-width: 1199px)').matches;
 
     function setLeftSidebarCollapsed(collapsed) {
       if (!sidebarLeft) return;
@@ -17,8 +24,9 @@
         btnToggleLeft.title = collapsed ? 'Kütüphaneyi Aç (Ctrl+B)' : 'Kütüphaneyi Katla (Ctrl+B)';
       }
       try { localStorage.setItem('rack_studio_left_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+      document.body.classList.toggle('left-sidebar-open', isOverlaySidebar() && !collapsed);
       setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
+        if (!isOverlaySidebar()) window.dispatchEvent(new Event('resize'));
       }, 260);
     }
     window.setLeftSidebarCollapsed = setLeftSidebarCollapsed;
@@ -32,6 +40,7 @@
       const isCollapsed = sidebarLeft?.classList.contains('collapsed');
       setLeftSidebarCollapsed(!isCollapsed);
     });
+    sidebarScrim.addEventListener('click', () => setLeftSidebarCollapsed(true));
 
     // 2D Collapsible Right Sidebar
     const sidebarRight = document.getElementById('sidebar-right');
@@ -76,12 +85,19 @@
         e.preventDefault();
         const isCollapsed = sidebarLeft?.classList.contains('collapsed');
         setLeftSidebarCollapsed(!isCollapsed);
+      } else if (e.key === 'Escape' && isOverlaySidebar() && !sidebarLeft?.classList.contains('collapsed')) {
+        setLeftSidebarCollapsed(true);
       }
     });
 
+    window.addEventListener('resize', () => {
+      document.body.classList.toggle('left-sidebar-open', isOverlaySidebar() && !sidebarLeft?.classList.contains('collapsed'));
+    }, { passive: true });
+
     // Restore sidebar state from localStorage
     try {
-      if (localStorage.getItem('rack_studio_left_sidebar_collapsed') === '1') {
+      const savedLeftState = localStorage.getItem('rack_studio_left_sidebar_collapsed');
+      if (savedLeftState === '1' || (savedLeftState === null && isOverlaySidebar())) {
         setLeftSidebarCollapsed(true);
       }
       if (localStorage.getItem('rack_studio_right_sidebar_collapsed') === '1') {

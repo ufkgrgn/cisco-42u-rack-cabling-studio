@@ -88,6 +88,7 @@
       u: 1,
       poeBudget: '370W PoE+',
       uplinkSummary: '4x 10G SFP+ Sabit',
+      faceplate: { stencil: 'C9200L-24P-4X_Front.svg', portsRect: { left: 39, top: 16, width: 47, height: 68 } },
       desc: '24x 10/100/1000 Gigabit PoE+ (370W), 4x 10G SFP+ sabit yüksek hızlı omurga uplink.',
       ports: buildPorts({
         accessCount: 24,
@@ -214,6 +215,7 @@
       u: 1,
       poeBudget: '505W PoE+',
       uplinkSummary: '4x 10G SFP+ Sabit',
+      faceplate: { stencil: 'C9300L-24P-4X_Front.svg', portsRect: { left: 38, top: 16, width: 49, height: 68 } },
       desc: '24x 10/100/1000 Gigabit PoE+ (505W bütçe), 4x 10G SFP+ sabit uplink, StackWise-320 mimarisi.',
       ports: buildPorts({
         accessCount: 24,
@@ -397,6 +399,7 @@
       u: 1,
       poeBudget: 'PoE Yok (Core Omurga)',
       uplinkSummary: '4x 100G QSFP28 Sabit',
+      faceplate: { stencil: 'C9500-24Y4C_Front.svg', portsRect: { left: 37, top: 15, width: 50, height: 70 } },
       desc: '24x 1/10/25G SFP28, 4x 40/100G QSFP28 omurga portu, kurumsal kampüs çekirdek anahtarı.',
       ports: buildPorts({
         accessCount: 24,
