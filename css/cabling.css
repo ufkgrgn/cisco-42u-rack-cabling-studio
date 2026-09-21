@@ -70,6 +70,17 @@
   animation: cable-neon-pulse 1.2s infinite alternate ease-in-out;
 }
 
+:root[data-2d-performance="eco"] .cable-path.highlighted,
+:root[data-2d-performance="balanced"] .cable-path.highlighted {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cable-path.highlighted {
+    animation: none;
+  }
+}
+
 .cable-boot {
   pointer-events: all;
   cursor: pointer;

@@ -36,6 +36,7 @@
   let lastWorldHeight = 0;
   let viewportResizeObserver = null;
   let currentRenderResolution = 0;
+  let interactionResolutionActive = false;
   let hoveredCableId = null;
   let groupHoveredCableIds = new Set();
   let lastSceneSignature = null;
@@ -64,6 +65,70 @@
     batchRebuilds: 0,
     batchDisplayCount: 0
   };
+  const PIXI_PERFORMANCE_PROFILES = Object.freeze({
+    eco: Object.freeze({ resolution: 1, interactionResolution: 0.75, pixelBudget: 4_000_000 }),
+    balanced: Object.freeze({ resolution: 1.5, interactionResolution: 1, pixelBudget: 8_000_000 }),
+    quality: Object.freeze({ resolution: 2, interactionResolution: 1.25, pixelBudget: 12_000_000 })
+  });
+  let pixiPerformanceMode = 'balanced';
+  try {
+    const savedMode = localStorage.getItem('rackstudio_2d_performance_mode');
+    if (Object.hasOwn(PIXI_PERFORMANCE_PROFILES, savedMode)) pixiPerformanceMode = savedMode;
+  } catch (_) {}
+  document.documentElement.setAttribute('data-2d-performance', pixiPerformanceMode);
+  const performanceTelemetry = {
+    renderEvents: [],
+    geometryEvents: [],
+    hoverEvents: [],
+    resizeEvents: [],
+    renderReasons: Object.create(null),
+    totalRenders: 0,
+    resolutionChanges: 0
+  };
+
+  function recordTimedEvent(events) {
+    const now = performance.now();
+    events.push(now);
+    while (events.length && events[0] < now - 1000) events.shift();
+  }
+
+  function eventsPerSecond(events) {
+    const now = performance.now();
+    while (events.length && events[0] < now - 1000) events.shift();
+    return events.length;
+  }
+
+  function calculatePixiResolution(width, height, interaction = interactionResolutionActive) {
+    const profile = PIXI_PERFORMANCE_PROFILES[pixiPerformanceMode] || PIXI_PERFORMANCE_PROFILES.balanced;
+    const requested = interaction ? profile.interactionResolution : profile.resolution;
+    const pixelCap = Math.sqrt(profile.pixelBudget / Math.max(1, width * height));
+    return Math.max(0.75, Math.round(Math.min(requested, pixelCap) * 4) / 4);
+  }
+
+  function renderPixi(reason = 'unspecified') {
+    if (!pixiApp || document.hidden) return false;
+    performanceTelemetry.totalRenders++;
+    performanceTelemetry.renderReasons[reason] = (performanceTelemetry.renderReasons[reason] || 0) + 1;
+    recordTimedEvent(performanceTelemetry.renderEvents);
+    pixiApp.render();
+    return true;
+  }
+
+  function applyPixiResolution(interaction = interactionResolutionActive, reason = 'resolution') {
+    if (!pixiApp || !lastWidth || !lastHeight) return currentRenderResolution;
+    const target = calculatePixiResolution(lastWidth, lastHeight, interaction);
+    if (Math.abs(target - currentRenderResolution) < 0.1) return currentRenderResolution;
+    pixiApp.renderer.resolution = target;
+    pixiApp.renderer.resize(lastWidth, lastHeight);
+    if (pixiCanvas) {
+      pixiCanvas.style.width = '100%';
+      pixiCanvas.style.height = '100%';
+    }
+    currentRenderResolution = target;
+    performanceTelemetry.resolutionChanges++;
+    renderPixi(reason);
+    return currentRenderResolution;
+  }
 
   const usesBatchedViewportRenderer = () => STATE.pixiViewportRendererV2 !== false;
 
@@ -316,11 +381,6 @@
     glowByColor.forEach((glow, color) => {
       glow.stroke({ width: selectedOnly ? 9 : 8, color, alpha: selectedOnly ? 0.72 : 0.62, cap: 'round', join: 'round' });
       glow.blendMode = 'add';
-      if (window.PIXI.BlurFilter) {
-        const blur = new window.PIXI.BlurFilter({ strength: selectedOnly ? 4.2 : 3.4, quality: 2, kernelSize: 7 });
-        blur.padding = 10;
-        glow.filters = [blur];
-      }
       focusContainer.addChild(glow);
     });
     focusContainer.addChild(casing);
@@ -574,7 +634,7 @@
         display.glowAlpha = (hovered || (!hasHoverFocus && id === STATE.highlightedCableId)) ? 1 : 0;
       }
       rebuildBatchedFocus();
-      pixiApp?.render();
+      renderPixi('focus');
       return;
     }
     const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
@@ -590,7 +650,7 @@
       display.glow.alpha = 0;
       display.boots.forEach(boot => { boot.alpha = alpha; });
     }
-    pixiApp?.render();
+    renderPixi('focus');
   }
 
   function schedulePixiTooltip(e, cableId) {
@@ -609,6 +669,7 @@
       return;
     }
     const previous = hoveredCableId;
+    recordTimedEvent(performanceTelemetry.hoverEvents);
     const previousGroup = new Set(groupHoveredCableIds);
     groupHoveredCableIds.clear();
     hoveredCableId = cableId || null;
@@ -676,7 +737,7 @@
     if (STATE.highlightedCableId !== cableId) highlightCable(cableId);
     redrawCableDisplay(cableId);
     showCableQuickHud(cableId, pos.x, pos.y);
-    pixiApp?.render();
+    renderPixi('selection');
   }
 
   function attachHitDetection() {
@@ -777,7 +838,7 @@
       highlightCable(cableId, true);
       redrawCableDisplay(cableId);
       showCableContextMenu(cableId, e.clientX, e.clientY);
-      pixiApp?.render();
+      renderPixi('context-menu');
     }, { capture: true });
 
     const onDblClick = (e) => {
@@ -875,7 +936,7 @@
     };
     updateVisibility(cablesContainer);
     updateVisibility(connectorsContainer);
-    pixiApp.render();
+    renderPixi('camera');
   }
 
   function getOrCreatePixiCanvas(parentContainer, width, height) {
@@ -892,9 +953,16 @@
       const width = Math.max(1, Math.round(viewport.clientWidth));
       const height = Math.max(1, Math.round(viewport.clientHeight));
       if (width === lastWidth && height === lastHeight) return;
-      pixiApp.renderer.resize(width, height);
+      recordTimedEvent(performanceTelemetry.resizeEvents);
       lastWidth = width;
       lastHeight = height;
+      const targetResolution = calculatePixiResolution(width, height, interactionResolutionActive);
+      if (Math.abs(targetResolution - currentRenderResolution) >= 0.1) {
+        pixiApp.renderer.resolution = targetResolution;
+        currentRenderResolution = targetResolution;
+        performanceTelemetry.resolutionChanges++;
+      }
+      pixiApp.renderer.resize(width, height);
       if (pixiCanvas) {
         pixiCanvas.style.width = '100%';
         pixiCanvas.style.height = '100%';
@@ -919,7 +987,7 @@
       const svgEl = document.getElementById('cables-svg');
       const canvas = ensurePixiCanvas(svgEl, parentContainer);
       const app = new window.PIXI.Application();
-      const renderResolution = Math.min(3.5, Math.max(2.5, (window.devicePixelRatio || 1) * 1.75));
+      const renderResolution = calculatePixiResolution(width, height, false);
       await app.init({
         canvas: canvas,
         width: width,
@@ -1065,12 +1133,13 @@
         renderStats.fastPathHits++;
         renderStats.lastDurationMs = performance.now() - renderStartedAt;
         if (rendererResized) syncPixiViewportCamera(RS.ZOOM_STATE);
-        else if (styleChangedIds.size) pixiApp.render();
+        else if (styleChangedIds.size) renderPixi('style');
         return;
       }
     }
 
     renderStats.geometryPasses++;
+    recordTimedEvent(performanceTelemetry.geometryEvents);
     const seenCableIds = new Set();
     if (sceneChanged) {
       organizerOverlayContainer.removeChildren().forEach(child => child.destroy?.());
@@ -1480,7 +1549,7 @@
       pixiApp.stage.position.set(RS.ZOOM_STATE?.panX || 0, RS.ZOOM_STATE?.panY || 0);
       pixiApp.stage.scale.set(RS.ZOOM_STATE?.scale || 1);
     }
-    pixiApp.render();
+    renderPixi('scene');
   }
 
   function setCableRenderMode(mode) {
@@ -1543,7 +1612,7 @@
   RS.syncPixiCableSelection = () => {
     if (usesBatchedViewportRenderer()) rebuildBatchedFocus();
     else for (const id of cableDisplays.keys()) redrawCableDisplay(id);
-    pixiApp?.render();
+    renderPixi('selection-sync');
   };
   RS.invalidatePixiCableGeometry = cableIds => {
     if (Array.isArray(cableIds)) cableIds.forEach(id => removeCableFromSpatialIndex(id));
@@ -1554,26 +1623,47 @@
     if (!display) return;
     display.previewColorNum = color ? hexColorToNumber(color) : null;
     redrawCableDisplay(cableId);
-    pixiApp?.render();
+    renderPixi('color-preview');
   };
   // Alias used by cable-hud.js for preview hover on color swatches
   RS.setPixiCablePreviewColor = RS.previewPixiCableColor;
   RS.hitTestPixiCable = (clientX, clientY) => hitCableAt(clientX, clientY);
   RS.syncPixiViewportCamera = syncPixiViewportCamera;
-  RS.updatePixiResolutionForZoom = scale => {
-    if (!pixiApp || STATE.cableRenderMode !== 'pixi' || !lastWidth || !lastHeight) return currentRenderResolution;
-    let target = scale < 0.5 ? 1.75 : (scale < 1 ? 2.5 : (scale < 1.6 ? 3 : 3.5));
-    const megapixelCap = 20_000_000;
-    target = Math.min(target, Math.sqrt(megapixelCap / Math.max(1, lastWidth * lastHeight)), 3.5);
-    target = Math.max(1.25, Math.round(target * 4) / 4);
-    if (Math.abs(target - currentRenderResolution) < 0.2) return currentRenderResolution;
-    pixiApp.renderer.resolution = target;
-    pixiApp.renderer.resize(lastWidth, lastHeight);
-    pixiCanvas.style.width = '100%';
-    pixiCanvas.style.height = '100%';
-    currentRenderResolution = target;
-    pixiApp.render();
-    return currentRenderResolution;
+  RS.updatePixiResolutionForZoom = () => applyPixiResolution(false, 'zoom-settled');
+  RS.setPixiInteractionMode = active => {
+    interactionResolutionActive = !!active;
+    return applyPixiResolution(interactionResolutionActive, active ? 'interaction-start' : 'interaction-end');
+  };
+  RS.setPixiPerformanceMode = mode => {
+    if (!Object.hasOwn(PIXI_PERFORMANCE_PROFILES, mode)) return false;
+    pixiPerformanceMode = mode;
+    document.documentElement.setAttribute('data-2d-performance', mode);
+    try { localStorage.setItem('rackstudio_2d_performance_mode', mode); } catch (_) {}
+    applyPixiResolution(interactionResolutionActive, 'profile-change');
+    return true;
+  };
+  RS.getPixiPerformanceTelemetry = () => {
+    const resolution = pixiApp?.renderer?.resolution || currentRenderResolution || 0;
+    const framebufferWidth = Math.round(lastWidth * resolution);
+    const framebufferHeight = Math.round(lastHeight * resolution);
+    return {
+      profile: pixiPerformanceMode,
+      interactionMode: interactionResolutionActive,
+      rendersPerSecond: eventsPerSecond(performanceTelemetry.renderEvents),
+      geometryPassesPerSecond: eventsPerSecond(performanceTelemetry.geometryEvents),
+      hoverChangesPerSecond: eventsPerSecond(performanceTelemetry.hoverEvents),
+      resizeEventsPerSecond: eventsPerSecond(performanceTelemetry.resizeEvents),
+      totalRenders: performanceTelemetry.totalRenders,
+      resolutionChanges: performanceTelemetry.resolutionChanges,
+      renderReasons: { ...performanceTelemetry.renderReasons },
+      resolution,
+      framebufferWidth,
+      framebufferHeight,
+      framebufferPixels: framebufferWidth * framebufferHeight,
+      framebufferMegapixels: Number(((framebufferWidth * framebufferHeight) / 1_000_000).toFixed(2)),
+      pixelBudget: PIXI_PERFORMANCE_PROFILES[pixiPerformanceMode].pixelBudget,
+      staticIdle: eventsPerSecond(performanceTelemetry.renderEvents) === 0
+    };
   };
   RS.getPixiCableInteractionState = () => ({
     hoveredCableId,
@@ -1589,6 +1679,7 @@
     worldSize: { width: lastWorldWidth, height: lastWorldHeight },
     spatialCellCount: spatialGrid.size,
     blurredGlowCount: focusContainer?.children?.filter(child => child.filters?.length).length || 0,
+    performance: RS.getPixiPerformanceTelemetry(),
     alphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, usesBatchedViewportRenderer() ? (display.visualAlpha ?? 1) : display.core.alpha])),
     glowAlphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, usesBatchedViewportRenderer() ? (display.glowAlpha ?? 0) : display.glow.alpha])),
     colorByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, display.colorNum])),

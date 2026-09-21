@@ -20,6 +20,7 @@
         schedulePixiResolutionRefresh(RS.ZOOM_STATE?.scale || scale, delay);
         return;
       }
+      RS.setPixiInteractionMode?.(false);
       RS.updatePixiResolutionForZoom?.(scale);
     }, delay);
   }
@@ -49,6 +50,7 @@
       RS.dom.rackStage.style.transform = transformValue;
       lastTransformValue = transformValue;
     }
+    RS.setPixiInteractionMode?.(true);
     RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {

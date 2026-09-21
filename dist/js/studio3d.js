@@ -2641,7 +2641,7 @@
         }
       });
       document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
+        if (document.hidden || window.is3DMode === false) {
           this.pause();
         } else {
           this.resume();
@@ -2985,10 +2985,20 @@
       }
     }
     resume() {
-      if (!this.isPaused) return;
+      if (!this.isPaused || document.hidden || window.is3DMode === false) return;
+      this.isHibernated = false;
       this.isPaused = false;
       this.lastTime = performance.now();
       this.animate();
+    }
+    hibernate() {
+      this.pause();
+      this.isHibernated = true;
+      this.renderer?.setSize(1, 1, false);
+    }
+    wake() {
+      this.isHibernated = false;
+      this.resume();
     }
     // --- ANIMATION LOOP (Sustained 60 FPS) ---
     markDirty() {

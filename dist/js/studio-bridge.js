@@ -6,6 +6,8 @@
 
   let is3DLoading = false;
   let is3DLoaded = false;
+  let hibernate3DTimer = null;
+  const HIBERNATE_3D_DELAY_MS = 45_000;
   window.is3DMode = false;
 
   function getWrapper3D() {
@@ -281,6 +283,10 @@
     const deviceLabelControl = document.getElementById('device-label-control');
 
     if (window.is3DMode) {
+      if (hibernate3DTimer) {
+        clearTimeout(hibernate3DTimer);
+        hibernate3DTimer = null;
+      }
       if (wrapper3D) wrapper3D.style.display = 'block';
       if (legacyWrapper) legacyWrapper.style.display = 'none';
       if (btnView2D) btnView2D.classList.remove('active');
@@ -292,7 +298,6 @@
       if (fpsCounter) fpsCounter.style.display = 'inline-block';
       if (deviceLabelControl) deviceLabelControl.style.display = 'inline-flex';
       if (window.__STUDIO3D__) {
-        window.__STUDIO3D__.resume();
         const container = document.getElementById('studio3d-container');
         if (container && window.__STUDIO3D__.camera && window.__STUDIO3D__.renderer) {
           const w = container.clientWidth || window.innerWidth;
@@ -301,6 +306,8 @@
           window.__STUDIO3D__.camera.updateProjectionMatrix();
           window.__STUDIO3D__.renderer.setSize(w, h);
         }
+        if (window.__STUDIO3D__.wake) window.__STUDIO3D__.wake();
+        else window.__STUDIO3D__.resume();
       }
     } else {
       if (wrapper3D) wrapper3D.style.display = 'none';
@@ -313,10 +320,26 @@
       if (btnWizard) btnWizard.style.display = 'none';
       if (fpsCounter) fpsCounter.style.display = 'none';
       if (deviceLabelControl) deviceLabelControl.style.display = 'none';
-      if (window.__STUDIO3D__) window.__STUDIO3D__.pause();
+      if (window.__STUDIO3D__) {
+        window.__STUDIO3D__.pause();
+        if (hibernate3DTimer) clearTimeout(hibernate3DTimer);
+        hibernate3DTimer = setTimeout(() => {
+          hibernate3DTimer = null;
+          if (!window.is3DMode) window.__STUDIO3D__?.hibernate?.();
+        }, HIBERNATE_3D_DELAY_MS);
+      }
     }
     if (typeof window.updateTelemetry === 'function') window.updateTelemetry();
   }
+
+  window.getStudioRenderTelemetry = () => ({
+    is3DMode: window.is3DMode,
+    is3DLoaded,
+    is3DPaused: window.__STUDIO3D__?.isPaused ?? true,
+    is3DHibernated: window.__STUDIO3D__?.isHibernated ?? false,
+    hibernateDelayMs: HIBERNATE_3D_DELAY_MS,
+    pixi: window.RackStudio?.getPixiPerformanceTelemetry?.() || null
+  });
 
   async function setMode(to3D) {
     if (window.is3DMode === to3D) return;

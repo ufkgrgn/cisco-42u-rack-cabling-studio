@@ -109,9 +109,10 @@ async function run() {
     assert.equal(hoverState.pixi.alphaByCable['pixi-regression-cable-2'], 0.14, 'non-hovered cables must dim strongly');
     assert.equal(hoverState.pixi.glowAlphaByCable['pixi-regression-cable'], 1, 'hovered cable must have a visible glow layer');
     assert.equal(hoverState.pixi.glowAlphaByCable['pixi-regression-cable-2'], 0, 'non-hovered cable glow must stay hidden');
-    assert.ok(hoverState.pixi.blurredGlowCount > 0, 'focused Pixi cable must use a real blur filter');
+    assert.equal(hoverState.pixi.blurredGlowCount, 0, 'focused Pixi cable must avoid expensive blur filters');
     assert.equal(hoverState.pixi.organizerOverlayCount, 1, 'D-ring foreground hoops must share one batched Pixi graphic');
-    assert.ok(hoverState.pixi.resolution >= 2, 'Pixi backing buffer must use high-resolution rendering');
+    assert.ok(hoverState.pixi.resolution <= 1.5, 'balanced profile must bound backing-buffer resolution');
+    assert.ok(hoverState.pixi.performance.framebufferPixels <= hoverState.pixi.performance.pixelBudget, 'Pixi framebuffer must respect the active pixel budget');
     assert.equal(hoverState.pixi.viewportRendererV2, true, 'Pixi must use the viewport-sized V2 renderer');
     assert.ok(hoverState.pixi.rendererSize.width <= 1600 && hoverState.pixi.rendererSize.height <= 1000, 'Pixi backing surface must be bounded by the viewport');
     assert.ok(hoverState.pixi.renderStats.batchDisplayCount < 32, 'batched rendering must not create per-cable display objects');
@@ -543,6 +544,28 @@ async function run() {
       return { countBefore, countAfter };
     });
     assert.equal(incrementalPixiState.countAfter, incrementalPixiState.countBefore + 1, 'RS.appendSingleCable in Pixi mode must incrementally update displayCount immediately');
+
+    const resolutionProfile = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.setPixiPerformanceMode('balanced');
+      const settled = RS.getPixiPerformanceTelemetry();
+      RS.setPixiInteractionMode(true);
+      const interacting = RS.getPixiPerformanceTelemetry();
+      RS.setPixiInteractionMode(false);
+      const restored = RS.getPixiPerformanceTelemetry();
+      return { settled, interacting, restored };
+    });
+    assert.ok(resolutionProfile.interacting.resolution <= resolutionProfile.settled.resolution, 'interaction mode must not increase Pixi resolution');
+    assert.equal(resolutionProfile.restored.profile, 'balanced');
+    assert.ok(resolutionProfile.restored.framebufferPixels <= resolutionProfile.restored.pixelBudget, 'restored framebuffer must remain inside its pixel budget');
+
+    await page.waitForTimeout(1100);
+    const idleStart = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());
+    await page.waitForTimeout(250);
+    const idleEnd = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());
+    assert.equal(idleEnd.totalRenders, idleStart.totalRenders, 'a static Pixi scene must not continuously render');
+    assert.equal(idleEnd.rendersPerSecond, 0, 'static Pixi scene must report zero renders per second');
+    assert.equal(idleEnd.staticIdle, true, 'telemetry must identify a settled static scene');
 
     assert.deepEqual(pageErrors, []);
   } finally {
