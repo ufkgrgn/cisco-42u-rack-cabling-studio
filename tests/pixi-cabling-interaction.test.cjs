@@ -650,6 +650,25 @@ async function run() {
     assert.equal(autoFillTransaction.after.transactionRendersAvoided, autoFillTransaction.before.transactionRendersAvoided + 6, 'Auto-Fill must avoid one render per cable');
     assert.equal(autoFillTransaction.after.cableTransactionDepth, 0, 'Auto-Fill must close its Pixi transaction');
 
+    const incrementalRemoval = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const cableId = 'cable-transaction-10';
+      const before = RS.getPixiCableInteractionState();
+      RS.STATE.cables = RS.STATE.cables.filter(cable => cable.id !== cableId);
+      RS.invalidatePixiCableGeometry([cableId]);
+      RS.renderAllCables();
+      const after = RS.getPixiCableInteractionState();
+      return { before, after };
+    });
+    assert.equal(incrementalRemoval.after.displayCount, incrementalRemoval.before.displayCount - 1, 'removed cable must disappear from the retained Pixi scene immediately');
+    assert.equal(incrementalRemoval.after.renderStats.domRectReads, incrementalRemoval.before.renderStats.domRectReads, 'cable removal must not trigger DOM geometry reads');
+    assert.equal(incrementalRemoval.after.performance.fullGeometryPasses, incrementalRemoval.before.performance.fullGeometryPasses, 'cable removal must not trigger a full geometry pass');
+    assert.equal(incrementalRemoval.after.performance.incrementalGeometryPasses, incrementalRemoval.before.performance.incrementalGeometryPasses, 'cable removal must not recompute surviving cable geometry');
+    assert.equal(incrementalRemoval.after.performance.incrementalRemovalPasses, incrementalRemoval.before.performance.incrementalRemovalPasses + 1);
+    assert.equal(incrementalRemoval.after.performance.incrementalCablesRemoved, incrementalRemoval.before.performance.incrementalCablesRemoved + 1);
+    assert.equal(incrementalRemoval.after.performance.spatialIncrementalRemovals, incrementalRemoval.before.performance.spatialIncrementalRemovals + 1);
+    assert.equal(incrementalRemoval.after.performance.totalRenders, incrementalRemoval.before.performance.totalRenders + 1, 'incremental removal must submit one GPU render');
+
     const explicitLayoutInvalidation = await page.evaluate(() => {
       const RS = window.RackStudio;
       const before = RS.getPixiPerformanceTelemetry();

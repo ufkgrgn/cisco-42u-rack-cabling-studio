@@ -112,7 +112,11 @@
     incrementalGeometryPasses: 0,
     incrementalCablesProcessed: 0,
     fullGeometryPasses: 0,
+    incrementalRemovalPasses: 0,
+    incrementalCablesRemoved: 0,
+    avoidedRemovalGeometryPasses: 0,
     spatialIncrementalUpdates: 0,
+    spatialIncrementalRemovals: 0,
     spatialFullRebuilds: 0,
     incrementalBatchUpdates: 0,
     fullBatchRebuilds: 0,
@@ -1248,6 +1252,49 @@
       }) &&
       visibleCables.slice(lastVisibleCableOrder.length).every(cable => !cableDisplays.has(cable.id));
 
+    const visibleCableIds = new Set(visibleCables.map(cable => cable.id));
+    const removedCableIds = new Set(lastVisibleCableOrder.filter(id => !visibleCableIds.has(id)));
+    const retainedVisibleOrder = lastVisibleCableOrder.filter(id => visibleCableIds.has(id));
+    const removalOnlyMutation = !layoutChanged &&
+      removedCableIds.size > 0 &&
+      retainedVisibleOrder.length === visibleCables.length &&
+      retainedVisibleOrder.every((id, index) => id === visibleCables[index]?.id) &&
+      visibleCables.every(cable => {
+        const display = cableDisplays.get(cable.id);
+        return display &&
+          display.geometrySignature === cableGeometrySignature(cable) &&
+          display.colorNum === hexColorToNumber(cable.color || '#2563eb');
+      });
+
+    // Removing cables does not invalidate any surviving route. Drop only the
+    // removed retained displays and spatial memberships; do not remeasure DOM
+    // endpoints or rebuild the geometry of every remaining cable.
+    if (removalOnlyMutation) {
+      for (const cableId of removedCableIds) {
+        const display = cableDisplays.get(cableId);
+        if (display) destroyCableDisplay(display);
+        removeCableFromSpatialIndex(cableId);
+        cableDisplays.delete(cableId);
+        groupHoveredCableIds.delete(cableId);
+        if (hoveredCableId === cableId) hoveredCableId = null;
+      }
+      if (usesBatchedViewportRenderer()) {
+        rebuildBatchedBase();
+        rebuildBatchedFocus();
+      }
+      performanceTelemetry.incrementalRemovalPasses++;
+      performanceTelemetry.incrementalCablesRemoved += removedCableIds.size;
+      performanceTelemetry.avoidedRemovalGeometryPasses++;
+      performanceTelemetry.spatialIncrementalRemovals += removedCableIds.size;
+      lastSceneSignature = sceneSignature;
+      lastLayoutSignature = layoutSignature;
+      lastVisibleCableOrder = visibleCables.map(cable => cable.id);
+      renderStats.lastDurationMs = performance.now() - renderStartedAt;
+      if (rendererResized) syncPixiViewportCamera(RS.ZOOM_STATE, true, 'resize');
+      else renderPixi('remove');
+      return;
+    }
+
     // Fast path: camera, schedule and repeated refresh calls do not change
     // cable geometry. Keep all Graphics objects and avoid every DOM layout read.
     if (!sceneChanged && visibleCables.length === cableDisplays.size) {
@@ -1897,7 +1944,11 @@
       incrementalGeometryPasses: performanceTelemetry.incrementalGeometryPasses,
       incrementalCablesProcessed: performanceTelemetry.incrementalCablesProcessed,
       fullGeometryPasses: performanceTelemetry.fullGeometryPasses,
+      incrementalRemovalPasses: performanceTelemetry.incrementalRemovalPasses,
+      incrementalCablesRemoved: performanceTelemetry.incrementalCablesRemoved,
+      avoidedRemovalGeometryPasses: performanceTelemetry.avoidedRemovalGeometryPasses,
       spatialIncrementalUpdates: performanceTelemetry.spatialIncrementalUpdates,
+      spatialIncrementalRemovals: performanceTelemetry.spatialIncrementalRemovals,
       spatialFullRebuilds: performanceTelemetry.spatialFullRebuilds,
       incrementalBatchUpdates: performanceTelemetry.incrementalBatchUpdates,
       fullBatchRebuilds: performanceTelemetry.fullBatchRebuilds,

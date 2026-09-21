@@ -111,6 +111,14 @@ const assert = require('node:assert/strict');
       const bulkFlushedCount=api.endPixiCableTransaction();
       const retainedBulkMutationMs=performance.now()-bulkStart;
       const bulkAfter=api.getPixiCableInteractionState();
+      const removalBefore=api.getPixiCableInteractionState();
+      const removedCableId='bench-bulk-mutation-11';
+      api.STATE.cables=api.STATE.cables.filter(cable=>cable.id!==removedCableId);
+      api.invalidatePixiCableGeometry([removedCableId]);
+      const removalStart=performance.now();
+      api.renderAllCables();
+      const retainedRemovalMs=performance.now()-removalStart;
+      const removalAfter=api.getPixiCableInteractionState();
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
@@ -160,6 +168,14 @@ const assert = require('node:assert/strict');
         bulkBatchUpdates:bulkAfter.performance.incrementalBatchUpdates-bulkBefore.performance.incrementalBatchUpdates,
         bulkBatchRebuilds:bulkAfter.performance.fullBatchRebuilds-bulkBefore.performance.fullBatchRebuilds,
         bulkRendersAvoided:bulkAfter.performance.transactionRendersAvoided-bulkBefore.performance.transactionRendersAvoided,
+        retainedRemovalMs,
+        removalDomRectReads:removalAfter.renderStats.domRectReads-removalBefore.renderStats.domRectReads,
+        removalFullGeometryPasses:removalAfter.performance.fullGeometryPasses-removalBefore.performance.fullGeometryPasses,
+        removalIncrementalGeometryPasses:removalAfter.performance.incrementalGeometryPasses-removalBefore.performance.incrementalGeometryPasses,
+        removalPasses:removalAfter.performance.incrementalRemovalPasses-removalBefore.performance.incrementalRemovalPasses,
+        removalCablesProcessed:removalAfter.performance.incrementalCablesRemoved-removalBefore.performance.incrementalCablesRemoved,
+        removalSpatialUpdates:removalAfter.performance.spatialIncrementalRemovals-removalBefore.performance.spatialIncrementalRemovals,
+        removalRenderSubmits:removalAfter.performance.totalRenders-removalBefore.performance.totalRenders,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
@@ -199,6 +215,14 @@ const assert = require('node:assert/strict');
     assert.equal(results.bulkBatchUpdates,12);
     assert.equal(results.bulkBatchRebuilds,0);
     assert.equal(results.bulkRendersAvoided,12);
+    assert.ok(results.retainedRemovalMs <= 30, `retained cable removal regression: ${results.retainedRemovalMs}ms`);
+    assert.equal(results.removalDomRectReads,0);
+    assert.equal(results.removalFullGeometryPasses,0);
+    assert.equal(results.removalIncrementalGeometryPasses,0);
+    assert.equal(results.removalPasses,1);
+    assert.equal(results.removalCablesProcessed,1);
+    assert.equal(results.removalSpatialUpdates,1);
+    assert.equal(results.removalRenderSubmits,1);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
     const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';
