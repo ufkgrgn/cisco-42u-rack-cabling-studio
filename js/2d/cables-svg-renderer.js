@@ -100,7 +100,7 @@
     }
     cable.name = normalizedName;
     renderScheduleTable();
-    renderAllCables();
+    RS.renderAllCables?.();
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
@@ -903,10 +903,14 @@
     }
     hideCableQuickHud();
     hideCableContextMenu();
+    RS.setPixiCableHover?.(null, false);
+    RS.invalidatePixiCableGeometry?.([cableId]);
 
     renderMountedDevices();
     renderScheduleTable();
-    renderAllCables();
+    // Use the dual-engine dispatcher. Calling this module's local
+    // renderAllCables() only refreshed the hidden SVG while Pixi stayed stale.
+    RS.renderAllCables?.();
 
     if (dom.connectionStatusHint) {
       dom.connectionStatusHint.innerHTML = `<span style="color:#f87171; font-weight:700;">✂️ ${escapeHtml(cable.name || cable.id)} söküldü.</span>`;

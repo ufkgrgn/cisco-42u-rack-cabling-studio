@@ -25,6 +25,9 @@
     selectedLibraryItem: null,
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
+    // V2 keeps the GPU surface viewport-sized and mirrors the camera inside
+    // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.
+    pixiViewportRendererV2: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_pixi_viewport_v2') !== '0',
     viewMode: (typeof localStorage !== 'undefined' && (localStorage.getItem('rack_studio_view_mode') === 'multi' || localStorage.getItem('rack_studio_view_mode') === 'single')) ? localStorage.getItem('rack_studio_view_mode') : 'single', // 'single' (focused on active rack) or 'multi' (side-by-side all racks)
     pendingConnection: null, // { rackId, instanceId, portId, element }
     highlightedCableId: null,

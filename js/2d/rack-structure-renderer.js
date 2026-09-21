@@ -422,7 +422,7 @@
             <g id="connectors-group"></g>
             <g id="dring-overlay-group"></g>
           </svg>
-          <canvas class="cables-pixi-layer" id="cables-pixi-canvas" style="display:${STATE.cableRenderMode === 'pixi' ? 'block' : 'none'};"></canvas>
+          ${STATE.pixiViewportRendererV2 === false ? `<canvas class="cables-pixi-layer" id="cables-pixi-canvas" style="display:${STATE.cableRenderMode === 'pixi' ? 'block' : 'none'};"></canvas>` : ''}
         </div>
       `;
       initDomReferences();
@@ -537,11 +537,13 @@
       }
       rackStage.appendChild(svg);
 
-      const pCanvas = document.createElement('canvas');
-      pCanvas.id = 'cables-pixi-canvas';
-      pCanvas.className = 'cables-pixi-layer';
-      pCanvas.style.display = STATE.cableRenderMode === 'pixi' ? 'block' : 'none';
-      rackStage.appendChild(pCanvas);
+      if (STATE.pixiViewportRendererV2 === false) {
+        const pCanvas = document.createElement('canvas');
+        pCanvas.id = 'cables-pixi-canvas';
+        pCanvas.className = 'cables-pixi-layer';
+        pCanvas.style.display = STATE.cableRenderMode === 'pixi' ? 'block' : 'none';
+        rackStage.appendChild(pCanvas);
+      }
 
       STATE.racks.forEach((rack) => {
         const isAct = rack.id === STATE.activeRackId;
@@ -567,12 +569,12 @@
             </span>
             <span class="rack-header-standard-badge" title="EIA-310-D Standart 19 İnç Kabin Çerçevesi">EIA-310-D Standard</span>
             <span class="rack-header-actions">
-              <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı">←</button>
-              <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı">→</button>
-              <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${rack.id}" title="Bu kabindeki tüm kabloları temizle / sök">🧹 Kablo</button>
-              <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${rack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt">🗑️ Cihaz</button>
-              <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt">⧉ Klon</button>
-              ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
+              <button class="rack-action-btn rack-hdr-move-left" data-rack-id="${rack.id}" title="Kabini Sola Taşı"><span class="rack-action-icon">←</span><span class="rack-action-label">Sola</span></button>
+              <button class="rack-action-btn rack-hdr-move-right" data-rack-id="${rack.id}" title="Kabini Sağa Taşı"><span class="rack-action-icon">→</span><span class="rack-action-label">Sağa</span></button>
+              <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${rack.id}" title="Bu kabindeki tüm kabloları temizle / sök"><span class="rack-action-icon">🧹</span><span class="rack-action-label">Kablo</span></button>
+              <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${rack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt"><span class="rack-action-icon">🗑️</span><span class="rack-action-label">Cihaz</span></button>
+              <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${rack.id}" title="Kabini ve Cihazlarını Çoğalt"><span class="rack-action-icon">⧉</span><span class="rack-action-label">Klon</span></button>
+              ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${rack.id}" title="Kabini Sil"><span class="rack-action-icon">✕</span><span class="rack-action-label">Sil</span></button>` : ''}
             </span>
           </div>
           <div class="rack-header-bottom-tier">

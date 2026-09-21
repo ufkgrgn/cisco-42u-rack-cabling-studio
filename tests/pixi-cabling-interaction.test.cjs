@@ -109,8 +109,12 @@ async function run() {
     assert.equal(hoverState.pixi.alphaByCable['pixi-regression-cable-2'], 0.14, 'non-hovered cables must dim strongly');
     assert.equal(hoverState.pixi.glowAlphaByCable['pixi-regression-cable'], 1, 'hovered cable must have a visible glow layer');
     assert.equal(hoverState.pixi.glowAlphaByCable['pixi-regression-cable-2'], 0, 'non-hovered cable glow must stay hidden');
+    assert.ok(hoverState.pixi.blurredGlowCount > 0, 'focused Pixi cable must use a real blur filter');
     assert.equal(hoverState.pixi.organizerOverlayCount, 1, 'D-ring foreground hoops must share one batched Pixi graphic');
     assert.ok(hoverState.pixi.resolution >= 2, 'Pixi backing buffer must use high-resolution rendering');
+    assert.equal(hoverState.pixi.viewportRendererV2, true, 'Pixi must use the viewport-sized V2 renderer');
+    assert.ok(hoverState.pixi.rendererSize.width <= 1600 && hoverState.pixi.rendererSize.height <= 1000, 'Pixi backing surface must be bounded by the viewport');
+    assert.ok(hoverState.pixi.renderStats.batchDisplayCount < 32, 'batched rendering must not create per-cable display objects');
 
     const secondDirectHit = await page.evaluate(({ x, y }) => window.RackStudio.hitTestPixiCable(x, y), { x: endpoint.x2, y: endpoint.y2 });
     assert.equal(secondDirectHit, 'pixi-regression-cable-2', 'nearest-segment picking must select the exact cable endpoint');
@@ -192,11 +196,20 @@ async function run() {
     await page.mouse.click(focusedEndpoint.x, focusedEndpoint.y, { button: 'right' });
     await page.waitForTimeout(50);
     assert.equal(await page.locator('#cable-context-menu').count(), 1);
+    await page.evaluate(() => {
+      window.RackStudio.showCableContextMenu(
+        'pixi-regression-cable',
+        window.innerWidth - 1,
+        window.innerHeight - 1
+      );
+    });
     const menuRectBefore = await page.locator('#cable-context-menu').boundingBox();
     await page.waitForTimeout(180);
     const menuRectAfter = await page.locator('#cable-context-menu').boundingBox();
     assert.ok(menuRectBefore && menuRectAfter);
     assert.ok(Math.abs(menuRectBefore.x - menuRectAfter.x) < 1 && Math.abs(menuRectBefore.y - menuRectAfter.y) < 1, 'context menu must not jump after opening');
+    assert.ok(menuRectBefore.x >= 0 && menuRectBefore.y >= 0, 'context menu must stay inside the top/left viewport bounds');
+    assert.ok(menuRectBefore.x + menuRectBefore.width <= 1600 && menuRectBefore.y + menuRectBefore.height <= 1000, 'context menu must stay inside the bottom/right viewport bounds');
 
     const redSwatch = page.locator('.context-color-swatch[data-color="#ef4444"]');
     await redSwatch.hover();
@@ -210,6 +223,20 @@ async function run() {
     assert.equal(committedColor.model, '#ef4444');
     assert.equal(committedColor.pixi, 0xef4444);
     assert.equal(committedColor.selected, 'pixi-regression-cable', 'color changes must preserve selection');
+
+    await page.evaluate(() => {
+      window.__cableChangeEvents = 0;
+      document.addEventListener('rackstudio:change', () => { window.__cableChangeEvents++; }, { once: true });
+      window.RackStudio.showCableContextMenu('pixi-regression-cable', 400, 300);
+    });
+    await page.locator('#ctx-change-color').click();
+    assert.equal(await page.evaluate(() => window.__cableChangeEvents), 1, 'context-menu color cycling must notify persistence');
+
+    await page.evaluate(() => window.RackStudio.showCableContextMenu('pixi-regression-cable', 400, 300));
+    await page.locator('.context-color-swatch[data-color="#10b981"]').hover();
+    assert.equal(await page.evaluate(() => window.RackStudio.getPixiCableInteractionState().previewColorByCable['pixi-regression-cable']), 0x10b981);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.evaluate(() => window.RackStudio.getPixiCableInteractionState().previewColorByCable['pixi-regression-cable']), null, 'closing the menu must roll back a transient color preview');
 
     await page.evaluate(() => {
       document.getElementById('cable-context-menu')?.remove();
@@ -231,6 +258,190 @@ async function run() {
     }));
     assert.equal(leaveState.pointerEvents, 'none', 'empty canvas area must click through to ports and racks');
     assert.equal(leaveState.tooltipVisible, false);
+
+    await page.evaluate(() => {
+      const original = window.RackStudio.updatePixiResolutionForZoom;
+      window.__pixiResolutionRefreshCalls = 0;
+      window.RackStudio.updatePixiResolutionForZoom = scale => {
+        window.__pixiResolutionRefreshCalls++;
+        return original(scale);
+      };
+      document.getElementById('viewport-canvas').dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaY: -120,
+        clientX: 500,
+        clientY: 500
+      }));
+    });
+    await page.waitForTimeout(350);
+    assert.ok(await page.evaluate(() => window.__pixiResolutionRefreshCalls > 0), 'settled zoom must refresh the adaptive Pixi resolution');
+    const zoomAlignment = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const ref = window.__pixiTestEndpoint;
+      const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
+      const portRect = port.getBoundingClientRect();
+      const canvas = document.getElementById('cables-pixi-canvas');
+      const canvasRect = canvas.getBoundingClientRect();
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      const x = portRect.left + portRect.width / 2;
+      const y = portRect.top + portRect.height / 2;
+      return {
+        hit: RS.hitTestPixiCable(x, y),
+        transform: canvas.style.transform,
+        canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
+        viewportRect: { left: viewportRect.left, top: viewportRect.top, width: viewportRect.width, height: viewportRect.height }
+      };
+    });
+    assert.equal(zoomAlignment.hit, 'pixi-regression-cable', 'cable endpoint picking must stay aligned with its DOM port after zoom');
+    assert.equal(zoomAlignment.transform, 'none', 'viewport Pixi canvas must not retain a second CSS camera transform');
+    assert.ok(Math.abs(zoomAlignment.canvasRect.left - zoomAlignment.viewportRect.left) <= 1);
+    assert.ok(Math.abs(zoomAlignment.canvasRect.top - zoomAlignment.viewportRect.top) <= 1);
+    assert.ok(Math.abs(zoomAlignment.canvasRect.width - zoomAlignment.viewportRect.width) <= 1);
+    assert.ok(Math.abs(zoomAlignment.canvasRect.height - zoomAlignment.viewportRect.height) <= 1);
+
+    const collapseSamples = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      const ref = window.__pixiTestEndpoint;
+      window.setLeftSidebarCollapsed(true);
+      const samples = [];
+      for (let i = 0; i < 18; i++) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
+        const rect = port.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        samples.push(RS.hitTestPixiCable(x, y));
+      }
+      return samples;
+    });
+    assert.ok(collapseSamples.every(id => id === 'pixi-regression-cable'), 'sidebar transition must keep cable hit geometry aligned on every sampled frame');
+
+    await page.setViewportSize({ width: 1420, height: 880 });
+    await page.waitForTimeout(100);
+    const resizeState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const ref = window.__pixiTestEndpoint;
+      const portRect = document.getElementById(`port-${ref.instanceId}-${ref.portId}`).getBoundingClientRect();
+      const viewport = document.getElementById('viewport-canvas');
+      const pixi = RS.getPixiCableInteractionState();
+      return {
+        hit: RS.hitTestPixiCable(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2),
+        rendererSize: pixi.rendererSize,
+        viewportSize: { width: viewport.clientWidth, height: viewport.clientHeight },
+        displayCount: pixi.displayCount
+      };
+    });
+    assert.equal(resizeState.hit, 'pixi-regression-cable', 'browser resize must preserve cable alignment and picking');
+    assert.equal(resizeState.rendererSize.width, resizeState.viewportSize.width, 'Pixi width must track the viewport without a delayed stretch');
+    assert.equal(resizeState.rendererSize.height, resizeState.viewportSize.height, 'Pixi height must track the viewport without a delayed stretch');
+    assert.equal(resizeState.displayCount, 2, 'browser resize must retain cable display objects');
+
+    const multiRackState = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      const originalRackId = RS.STATE.racks[0].id;
+      RS.addNewRack('Regression Rack 2');
+      RS.addNewRack('Regression Rack 3');
+      RS.setViewMode('multi');
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const canvas = document.getElementById('cables-pixi-canvas');
+      return {
+        originalRackId,
+        extraRackIds: RS.STATE.racks.filter(rack => rack.id !== originalRackId).map(rack => rack.id),
+        canvasCount: document.querySelectorAll('#cables-pixi-canvas').length,
+        canvasParentId: canvas?.parentElement?.id,
+        rackCount: document.querySelectorAll('.multi-rack-stage .rack-container').length,
+        headers: Array.from(document.querySelectorAll('.multi-rack-stage .rack-header-plate')).map(header => {
+          const headerRect = header.getBoundingClientRect();
+          const buttons = Array.from(header.querySelectorAll('.rack-action-btn'));
+          return {
+            buttonCount: buttons.length,
+            allVisible: buttons.every(button => {
+              const rect = button.getBoundingClientRect();
+              const style = getComputedStyle(button);
+              return style.display !== 'none' && rect.width > 0 && rect.left >= headerRect.left && rect.right <= headerRect.right + 1;
+            })
+          };
+        })
+      };
+    });
+    assert.equal(multiRackState.canvasCount, 1, 'multi-rack render must keep exactly one Pixi canvas');
+    assert.equal(multiRackState.canvasParentId, 'viewport-canvas', 'persistent Pixi canvas must remain owned by the viewport');
+    assert.equal(multiRackState.rackCount, 3);
+    assert.ok(multiRackState.headers.every(header => header.buttonCount === 6 && header.allVisible), 'all multi-rack header actions must remain visible inside each rack');
+
+    const deleteRegression = await page.evaluate(async ({ originalRackId, extraRackIds }) => {
+      const RS = window.RackStudio;
+      const canvasBefore = document.getElementById('cables-pixi-canvas');
+      window.confirm = () => true;
+      RS.deleteRack(extraRackIds[0]);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const afterMultiDelete = {
+        rackCount: RS.STATE.racks.length,
+        viewMode: RS.STATE.viewMode,
+        sameCanvas: document.getElementById('cables-pixi-canvas') === canvasBefore,
+        canvasCount: document.querySelectorAll('#cables-pixi-canvas').length,
+        canvasParentId: document.getElementById('cables-pixi-canvas')?.parentElement?.id
+      };
+      RS.deleteRack(extraRackIds[1]);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const ref = window.__pixiTestEndpoint;
+      const portRect = document.getElementById(`port-${ref.instanceId}-${ref.portId}`).getBoundingClientRect();
+      return {
+        afterMultiDelete,
+        finalRackId: RS.STATE.racks[0].id,
+        originalRackId,
+        finalRackCount: RS.STATE.racks.length,
+        finalViewMode: RS.STATE.viewMode,
+        sameCanvas: document.getElementById('cables-pixi-canvas') === canvasBefore,
+        canvasCount: document.querySelectorAll('#cables-pixi-canvas').length,
+        canvasParentId: document.getElementById('cables-pixi-canvas')?.parentElement?.id,
+        hit: RS.hitTestPixiCable(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2),
+        cloneVisible: document.querySelector('.rack-header-plate .rack-hdr-duplicate')?.getBoundingClientRect().width > 0,
+        telemetryVisible: document.querySelector('.rack-header-telemetry-group')?.getBoundingClientRect().width > 0
+      };
+    }, multiRackState);
+    assert.deepEqual(deleteRegression.afterMultiDelete, {
+      rackCount: 2,
+      viewMode: 'multi',
+      sameCanvas: true,
+      canvasCount: 1,
+      canvasParentId: 'viewport-canvas'
+    });
+    assert.equal(deleteRegression.finalRackId, deleteRegression.originalRackId);
+    assert.equal(deleteRegression.finalRackCount, 1);
+    assert.equal(deleteRegression.finalViewMode, 'single');
+    assert.equal(deleteRegression.sameCanvas, true, 'multi-to-single deletion must preserve the GPU canvas instance');
+    assert.equal(deleteRegression.canvasCount, 1);
+    assert.equal(deleteRegression.canvasParentId, 'viewport-canvas');
+    assert.equal(deleteRegression.hit, 'pixi-regression-cable', 'remaining rack cables must stay aligned after rack deletion');
+    assert.equal(deleteRegression.cloneVisible, true, 'single-rack clone control must remain visible');
+    assert.equal(deleteRegression.telemetryVisible, true, 'single-rack telemetry must remain visible');
+
+    const disconnectState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.disconnectCable('pixi-regression-cable-2');
+      return {
+        stateHasCable: RS.STATE.cables.some(cable => cable.id === 'pixi-regression-cable-2'),
+        displayCount: RS.getPixiCableInteractionState().displayCount,
+        spatialCellCount: RS.getPixiCableInteractionState().spatialCellCount
+      };
+    });
+    assert.equal(disconnectState.stateHasCable, false, 'disconnect must remove the cable from state immediately');
+    assert.equal(disconnectState.displayCount, 1, 'disconnect must remove the retained Pixi display immediately');
+
+    const bulkDisconnectState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.clearDeviceCables(window.__pixiTestEndpoint.instanceId);
+      return {
+        cableCount: RS.STATE.cables.length,
+        displayCount: RS.getPixiCableInteractionState().displayCount,
+        spatialCellCount: RS.getPixiCableInteractionState().spatialCellCount
+      };
+    });
+    assert.equal(bulkDisconnectState.cableCount, 0, 'device cable clear must remove all matching state entries immediately');
+    assert.equal(bulkDisconnectState.displayCount, 0, 'device cable clear must empty retained Pixi displays immediately');
+    assert.equal(bulkDisconnectState.spatialCellCount, 0, 'device cable clear must empty the Pixi spatial index immediately');
     assert.deepEqual(pageErrors, []);
   } finally {
     await browser.close();

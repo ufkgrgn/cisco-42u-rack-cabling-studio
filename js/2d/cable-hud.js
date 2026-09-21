@@ -23,6 +23,7 @@
 
   let quickHudEl = null;
   let contextMenuEl = null;
+  let previewCableId = null;
   let lastHudOpenTime = 0;
 
   function hideCableQuickHud() {
@@ -33,6 +34,10 @@
   }
 
   function hideCableContextMenu() {
+    if (previewCableId && RS.setPixiCablePreviewColor) {
+      RS.setPixiCablePreviewColor(previewCableId, null);
+      previewCableId = null;
+    }
     if (contextMenuEl) {
       contextMenuEl.remove();
       contextMenuEl = null;
@@ -152,10 +157,9 @@
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu';
     menu.id = 'cable-context-menu';
-    const left = Math.max(10, Math.min(window.innerWidth - 180, clientX));
-    const top = Math.max(10, Math.min(window.innerHeight - 150, clientY));
-    menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    menu.style.visibility = 'hidden';
 
     menu.innerHTML = `
       <div style="padding: 4px 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #1e293b;">
@@ -233,15 +237,18 @@
         swatch.style.cssText = `display:inline-block;width:16px;height:16px;border-radius:50%;background:${clr};cursor:pointer;border:2px solid ${clr === cable.color ? '#fff' : 'transparent'};box-sizing:border-box;transition:transform 0.1s;`;
         swatch.title = clr;
         swatch.addEventListener('mouseenter', () => {
+          previewCableId = cableId;
           if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, clr);
         });
         swatch.addEventListener('mouseleave', () => {
           if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, null);
+          if (previewCableId === cableId) previewCableId = null;
         });
         swatch.addEventListener('click', (e) => {
           e.stopPropagation();
           cable.color = clr;
           if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, null);
+          previewCableId = null;
           renderAllCables();
           renderScheduleTable();
           document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
@@ -259,6 +266,7 @@
       cable.color = colors[(currentIdx + 1) % colors.length];
       renderAllCables();
       renderScheduleTable();
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
       hideCableContextMenu();
     });
 
@@ -270,6 +278,13 @@
 
     document.body.appendChild(menu);
     contextMenuEl = menu;
+    const menuRect = menu.getBoundingClientRect();
+    const viewportMargin = 10;
+    const left = Math.max(viewportMargin, Math.min(window.innerWidth - menuRect.width - viewportMargin, clientX));
+    const top = Math.max(viewportMargin, Math.min(window.innerHeight - menuRect.height - viewportMargin, clientY));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.visibility = 'visible';
   }
 
   function highlightDropSlots(targetU, catalogKey, isOver) {

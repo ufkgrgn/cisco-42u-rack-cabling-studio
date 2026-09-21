@@ -1970,7 +1970,9 @@
   flex-shrink: 0 !important;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  contain: layout paint style;
 }
+
 
 .multi-rack-stage .rack-container.active-rack-target {
   box-shadow: 0 0 0 3px #38bdf8, 0 20px 50px rgba(0, 0, 0, 0.8) !important;
@@ -2741,6 +2743,31 @@
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
   color: #fca5a5;
+}
+
+/* Six rack actions cannot fit beside the title/standard badge at 634px.
+   Multi-rack headers keep every action available as a compact icon button. */
+.multi-rack-stage .rack-header-standard-badge {
+  display: none;
+}
+.multi-rack-stage .rack-header-name-editable {
+  max-width: 210px;
+}
+.multi-rack-stage .rack-action-label {
+  display: none;
+}
+.multi-rack-stage .rack-action-btn {
+  width: 25px;
+  min-width: 25px;
+  height: 21px;
+  padding: 1px 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.multi-rack-stage .rack-action-icon {
+  font-size: 11px;
+  line-height: 1;
 }
 
 /* Flash highlight ring for focused device */

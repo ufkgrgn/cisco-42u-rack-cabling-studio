@@ -1,5 +1,7 @@
 node_modules/
 tests/*.png
+tests/performance-results-*.json
+tests/performance-matrix-results.json
 test-results/
 *.exe
 *.zip

@@ -13,7 +13,8 @@ const assert = require('node:assert/strict');
     await page.goto(pathToFileURL(path.resolve(__dirname,'../index.html')).href);
     await page.waitForFunction(() => window.RackStudio);
     const targetRackCount = parseInt(process.env.BENCH_RACKS || '10', 10);
-    const results = await page.evaluate(async (rackLimit) => {
+    const renderAllRacks = process.env.BENCH_VISIBLE_ALL === '1';
+    const results = await page.evaluate(async ({ rackLimit, renderAllRacks }) => {
       const api = window.RackStudio;
       const baseline=[]; let baselinePrevious;
       for(let i=0;i<60;i++) {
@@ -36,6 +37,16 @@ const assert = require('node:assert/strict');
       const importStart=performance.now(); api.loadCustomTopology(project);
       const importMs=performance.now()-importStart;
       await new Promise(resolve=>setTimeout(resolve,1500));
+      if (renderAllRacks) {
+        api.setViewMode('multi', true);
+        await new Promise(resolve=>requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+      // Benchmark the requested engine, not whichever persisted mode happened
+      // to load. Let view-mode layout, geometry and GPU upload settle before
+      // frame timing begins so initialization is reported separately.
+      api.setCableRenderMode('pixi');
+      await new Promise(resolve=>setTimeout(resolve, renderAllRacks ? 1200 : 300));
+      api.renderAllCables();
       const canvas=document.getElementById('viewport-canvas');
       const rect=canvas.getBoundingClientRect();
       canvas.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:rect.left+10,clientY:rect.top+10}));
@@ -47,9 +58,6 @@ const assert = require('node:assert/strict');
       }
       window.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
       const sorted=[...intervals].sort((a,b)=>a-b);
-      api.setCableRenderMode('pixi');
-      await new Promise(resolve=>setTimeout(resolve,300));
-      api.renderAllCables();
       const retainedBefore=api.getPixiCableInteractionState().renderStats;
       const retainedRenderCalls=100;
       const retainedStart=performance.now();
@@ -57,7 +65,24 @@ const assert = require('node:assert/strict');
       const retainedBatchMs=performance.now()-retainedStart;
       const pixiState=api.getPixiCableInteractionState();
       const retainedAfter=pixiState.renderStats;
+      const firstCable = cables[0];
+      const firstPort = document.getElementById(`port-${firstCable.from.instanceId}-${firstCable.from.portId}`);
+      const firstPortRect = firstPort?.getBoundingClientRect();
+      const pickingSamples = [];
+      let pickingMisses = 0;
+      if (firstPortRect) {
+        const pickX = firstPortRect.left + firstPortRect.width / 2;
+        const pickY = firstPortRect.top + firstPortRect.height / 2;
+        for (let i = 0; i < 500; i++) {
+          const started = performance.now();
+          const hit = api.hitTestPixiCable(pickX, pickY);
+          pickingSamples.push(performance.now() - started);
+          if (!hit) pickingMisses++;
+        }
+        pickingSamples.sort((a,b)=>a-b);
+      }
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
+        renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
         baselineFrameIntervalP95Ms:baseline[Math.floor(baseline.length*.95)],
         validationMs,importMs,panFrames:intervals.length,frameIntervalP50Ms:sorted[Math.floor(sorted.length*.5)],
@@ -70,19 +95,40 @@ const assert = require('node:assert/strict');
         retainedFastPathHits:retainedAfter.fastPathHits-retainedBefore.fastPathHits,
         retainedDomRectReadDelta:retainedAfter.domRectReads-retainedBefore.domRectReads,
         retainedDisplayAllocationDelta:retainedAfter.createdDisplays-retainedBefore.createdDisplays,
+        batchDisplayCount:pixiState.renderStats.batchDisplayCount,
+        batchRebuilds:pixiState.renderStats.batchRebuilds,
+        viewportRendererV2:pixiState.viewportRendererV2,
+        rendererWidth:pixiState.rendererSize.width,
+        rendererHeight:pixiState.rendererSize.height,
+        worldWidth:pixiState.worldSize.width,
+        worldHeight:pixiState.worldSize.height,
+        pickingSamples:pickingSamples.length,
+        pickingP50Ms:pickingSamples[Math.floor(pickingSamples.length*.5)] ?? null,
+        pickingP95Ms:pickingSamples[Math.floor(pickingSamples.length*.95)] ?? null,
+        pickingP99Ms:pickingSamples[Math.floor(pickingSamples.length*.99)] ?? null,
+        pickingMaxMs:pickingSamples.at(-1) ?? null,
+        pickingMisses,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
-    }, targetRackCount);
-    assert.equal(results.renderedDevices,30);
-    assert.equal(results.renderedCables,200);
-    assert.equal(results.pixiDisplayCount,200);
+    }, { rackLimit: targetRackCount, renderAllRacks });
+    assert.equal(results.renderedDevices,renderAllRacks ? targetRackCount * 30 : 30);
+    assert.equal(results.renderedCables,renderAllRacks ? targetRackCount * 200 : 200);
+    assert.equal(results.pixiDisplayCount,renderAllRacks ? targetRackCount * 200 : 200);
     assert.equal(results.retainedFastPathHits,results.retainedRenderCalls);
     assert.equal(results.retainedDomRectReadDelta,0);
     assert.equal(results.retainedDisplayAllocationDelta,0);
+    assert.equal(results.viewportRendererV2,true);
+    assert.ok(results.rendererWidth <= 1600 && results.rendererHeight <= 1000);
+    assert.ok(results.batchDisplayCount < (renderAllRacks ? 64 : 32));
+    assert.ok(results.frameIntervalP95Ms <= 40, `pan p95 regression: ${results.frameIntervalP95Ms}ms`);
+    assert.ok(results.retainedAverageMs <= 5, `retained render regression: ${results.retainedAverageMs}ms`);
+    assert.equal(results.pickingSamples,500);
+    assert.equal(results.pickingMisses,0);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
-    fs.writeFileSync(path.join(__dirname,'performance-results.json'),JSON.stringify(report,null,2)+'\n');
+    const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';
+    fs.writeFileSync(path.join(__dirname, reportFile),JSON.stringify(report,null,2)+'\n');
     console.log(JSON.stringify(report,null,2));
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -130,6 +130,7 @@
     }
 
     if (confirm(confirmMsg)) {
+      const shouldRefit = !!RS.ZOOM_STATE?.isFit;
       // Remove cables attached to this rack
       RS.STATE.cables = RS.STATE.cables.filter(c => c.from.rackId !== rackId && c.to.rackId !== rackId);
       // Remove the rack itself
@@ -139,17 +140,28 @@
         RS.STATE.activeRackId = RS.STATE.racks[0].id;
       }
       // If only 1 rack remains, ensure viewMode is single or handles it cleanly
-      if (RS.STATE.racks.length <= 1 && RS.STATE.viewMode === 'multi') {
-        if (RS.setViewMode) RS.setViewMode('single');
-        else RS.STATE.viewMode = 'single';
+      const switchingToSingle = RS.STATE.racks.length <= 1 && RS.STATE.viewMode === 'multi';
+      if (switchingToSingle && RS.setViewMode) {
+        // setViewMode owns the structural/device/cable render. Running the same
+        // sequence again used to replace/move the Pixi canvas a second time.
+        RS.setViewMode('single');
+      } else {
+        if (switchingToSingle) RS.STATE.viewMode = 'single';
+        // Full re-render sequence: rails must come first to rebuild DOM, then devices
+        if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
+        if (RS.renderMountedDevices) RS.renderMountedDevices();
+        if (RS.renderAllCables) RS.renderAllCables();
       }
-      // Full re-render sequence: rails must come first to rebuild DOM, then devices
-      if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
       renderRackTabs();
-      if (RS.renderMountedDevices) RS.renderMountedDevices();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
-      if (RS.renderAllCables) RS.renderAllCables();
       document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+      requestAnimationFrame(() => {
+        if (shouldRefit || switchingToSingle) RS.fitRackToScreen?.(false);
+        requestAnimationFrame(() => {
+          RS.invalidatePixiCableGeometry?.();
+          RS.renderAllCables?.();
+        });
+      });
     }
   }
 

@@ -18,6 +18,11 @@
   const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
   const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
   const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
+  const refreshCableScene = removedCableIds => {
+    RS.setPixiCableHover?.(null, false);
+    RS.invalidatePixiCableGeometry?.(removedCableIds);
+    renderAllCables();
+  };
   const renderRackTabs = () => RS.renderRackTabs && RS.renderRackTabs();
   const updateRackHeaderTelemetry = (...args) => RS.updateRackHeaderTelemetry && RS.updateRackHeaderTelemetry(...args);
 
@@ -60,6 +65,9 @@
     if (!targetRack) return;
 
     if (window.SoundFX) window.SoundFX.playCableCut();
+    const removedCableIds = (STATE.cables || [])
+      .filter(c => c.from?.instanceId === instanceId || c.to?.instanceId === instanceId)
+      .map(c => c.id);
     STATE.cables = (STATE.cables || []).filter(c => c.from?.instanceId !== instanceId && c.to?.instanceId !== instanceId);
 
     if (STATE.deviceById) STATE.deviceById.delete(instanceId);
@@ -82,7 +90,7 @@
     renderRackTabs();
     renderMountedDevices();
     renderScheduleTable();
-    renderAllCables();
+    refreshCableScene(removedCableIds);
 
     if (window.__STUDIO3D__ && window.is3DMode && typeof window.__STUDIO3D__.removeDevice === 'function') {
       try { window.__STUDIO3D__.removeDevice(instanceId); } catch (_) {}
@@ -135,7 +143,7 @@
       }
       renderMountedDevices();
       renderScheduleTable();
-      renderAllCables();
+      refreshCableScene(rackCables.map(cable => cable.id));
       updateRackHeaderTelemetry(rack.id);
       document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
       document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
@@ -171,6 +179,9 @@
     const doClear = () => {
       if (window.SoundFX) window.SoundFX.playCableCut();
       const devIds = new Set(rack.devices.map(d => d.instanceId));
+      const removedCableIds = (STATE.cables || [])
+        .filter(c => devIds.has(c.from?.instanceId) || devIds.has(c.to?.instanceId))
+        .map(c => c.id);
       STATE.cables = (STATE.cables || []).filter(c => !devIds.has(c.from?.instanceId) && !devIds.has(c.to?.instanceId));
       if (STATE.pendingConnection && devIds.has(STATE.pendingConnection.instanceId)) {
         cancelPendingConnection();
@@ -185,7 +196,7 @@
       renderRackTabs();
       renderMountedDevices();
       renderScheduleTable();
-      renderAllCables();
+      refreshCableScene(removedCableIds);
       updateRackHeaderTelemetry(rack.id);
       document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
       document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
@@ -221,7 +232,7 @@
       }
       renderMountedDevices();
       renderScheduleTable();
-      renderAllCables();
+      refreshCableScene(devCables.map(cable => cable.id));
       updateRackHeaderTelemetry(rack?.id);
       document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
       document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));

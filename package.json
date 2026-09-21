@@ -16,6 +16,7 @@
     "test:unit:watch": "vitest",
     "test:legacy": "node tests/studio.test.cjs && node --test tests/editor.test.cjs tests/catalog.test.cjs && node tests/pixi-cabling-interaction.test.cjs",
     "test:performance": "node tests/performance.test.cjs",
+    "test:performance:matrix": "node scripts/pixi-performance-matrix.cjs",
     "test": "npm run test:unit && npm run test:legacy",
     "check:legacy": "node --check js/2d/app.js && node --check js/editor.js && node --check js/catalog-ui.js",
     "check": "npm run bundle && tsc --noEmit && npm run check:legacy",

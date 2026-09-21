@@ -10,6 +10,20 @@
   let lastTransitionValue = null;
   let lastTransformValue = null;
   let lastZoomBadgeValue = null;
+  let pixiResolutionRefreshTimer = null;
+
+  function schedulePixiResolutionRefresh(scale, delay = 220) {
+    if (pixiResolutionRefreshTimer) clearTimeout(pixiResolutionRefreshTimer);
+    pixiResolutionRefreshTimer = setTimeout(() => {
+      pixiResolutionRefreshTimer = null;
+      if (RS.ZOOM_STATE?.isPanning || RS.ZOOM_STATE?.isFocusing || RS.dom?.rackStage?.classList.contains('zooming-active')) {
+        schedulePixiResolutionRefresh(RS.ZOOM_STATE?.scale || scale, delay);
+        return;
+      }
+      RS.updatePixiResolutionForZoom?.(scale);
+    }, delay);
+  }
+
   function ensureStageTransitionListener() {
     if (stageTransitionBound || !RS.dom?.rackStage) return;
     RS.dom.rackStage.addEventListener('transitionend', (e) => {
@@ -35,11 +49,15 @@
       RS.dom.rackStage.style.transform = transformValue;
       lastTransformValue = transformValue;
     }
+    RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
       RS.dom.zoomBadge.textContent = zoomBadgeValue;
       lastZoomBadgeValue = zoomBadgeValue;
     }
+    // Resize the Pixi backing buffer once the gesture/animation settles so
+    // high zoom stays sharp without reallocating GPU surfaces on every frame.
+    schedulePixiResolutionRefresh(RS.ZOOM_STATE.scale);
 
     // Dynamic 2D Level of Detail (LOD) tiering
     const currentLod = RS.ZOOM_STATE.scale < 0.35 ? 'macro' : 'detail';
@@ -246,6 +264,7 @@
         activeCameraAnimId = 0;
         RS.ZOOM_STATE.isFocusing = false;
         RS.dom?.rackStage?.classList.remove('focusing-active');
+        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
         scheduleViewportContentRefresh(80);
         options.onComplete?.();
       }
@@ -457,6 +476,7 @@
         applyPendingPan();
       }
       RS.ZOOM_STATE.isPanning = false;
+      RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
       canvas.classList.remove('panning');
       // Keep the compositor layer warm briefly so release/inertial frames do not
       // pay a layer teardown + rebuild cost.
@@ -500,6 +520,7 @@
       wheelCleanupTimer = setTimeout(() => {
         RS.dom?.rackStage?.classList.remove('zooming-active');
         canvas.classList.remove('zooming');
+        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
         cachedCanvasRect = null;
         wheelCleanupTimer = 0;
       }, 150);
@@ -577,6 +598,7 @@
     canvas.addEventListener('touchend', () => {
       RS.dom?.rackStage?.classList.remove('zooming-active');
       endPan();
+      RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
       lastTouchDist = 0;
     });
 
