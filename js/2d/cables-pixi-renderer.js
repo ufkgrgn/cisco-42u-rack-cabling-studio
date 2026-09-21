@@ -44,7 +44,10 @@
   let lastSceneSignature = null;
   let lastLayoutSignature = null;
   let layoutCacheWasExplicitlyInvalidated = false;
+  let lastVisibleCableOrder = [];
+  let lastChannelUsage = { left: 0, right: 0 };
   const cableDisplays = new Map();
+  const batchedRackGroups = new Map();
   const spatialGrid = new Map();
   const spatialMembership = new Map();
   const endpointWorldCache = new Map();
@@ -103,7 +106,14 @@
     rackCacheMisses: 0,
     organizerCacheHits: 0,
     organizerCacheMisses: 0,
-    organizerOverlayRebuilds: 0
+    organizerOverlayRebuilds: 0,
+    incrementalGeometryPasses: 0,
+    incrementalCablesProcessed: 0,
+    fullGeometryPasses: 0,
+    spatialIncrementalUpdates: 0,
+    spatialFullRebuilds: 0,
+    incrementalBatchUpdates: 0,
+    fullBatchRebuilds: 0
   };
 
   document.addEventListener('visibilitychange', () => {
@@ -197,6 +207,8 @@
     organizerWorldYCache.clear();
     lastLayoutSignature = null;
     lastSceneSignature = null;
+    lastVisibleCableOrder = [];
+    lastChannelUsage = { left: 0, right: 0 };
     layoutCacheWasExplicitlyInvalidated = true;
     performanceTelemetry.layoutCacheInvalidations++;
   }
@@ -285,6 +297,7 @@
     if (!usesBatchedViewportRenderer() || !cablesContainer || !connectorsContainer) return;
     destroyContainerChildren(cablesContainer);
     destroyContainerChildren(connectorsContainer);
+    batchedRackGroups.clear();
     const byRack = new Map();
     for (const display of cableDisplays.values()) {
       const rackKey = display.rackKey || '__cross__';
@@ -373,9 +386,54 @@
       });
       cablesContainer.addChild(cableBatch);
       connectorsContainer.addChild(connectorBatch);
+      rackGroup.cableBatch = cableBatch;
+      rackGroup.connectorBatch = connectorBatch;
+      rackGroup.casing = casing;
+      batchedRackGroups.set(rackKey, rackGroup);
     });
     renderStats.batchRebuilds++;
+    performanceTelemetry.fullBatchRebuilds++;
     renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + (focusContainer?.children?.length || 0);
+  }
+
+  function appendBatchedDisplays(cableIds) {
+    if (!usesBatchedViewportRenderer() || !cableIds.size) return false;
+    const pending = [];
+    for (const cableId of cableIds) {
+      const display = cableDisplays.get(cableId);
+      const rackGroup = display && batchedRackGroups.get(display.rackKey || '__cross__');
+      if (!display || display.isStub || !rackGroup?.casing || !rackGroup.cableBatch || !rackGroup.connectorBatch) return false;
+      pending.push({ display, rackGroup });
+    }
+    for (const { display, rackGroup } of pending) {
+      parseSvgPathD(rackGroup.casing, display.pathD);
+      rackGroup.casing.stroke({ width: CABLE_VISUAL_STYLE.casingWidth, color: 0x060913, alpha: 1, cap: 'round', join: 'round' });
+      let group = rackGroup.byColor.get(display.colorNum);
+      if (!group) {
+        group = { core: new window.PIXI.Graphics(), connectors: new window.PIXI.Graphics(), badges: [] };
+        group.core.eventMode = 'none';
+        group.connectors.eventMode = 'none';
+        rackGroup.byColor.set(display.colorNum, group);
+        rackGroup.cableBatch.addChild(group.core);
+        rackGroup.connectorBatch.addChild(group.connectors);
+      }
+      parseSvgPathD(group.core, display.pathD);
+      group.core.stroke({ width: CABLE_VISUAL_STYLE.coreWidth, color: display.colorNum, alpha: 1, cap: 'round', join: 'round' });
+      display.endpoints.forEach(point => appendConnector(group.connectors, point, display.colorNum, false));
+      rackGroup.displays.push(display);
+      const bounds = rackGroup.cableBatch.__worldBounds;
+      if (bounds) {
+        display.endpoints.forEach(point => {
+          bounds.minX = Math.min(bounds.minX, point.x - 180);
+          bounds.minY = Math.min(bounds.minY, point.y - 180);
+          bounds.maxX = Math.max(bounds.maxX, point.x + 180);
+          bounds.maxY = Math.max(bounds.maxY, point.y + 180);
+        });
+      }
+    }
+    performanceTelemetry.incrementalBatchUpdates += pending.length;
+    renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + (focusContainer?.children?.length || 0);
+    return true;
   }
 
   function rebuildBatchedFocus() {
@@ -1171,6 +1229,17 @@
       if (isMulti || !cable.from?.rackId || !cable.to?.rackId) return true;
       return cable.from.rackId === activeRack?.id || cable.to.rackId === activeRack?.id;
     });
+    const appendOnlyGeometry = !layoutChanged &&
+      lastVisibleCableOrder.length > 0 &&
+      visibleCables.length > lastVisibleCableOrder.length &&
+      lastVisibleCableOrder.every((id, index) => {
+        const cable = visibleCables[index];
+        const display = cableDisplays.get(id);
+        return cable?.id === id && display &&
+          display.geometrySignature === cableGeometrySignature(cable) &&
+          display.colorNum === hexColorToNumber(cable.color || '#2563eb');
+      }) &&
+      visibleCables.slice(lastVisibleCableOrder.length).every(cable => !cableDisplays.has(cable.id));
 
     // Fast path: camera, schedule and repeated refresh calls do not change
     // cable geometry. Keep all Graphics objects and avoid every DOM layout read.
@@ -1206,7 +1275,10 @@
 
     renderStats.geometryPasses++;
     recordTimedEvent(performanceTelemetry.geometryEvents);
-    const seenCableIds = new Set();
+    if (appendOnlyGeometry) performanceTelemetry.incrementalGeometryPasses++;
+    else performanceTelemetry.fullGeometryPasses++;
+    const seenCableIds = appendOnlyGeometry ? new Set(lastVisibleCableOrder) : new Set();
+    const geometryChangedIds = new Set();
     if (layoutChanged) {
       organizerOverlayContainer.removeChildren().forEach(child => child.destroy?.());
     }
@@ -1294,15 +1366,16 @@
       return fallbackY + (otherY >= fallbackY ? 14 : -14);
     }
 
-    let leftChannelUsage = 0;
-    let rightChannelUsage = 0;
+    let leftChannelUsage = appendOnlyGeometry ? lastChannelUsage.left : 0;
+    let rightChannelUsage = appendOnlyGeometry ? lastChannelUsage.right : 0;
 
     const MM_PER_U = 44.45;
     const SVG_PX_PER_U = 32;
     const MM_PER_SVG_Y = MM_PER_U / SVG_PX_PER_U;
     const SLACK_FACTOR = 1.05;
 
-    const cables = visibleCables;
+    const cables = appendOnlyGeometry ? visibleCables.slice(lastVisibleCableOrder.length) : visibleCables;
+    if (appendOnlyGeometry) performanceTelemetry.incrementalCablesProcessed += cables.length;
 
     cables.forEach(cable => {
       const instA = cable.from.instanceId || cable.from.deviceId;
@@ -1566,6 +1639,7 @@
       display.stubPoint = isStub ? { x: isFromMounted ? x2 : x1, y: isFromMounted ? y2 : y1 } : null;
       display.isRightExit = isRightExit;
       display.endpoints = isStub ? [{ x: isFromMounted ? x1 : x2, y: isFromMounted ? y1 : y2 }] : [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+      geometryChangedIds.add(cable.id);
       if (!usesBatchedViewportRenderer()) {
         redrawCableDisplay(cable.id);
         cablesContainer.addChild(display.glow, display.casing, display.core);
@@ -1580,9 +1654,15 @@
       cableDisplays.delete(id);
     }
 
-    rebuildSpatialIndex();
+    if (appendOnlyGeometry) {
+      geometryChangedIds.forEach(cableId => indexCableDisplay(cableId, cableDisplays.get(cableId)));
+      performanceTelemetry.spatialIncrementalUpdates += geometryChangedIds.size;
+    } else {
+      rebuildSpatialIndex();
+      performanceTelemetry.spatialFullRebuilds++;
+    }
     if (usesBatchedViewportRenderer()) {
-      rebuildBatchedBase();
+      if (!appendOnlyGeometry || !appendBatchedDisplays(geometryChangedIds)) rebuildBatchedBase();
       refreshCableFocus(new Set(), false);
     }
 
@@ -1618,6 +1698,8 @@
 
     lastSceneSignature = sceneSignature;
     lastLayoutSignature = layoutSignature;
+    lastVisibleCableOrder = visibleCables.map(cable => cable.id);
+    lastChannelUsage = { left: leftChannelUsage, right: rightChannelUsage };
     renderStats.lastDurationMs = performance.now() - renderStartedAt;
     if (STATE.pixiViewportRendererV2 !== false) {
       lastCameraSignature = null;
@@ -1770,6 +1852,13 @@
       organizerCacheHits: performanceTelemetry.organizerCacheHits,
       organizerCacheMisses: performanceTelemetry.organizerCacheMisses,
       organizerOverlayRebuilds: performanceTelemetry.organizerOverlayRebuilds,
+      incrementalGeometryPasses: performanceTelemetry.incrementalGeometryPasses,
+      incrementalCablesProcessed: performanceTelemetry.incrementalCablesProcessed,
+      fullGeometryPasses: performanceTelemetry.fullGeometryPasses,
+      spatialIncrementalUpdates: performanceTelemetry.spatialIncrementalUpdates,
+      spatialFullRebuilds: performanceTelemetry.spatialFullRebuilds,
+      incrementalBatchUpdates: performanceTelemetry.incrementalBatchUpdates,
+      fullBatchRebuilds: performanceTelemetry.fullBatchRebuilds,
       retainedEndpointCount: endpointWorldCache.size,
       retainedRackGeometryCount: rackRailWorldCache.size,
       retainedOrganizerCount: organizerWorldYCache.size,

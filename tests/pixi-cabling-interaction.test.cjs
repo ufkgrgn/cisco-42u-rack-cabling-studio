@@ -577,9 +577,15 @@ async function run() {
     });
     const retainedDomReadDelta = retainedGeometry.after.renderStats.domRectReads - retainedGeometry.before.renderStats.domRectReads;
     assert.ok(retainedDomReadDelta <= 3, `retained endpoint geometry should require at most canvas plus two new port reads, got ${retainedDomReadDelta}`);
-    assert.ok(retainedGeometry.after.performance.endpointCacheHits > retainedGeometry.before.performance.endpointCacheHits, 'existing cable endpoints must reuse retained world coordinates');
+    assert.equal(retainedGeometry.after.performance.endpointCacheHits, retainedGeometry.before.performance.endpointCacheHits, 'incremental append must leave existing cable endpoint geometry untouched');
     assert.ok(retainedGeometry.after.performance.rackCacheHits > retainedGeometry.before.performance.rackCacheHits, 'rack rail geometry must be retained across cable-only changes');
     assert.equal(retainedGeometry.after.performance.organizerOverlayRebuilds, retainedGeometry.before.performance.organizerOverlayRebuilds, 'cable-only changes must not rebuild D-ring overlays');
+    assert.equal(retainedGeometry.after.performance.incrementalGeometryPasses, retainedGeometry.before.performance.incrementalGeometryPasses + 1, 'append-only cable mutation must use incremental geometry');
+    assert.equal(retainedGeometry.after.performance.incrementalCablesProcessed, retainedGeometry.before.performance.incrementalCablesProcessed + 1, 'incremental geometry must process only the appended cable');
+    assert.equal(retainedGeometry.after.performance.spatialIncrementalUpdates, retainedGeometry.before.performance.spatialIncrementalUpdates + 1, 'only the appended cable may be added to the spatial index');
+    assert.equal(retainedGeometry.after.performance.spatialFullRebuilds, retainedGeometry.before.performance.spatialFullRebuilds, 'append-only geometry must retain the existing spatial index');
+    assert.equal(retainedGeometry.after.performance.incrementalBatchUpdates, retainedGeometry.before.performance.incrementalBatchUpdates + 1, 'append-only geometry must extend the existing Pixi batch');
+    assert.equal(retainedGeometry.after.performance.fullBatchRebuilds, retainedGeometry.before.performance.fullBatchRebuilds, 'append-only geometry must not rebuild existing Pixi batches');
 
     const explicitLayoutInvalidation = await page.evaluate(() => {
       const RS = window.RackStudio;
@@ -592,6 +598,8 @@ async function run() {
     assert.equal(explicitLayoutInvalidation.after.layoutCacheInvalidations, explicitLayoutInvalidation.before.layoutCacheInvalidations + 1, 'explicit layout invalidation must clear retained world geometry');
     assert.ok(explicitLayoutInvalidation.after.endpointCacheMisses > explicitLayoutInvalidation.before.endpointCacheMisses, 'layout invalidation must remeasure endpoint coordinates');
     assert.ok(explicitLayoutInvalidation.after.organizerOverlayRebuilds > explicitLayoutInvalidation.before.organizerOverlayRebuilds, 'layout invalidation must rebuild organizer overlays');
+    assert.ok(explicitLayoutInvalidation.after.fullGeometryPasses > explicitLayoutInvalidation.before.fullGeometryPasses, 'layout invalidation must safely fall back to a full geometry pass');
+    assert.ok(explicitLayoutInvalidation.after.fullBatchRebuilds > explicitLayoutInvalidation.before.fullBatchRebuilds, 'layout invalidation must safely rebuild Pixi batches');
 
     const duplicateStateUpdates = await page.evaluate(() => {
       const RS = window.RackStudio;
