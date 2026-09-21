@@ -42,9 +42,14 @@
   let hoveredCableId = null;
   let groupHoveredCableIds = new Set();
   let lastSceneSignature = null;
+  let lastLayoutSignature = null;
+  let layoutCacheWasExplicitlyInvalidated = false;
   const cableDisplays = new Map();
   const spatialGrid = new Map();
   const spatialMembership = new Map();
+  const endpointWorldCache = new Map();
+  const rackRailWorldCache = new Map();
+  const organizerWorldYCache = new Map();
   // Reused for every pointer sample. Allocating a Set at pointer frequency
   // creates avoidable young-generation GC pressure on dense cable scenes.
   const hitCandidates = new Set();
@@ -90,7 +95,15 @@
     duplicateCameraSkips: 0,
     duplicateFocusSkips: 0,
     duplicateSelectionSkips: 0,
-    duplicatePreviewSkips: 0
+    duplicatePreviewSkips: 0,
+    layoutCacheInvalidations: 0,
+    endpointCacheHits: 0,
+    endpointCacheMisses: 0,
+    rackCacheHits: 0,
+    rackCacheMisses: 0,
+    organizerCacheHits: 0,
+    organizerCacheMisses: 0,
+    organizerOverlayRebuilds: 0
   };
 
   document.addEventListener('visibilitychange', () => {
@@ -165,6 +178,27 @@
     ].join('/')).join(';');
     const cableOrder = (STATE.cables || []).map(cable => cable.id).join(',');
     return [stageW, stageH, isMulti ? 'multi' : 'single', activeRack?.id || '', STATE.cableRoutingMode || 'structured', racks, cableOrder].join('||');
+  }
+
+  function buildLayoutSignature(stageW, stageH, isMulti, activeRack) {
+    const racks = (STATE.racks || []).map((rack, rackIndex) => [
+      rackIndex, rack.id, rack.heightU || 42,
+      (rack.devices || []).map(device => [
+        device.instanceId, device.catalogKey || device.catalogId,
+        device.topU, device.uHeight || 1, device.face || 'front'
+      ].join(':')).join(',')
+    ].join('/')).join(';');
+    return [stageW, stageH, isMulti ? 'multi' : 'single', activeRack?.id || '', racks].join('||');
+  }
+
+  function invalidateLayoutGeometryCache() {
+    endpointWorldCache.clear();
+    rackRailWorldCache.clear();
+    organizerWorldYCache.clear();
+    lastLayoutSignature = null;
+    lastSceneSignature = null;
+    layoutCacheWasExplicitlyInvalidated = true;
+    performanceTelemetry.layoutCacheInvalidations++;
   }
 
   function destroyCableDisplay(display) {
@@ -1122,6 +1156,17 @@
 
     const sceneSignature = buildSceneSignature(stageW, stageH, isMulti, activeRack);
     const sceneChanged = sceneSignature !== lastSceneSignature;
+    const layoutSignature = buildLayoutSignature(stageW, stageH, isMulti, activeRack);
+    const layoutChanged = layoutSignature !== lastLayoutSignature;
+    if (layoutChanged) {
+      if (!layoutCacheWasExplicitlyInvalidated) {
+        endpointWorldCache.clear();
+        rackRailWorldCache.clear();
+        organizerWorldYCache.clear();
+        performanceTelemetry.layoutCacheInvalidations++;
+      }
+      layoutCacheWasExplicitlyInvalidated = false;
+    }
     const visibleCables = (STATE.cables || []).filter(cable => {
       if (isMulti || !cable.from?.rackId || !cable.to?.rackId) return true;
       return cable.from.rackId === activeRack?.id || cable.to.rackId === activeRack?.id;
@@ -1162,7 +1207,7 @@
     renderStats.geometryPasses++;
     recordTimedEvent(performanceTelemetry.geometryEvents);
     const seenCableIds = new Set();
-    if (sceneChanged) {
+    if (layoutChanged) {
       organizerOverlayContainer.removeChildren().forEach(child => child.destroy?.());
     }
 
@@ -1182,23 +1227,30 @@
       return { x: (clientX - canvasRect.left) * stageW / canvasRect.width, y: (clientY - canvasRect.top) * stageH / canvasRect.height };
     }
 
-    const portRects = new Map();
-    function getPortRect(el) {
+    function getPortPoint(el) {
       if (!el) return null;
-      const key = el.id || el;
-      let r = portRects.get(key);
-      if (!r) {
-        r = el.getBoundingClientRect();
-        renderStats.domRectReads++;
-        portRects.set(key, r);
+      const key = el.id || `${el.dataset?.instanceId || ''}:${el.dataset?.portId || ''}`;
+      const cached = endpointWorldCache.get(key);
+      if (cached) {
+        performanceTelemetry.endpointCacheHits++;
+        return cached;
       }
-      return r;
+      const rect = el.getBoundingClientRect();
+      renderStats.domRectReads++;
+      performanceTelemetry.endpointCacheMisses++;
+      if (rect.width === 0 && rect.height === 0) return null;
+      const point = clientToPixi(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      endpointWorldCache.set(key, point);
+      return point;
     }
 
-    const rackRailCache = new Map();
     function getRackRailBounds(rackId) {
       if (!rackId) return { left: 23, right: 595, top: 0 };
-      if (rackRailCache.has(rackId)) return rackRailCache.get(rackId);
+      if (rackRailWorldCache.has(rackId)) {
+        performanceTelemetry.rackCacheHits++;
+        return rackRailWorldCache.get(rackId);
+      }
+      performanceTelemetry.rackCacheMisses++;
       let left = 23;
       let right = 595;
       let top = 0;
@@ -1220,20 +1272,23 @@
         }
       }
       const bounds = { left, right, top };
-      rackRailCache.set(rackId, bounds);
+      rackRailWorldCache.set(rackId, bounds);
       return bounds;
     }
 
-    const orgYCache = new Map();
     function getCachedOrgY(org, fallbackY, otherY) {
       if (!org || !org.instanceId) return fallbackY + (otherY >= fallbackY ? 14 : -14);
-      if (orgYCache.has(org.instanceId)) return orgYCache.get(org.instanceId);
+      if (organizerWorldYCache.has(org.instanceId)) {
+        performanceTelemetry.organizerCacheHits++;
+        return organizerWorldYCache.get(org.instanceId);
+      }
+      performanceTelemetry.organizerCacheMisses++;
       const orgEl = document.getElementById(org.instanceId);
       if (orgEl) {
         const r = orgEl.getBoundingClientRect();
         renderStats.domRectReads++;
         const y = clientToPixi(0, r.top + r.height / 2).y;
-        orgYCache.set(org.instanceId, y);
+        organizerWorldYCache.set(org.instanceId, y);
         return y;
       }
       return fallbackY + (otherY >= fallbackY ? 14 : -14);
@@ -1281,11 +1336,10 @@
         isFromMounted = !!portFromEl;
         const localPortEl = isFromMounted ? portFromEl : portToEl;
         const remoteEndpoint = isFromMounted ? cable.to : cable.from;
-        const rectLocal = getPortRect(localPortEl);
-        if (!rectLocal || (rectLocal.width === 0 && rectLocal.height === 0)) return;
+        const pLocal = getPortPoint(localPortEl);
+        if (!pLocal) return;
 
         seenCableIds.add(cable.id);
-        const pLocal = clientToPixi(rectLocal.left + rectLocal.width / 2, rectLocal.top + rectLocal.height / 2);
         const boundsLocal = getRackRailBounds(activeRack?.id);
         const activeIdx = (STATE.racks || []).findIndex(r => r && r.id === activeRack?.id);
         const remoteIdx = (STATE.racks || []).findIndex(r => r && r.id === remoteEndpoint.rackId);
@@ -1306,13 +1360,10 @@
         y2 = isFromMounted ? stubY : pLocal.y;
       } else {
         if (!portFromEl || !portToEl) return;
-        const rectA = getPortRect(portFromEl);
-        const rectB = getPortRect(portToEl);
-        if (!rectA || !rectB) return;
+        const p1 = getPortPoint(portFromEl);
+        const p2 = getPortPoint(portToEl);
+        if (!p1 || !p2) return;
         seenCableIds.add(cable.id);
-
-        const p1 = clientToPixi(rectA.left + rectA.width / 2, rectA.top + rectA.height / 2);
-        const p2 = clientToPixi(rectB.left + rectB.width / 2, rectB.top + rectB.height / 2);
         x1 = p1.x;
         y1 = p1.y;
         x2 = p2.x;
@@ -1536,7 +1587,7 @@
     }
 
     // One retained Graphics object batches all D-ring foreground hoops.
-    if (sceneChanged) {
+    if (layoutChanged) {
       const hoops = new window.PIXI.Graphics();
       hoops.eventMode = 'none';
       document.querySelectorAll('.dring-loop').forEach(loop => {
@@ -1562,9 +1613,11 @@
           .stroke({ width: Math.max(0.8, w * 0.026), color: 0x1a2332, alpha: 1 });
       });
       organizerOverlayContainer.addChild(hoops);
+      performanceTelemetry.organizerOverlayRebuilds++;
     }
 
     lastSceneSignature = sceneSignature;
+    lastLayoutSignature = layoutSignature;
     renderStats.lastDurationMs = performance.now() - renderStartedAt;
     if (STATE.pixiViewportRendererV2 !== false) {
       lastCameraSignature = null;
@@ -1652,6 +1705,7 @@
     if (Array.isArray(cableIds)) cableIds.forEach(id => removeCableFromSpatialIndex(id));
     lastSceneSignature = null;
   };
+  RS.invalidatePixiLayoutGeometry = invalidateLayoutGeometryCache;
   RS.previewPixiCableColor = (cableId, color) => {
     const display = cableDisplays.get(cableId);
     if (!display) return;
@@ -1708,6 +1762,17 @@
       duplicateFocusSkips: performanceTelemetry.duplicateFocusSkips,
       duplicateSelectionSkips: performanceTelemetry.duplicateSelectionSkips,
       duplicatePreviewSkips: performanceTelemetry.duplicatePreviewSkips,
+      layoutCacheInvalidations: performanceTelemetry.layoutCacheInvalidations,
+      endpointCacheHits: performanceTelemetry.endpointCacheHits,
+      endpointCacheMisses: performanceTelemetry.endpointCacheMisses,
+      rackCacheHits: performanceTelemetry.rackCacheHits,
+      rackCacheMisses: performanceTelemetry.rackCacheMisses,
+      organizerCacheHits: performanceTelemetry.organizerCacheHits,
+      organizerCacheMisses: performanceTelemetry.organizerCacheMisses,
+      organizerOverlayRebuilds: performanceTelemetry.organizerOverlayRebuilds,
+      retainedEndpointCount: endpointWorldCache.size,
+      retainedRackGeometryCount: rackRailWorldCache.size,
+      retainedOrganizerCount: organizerWorldYCache.size,
       renderReasons: { ...performanceTelemetry.renderReasons },
       resolution,
       framebufferWidth,

@@ -558,6 +558,41 @@ async function run() {
     assert.equal(incrementalPixiState.stateAfter.performance.totalRenders, incrementalPixiState.stateBefore.performance.totalRenders + 1, 'one geometry pass must submit exactly one GPU render');
     assert.ok(incrementalPixiState.stateAfter.performance.avoidedFocusRenders > incrementalPixiState.stateBefore.performance.avoidedFocusRenders, 'geometry rebuild must fold focus painting into the final scene render');
 
+    const retainedGeometry = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      const swDev = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const patchDev = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      const before = RS.getPixiCableInteractionState();
+      const cable = {
+        id: 'cable-retained-geometry',
+        from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p4' },
+        to: { rackId: rack.id, instanceId: patchDev.instanceId, portId: 'pt4' },
+        color: '#f59e0b'
+      };
+      RS.STATE.cables.push(cable);
+      RS.appendSingleCable(cable);
+      const after = RS.getPixiCableInteractionState();
+      return { before, after };
+    });
+    const retainedDomReadDelta = retainedGeometry.after.renderStats.domRectReads - retainedGeometry.before.renderStats.domRectReads;
+    assert.ok(retainedDomReadDelta <= 3, `retained endpoint geometry should require at most canvas plus two new port reads, got ${retainedDomReadDelta}`);
+    assert.ok(retainedGeometry.after.performance.endpointCacheHits > retainedGeometry.before.performance.endpointCacheHits, 'existing cable endpoints must reuse retained world coordinates');
+    assert.ok(retainedGeometry.after.performance.rackCacheHits > retainedGeometry.before.performance.rackCacheHits, 'rack rail geometry must be retained across cable-only changes');
+    assert.equal(retainedGeometry.after.performance.organizerOverlayRebuilds, retainedGeometry.before.performance.organizerOverlayRebuilds, 'cable-only changes must not rebuild D-ring overlays');
+
+    const explicitLayoutInvalidation = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const before = RS.getPixiPerformanceTelemetry();
+      RS.invalidatePixiLayoutGeometry();
+      RS.renderAllCables();
+      const after = RS.getPixiPerformanceTelemetry();
+      return { before, after };
+    });
+    assert.equal(explicitLayoutInvalidation.after.layoutCacheInvalidations, explicitLayoutInvalidation.before.layoutCacheInvalidations + 1, 'explicit layout invalidation must clear retained world geometry');
+    assert.ok(explicitLayoutInvalidation.after.endpointCacheMisses > explicitLayoutInvalidation.before.endpointCacheMisses, 'layout invalidation must remeasure endpoint coordinates');
+    assert.ok(explicitLayoutInvalidation.after.organizerOverlayRebuilds > explicitLayoutInvalidation.before.organizerOverlayRebuilds, 'layout invalidation must rebuild organizer overlays');
+
     const duplicateStateUpdates = await page.evaluate(() => {
       const RS = window.RackStudio;
       RS.setPixiCableGroupHover([]);

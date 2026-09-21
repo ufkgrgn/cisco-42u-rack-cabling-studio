@@ -81,6 +81,18 @@ const assert = require('node:assert/strict');
         }
         pickingSamples.sort((a,b)=>a-b);
       }
+      const mutationBefore=api.getPixiCableInteractionState();
+      const mutationCable={
+        id:'bench-retained-mutation',
+        from:{...racks[0].devices.flatMap(d=>model.ports.map(p=>({rackId:racks[0].id,instanceId:d.instanceId,portId:p.id})))[250]},
+        to:{...racks[0].devices.flatMap(d=>model.ports.map(p=>({rackId:racks[0].id,instanceId:d.instanceId,portId:p.id})))[650]},
+        color:'#f59e0b',lengthMeters:2
+      };
+      api.STATE.cables.push(mutationCable);
+      const mutationStart=performance.now();
+      api.appendSingleCable(mutationCable);
+      const retainedMutationMs=performance.now()-mutationStart;
+      const mutationAfter=api.getPixiCableInteractionState();
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
@@ -108,6 +120,11 @@ const assert = require('node:assert/strict');
         pickingP99Ms:pickingSamples[Math.floor(pickingSamples.length*.99)] ?? null,
         pickingMaxMs:pickingSamples.at(-1) ?? null,
         pickingMisses,
+        retainedMutationMs,
+        retainedMutationDomRectReads:mutationAfter.renderStats.domRectReads-mutationBefore.renderStats.domRectReads,
+        retainedMutationEndpointHits:mutationAfter.performance.endpointCacheHits-mutationBefore.performance.endpointCacheHits,
+        retainedMutationEndpointMisses:mutationAfter.performance.endpointCacheMisses-mutationBefore.performance.endpointCacheMisses,
+        retainedMutationOverlayRebuilds:mutationAfter.performance.organizerOverlayRebuilds-mutationBefore.performance.organizerOverlayRebuilds,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
@@ -125,6 +142,11 @@ const assert = require('node:assert/strict');
     assert.ok(results.retainedAverageMs <= 5, `retained render regression: ${results.retainedAverageMs}ms`);
     assert.equal(results.pickingSamples,500);
     assert.equal(results.pickingMisses,0);
+    assert.ok(results.retainedMutationMs <= 60, `retained cable mutation regression: ${results.retainedMutationMs}ms`);
+    assert.ok(results.retainedMutationDomRectReads <= 3, `retained cable mutation read ${results.retainedMutationDomRectReads} DOM rects`);
+    assert.ok(results.retainedMutationEndpointHits > 0);
+    assert.equal(results.retainedMutationEndpointMisses,2);
+    assert.equal(results.retainedMutationOverlayRebuilds,0);
     assert.deepEqual(errors,[]);
     const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
     const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';
