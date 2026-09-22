@@ -40,6 +40,8 @@ async function run() {
       RS.mountDeviceAt('cisco-2960x-24ps', 31);
       RS.mountDeviceAt('organizer-dring-1u', 30);
       RS.mountDeviceAt('patch-cat6-24', 29);
+      RS.mountDeviceAt('fiber-odf-24', 28);
+      RS.mountDeviceAt('fiber-odf-24-sc', 27);
       RS.renderMountedDevices();
 
       const from = rack.devices.find(device => device.topU === 31);
@@ -885,6 +887,12 @@ async function run() {
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
     assert.ok(deviceLod.macro.telemetry.deviceChassisAtlasBuilds >= 1, 'macro LOD must rasterize the chassis style atlas once');
     assert.ok(deviceLod.macro.telemetry.deviceChassisSpriteCount > 0, 'macro LOD must render chassis bodies from shared nine-slice textures');
+    assert.ok(deviceLod.macro.telemetry.devicePortAtlasBuilds >= 1, 'macro LOD must build the shared connector texture atlas once');
+    assert.ok(deviceLod.macro.telemetry.devicePortVariants.copper > 0, 'RJ45 ports must use copper-keyed textures');
+    assert.ok(deviceLod.macro.telemetry.devicePortVariants.optic > 0, 'SFP ports must use optic-keyed textures');
+    assert.ok(deviceLod.macro.telemetry.devicePortVariants['fiber-lc'] > 0, 'LC ports must retain their duplex connector appearance');
+    assert.ok(deviceLod.macro.telemetry.devicePortVariants['fiber-sc'] > 0, 'SC ports must retain their duplex connector appearance');
+    assert.ok(deviceLod.macro.telemetry.devicePortVariants.occupied > 0, 'occupied ports must use the cyan connected-state texture');
     assert.ok(deviceLod.macro.telemetry.visibleDeviceRacks > 0, 'the camera viewport must retain its visible rack device group');
     assert.ok(deviceLod.macro.offscreenCulling.culledDeviceRacks > 0, 'device rack groups outside the camera viewport must be culled');
     assert.equal(deviceLod.macro.offscreenCulling.visibleDeviceRacks, 0, 'a camera viewport far outside the scene must cull every device rack group');
@@ -895,6 +903,7 @@ async function run() {
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortVariants.occupied, deviceLod.macro.occupancyUpdate.before.devicePortVariants.occupied + 2, 'connecting copper endpoints must update only the two matching atlas variants');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyUpdate.before.deviceOccupancySetRebuilds + 1, 'a changed cable endpoint set must rebuild occupancy once');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
