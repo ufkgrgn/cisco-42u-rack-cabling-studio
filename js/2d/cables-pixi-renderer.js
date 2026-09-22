@@ -60,6 +60,10 @@
   const rackRailWorldCache = new Map();
   const organizerWorldYCache = new Map();
   let lastDeviceSceneSignature = null;
+  let lastDeviceGeometrySignature = null;
+  let lastDeviceOccupancySignature = null;
+  let deviceChassisGraphics = null;
+  let devicePortsGraphics = null;
   // Reused for every pointer sample. Allocating a Set at pointer frequency
   // creates avoidable young-generation GC pressure on dense cable scenes.
   const hitCandidates = new Set();
@@ -119,6 +123,9 @@
     deviceSceneEndpointHits: 0,
     deviceSceneRebuilds: 0,
     deviceSceneSkippedRebuilds: 0,
+    deviceChassisRebuilds: 0,
+    devicePortRebuilds: 0,
+    deviceOccupancyOnlyUpdates: 0,
     rackCacheHits: 0,
     rackCacheMisses: 0,
     organizerCacheHits: 0,
@@ -316,6 +323,8 @@
     endpointWorldCache.clear();
     RS.DeviceSceneRegistry?.invalidate();
     lastDeviceSceneSignature = null;
+    lastDeviceGeometrySignature = null;
+    lastDeviceOccupancySignature = null;
     rackRailWorldCache.clear();
     organizerWorldYCache.clear();
     lastLayoutSignature = null;
@@ -1470,15 +1479,21 @@
     return 0x64748b;
   }
 
-  function buildDeviceSceneSignature(snapshot, lod) {
-    const cableState = (STATE.cables || []).map(cable => [
-      cable.id,
-      cable.from?.instanceId,
-      cable.from?.portId,
-      cable.to?.instanceId,
-      cable.to?.portId
-    ].join(':')).join(',');
-    return `${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}|${cableState}`;
+  function buildDeviceGeometrySignature(snapshot, lod) {
+    return `${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
+  }
+
+  function collectDeviceOccupancy() {
+    const occupied = new Set();
+    (STATE.cables || []).forEach(cable => {
+      if (cable.from) occupied.add(`${cable.from.instanceId}::${cable.from.portId}`);
+      if (cable.to) occupied.add(`${cable.to.instanceId}::${cable.to.portId}`);
+    });
+    return occupied;
+  }
+
+  function buildDeviceOccupancySignature(occupied) {
+    return Array.from(occupied).sort().join('|');
   }
 
   function syncPixiDeviceSceneLOD(explicitLod) {
@@ -1498,52 +1513,62 @@
       snapshot = RS.DeviceSceneRegistry.getSnapshot();
     }
     if (!snapshot || !snapshot.devices.length) return false;
-    const signature = buildDeviceSceneSignature(snapshot, lod);
-    if (signature === lastDeviceSceneSignature) {
+    const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
+    const occupied = collectDeviceOccupancy();
+    const occupancySignature = buildDeviceOccupancySignature(occupied);
+    const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;
+    const occupancyChanged = occupancySignature !== lastDeviceOccupancySignature;
+    if (!geometryChanged && !occupancyChanged) {
       document.documentElement.setAttribute('data-device-renderer', 'pixi');
       performanceTelemetry.deviceSceneSkippedRebuilds++;
       return false;
     }
 
-    deviceSceneContainer.removeChildren().forEach(child => child.destroy?.());
-    const chassis = new window.PIXI.Graphics();
-    const ports = new window.PIXI.Graphics();
-    const occupied = new Set();
-    (STATE.cables || []).forEach(cable => {
-      if (cable.from) occupied.add(`${cable.from.instanceId}::${cable.from.portId}`);
-      if (cable.to) occupied.add(`${cable.to.instanceId}::${cable.to.portId}`);
-    });
+    if (geometryChanged) {
+      deviceChassisGraphics?.destroy?.();
+      deviceChassisGraphics = new window.PIXI.Graphics();
+      snapshot.devices.forEach(device => {
+        if (device.category === 'organizer' || device.category === 'blank') return;
+        const radius = Math.min(4, Math.max(1, device.height * 0.12));
+        const accent = deviceSceneAccent(device.category);
+        deviceChassisGraphics.roundRect(device.x, device.y, device.width, device.height, radius)
+          .fill(deviceSceneColor(device.category))
+          .stroke({ width: 1, color: 0x334155, alpha: 1 });
+        deviceChassisGraphics.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(accent);
+        deviceChassisGraphics.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
+          .fill({ color: 0x0b1726, alpha: 0.92 });
+      });
+      performanceTelemetry.deviceChassisRebuilds++;
+    }
 
-    snapshot.devices.forEach(device => {
-      if (device.category === 'organizer' || device.category === 'blank') return;
-      const radius = Math.min(4, Math.max(1, device.height * 0.12));
-      const accent = deviceSceneAccent(device.category);
-      chassis.roundRect(device.x, device.y, device.width, device.height, radius)
-        .fill(deviceSceneColor(device.category))
-        .stroke({ width: 1, color: 0x334155, alpha: 1 });
-      chassis.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(accent);
-      chassis.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
-        .fill({ color: 0x0b1726, alpha: 0.92 });
-    });
+    if (geometryChanged || occupancyChanged) {
+      devicePortsGraphics?.destroy?.();
+      devicePortsGraphics = new window.PIXI.Graphics();
+      snapshot.ports.forEach(port => {
+        if (port.category === 'organizer' || port.category === 'blank') return;
+        const isOccupied = occupied.has(`${port.instanceId}::${port.portId}`);
+        const w = Math.max(3, port.width * 0.82);
+        const h = Math.max(3, port.height * 0.82);
+        const x = port.x - w / 2;
+        const y = port.y - h / 2;
+        const optic = port.type === 'sfp' || port.type === 'sfp+' || port.type === 'qsfp28';
+        const fill = isOccupied ? 0x22d3ee : (optic ? 0x1d4ed8 : 0x07111f);
+        devicePortsGraphics.roundRect(x, y, w, h, Math.min(1.5, h * 0.2))
+          .fill(fill)
+          .stroke({ width: Math.max(0.6, h * 0.08), color: isOccupied ? 0xa5f3fc : 0x64748b, alpha: 1 });
+      });
+      performanceTelemetry.devicePortRebuilds++;
+      if (!geometryChanged && occupancyChanged) performanceTelemetry.deviceOccupancyOnlyUpdates++;
+    }
 
-    snapshot.ports.forEach(port => {
-      if (port.category === 'organizer' || port.category === 'blank') return;
-      const isOccupied = occupied.has(`${port.instanceId}::${port.portId}`);
-      const w = Math.max(3, port.width * 0.82);
-      const h = Math.max(3, port.height * 0.82);
-      const x = port.x - w / 2;
-      const y = port.y - h / 2;
-      const optic = port.type === 'sfp' || port.type === 'sfp+' || port.type === 'qsfp28';
-      const fill = isOccupied ? 0x22d3ee : (optic ? 0x1d4ed8 : 0x07111f);
-      ports.roundRect(x, y, w, h, Math.min(1.5, h * 0.2))
-        .fill(fill)
-        .stroke({ width: Math.max(0.6, h * 0.08), color: isOccupied ? 0xa5f3fc : 0x64748b, alpha: 1 });
-    });
-
-    deviceSceneContainer.addChild(chassis, ports);
+    deviceSceneContainer.removeChildren();
+    if (deviceChassisGraphics) deviceSceneContainer.addChild(deviceChassisGraphics);
+    if (devicePortsGraphics) deviceSceneContainer.addChild(devicePortsGraphics);
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
     RS.DeviceSceneRegistry?.suspendDomFaceplates();
-    lastDeviceSceneSignature = signature;
+    lastDeviceGeometrySignature = geometrySignature;
+    lastDeviceOccupancySignature = occupancySignature;
+    lastDeviceSceneSignature = `${geometrySignature}|${occupancySignature}`;
     performanceTelemetry.deviceSceneRebuilds++;
     return true;
   }
@@ -2372,6 +2397,9 @@
       deviceSceneEndpointHits: performanceTelemetry.deviceSceneEndpointHits,
       deviceSceneRebuilds: performanceTelemetry.deviceSceneRebuilds,
       deviceSceneSkippedRebuilds: performanceTelemetry.deviceSceneSkippedRebuilds,
+      deviceChassisRebuilds: performanceTelemetry.deviceChassisRebuilds,
+      devicePortRebuilds: performanceTelemetry.devicePortRebuilds,
+      deviceOccupancyOnlyUpdates: performanceTelemetry.deviceOccupancyOnlyUpdates,
       rackCacheHits: performanceTelemetry.rackCacheHits,
       rackCacheMisses: performanceTelemetry.rackCacheMisses,
       organizerCacheHits: performanceTelemetry.organizerCacheHits,

@@ -837,6 +837,26 @@ async function run() {
         detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates,
         telemetry: RS.getPixiPerformanceTelemetry()
       };
+      const occupied = new Set();
+      RS.STATE.cables.forEach(cable => {
+        if (cable.from) occupied.add(`${cable.from.instanceId}::${cable.from.portId}`);
+        if (cable.to) occupied.add(`${cable.to.instanceId}::${cable.to.portId}`);
+      });
+      const freePorts = RS.DeviceSceneRegistry.getSnapshot().ports.filter(port =>
+        !occupied.has(`${port.instanceId}::${port.portId}`)
+      );
+      const beforeOccupancy = RS.getPixiPerformanceTelemetry();
+      RS.STATE.cables.push({
+        id: 'device-scene-occupancy-probe',
+        from: { instanceId: freePorts[0].instanceId, portId: freePorts[0].portId },
+        to: { instanceId: freePorts[1].instanceId, portId: freePorts[1].portId },
+        color: '#22d3ee'
+      });
+      RS.syncPixiDeviceSceneLOD('macro');
+      const afterOccupancy = RS.getPixiPerformanceTelemetry();
+      RS.STATE.cables.pop();
+      RS.syncPixiDeviceSceneLOD('macro');
+      macro.occupancyUpdate = { before: beforeOccupancy, after: afterOccupancy };
       RS.ZOOM_STATE.scale = 1;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 40));
@@ -855,6 +875,9 @@ async function run() {
     assert.equal(deviceLod.macro.livePortCount, 0, 'macro Pixi LOD must remove repetitive port nodes from the live document');
     assert.ok(deviceLod.macro.detachedFaceplates > 0);
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisRebuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisRebuilds, 'cable occupancy changes must retain the chassis batch');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds + 1, 'cable occupancy changes must rebuild only the port-state batch');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
     assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');
