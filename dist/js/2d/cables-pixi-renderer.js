@@ -142,6 +142,11 @@
     pointerRectReads: 0,
     pointerRectCacheHits: 0,
     pointerRectInvalidations: 0,
+    incrementalFocusPasses: 0,
+    incrementalFocusCablesProcessed: 0,
+    focusVariantCacheHits: 0,
+    focusVariantCacheMisses: 0,
+    focusFullDisplayScansAvoided: 0,
     batchTransactions: 0,
     transactionFlushes: 0,
     transactionCables: 0,
@@ -293,6 +298,7 @@
   function destroyCableDisplay(display) {
     if (!display) return;
     if (usesBatchedViewportRenderer()) {
+      destroyFocusVariants(display);
       renderStats.destroyedDisplays++;
       return;
     }
@@ -302,6 +308,16 @@
       graphic.destroy?.();
     });
     renderStats.destroyedDisplays++;
+  }
+
+  function destroyFocusVariants(display) {
+    if (!display?.focusVariants) return;
+    display.focusVariants.forEach(variant => {
+      variant.parent?.removeChild(variant);
+      destroyContainerChildren(variant);
+      variant.destroy?.();
+    });
+    display.focusVariants.clear();
   }
 
   function hexColorToNumber(hex) {
@@ -676,64 +692,62 @@
     return true;
   }
 
+  function getRetainedFocusVariant(display, selectedOnly) {
+    const color = display.previewColorNum ?? display.colorNum;
+    const endpointSignature = (display.endpoints || []).map(point => `${point.x}:${point.y}`).join('|');
+    const key = `${display.pathD}|${color}|${selectedOnly ? 'selected' : 'hover'}|${endpointSignature}`;
+    display.focusVariants ||= new Map();
+    const cached = display.focusVariants.get(key);
+    if (cached) {
+      performanceTelemetry.focusVariantCacheHits++;
+      return cached;
+    }
+    destroyFocusVariants(display);
+    const variant = new window.PIXI.Container();
+    const glow = new window.PIXI.Graphics();
+    const casing = new window.PIXI.Graphics();
+    const core = new window.PIXI.Graphics();
+    const boots = new window.PIXI.Graphics();
+    variant.eventMode = 'none';
+    glow.eventMode = 'none';
+    casing.eventMode = 'none';
+    core.eventMode = 'none';
+    boots.eventMode = 'none';
+    parseSvgPathD(glow, display.pathD);
+    parseSvgPathD(casing, display.pathD);
+    parseSvgPathD(core, display.pathD);
+    display.endpoints.forEach(point => appendConnector(boots, point, color, true));
+    glow.stroke({ width: selectedOnly ? 9 : 8, color, alpha: selectedOnly ? 0.72 : 0.62, cap: 'round', join: 'round' });
+    glow.blendMode = 'add';
+    casing.stroke({ width: selectedOnly ? 5.8 : 5.4, color: 0x060913, alpha: 1, cap: 'round', join: 'round' });
+    core.stroke({ width: selectedOnly ? 3.5 : 3.2, color, alpha: 1, cap: 'round', join: 'round' });
+    variant.addChild(glow, casing, core, boots);
+    display.focusVariants.set(key, variant);
+    performanceTelemetry.focusVariantCacheMisses++;
+    return variant;
+  }
+
   function rebuildBatchedFocus() {
     if (!usesBatchedViewportRenderer() || !focusContainer) return;
-    destroyContainerChildren(focusContainer);
+    focusContainer.removeChildren();
     const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
     cablesContainer.alpha = hasHoverFocus ? 0.14 : 1;
     connectorsContainer.alpha = hasHoverFocus ? 0.14 : 1;
     const focusIds = new Set(groupHoveredCableIds);
     if (hoveredCableId) focusIds.add(hoveredCableId);
     if (!hasHoverFocus && STATE.highlightedCableId) focusIds.add(STATE.highlightedCableId);
+    performanceTelemetry.incrementalFocusPasses++;
     if (!focusIds.size) {
       renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length;
       return;
     }
-    const casing = new window.PIXI.Graphics();
-    const glowByColor = new Map();
-    const coreByColor = new Map();
-    const bootsByColor = new Map();
-    casing.eventMode = 'none';
+    const selectedOnly = !hasHoverFocus && !!STATE.highlightedCableId;
     for (const id of focusIds) {
       const display = cableDisplays.get(id);
       if (!display) continue;
-      const color = display.previewColorNum ?? display.colorNum;
-      let glow = glowByColor.get(color);
-      if (!glow) {
-        glow = new window.PIXI.Graphics();
-        glow.eventMode = 'none';
-        glowByColor.set(color, glow);
-      }
-      parseSvgPathD(glow, display.pathD);
-      parseSvgPathD(casing, display.pathD);
-      let core = coreByColor.get(color);
-      if (!core) {
-        core = new window.PIXI.Graphics();
-        core.eventMode = 'none';
-        coreByColor.set(color, core);
-      }
-      parseSvgPathD(core, display.pathD);
-      let boots = bootsByColor.get(color);
-      if (!boots) {
-        boots = new window.PIXI.Graphics();
-        boots.eventMode = 'none';
-        bootsByColor.set(color, boots);
-      }
-      display.endpoints.forEach(point => appendConnector(boots, point, color, true));
+      focusContainer.addChild(getRetainedFocusVariant(display, selectedOnly));
+      performanceTelemetry.incrementalFocusCablesProcessed++;
     }
-    const selectedOnly = !hasHoverFocus && !!STATE.highlightedCableId;
-    casing.stroke({ width: selectedOnly ? 5.8 : 5.4, color: 0x060913, alpha: 1, cap: 'round', join: 'round' });
-    glowByColor.forEach((glow, color) => {
-      glow.stroke({ width: selectedOnly ? 9 : 8, color, alpha: selectedOnly ? 0.72 : 0.62, cap: 'round', join: 'round' });
-      glow.blendMode = 'add';
-      focusContainer.addChild(glow);
-    });
-    focusContainer.addChild(casing);
-    coreByColor.forEach((core, color) => {
-      core.stroke({ width: selectedOnly ? 3.5 : 3.2, color, alpha: 1, cap: 'round', join: 'round' });
-      focusContainer.addChild(core);
-    });
-    bootsByColor.forEach(boots => focusContainer.addChild(boots));
     renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + focusContainer.children.length;
   }
 
@@ -972,12 +986,7 @@
 
   function refreshCableFocus(fullyRedrawIds = new Set(), shouldRender = true) {
     if (usesBatchedViewportRenderer()) {
-      const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
-      for (const [id, display] of cableDisplays) {
-        const hovered = hoveredCableId === id || groupHoveredCableIds.has(id);
-        display.visualAlpha = hovered ? 1 : (hasHoverFocus ? 0.14 : 1);
-        display.glowAlpha = (hovered || (!hasHoverFocus && id === STATE.highlightedCableId)) ? 1 : 0;
-      }
+      performanceTelemetry.focusFullDisplayScansAvoided += cableDisplays.size;
       rebuildBatchedFocus();
       if (shouldRender) renderPixi('focus');
       else performanceTelemetry.avoidedFocusRenders++;
@@ -1952,6 +1961,9 @@
         renderStats.reusedDisplays++;
       }
 
+      if (usesBatchedViewportRenderer() && (display.pathD !== pathD || display.colorNum !== colorNum)) {
+        destroyFocusVariants(display);
+      }
       display.pathD = pathD;
       display.colorNum = colorNum;
       display.geometrySignature = geometrySignature;
@@ -2239,6 +2251,11 @@
       pointerRectReads: performanceTelemetry.pointerRectReads,
       pointerRectCacheHits: performanceTelemetry.pointerRectCacheHits,
       pointerRectInvalidations: performanceTelemetry.pointerRectInvalidations,
+      incrementalFocusPasses: performanceTelemetry.incrementalFocusPasses,
+      incrementalFocusCablesProcessed: performanceTelemetry.incrementalFocusCablesProcessed,
+      focusVariantCacheHits: performanceTelemetry.focusVariantCacheHits,
+      focusVariantCacheMisses: performanceTelemetry.focusVariantCacheMisses,
+      focusFullDisplayScansAvoided: performanceTelemetry.focusFullDisplayScansAvoided,
       batchTransactions: performanceTelemetry.batchTransactions,
       transactionFlushes: performanceTelemetry.transactionFlushes,
       transactionCables: performanceTelemetry.transactionCables,
@@ -2274,8 +2291,18 @@
     spatialCellCount: spatialGrid.size,
     blurredGlowCount: focusContainer?.children?.filter(child => child.filters?.length).length || 0,
     performance: RS.getPixiPerformanceTelemetry(),
-    alphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, usesBatchedViewportRenderer() ? (display.visualAlpha ?? 1) : display.core.alpha])),
-    glowAlphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, usesBatchedViewportRenderer() ? (display.glowAlpha ?? 0) : display.glow.alpha])),
+    alphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => {
+      if (!usesBatchedViewportRenderer()) return [id, display.core.alpha];
+      const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
+      const focused = hoveredCableId === id || groupHoveredCableIds.has(id);
+      return [id, focused ? 1 : (hasHoverFocus ? 0.14 : 1)];
+    })),
+    glowAlphaByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => {
+      if (!usesBatchedViewportRenderer()) return [id, display.glow.alpha];
+      const hasHoverFocus = hoveredCableId !== null || groupHoveredCableIds.size > 0;
+      const focused = hoveredCableId === id || groupHoveredCableIds.has(id) || (!hasHoverFocus && id === STATE.highlightedCableId);
+      return [id, focused ? 1 : 0];
+    })),
     colorByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, display.colorNum])),
     previewColorByCable: Object.fromEntries(Array.from(cableDisplays.entries(), ([id, display]) => [id, display.previewColorNum ?? null]))
   });

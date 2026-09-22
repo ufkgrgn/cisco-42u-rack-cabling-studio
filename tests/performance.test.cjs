@@ -83,6 +83,16 @@ const assert = require('node:assert/strict');
         pickingSamples.sort((a,b)=>a-b);
       }
       const pickingAfter = api.getPixiPerformanceTelemetry();
+      const hoverCableIds = cables.slice(0, 2).map(cable => cable.id);
+      api.setPixiCableHover(hoverCableIds[0], true);
+      api.setPixiCableHover(hoverCableIds[1], true);
+      api.setPixiCableHover(null, false);
+      const hoverBefore = api.getPixiPerformanceTelemetry();
+      const hoverStart = performance.now();
+      for (let i = 0; i < 100; i++) api.setPixiCableHover(hoverCableIds[i % hoverCableIds.length], true);
+      const hoverSweepMs = performance.now() - hoverStart;
+      const hoverAfter = api.getPixiPerformanceTelemetry();
+      api.setPixiCableHover(null, false);
       const mutationBefore=api.getPixiCableInteractionState();
       const mutationCable={
         id:'bench-retained-mutation',
@@ -172,6 +182,13 @@ const assert = require('node:assert/strict');
         pickingRectReadDelta:pickingAfter.pointerRectReads-pickingBefore.pointerRectReads,
         pickingRectCacheHitDelta:pickingAfter.pointerRectCacheHits-pickingBefore.pointerRectCacheHits,
         pickingHitTestDelta:pickingAfter.pointerHitTests-pickingBefore.pointerHitTests,
+        hoverSweepMs,
+        hoverAverageMs:hoverSweepMs/100,
+        hoverFocusPassDelta:hoverAfter.incrementalFocusPasses-hoverBefore.incrementalFocusPasses,
+        hoverFocusCableDelta:hoverAfter.incrementalFocusCablesProcessed-hoverBefore.incrementalFocusCablesProcessed,
+        hoverFocusCacheHitDelta:hoverAfter.focusVariantCacheHits-hoverBefore.focusVariantCacheHits,
+        hoverFocusCacheMissDelta:hoverAfter.focusVariantCacheMisses-hoverBefore.focusVariantCacheMisses,
+        hoverFullDisplayScansAvoidedDelta:hoverAfter.focusFullDisplayScansAvoided-hoverBefore.focusFullDisplayScansAvoided,
         retainedMutationMs,
         retainedMutationDomRectReads:mutationAfter.renderStats.domRectReads-mutationBefore.renderStats.domRectReads,
         retainedMutationEndpointHits:mutationAfter.performance.endpointCacheHits-mutationBefore.performance.endpointCacheHits,
@@ -242,6 +259,12 @@ const assert = require('node:assert/strict');
     assert.equal(results.pickingHitTestDelta,500);
     assert.equal(results.pickingRectReadDelta,0, `stable pointer picking forced ${results.pickingRectReadDelta} canvas layout reads`);
     assert.ok(results.pickingRectCacheHitDelta >= 500);
+    assert.equal(results.hoverFocusPassDelta,100);
+    assert.equal(results.hoverFocusCableDelta,100);
+    assert.equal(results.hoverFocusCacheHitDelta,100);
+    assert.equal(results.hoverFocusCacheMissDelta,0);
+    assert.equal(results.hoverFullDisplayScansAvoidedDelta,results.pixiDisplayCount * 100);
+    assert.ok(results.hoverAverageMs <= (results.renderAllRacks ? 10 : 2.5), `incremental hover average regression: ${results.hoverAverageMs}ms`);
     assert.ok(results.retainedMutationMs <= 40, `retained cable mutation regression: ${results.retainedMutationMs}ms`);
     assert.ok(results.retainedMutationDomRectReads <= 3, `retained cable mutation read ${results.retainedMutationDomRectReads} DOM rects`);
     assert.equal(results.retainedMutationEndpointHits,0);
