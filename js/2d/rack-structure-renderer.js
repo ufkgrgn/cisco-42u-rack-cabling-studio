@@ -219,52 +219,100 @@
 
   let rackVisibilityObserver = null;
   let rackVisibilityRefreshFrame = 0;
+  let rackViewportEntries = [];
+  let rackViewportMaxBottom = 0;
+  let rackViewportSignature = null;
+  let rackViewportSize = { width: 0, height: 0 };
+  let rackViewportResizeObserver = null;
   const rackViewportTelemetry = {
     passes: 0,
     racksTested: 0,
     visibilityChanges: 0,
     unchangedSkips: 0,
     visibleRacks: 0,
-    culledRacks: 0
+    culledRacks: 0,
+    signatureSkips: 0
   };
+
+  function rebuildRackViewportEntries(rackStage) {
+    rackViewportEntries = Array.from(rackStage?.querySelectorAll('.rack-container[data-rack-id]') || []).map((container, index) => {
+      const rack = STATE.racks.find(candidate => candidate.id === container.dataset.rackId);
+      const left = 60 + index * (634 + 64);
+      return {
+        container,
+        left,
+        right: left + 634,
+        top: 10,
+        bottom: 76 + (rack?.heightU || 42) * 32 + 84
+      };
+    });
+    rackViewportMaxBottom = rackViewportEntries.reduce((max, entry) => Math.max(max, entry.bottom), 0);
+    rackViewportSignature = null;
+  }
+
+  function observeRackViewportSize(canvas) {
+    const updateSize = () => {
+      const width = Math.max(0, canvas.clientWidth || 0);
+      const height = Math.max(0, canvas.clientHeight || 0);
+      if (width === rackViewportSize.width && height === rackViewportSize.height) return;
+      rackViewportSize = { width, height };
+      rackViewportSignature = null;
+      syncRackViewportVisibility(RS.ZOOM_STATE);
+    };
+    rackViewportResizeObserver?.disconnect();
+    rackViewportResizeObserver = null;
+    updateSize();
+    if (typeof ResizeObserver === 'function') {
+      rackViewportResizeObserver = new ResizeObserver(updateSize);
+      rackViewportResizeObserver.observe(canvas);
+    }
+  }
 
   function syncRackViewportVisibility(camera = RS.ZOOM_STATE || {}) {
     const rackStage = dom.rackStage || document.getElementById('rack-stage');
     const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
-    const containers = Array.from(rackStage?.querySelectorAll('.rack-container[data-rack-id]') || []);
-    const isMulti = STATE.viewMode === 'multi' && containers.length > 1;
+    const entries = rackViewportEntries.length
+      ? rackViewportEntries
+      : Array.from(rackStage?.querySelectorAll('.rack-container[data-rack-id]') || []).map(container => ({ container }));
+    const isMulti = STATE.viewMode === 'multi' && entries.length > 1;
     if (!isMulti || !canvas) {
-      containers.forEach(container => {
+      entries.forEach(({ container }) => {
         container.style.visibility = '';
         delete container.dataset.viewportVisible;
       });
-      rackViewportTelemetry.visibleRacks = containers.length;
+      rackViewportTelemetry.visibleRacks = entries.length;
       rackViewportTelemetry.culledRacks = 0;
+      rackViewportSignature = null;
       return false;
     }
 
     const scale = Number.isFinite(camera.scale) && camera.scale > 0 ? camera.scale : 1;
     const viewportWorldLeft = -(camera.panX || 0) / scale;
     const viewportWorldTop = -(camera.panY || 0) / scale;
-    const viewportWorldWidth = canvas.clientWidth / scale;
-    const viewportWorldHeight = canvas.clientHeight / scale;
+    const viewportWorldWidth = rackViewportSize.width / scale;
+    const viewportWorldHeight = rackViewportSize.height / scale;
     const marginX = Math.max(320, viewportWorldWidth * 0.35);
     const marginY = Math.max(180, viewportWorldHeight * 0.2);
     const minX = viewportWorldLeft - marginX;
     const maxX = viewportWorldLeft + viewportWorldWidth + marginX;
     const minY = viewportWorldTop - marginY;
     const maxY = viewportWorldTop + viewportWorldHeight + marginY;
+    const firstRack = Math.max(0, Math.ceil((minX - 60 - 634) / (634 + 64)));
+    const lastRack = Math.min(entries.length - 1, Math.floor((maxX - 60) / (634 + 64)));
+    const verticalVisible = maxY >= 10 && minY <= rackViewportMaxBottom;
+    const signature = `${firstRack}:${lastRack}:${verticalVisible ? 1 : 0}:${entries.length}`;
+    if (signature === rackViewportSignature) {
+      rackViewportTelemetry.signatureSkips++;
+      rackViewportTelemetry.unchangedSkips += entries.length;
+      return false;
+    }
+    rackViewportSignature = signature;
     let visibleRacks = 0;
     let culledRacks = 0;
     rackViewportTelemetry.passes++;
 
-    containers.forEach((container, index) => {
-      const rack = STATE.racks.find(candidate => candidate.id === container.dataset.rackId);
-      const left = 60 + index * (634 + 64);
-      const right = left + 634;
-      const top = 10;
-      const bottom = 76 + (rack?.heightU || 42) * 32 + 84;
-      const visible = right >= minX && left <= maxX && bottom >= minY && top <= maxY;
+    entries.forEach(({ container, left, right, top, bottom }, index) => {
+      const visible = verticalVisible && index >= firstRack && index <= lastRack && right >= minX && left <= maxX && bottom >= minY && top <= maxY;
       const next = visible ? 'true' : 'false';
       rackViewportTelemetry.racksTested++;
       if (visible) visibleRacks++;
@@ -331,11 +379,20 @@
   function configureMultiRackVisibility(rackStage, isMulti) {
     rackVisibilityObserver?.disconnect();
     rackVisibilityObserver = null;
+    rackViewportResizeObserver?.disconnect();
+    rackViewportResizeObserver = null;
+    rackViewportEntries = [];
+    rackViewportMaxBottom = 0;
+    rackViewportSignature = null;
+    rackViewportSize = { width: 0, height: 0 };
     if (!isMulti) return;
 
     const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
     const containers = Array.from(rackStage.querySelectorAll('.rack-container[data-rack-id]'));
     if (!canvas || !containers.length) return;
+
+    rebuildRackViewportEntries(rackStage);
+    observeRackViewportSize(canvas);
 
     const nativeVirtualization = typeof CSS !== 'undefined' && CSS.supports?.('content-visibility', 'auto');
     rackStage.dataset.nativeRackVirtualization = nativeVirtualization ? 'true' : 'false';
@@ -346,6 +403,7 @@
 
     if (containers.length <= 20) {
       containers.forEach(container => { container.dataset.virtualVisible = 'true'; });
+      syncRackViewportVisibility(RS.ZOOM_STATE);
       return;
     }
 
@@ -767,7 +825,8 @@
       viewportPasses: rackViewportTelemetry.passes,
       viewportRacksTested: rackViewportTelemetry.racksTested,
       viewportVisibilityChanges: rackViewportTelemetry.visibilityChanges,
-      viewportUnchangedSkips: rackViewportTelemetry.unchangedSkips
+      viewportUnchangedSkips: rackViewportTelemetry.unchangedSkips,
+      viewportSignatureSkips: rackViewportTelemetry.signatureSkips
     };
   };
 

@@ -49,6 +49,7 @@ const assert = require('node:assert/strict');
       api.renderAllCables();
       const canvas=document.getElementById('viewport-canvas');
       const rect=canvas.getBoundingClientRect();
+      api.resetCameraPerformanceTelemetry?.();
       canvas.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:rect.left+10,clientY:rect.top+10}));
       const intervals=[]; let previous;
       for(let frame=0;frame<180;frame++) {
@@ -165,6 +166,12 @@ const assert = require('node:assert/strict');
         intervalsAbove20Ms:intervals.filter(n=>n>20).length,
         panFrameCommits:cameraTelemetry.panFrameCommits ?? 0,
         panFramePacingSkips:cameraTelemetry.panFramePacingSkips ?? 0,
+        cameraTransformCommits:cameraTelemetry.transformCommits ?? 0,
+        cameraCommitAverageMs:cameraTelemetry.averageCommitDurationMs ?? 0,
+        cameraCommitP95Ms:cameraTelemetry.p95CommitDurationMs ?? 0,
+        cameraCommitMaxMs:cameraTelemetry.maxCommitDurationMs ?? 0,
+        rackSyncAverageMs:cameraTelemetry.averageRackSyncDurationMs ?? 0,
+        pixiSyncAverageMs:cameraTelemetry.averagePixiSyncDurationMs ?? 0,
         pixiDisplayCount:pixiState.displayCount,
         retainedRenderCalls,
         retainedBatchMs,
@@ -180,6 +187,7 @@ const assert = require('node:assert/strict');
         rackCullingCulled:rackCullingProbe?.focused.viewportCulledRackCount ?? null,
         rackCullingStableWriteDelta:rackCullingProbe ? rackCullingProbe.stable.viewportVisibilityChanges-rackCullingProbe.focused.viewportVisibilityChanges : null,
         rackCullingStableSkipDelta:rackCullingProbe ? rackCullingProbe.stable.viewportUnchangedSkips-rackCullingProbe.focused.viewportUnchangedSkips : null,
+        rackCullingSignatureSkipDelta:rackCullingProbe ? rackCullingProbe.stable.viewportSignatureSkips-rackCullingProbe.focused.viewportSignatureSkips : null,
         batchDisplayCount:pixiState.renderStats.batchDisplayCount,
         batchRebuilds:pixiState.renderStats.batchRebuilds,
         viewportRendererV2:pixiState.viewportRendererV2,
@@ -276,11 +284,16 @@ const assert = require('node:assert/strict');
       assert.ok(results.rackCullingVisible<results.rackCount);
       assert.equal(results.rackCullingStableWriteDelta,0);
       assert.ok(results.rackCullingStableSkipDelta>0);
+      assert.ok(results.rackCullingSignatureSkipDelta>0);
     }
     assert.ok(results.rendererWidth <= 1600 && results.rendererHeight <= 1000);
     assert.ok(results.batchDisplayCount < (renderAllRacks ? 64 : 32));
     assert.ok(results.frameIntervalP95Ms <= 40, `pan p95 regression: ${results.frameIntervalP95Ms}ms`);
     assert.ok(results.panFrameCommits <= results.panFrames);
+    assert.ok(results.cameraTransformCommits >= results.panFrameCommits);
+    assert.ok(results.cameraTransformCommits <= results.panFrameCommits + 1);
+    assert.ok(results.cameraCommitAverageMs <= 8, `camera commit average regression: ${results.cameraCommitAverageMs}ms`);
+    assert.ok(results.cameraCommitP95Ms <= 16.7, `camera commit p95 regression: ${results.cameraCommitP95Ms}ms`);
     if(results.baselineFrameIntervalP50Ms < 12) {
       assert.ok(results.panFramePacingSkips>0);
       assert.ok(results.panFrameCommits<results.panFrames);

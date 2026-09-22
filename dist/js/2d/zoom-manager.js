@@ -14,8 +14,25 @@
   const CAMERA_FRAME_INTERVAL_MS = 1000 / 60;
   const cameraPerformanceTelemetry = {
     panFrameCommits: 0,
-    panFramePacingSkips: 0
+    panFramePacingSkips: 0,
+    transformCommits: 0,
+    totalCommitDurationMs: 0,
+    maxCommitDurationMs: 0,
+    totalRackSyncDurationMs: 0,
+    totalPixiSyncDurationMs: 0,
+    commitDurations: []
   };
+
+  function resetCameraPerformanceTelemetry() {
+    cameraPerformanceTelemetry.panFrameCommits = 0;
+    cameraPerformanceTelemetry.panFramePacingSkips = 0;
+    cameraPerformanceTelemetry.transformCommits = 0;
+    cameraPerformanceTelemetry.totalCommitDurationMs = 0;
+    cameraPerformanceTelemetry.maxCommitDurationMs = 0;
+    cameraPerformanceTelemetry.totalRackSyncDurationMs = 0;
+    cameraPerformanceTelemetry.totalPixiSyncDurationMs = 0;
+    cameraPerformanceTelemetry.commitDurations.length = 0;
+  }
 
   function schedulePixiResolutionRefresh(scale, delay = 220) {
     if (pixiResolutionRefreshTimer) clearTimeout(pixiResolutionRefreshTimer);
@@ -43,6 +60,7 @@
   let lastDispatchedScale = null;
   function updateStageTransform(smooth = false) {
     if (!RS.dom?.rackStage) return;
+    const commitStarted = performance.now();
     ensureStageTransitionListener();
 
     const transitionValue = smooth ? 'transform 0.25s cubic-bezier(0.2, 0.8, 0.25, 1)' : 'none';
@@ -56,8 +74,12 @@
       lastTransformValue = transformValue;
     }
     RS.setPixiInteractionMode?.(true, true);
+    const rackSyncStarted = performance.now();
     RS.syncRackViewportVisibility?.(RS.ZOOM_STATE);
+    cameraPerformanceTelemetry.totalRackSyncDurationMs += performance.now() - rackSyncStarted;
+    const pixiSyncStarted = performance.now();
     RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
+    cameraPerformanceTelemetry.totalPixiSyncDurationMs += performance.now() - pixiSyncStarted;
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
       RS.dom.zoomBadge.textContent = zoomBadgeValue;
@@ -72,6 +94,12 @@
     if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
       RS.dom.rackStage.setAttribute('data-lod', currentLod);
     }
+    const commitDuration = performance.now() - commitStarted;
+    cameraPerformanceTelemetry.transformCommits++;
+    cameraPerformanceTelemetry.totalCommitDurationMs += commitDuration;
+    cameraPerformanceTelemetry.maxCommitDurationMs = Math.max(cameraPerformanceTelemetry.maxCommitDurationMs, commitDuration);
+    cameraPerformanceTelemetry.commitDurations.push(commitDuration);
+    if (cameraPerformanceTelemetry.commitDurations.length > 240) cameraPerformanceTelemetry.commitDurations.shift();
   }
 
   function fitRackToScreen(smooth = true) {
@@ -682,7 +710,19 @@
 
   RS.ensureStageTransitionListener = ensureStageTransitionListener;
   RS.updateStageTransform = updateStageTransform;
-  RS.getCameraPerformanceTelemetry = () => ({ ...cameraPerformanceTelemetry });
+  RS.resetCameraPerformanceTelemetry = resetCameraPerformanceTelemetry;
+  RS.getCameraPerformanceTelemetry = () => {
+    const durations = [...cameraPerformanceTelemetry.commitDurations].sort((a, b) => a - b);
+    const commits = cameraPerformanceTelemetry.transformCommits;
+    return {
+      ...cameraPerformanceTelemetry,
+      commitDurations: undefined,
+      averageCommitDurationMs: commits ? cameraPerformanceTelemetry.totalCommitDurationMs / commits : 0,
+      p95CommitDurationMs: durations.length ? durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.95))] : 0,
+      averageRackSyncDurationMs: commits ? cameraPerformanceTelemetry.totalRackSyncDurationMs / commits : 0,
+      averagePixiSyncDurationMs: commits ? cameraPerformanceTelemetry.totalPixiSyncDurationMs / commits : 0
+    };
+  };
   RS.fitRackToScreen = fitRackToScreen;
   RS.fit = fitRackToScreen;
   RS.setZoom = setZoom;
