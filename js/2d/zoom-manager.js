@@ -93,6 +93,7 @@
     const currentLod = RS.ZOOM_STATE.scale < 0.35 ? 'macro' : 'detail';
     if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
       RS.dom.rackStage.setAttribute('data-lod', currentLod);
+      RS.syncPixiDeviceSceneLOD?.(currentLod);
     }
     const commitDuration = performance.now() - commitStarted;
     cameraPerformanceTelemetry.transformCommits++;

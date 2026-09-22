@@ -817,6 +817,35 @@ async function run() {
     assert.equal(resolutionProfile.restored.profile, 'balanced');
     assert.ok(resolutionProfile.restored.framebufferPixels <= resolutionProfile.restored.pixelBudget, 'restored framebuffer must remain inside its pixel budget');
 
+    const deviceLod = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      const originalScale = RS.ZOOM_STATE.scale;
+      RS.ZOOM_STATE.scale = 0.3;
+      RS.updateStageTransform(false);
+      await new Promise(resolve => setTimeout(resolve, 40));
+      const faceplate = document.querySelector('.mounted-device[data-category="switch"] .device-faceplate');
+      const macro = {
+        lod: RS.dom.rackStage.dataset.lod,
+        renderer: document.documentElement.dataset.deviceRenderer,
+        faceplateDisplay: getComputedStyle(faceplate).display,
+        telemetry: RS.getPixiPerformanceTelemetry()
+      };
+      RS.ZOOM_STATE.scale = originalScale;
+      RS.updateStageTransform(false);
+      await new Promise(resolve => setTimeout(resolve, 40));
+      const detail = {
+        lod: RS.dom.rackStage.dataset.lod,
+        faceplateDisplay: getComputedStyle(faceplate).display
+      };
+      return { macro, detail };
+    });
+    assert.equal(deviceLod.macro.lod, 'macro');
+    assert.equal(deviceLod.macro.renderer, 'pixi');
+    assert.equal(deviceLod.macro.faceplateDisplay, 'none', 'macro Pixi LOD must suppress repetitive DOM faceplate layout and paint');
+    assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
+    assert.equal(deviceLod.detail.lod, 'detail');
+    assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
+
     await page.waitForTimeout(1100);
     const idleStart = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());
     await page.waitForTimeout(250);

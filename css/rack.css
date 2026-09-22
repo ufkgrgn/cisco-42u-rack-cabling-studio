@@ -2032,6 +2032,13 @@
   display: none !important;
 }
 
+/* The macro LOD uses retained Pixi batches for repetitive faceplates. D-rings
+   and blanking panels remain DOM-rendered because their physical shapes are
+   part of cable routing and rack structure. */
+[data-device-renderer="pixi"] [data-lod="macro"] .mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate {
+  display: none !important;
+}
+
 /* Disable hit testing once at the retained-scene root while dragging or zooming.
    Preserves all layer rasterization in GPU VRAM with ZERO tile invalidations. */
 .rack-stage.panning-active,

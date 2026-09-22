@@ -115,6 +115,7 @@
         if (devEl && devEl.dataset.renderKey === renderKey) {
           devEl.dataset.instanceId = dev.instanceId;
           devEl.dataset.catalogKey = catKey;
+          devEl.dataset.category = cat.category || '';
           devEl.dataset.rackId = rack.id;
           if (devEl.parentElement !== slotEl) slotEl.appendChild(devEl);
           return;
@@ -125,6 +126,7 @@
         devEl.id = dev.instanceId;
         devEl.dataset.instanceId = dev.instanceId;
         devEl.dataset.catalogKey = catKey;
+        devEl.dataset.category = cat.category || '';
         devEl.dataset.renderKey = renderKey;
         devEl.style.height = `${dev.uHeight * 32}px`;
         devEl.style.top = '0px';
