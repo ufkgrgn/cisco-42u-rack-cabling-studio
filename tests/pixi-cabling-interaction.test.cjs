@@ -846,7 +846,11 @@ async function run() {
       const freePorts = RS.DeviceSceneRegistry.getSnapshot().ports.filter(port =>
         !occupied.has(`${port.instanceId}::${port.portId}`)
       );
-      const beforeOccupancy = RS.getPixiPerformanceTelemetry();
+      const beforeNoopOccupancy = RS.getPixiPerformanceTelemetry();
+      RS.syncPixiDeviceSceneLOD('macro');
+      const afterNoopOccupancy = RS.getPixiPerformanceTelemetry();
+      const beforeOccupancy = afterNoopOccupancy;
+      macro.occupancyCacheNoop = { before: beforeNoopOccupancy, after: afterNoopOccupancy };
       RS.STATE.cables.push({
         id: 'device-scene-occupancy-probe',
         from: { instanceId: freePorts[0].instanceId, portId: freePorts[0].portId },
@@ -884,11 +888,14 @@ async function run() {
     assert.ok(deviceLod.macro.telemetry.visibleDeviceRacks > 0, 'the camera viewport must retain its visible rack device group');
     assert.ok(deviceLod.macro.offscreenCulling.culledDeviceRacks > 0, 'device rack groups outside the camera viewport must be culled');
     assert.equal(deviceLod.macro.offscreenCulling.visibleDeviceRacks, 0, 'a camera viewport far outside the scene must cull every device rack group');
+    assert.equal(deviceLod.macro.occupancyCacheNoop.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyCacheNoop.before.deviceOccupancySetRebuilds, 'stable cable endpoints must reuse the occupancy set');
+    assert.equal(deviceLod.macro.occupancyCacheNoop.after.deviceOccupancyFingerprintChecks, deviceLod.macro.occupancyCacheNoop.before.deviceOccupancyFingerprintChecks + 1, 'stable occupancy should require only one linear fingerprint pass');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisRebuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisRebuilds, 'cable occupancy changes must retain the chassis batch');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisAtlasBuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisAtlasBuilds, 'cable occupancy changes must reuse the chassis atlas');
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyUpdate.before.deviceOccupancySetRebuilds + 1, 'a changed cable endpoint set must rebuild occupancy once');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
     assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');

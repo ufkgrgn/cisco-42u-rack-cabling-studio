@@ -61,7 +61,13 @@
   const organizerWorldYCache = new Map();
   let lastDeviceSceneSignature = null;
   let lastDeviceGeometrySignature = null;
-  let lastDeviceOccupancySignature = null;
+  let cachedDeviceOccupancy = new Set();
+  let cachedOccupancyCableCount = -1;
+  let cachedOccupancyEndpointCount = -1;
+  let cachedOccupancyHashA = 0;
+  let cachedOccupancyHashB = 0;
+  let deviceOccupancyChanged = false;
+  const EMPTY_CABLE_LIST = Object.freeze([]);
   let deviceChassisAtlas = null;
   let deviceChassisTextures = null;
   const deviceRackScenes = new Map();
@@ -138,6 +144,8 @@
     visibleDeviceRacks: 0,
     culledDeviceRacks: 0,
     devicePortRebuilds: 0,
+    deviceOccupancyFingerprintChecks: 0,
+    deviceOccupancySetRebuilds: 0,
     deviceOccupancyOnlyUpdates: 0,
     devicePortStateChanges: 0,
     rackCacheHits: 0,
@@ -338,7 +346,10 @@
     RS.DeviceSceneRegistry?.invalidate();
     lastDeviceSceneSignature = null;
     lastDeviceGeometrySignature = null;
-    lastDeviceOccupancySignature = null;
+    cachedDeviceOccupancy = new Set();
+    cachedOccupancyCableCount = -1;
+    cachedOccupancyEndpointCount = -1;
+    deviceOccupancyChanged = false;
     rackRailWorldCache.clear();
     organizerWorldYCache.clear();
     lastLayoutSignature = null;
@@ -1634,17 +1645,61 @@
     return `${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
   }
 
-  function collectDeviceOccupancy() {
-    const occupied = new Set();
-    (STATE.cables || []).forEach(cable => {
-      if (cable.from) occupied.add(`${cable.from.instanceId}::${cable.from.portId}`);
-      if (cable.to) occupied.add(`${cable.to.instanceId}::${cable.to.portId}`);
-    });
-    return occupied;
+  function hashOccupancyValue(value, hash, prime) {
+    const text = String(value);
+    for (let index = 0; index < text.length; index++) {
+      hash = Math.imul(hash ^ text.charCodeAt(index), prime) >>> 0;
+    }
+    return Math.imul(hash ^ 0xff, prime) >>> 0;
   }
 
-  function buildDeviceOccupancySignature(occupied) {
-    return Array.from(occupied).sort().join('|');
+  function collectDeviceOccupancy() {
+    const cables = STATE.cables || EMPTY_CABLE_LIST;
+    let endpointCount = 0;
+    let hashA = 2166136261;
+    let hashB = 0x9e3779b9;
+    const primeA = 16777619;
+    const primeB = 2246822519;
+    performanceTelemetry.deviceOccupancyFingerprintChecks++;
+
+    for (let index = 0; index < cables.length; index++) {
+      const cable = cables[index];
+      if (!cable) continue;
+      if (cable.from) {
+        hashA = hashOccupancyValue(cable.from.instanceId, hashA, primeA);
+        hashA = hashOccupancyValue(cable.from.portId, hashA, primeA);
+        hashB = hashOccupancyValue(cable.from.portId, hashB, primeB);
+        hashB = hashOccupancyValue(cable.from.instanceId, hashB, primeB);
+        endpointCount++;
+      }
+      if (cable.to) {
+        hashA = hashOccupancyValue(cable.to.instanceId, hashA, primeA);
+        hashA = hashOccupancyValue(cable.to.portId, hashA, primeA);
+        hashB = hashOccupancyValue(cable.to.portId, hashB, primeB);
+        hashB = hashOccupancyValue(cable.to.instanceId, hashB, primeB);
+        endpointCount++;
+      }
+    }
+
+    deviceOccupancyChanged = cables.length !== cachedOccupancyCableCount ||
+      endpointCount !== cachedOccupancyEndpointCount ||
+      hashA !== cachedOccupancyHashA || hashB !== cachedOccupancyHashB;
+    if (!deviceOccupancyChanged) return cachedDeviceOccupancy;
+
+    const occupied = new Set();
+    for (let index = 0; index < cables.length; index++) {
+      const cable = cables[index];
+      if (!cable) continue;
+      if (cable.from) occupied.add(`${cable.from.instanceId}::${cable.from.portId}`);
+      if (cable.to) occupied.add(`${cable.to.instanceId}::${cable.to.portId}`);
+    }
+    cachedDeviceOccupancy = occupied;
+    cachedOccupancyCableCount = cables.length;
+    cachedOccupancyEndpointCount = endpointCount;
+    cachedOccupancyHashA = hashA;
+    cachedOccupancyHashB = hashB;
+    performanceTelemetry.deviceOccupancySetRebuilds++;
+    return cachedDeviceOccupancy;
   }
 
   function ensureDevicePortTextures() {
@@ -1744,9 +1799,8 @@
     if (!snapshot || !snapshot.devices.length) return false;
     const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
     const occupied = collectDeviceOccupancy();
-    const occupancySignature = buildDeviceOccupancySignature(occupied);
     const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;
-    const occupancyChanged = occupancySignature !== lastDeviceOccupancySignature;
+    const occupancyChanged = deviceOccupancyChanged;
     if (!geometryChanged && !occupancyChanged) {
       document.documentElement.setAttribute('data-device-renderer', 'pixi');
       performanceTelemetry.deviceSceneSkippedRebuilds++;
@@ -1771,8 +1825,7 @@
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
     RS.DeviceSceneRegistry?.suspendDomFaceplates();
     lastDeviceGeometrySignature = geometrySignature;
-    lastDeviceOccupancySignature = occupancySignature;
-    lastDeviceSceneSignature = `${geometrySignature}|${occupancySignature}`;
+    lastDeviceSceneSignature = `${geometrySignature}|${cachedOccupancyCableCount}:${cachedOccupancyEndpointCount}:${cachedOccupancyHashA}:${cachedOccupancyHashB}`;
     if (geometryChanged && STATE.pixiViewportRendererV2 !== false) {
       const viewportBounds = getPixiWorldViewportBounds(RS.ZOOM_STATE);
       applyDeviceViewportCulling(viewportBounds.minX, viewportBounds.minY, viewportBounds.maxX, viewportBounds.maxY);
@@ -2614,6 +2667,8 @@
       visibleDeviceRacks: performanceTelemetry.visibleDeviceRacks,
       culledDeviceRacks: performanceTelemetry.culledDeviceRacks,
       devicePortRebuilds: performanceTelemetry.devicePortRebuilds,
+      deviceOccupancyFingerprintChecks: performanceTelemetry.deviceOccupancyFingerprintChecks,
+      deviceOccupancySetRebuilds: performanceTelemetry.deviceOccupancySetRebuilds,
       deviceOccupancyOnlyUpdates: performanceTelemetry.deviceOccupancyOnlyUpdates,
       devicePortStateChanges: performanceTelemetry.devicePortStateChanges,
       rackCacheHits: performanceTelemetry.rackCacheHits,
