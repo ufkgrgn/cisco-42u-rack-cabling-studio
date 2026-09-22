@@ -62,11 +62,10 @@
   let lastDeviceSceneSignature = null;
   let lastDeviceGeometrySignature = null;
   let lastDeviceOccupancySignature = null;
-  let deviceChassisContainer = null;
-  let deviceChassisOverlays = null;
   let deviceChassisAtlas = null;
   let deviceChassisTextures = null;
-  let devicePortsContainer = null;
+  const deviceRackScenes = new Map();
+  const deviceRackByInstance = new Map();
   let devicePortAtlas = null;
   let devicePortTextures = null;
   const devicePortSprites = new Map();
@@ -133,6 +132,11 @@
     deviceChassisRebuilds: 0,
     deviceChassisAtlasBuilds: 0,
     deviceChassisSpriteCount: 0,
+    deviceCullingPasses: 0,
+    deviceCullingVisibilityChanges: 0,
+    deviceCullingUnchangedSkips: 0,
+    visibleDeviceRacks: 0,
+    culledDeviceRacks: 0,
     devicePortRebuilds: 0,
     deviceOccupancyOnlyUpdates: 0,
     devicePortStateChanges: 0,
@@ -1349,12 +1353,9 @@
     if (pixiCanvas) pixiCanvas.style.transform = 'none';
     pixiApp.stage.position.set(camera.panX || 0, camera.panY || 0);
     pixiApp.stage.scale.set(scale);
-    const viewportW = pixiApp.renderer.screen.width;
-    const viewportH = pixiApp.renderer.screen.height;
-    const minX = -(camera.panX || 0) / scale - 160;
-    const minY = -(camera.panY || 0) / scale - 160;
-    const maxX = minX + viewportW / scale + 320;
-    const maxY = minY + viewportH / scale + 320;
+    const viewportBounds = getPixiWorldViewportBounds(camera);
+    const { minX, minY, maxX, maxY } = viewportBounds;
+    applyDeviceViewportCulling(minX, minY, maxX, maxY);
     let visibleBatches = 0;
     let culledBatches = 0;
     performanceTelemetry.cullingPasses++;
@@ -1379,6 +1380,39 @@
     performanceTelemetry.visibleRackBatches = visibleBatches;
     performanceTelemetry.culledRackBatches = culledBatches;
     return renderPixi(reason);
+  }
+
+  function getPixiWorldViewportBounds(camera = RS.ZOOM_STATE || {}) {
+    const scale = Math.max(0.001, Number(camera.scale) || 1);
+    const minX = -(camera.panX || 0) / scale - 160;
+    const minY = -(camera.panY || 0) / scale - 160;
+    return {
+      minX,
+      minY,
+      maxX: minX + pixiApp.renderer.screen.width / scale + 320,
+      maxY: minY + pixiApp.renderer.screen.height / scale + 320
+    };
+  }
+
+  function applyDeviceViewportCulling(minX, minY, maxX, maxY) {
+    if (!deviceRackScenes.size) return;
+    let visibleRacks = 0;
+    let culledRacks = 0;
+    performanceTelemetry.deviceCullingPasses++;
+    for (const scene of deviceRackScenes.values()) {
+      const bounds = scene.bounds;
+      const visible = !bounds || (bounds.maxX >= minX && bounds.minX <= maxX && bounds.maxY >= minY && bounds.minY <= maxY);
+      if (visible) visibleRacks++;
+      else culledRacks++;
+      if (scene.container.visible === visible) {
+        performanceTelemetry.deviceCullingUnchangedSkips++;
+        continue;
+      }
+      scene.container.visible = visible;
+      performanceTelemetry.deviceCullingVisibilityChanges++;
+    }
+    performanceTelemetry.visibleDeviceRacks = visibleRacks;
+    performanceTelemetry.culledDeviceRacks = culledRacks;
   }
 
   function getOrCreatePixiCanvas(parentContainer, width, height) {
@@ -1516,17 +1550,63 @@
     return deviceChassisTextures;
   }
 
+  function destroyDeviceRackScenes() {
+    deviceSceneContainer?.removeChildren?.().forEach(rackContainer => {
+      rackContainer.removeChildren?.().forEach(layer => {
+        layer.removeChildren?.().forEach(child => child.destroy?.());
+        layer.destroy?.();
+      });
+      rackContainer.destroy?.();
+    });
+    deviceRackScenes.clear();
+    deviceRackByInstance.clear();
+    devicePortSprites.clear();
+    devicePortOccupancy.clear();
+  }
+
+  function getOrCreateDeviceRackScene(rackId) {
+    const key = String(rackId || '__unknown__');
+    let scene = deviceRackScenes.get(key);
+    if (scene) return scene;
+    const container = new window.PIXI.Container();
+    container.label = `rack-device-scene-${key}`;
+    container.eventMode = 'none';
+    const chassis = new window.PIXI.Container();
+    chassis.label = `rack-device-chassis-${key}`;
+    chassis.eventMode = 'none';
+    const overlays = new window.PIXI.Graphics();
+    overlays.label = `rack-device-overlays-${key}`;
+    const ports = new window.PIXI.Container();
+    ports.label = `rack-device-ports-${key}`;
+    ports.eventMode = 'none';
+    container.addChild(chassis, overlays, ports);
+    scene = { key, container, chassis, overlays, ports, bounds: null };
+    deviceRackScenes.set(key, scene);
+    return scene;
+  }
+
+  function includeDeviceInRackBounds(scene, device) {
+    const bounds = scene.bounds || (scene.bounds = {
+      minX: device.x,
+      minY: device.y,
+      maxX: device.x + device.width,
+      maxY: device.y + device.height
+    });
+    bounds.minX = Math.min(bounds.minX, device.x);
+    bounds.minY = Math.min(bounds.minY, device.y);
+    bounds.maxX = Math.max(bounds.maxX, device.x + device.width);
+    bounds.maxY = Math.max(bounds.maxY, device.y + device.height);
+  }
+
   function buildDeviceChassis(devices) {
     const textures = ensureDeviceChassisTextures();
     if (!textures) return;
-    deviceChassisContainer?.removeChildren?.().forEach(sprite => sprite.destroy?.());
-    deviceChassisContainer = new window.PIXI.Container();
-    deviceChassisContainer.label = 'rack-device-chassis-sprites';
-    deviceChassisContainer.eventMode = 'none';
-    deviceChassisOverlays = new window.PIXI.Graphics();
-    deviceChassisOverlays.label = 'rack-device-chassis-overlays';
+    destroyDeviceRackScenes();
     let spriteCount = 0;
     devices.forEach(device => {
+      const scene = getOrCreateDeviceRackScene(device.rackId);
+      deviceRackByInstance.set(String(device.instanceId), scene.key);
+      includeDeviceInRackBounds(scene, device);
       if (device.category === 'organizer' || device.category === 'blank') return;
       const style = deviceSceneStyle(device.category);
       const sprite = new window.PIXI.NineSliceSprite({
@@ -1540,12 +1620,13 @@
       });
       sprite.position.set(device.x, device.y);
       sprite.eventMode = 'none';
-      deviceChassisContainer.addChild(sprite);
-      deviceChassisOverlays.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
-      deviceChassisOverlays.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
+      scene.chassis.addChild(sprite);
+      scene.overlays.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
+      scene.overlays.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
         .fill({ color: 0x0b1726, alpha: 0.92 });
       spriteCount++;
     });
+    deviceRackScenes.forEach(scene => deviceSceneContainer.addChild(scene.container));
     performanceTelemetry.deviceChassisSpriteCount = spriteCount;
   }
 
@@ -1600,24 +1681,16 @@
     return ['sfp', 'sfp+', 'qsfp28'].includes(String(port.type || '').toLowerCase()) ? 'optic' : 'copper';
   }
 
-  function clearDevicePortSprites() {
-    if (devicePortsContainer) {
-      devicePortsContainer.removeChildren().forEach(sprite => sprite.destroy?.());
-    }
-    devicePortSprites.clear();
-    devicePortOccupancy.clear();
-  }
-
   function buildDevicePortSprites(ports, occupied) {
     const textures = ensureDevicePortTextures();
     if (!textures) return;
-    clearDevicePortSprites();
-    devicePortsContainer = new window.PIXI.Container();
-    devicePortsContainer.label = 'rack-device-port-sprites';
-    devicePortsContainer.eventMode = 'none';
+    devicePortSprites.clear();
+    devicePortOccupancy.clear();
     ports.forEach(port => {
       if (port.category === 'organizer' || port.category === 'blank') return;
       const key = `${port.instanceId}::${port.portId}`;
+      const rackScene = deviceRackScenes.get(deviceRackByInstance.get(String(port.instanceId)));
+      if (!rackScene) return;
       const isOccupied = occupied.has(key);
       const width = Math.max(3, port.width * 0.82);
       const height = Math.max(3, port.height * 0.82);
@@ -1627,7 +1700,7 @@
       sprite.width = width;
       sprite.height = height;
       sprite.eventMode = 'none';
-      devicePortsContainer.addChild(sprite);
+      rackScene.ports.addChild(sprite);
       devicePortSprites.set(key, sprite);
       devicePortOccupancy.set(key, isOccupied);
     });
@@ -1688,10 +1761,6 @@
     if (geometryChanged) {
       buildDevicePortSprites(snapshot.ports, occupied);
       performanceTelemetry.devicePortRebuilds++;
-      deviceSceneContainer.removeChildren();
-      if (deviceChassisContainer) deviceSceneContainer.addChild(deviceChassisContainer);
-      if (deviceChassisOverlays) deviceSceneContainer.addChild(deviceChassisOverlays);
-      if (devicePortsContainer) deviceSceneContainer.addChild(devicePortsContainer);
     } else if (occupancyChanged) {
       const changedPorts = updateDevicePortOccupancy(snapshot.ports, occupied);
       performanceTelemetry.devicePortStateChanges += changedPorts;
@@ -1704,6 +1773,10 @@
     lastDeviceGeometrySignature = geometrySignature;
     lastDeviceOccupancySignature = occupancySignature;
     lastDeviceSceneSignature = `${geometrySignature}|${occupancySignature}`;
+    if (geometryChanged && STATE.pixiViewportRendererV2 !== false) {
+      const viewportBounds = getPixiWorldViewportBounds(RS.ZOOM_STATE);
+      applyDeviceViewportCulling(viewportBounds.minX, viewportBounds.minY, viewportBounds.maxX, viewportBounds.maxY);
+    }
     performanceTelemetry.deviceSceneRebuilds++;
     return true;
   }
@@ -2535,6 +2608,11 @@
       deviceChassisRebuilds: performanceTelemetry.deviceChassisRebuilds,
       deviceChassisAtlasBuilds: performanceTelemetry.deviceChassisAtlasBuilds,
       deviceChassisSpriteCount: performanceTelemetry.deviceChassisSpriteCount,
+      deviceCullingPasses: performanceTelemetry.deviceCullingPasses,
+      deviceCullingVisibilityChanges: performanceTelemetry.deviceCullingVisibilityChanges,
+      deviceCullingUnchangedSkips: performanceTelemetry.deviceCullingUnchangedSkips,
+      visibleDeviceRacks: performanceTelemetry.visibleDeviceRacks,
+      culledDeviceRacks: performanceTelemetry.culledDeviceRacks,
       devicePortRebuilds: performanceTelemetry.devicePortRebuilds,
       deviceOccupancyOnlyUpdates: performanceTelemetry.deviceOccupancyOnlyUpdates,
       devicePortStateChanges: performanceTelemetry.devicePortStateChanges,

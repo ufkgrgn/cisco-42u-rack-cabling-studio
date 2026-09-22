@@ -827,6 +827,7 @@ async function run() {
       const faceplate = document.querySelector('.mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate');
       RS.ZOOM_STATE.scale = 0.3;
       RS.updateStageTransform(false);
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-probe');
       await new Promise(resolve => setTimeout(resolve, 40));
       const macro = {
         lod: RS.dom.rackStage.dataset.lod,
@@ -857,6 +858,9 @@ async function run() {
       RS.STATE.cables.pop();
       RS.syncPixiDeviceSceneLOD('macro');
       macro.occupancyUpdate = { before: beforeOccupancy, after: afterOccupancy };
+      RS.syncPixiViewportCamera({ scale: 0.3, panX: -100000, panY: -100000 }, true, 'device-culling-offscreen');
+      macro.offscreenCulling = RS.getPixiPerformanceTelemetry();
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-restore');
       RS.ZOOM_STATE.scale = 1;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 40));
@@ -877,6 +881,9 @@ async function run() {
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
     assert.ok(deviceLod.macro.telemetry.deviceChassisAtlasBuilds >= 1, 'macro LOD must rasterize the chassis style atlas once');
     assert.ok(deviceLod.macro.telemetry.deviceChassisSpriteCount > 0, 'macro LOD must render chassis bodies from shared nine-slice textures');
+    assert.ok(deviceLod.macro.telemetry.visibleDeviceRacks > 0, 'the camera viewport must retain its visible rack device group');
+    assert.ok(deviceLod.macro.offscreenCulling.culledDeviceRacks > 0, 'device rack groups outside the camera viewport must be culled');
+    assert.equal(deviceLod.macro.offscreenCulling.visibleDeviceRacks, 0, 'a camera viewport far outside the scene must cull every device rack group');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisRebuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisRebuilds, 'cable occupancy changes must retain the chassis batch');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisAtlasBuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisAtlasBuilds, 'cable occupancy changes must reuse the chassis atlas');
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
