@@ -23,6 +23,7 @@
   const showInlineDeleteConfirm = (...args) => RS.showInlineDeleteConfirm && RS.showInlineDeleteConfirm(...args);
   const removeDevice = (...args) => RS.removeDevice && RS.removeDevice(...args);
   const clearDeviceCables = (...args) => RS.clearDeviceCables && RS.clearDeviceCables(...args);
+  let lastDeviceSceneLayoutSignature = '';
 
   const resolveCatalogItem = (key) => {
     if (!key) return null;
@@ -112,6 +113,9 @@
         ]);
         let devEl = existingDevices.get(dev.instanceId);
         if (devEl && devEl.dataset.renderKey === renderKey) {
+          devEl.dataset.instanceId = dev.instanceId;
+          devEl.dataset.catalogKey = catKey;
+          devEl.dataset.rackId = rack.id;
           if (devEl.parentElement !== slotEl) slotEl.appendChild(devEl);
           return;
         }
@@ -119,6 +123,8 @@
         devEl = document.createElement('div');
         devEl.className = 'mounted-device';
         devEl.id = dev.instanceId;
+        devEl.dataset.instanceId = dev.instanceId;
+        devEl.dataset.catalogKey = catKey;
         devEl.dataset.renderKey = renderKey;
         devEl.style.height = `${dev.uHeight * 32}px`;
         devEl.style.top = '0px';
@@ -143,6 +149,31 @@
     existingDevices.forEach((element, instanceId) => {
       if (!desiredDeviceIds.has(instanceId)) element.remove();
     });
+
+    // Publish one normalized port template per catalog and lightweight world
+    // records per mounted instance. Pixi cables consume this registry first,
+    // which removes their per-cable dependency on live port DOM geometry.
+    if (STATE.cableRenderMode === 'pixi' && RS.DeviceSceneRegistry) {
+      const deviceSceneLayoutSignature = [
+        STATE.viewMode || 'single',
+        STATE.activeRackId || '',
+        racksToRender.map(rack => [
+          rack.id,
+          rack.heightU || 42,
+          (rack.devices || []).map(dev => [
+            dev.instanceId,
+            dev.catalogKey || dev.catalogId,
+            dev.topU,
+            dev.uHeight || 1
+          ].join(':')).join(',')
+        ].join('/')).join(';')
+      ].join('||');
+      const hasSceneGeometry = RS.DeviceSceneRegistry.getSnapshot().devices.length > 0;
+      if (!hasSceneGeometry || deviceSceneLayoutSignature !== lastDeviceSceneLayoutSignature) {
+        RS.DeviceSceneRegistry.captureFromDom('mounted-devices');
+        lastDeviceSceneLayoutSignature = deviceSceneLayoutSignature;
+      }
+    }
 
     bindPortInteractions();
     updateRackHeaderTelemetry();

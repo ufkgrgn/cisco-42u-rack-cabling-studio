@@ -114,6 +114,7 @@
     layoutCacheInvalidations: 0,
     endpointCacheHits: 0,
     endpointCacheMisses: 0,
+    deviceSceneEndpointHits: 0,
     rackCacheHits: 0,
     rackCacheMisses: 0,
     organizerCacheHits: 0,
@@ -309,6 +310,7 @@
 
   function invalidateLayoutGeometryCache() {
     endpointWorldCache.clear();
+    RS.DeviceSceneRegistry?.invalidate();
     rackRailWorldCache.clear();
     organizerWorldYCache.clear();
     lastLayoutSignature = null;
@@ -1654,9 +1656,14 @@
       return { x: (clientX - canvasRect.left) * stageW / canvasRect.width, y: (clientY - canvasRect.top) * stageH / canvasRect.height };
     }
 
-    function getPortPoint(el) {
+    function getPortPoint(el, instanceId, portId) {
+      const registryPoint = RS.DeviceSceneRegistry?.getPortPoint(instanceId, portId);
+      if (registryPoint) {
+        performanceTelemetry.deviceSceneEndpointHits++;
+        return registryPoint;
+      }
       if (!el) return null;
-      const key = el.id || `${el.dataset?.instanceId || ''}:${el.dataset?.portId || ''}`;
+      const key = el.id || `${instanceId || el.dataset?.instanceId || ''}:${portId || el.dataset?.portId || ''}`;
       const cached = endpointWorldCache.get(key);
       if (cached) {
         performanceTelemetry.endpointCacheHits++;
@@ -1764,7 +1771,9 @@
         isFromMounted = !!portFromEl;
         const localPortEl = isFromMounted ? portFromEl : portToEl;
         const remoteEndpoint = isFromMounted ? cable.to : cable.from;
-        const pLocal = getPortPoint(localPortEl);
+        const localInstanceId = isFromMounted ? instA : instB;
+        const localPortId = isFromMounted ? portIdA : portIdB;
+        const pLocal = getPortPoint(localPortEl, localInstanceId, localPortId);
         if (!pLocal) return;
 
         seenCableIds.add(cable.id);
@@ -1788,8 +1797,8 @@
         y2 = isFromMounted ? stubY : pLocal.y;
       } else {
         if (!portFromEl || !portToEl) return;
-        const p1 = getPortPoint(portFromEl);
-        const p2 = getPortPoint(portToEl);
+        const p1 = getPortPoint(portFromEl, instA, portIdA);
+        const p2 = getPortPoint(portToEl, instB, portIdB);
         if (!p1 || !p2) return;
         seenCableIds.add(cable.id);
         x1 = p1.x;
