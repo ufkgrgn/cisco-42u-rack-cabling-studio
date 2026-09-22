@@ -4,7 +4,8 @@
  * This module is the boundary between DOM faceplates and the retained Pixi
  * scene. Port layouts are measured once per catalog faceplate, normalized,
  * then projected onto every mounted instance without per-port DOM reads.
- * Later Pixi-only faceplates can publish the same records without creating DOM.
+ * Immutable snapshots are cached per generation so cable updates do not
+ * repeatedly allocate device/port arrays or rescan already-detached faceplates.
  */
 (function () {
   'use strict';
@@ -13,9 +14,12 @@
   const catalogTemplates = new Map();
   const deviceRecords = new Map();
   const portRecords = new Map();
+  const deviceElements = new Map();
   const detachedFaceplates = new Map();
   let generation = 0;
   let lastCaptureReason = 'init';
+  let snapshotCache = null;
+  let suspendedGeneration = -1;
 
   const stats = {
     captures: 0,
@@ -23,7 +27,11 @@
     templatePortRectReads: 0,
     projectedPorts: 0,
     templateHits: 0,
-    templateMisses: 0
+    templateMisses: 0,
+    snapshotBuilds: 0,
+    snapshotCacheHits: 0,
+    faceplateSuspendScans: 0,
+    faceplateSuspendSkips: 0
   };
 
   function endpointKey(instanceId, portId) {
@@ -86,12 +94,14 @@
 
     const nextDevices = new Map();
     const nextPorts = new Map();
+    const nextElements = new Map();
     const elements = document.querySelectorAll('.mounted-device[data-catalog-key]');
 
     elements.forEach(deviceEl => {
       const instanceId = deviceEl.dataset.instanceId || deviceEl.id;
       const catalogKey = deviceEl.dataset.catalogKey || '';
       if (!instanceId || !catalogKey) return;
+      nextElements.set(instanceId, deviceEl);
 
       const rect = deviceEl.getBoundingClientRect();
       stats.deviceRectReads++;
@@ -140,7 +150,10 @@
     nextDevices.forEach((value, key) => deviceRecords.set(key, value));
     portRecords.clear();
     nextPorts.forEach((value, key) => portRecords.set(key, value));
+    deviceElements.clear();
+    nextElements.forEach((value, key) => deviceElements.set(key, value));
     generation++;
+    snapshotCache = null;
     stats.captures++;
     lastCaptureReason = reason || 'render';
     return true;
@@ -149,6 +162,9 @@
   function invalidate(options) {
     deviceRecords.clear();
     portRecords.clear();
+    deviceElements.clear();
+    snapshotCache = null;
+    suspendedGeneration = -1;
     if (options?.templates) catalogTemplates.clear();
     generation++;
   }
@@ -162,28 +178,40 @@
   }
 
   function getSnapshot() {
-    return Object.freeze({
+    if (snapshotCache) {
+      stats.snapshotCacheHits++;
+      return snapshotCache;
+    }
+    snapshotCache = Object.freeze({
       generation,
       reason: lastCaptureReason,
-      devices: Array.from(deviceRecords.values()),
-      ports: Array.from(portRecords.values())
+      devices: Object.freeze(Array.from(deviceRecords.values())),
+      ports: Object.freeze(Array.from(portRecords.values()))
     });
+    stats.snapshotBuilds++;
+    return snapshotCache;
   }
 
   function suspendDomFaceplates() {
-    const mountedById = new Map(Array.from(document.querySelectorAll('.mounted-device')).map(element => [
-      element.dataset.instanceId || element.id,
-      element
-    ]));
+    if (suspendedGeneration === generation) {
+      stats.faceplateSuspendSkips++;
+      return detachedFaceplates.size;
+    }
+    stats.faceplateSuspendScans++;
 
     detachedFaceplates.forEach((entry, instanceId) => {
-      if (!entry.owner.isConnected || mountedById.get(instanceId) !== entry.owner) {
+      if (!entry.owner.isConnected || deviceElements.get(instanceId) !== entry.owner) {
+        if (entry.owner.isConnected && !entry.owner.querySelector('.device-faceplate')) {
+          entry.owner.appendChild(entry.element);
+        }
         detachedFaceplates.delete(instanceId);
       }
     });
 
-    mountedById.forEach((deviceEl, instanceId) => {
-      const category = deviceEl.dataset.category || '';
+    deviceRecords.forEach((record, instanceId) => {
+      const deviceEl = deviceElements.get(instanceId);
+      if (!deviceEl) return;
+      const category = record.category || '';
       if (category === 'organizer' || category === 'blank') return;
       if (detachedFaceplates.has(instanceId)) return;
       const faceplate = Array.from(deviceEl.children).find(child => child.classList?.contains('device-faceplate'));
@@ -191,6 +219,7 @@
       detachedFaceplates.set(instanceId, { owner: deviceEl, element: faceplate });
       faceplate.remove();
     });
+    suspendedGeneration = generation;
     return detachedFaceplates.size;
   }
 
@@ -203,6 +232,7 @@
       }
       detachedFaceplates.delete(instanceId);
     });
+    suspendedGeneration = -1;
     return restored;
   }
 

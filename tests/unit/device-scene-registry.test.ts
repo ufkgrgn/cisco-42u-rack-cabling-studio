@@ -67,6 +67,11 @@ describe('DeviceSceneRegistry', () => {
     expect(stats.templates).toBe(1);
     expect(stats.templatePortRectReads).toBe(1);
     expect(stats.projectedPorts).toBe(2);
+    const firstSnapshot = registry.getSnapshot();
+    expect(registry.getSnapshot()).toBe(firstSnapshot);
+    expect(Object.isFrozen(firstSnapshot.devices)).toBe(true);
+    expect(registry.getStats().snapshotBuilds).toBe(1);
+    expect(registry.getStats().snapshotCacheHits).toBe(1);
   });
 
   it('invalidates instance geometry without discarding reusable templates', () => {
@@ -95,6 +100,9 @@ describe('DeviceSceneRegistry', () => {
     expect(document.querySelectorAll('.device-faceplate').length).toBe(0);
     expect(document.querySelectorAll('.port').length).toBe(0);
     expect(registry.getPortPoint('dev-a', 'p1')).not.toBeNull();
+    expect(registry.suspendDomFaceplates()).toBe(1);
+    expect(registry.getStats().faceplateSuspendScans).toBe(1);
+    expect(registry.getStats().faceplateSuspendSkips).toBe(1);
 
     expect(registry.restoreDomFaceplates()).toBe(1);
     expect(document.querySelector('.device-faceplate')).toBe(faceplate);
