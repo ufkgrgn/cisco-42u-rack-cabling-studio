@@ -16,6 +16,7 @@
   const portRecords = new Map();
   const deviceElements = new Map();
   const detachedFaceplates = new Map();
+  const detachedPortAreas = new Map();
   let generation = 0;
   let lastCaptureReason = 'init';
   let snapshotCache = null;
@@ -31,7 +32,9 @@
     snapshotBuilds: 0,
     snapshotCacheHits: 0,
     faceplateSuspendScans: 0,
-    faceplateSuspendSkips: 0
+    faceplateSuspendSkips: 0,
+    portAreaSuspendScans: 0,
+    detachedPortAreas: 0
   };
 
   function endpointKey(instanceId, portId) {
@@ -120,6 +123,7 @@
         rackId: deviceEl.dataset.rackId || '',
         catalogKey,
         category: deviceEl.dataset.category || '',
+        preserveDomPorts: !!deviceEl.querySelector('.port.port-special, .port.port-trunk, .port.port-poe-disabled'),
         x: topLeft.x,
         y: topLeft.y,
         width,
@@ -136,6 +140,7 @@
           name: port.name,
           type: port.type,
           speed: port.speed,
+          preserveDom: deviceRecord.preserveDomPorts,
           x: topLeft.x + width * port.nx,
           y: topLeft.y + height * port.ny,
           width: width * port.nw,
@@ -152,6 +157,9 @@
     nextPorts.forEach((value, key) => portRecords.set(key, value));
     deviceElements.clear();
     nextElements.forEach((value, key) => deviceElements.set(key, value));
+    detachedPortAreas.forEach((entry, instanceId) => {
+      if (!entry.owner.isConnected || deviceElements.get(instanceId) !== entry.owner) detachedPortAreas.delete(instanceId);
+    });
     generation++;
     snapshotCache = null;
     stats.captures++;
@@ -236,6 +244,56 @@
     return restored;
   }
 
+  function suspendDomPortAreas(instanceIds) {
+    stats.portAreaSuspendScans++;
+    const targets = instanceIds ? Array.from(instanceIds, id => [id, deviceRecords.get(id)]).filter(([, record]) => record) : Array.from(deviceRecords.entries());
+    targets.forEach(([instanceId, record]) => {
+      if (record.preserveDomPorts || !['switch', 'fiber-switch', 'compact', 'router'].includes(record.category)) return;
+      const owner = deviceElements.get(instanceId);
+      if (!owner || detachedPortAreas.has(instanceId)) return;
+      const portArea = owner.querySelector(':scope > .device-faceplate > .ports-area');
+      if (!portArea) return;
+      const placeholder = document.createElement('div');
+      placeholder.className = `${portArea.className} pixi-port-area-placeholder`;
+      placeholder.setAttribute('aria-hidden', 'true');
+      placeholder.style.visibility = 'hidden';
+      portArea.replaceWith(placeholder);
+      detachedPortAreas.set(instanceId, { owner, element: portArea, placeholder });
+    });
+    stats.detachedPortAreas = detachedPortAreas.size;
+    return detachedPortAreas.size;
+  }
+
+  function refreshDeviceOwners(elements) {
+    const changed = [];
+    for (const owner of elements || []) {
+      if (!owner?.isConnected) continue;
+      const instanceId = owner.dataset.instanceId || owner.id;
+      if (!instanceId || !deviceRecords.has(instanceId)) continue;
+      if (deviceElements.get(instanceId) === owner) continue;
+      deviceElements.set(instanceId, owner);
+      changed.push(instanceId);
+    }
+    detachedPortAreas.forEach((entry, instanceId) => {
+      if (!entry.owner.isConnected || deviceElements.get(instanceId) !== entry.owner) detachedPortAreas.delete(instanceId);
+    });
+    stats.detachedPortAreas = detachedPortAreas.size;
+    return changed;
+  }
+
+  function restoreDomPortAreas() {
+    let restored = 0;
+    detachedPortAreas.forEach((entry, instanceId) => {
+      if (entry.owner.isConnected && entry.placeholder.isConnected && entry.placeholder.parentNode) {
+        entry.placeholder.replaceWith(entry.element);
+        restored++;
+      }
+      detachedPortAreas.delete(instanceId);
+    });
+    stats.detachedPortAreas = detachedPortAreas.size;
+    return restored;
+  }
+
   RS.DeviceSceneRegistry = Object.freeze({
     captureFromDom,
     invalidate,
@@ -244,6 +302,9 @@
     getSnapshot,
     suspendDomFaceplates,
     restoreDomFaceplates,
-    getStats: () => ({ ...stats, generation, templates: catalogTemplates.size, detachedFaceplates: detachedFaceplates.size })
+    suspendDomPortAreas,
+    restoreDomPortAreas,
+    refreshDeviceOwners,
+    getStats: () => ({ ...stats, generation, templates: catalogTemplates.size, detachedFaceplates: detachedFaceplates.size, detachedPortAreas: detachedPortAreas.size })
   });
 })();

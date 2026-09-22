@@ -61,6 +61,8 @@
   const organizerWorldYCache = new Map();
   let lastDeviceSceneSignature = null;
   let lastDeviceGeometrySignature = null;
+  let lastDevicePresentationKey = null;
+  let activeDeviceSceneLod = 'macro';
   let cachedDeviceOccupancy = new Set();
   let cachedOccupancyCableCount = -1;
   let cachedOccupancyEndpointCount = -1;
@@ -351,6 +353,7 @@
     RS.DeviceSceneRegistry?.invalidate();
     lastDeviceSceneSignature = null;
     lastDeviceGeometrySignature = null;
+    lastDevicePresentationKey = null;
     cachedDeviceOccupancy = new Set();
     cachedOccupancyCableCount = -1;
     cachedOccupancyEndpointCount = -1;
@@ -1685,7 +1688,7 @@
     if (!rect?.width || !rect?.height) return null;
     const point = clientToRenderer(clientX, clientY, rect, hitTestPoint);
     const scale = Math.max(0.05, Number(RS.ZOOM_STATE?.scale) || 1);
-    const tolerance = Math.max(5, 8 / scale);
+    const tolerance = Math.max(2, (scale < 0.35 ? 8 : 2.5) / scale);
     const cellRadius = Math.ceil(tolerance / DEVICE_PORT_HIT_CELL_SIZE);
     const centerX = Math.floor(point.x / DEVICE_PORT_HIT_CELL_SIZE);
     const centerY = Math.floor(point.y / DEVICE_PORT_HIT_CELL_SIZE);
@@ -1742,7 +1745,7 @@
     }
   }
 
-  function buildDeviceChassis(devices) {
+  function buildDeviceChassis(devices, lod = 'macro') {
     const textures = ensureDeviceChassisTextures();
     if (!textures) return;
     destroyDeviceRackScenes();
@@ -1751,7 +1754,7 @@
       const scene = getOrCreateDeviceRackScene(device.rackId);
       deviceRackByInstance.set(String(device.instanceId), scene.key);
       includeDeviceInRackBounds(scene, device);
-      if (device.category === 'organizer' || device.category === 'blank') return;
+      if (lod !== 'macro' || device.category === 'organizer' || device.category === 'blank') return;
       const style = deviceSceneStyle(device.category);
       const sprite = new window.PIXI.NineSliceSprite({
         texture: textures[style.key],
@@ -1925,6 +1928,9 @@
     devicePortVariantCounts.clear();
     ports.forEach(port => {
       if (port.category === 'organizer' || port.category === 'blank') return;
+      if (activeDeviceSceneLod === 'detail' && (
+        !['switch', 'fiber-switch', 'compact', 'router'].includes(port.category) || port.preserveDom
+      )) return;
       const key = `${port.instanceId}::${port.portId}`;
       const rackScene = deviceRackScenes.get(deviceRackByInstance.get(String(port.instanceId)));
       if (!rackScene) return;
@@ -1973,13 +1979,23 @@
   function syncPixiDeviceSceneLOD(explicitLod) {
     if (!deviceSceneContainer || !pixiApp) return false;
     const lod = explicitLod || (RS.ZOOM_STATE?.scale < 0.35 ? 'macro' : 'detail');
-    const enabled = STATE.cableRenderMode === 'pixi' && lod === 'macro';
+    const enabled = STATE.cableRenderMode === 'pixi';
+    const presentationKey = `${STATE.cableRenderMode}:${lod}`;
+    const presentationChanged = presentationKey !== lastDevicePresentationKey;
     deviceSceneContainer.visible = enabled;
     if (!enabled) {
       RS.DeviceSceneRegistry?.restoreDomFaceplates();
+      RS.DeviceSceneRegistry?.restoreDomPortAreas();
+      lastDevicePresentationKey = presentationKey;
+      lastDeviceGeometrySignature = '';
       document.documentElement.setAttribute('data-device-renderer', STATE.cableRenderMode === 'pixi' ? 'pixi' : 'dom');
       lastDeviceSceneSignature = `hidden:${lod}`;
       return false;
+    }
+
+    if (presentationChanged) {
+      RS.DeviceSceneRegistry?.restoreDomFaceplates();
+      RS.DeviceSceneRegistry?.restoreDomPortAreas();
     }
 
     let snapshot = RS.DeviceSceneRegistry?.getSnapshot();
@@ -1987,18 +2003,32 @@
       snapshot = RS.DeviceSceneRegistry.getSnapshot();
     }
     if (!snapshot || !snapshot.devices.length) return false;
+    activeDeviceSceneLod = lod;
+    deviceRackScenes.forEach(scene => {
+      scene.chassis.visible = lod === 'macro';
+      scene.overlays.visible = lod === 'macro';
+      scene.ports.visible = true;
+    });
     const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
     const occupied = collectDeviceOccupancy();
     const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;
     const occupancyChanged = deviceOccupancyChanged;
     if (!geometryChanged && !occupancyChanged) {
+      if (lod === 'macro') {
+        RS.DeviceSceneRegistry?.restoreDomPortAreas();
+        RS.DeviceSceneRegistry?.suspendDomFaceplates();
+      } else {
+        RS.DeviceSceneRegistry?.restoreDomFaceplates();
+        RS.DeviceSceneRegistry?.suspendDomPortAreas();
+      }
       document.documentElement.setAttribute('data-device-renderer', 'pixi');
+      lastDevicePresentationKey = presentationKey;
       performanceTelemetry.deviceSceneSkippedRebuilds++;
       return false;
     }
 
     if (geometryChanged) {
-      buildDeviceChassis(snapshot.devices);
+      buildDeviceChassis(snapshot.devices, lod);
       performanceTelemetry.deviceChassisRebuilds++;
     }
 
@@ -2012,9 +2042,21 @@
         performanceTelemetry.deviceOccupancyOnlyUpdates++;
       }
     }
+    deviceRackScenes.forEach(scene => {
+      scene.chassis.visible = lod === 'macro';
+      scene.overlays.visible = lod === 'macro';
+      scene.ports.visible = true;
+    });
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
-    RS.DeviceSceneRegistry?.suspendDomFaceplates();
+    if (lod === 'macro') {
+      RS.DeviceSceneRegistry?.restoreDomPortAreas();
+      RS.DeviceSceneRegistry?.suspendDomFaceplates();
+    } else {
+      RS.DeviceSceneRegistry?.restoreDomFaceplates();
+      RS.DeviceSceneRegistry?.suspendDomPortAreas();
+    }
     lastDeviceGeometrySignature = geometrySignature;
+    lastDevicePresentationKey = presentationKey;
     lastDeviceSceneSignature = `${geometrySignature}|${cachedOccupancyCableCount}:${cachedOccupancyEndpointCount}:${cachedOccupancyHashA}:${cachedOccupancyHashB}`;
     if (geometryChanged && STATE.pixiViewportRendererV2 !== false) {
       const viewportBounds = getPixiWorldViewportBounds(RS.ZOOM_STATE);
@@ -2672,6 +2714,7 @@
       if (svgEl) svgEl.style.display = 'none';
     } else {
       RS.DeviceSceneRegistry?.restoreDomFaceplates();
+      RS.DeviceSceneRegistry?.restoreDomPortAreas();
       if (canvas) canvas.style.display = 'none';
       if (canvas) canvas.style.pointerEvents = 'none';
       if (svgEl) svgEl.style.display = 'block';

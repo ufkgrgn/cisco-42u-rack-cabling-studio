@@ -413,6 +413,8 @@
 
     const fromEl = document.querySelector(`.port[data-instance-id="${cable.from?.instanceId}"][data-port-id="${cable.from?.portId}"]`);
     const toEl = document.querySelector(`.port[data-instance-id="${cable.to?.instanceId}"][data-port-id="${cable.to?.portId}"]`);
+    const fromPoint = RS.DeviceSceneRegistry?.getPortPoint(cable.from?.instanceId, cable.from?.portId);
+    const toPoint = RS.DeviceSceneRegistry?.getPortPoint(cable.to?.instanceId, cable.to?.portId);
     const cablePath = document.querySelector(`.cable-path[data-cable-id="${cableId}"]`);
 
     if (cablePath) {
@@ -420,7 +422,7 @@
       cablePath.classList.add('highlighted');
     }
 
-    if (!fromEl && !toEl && !cablePath) return;
+    if (!fromEl && !toEl && !fromPoint && !toPoint && !cablePath) return;
 
     const stageRect = RS.dom.rackStage.getBoundingClientRect();
     const currentScale = RS.ZOOM_STATE.scale || 1.0;
@@ -437,6 +439,12 @@
       minY = Math.min(minY, wy1);
       maxX = Math.max(maxX, wx2);
       maxY = Math.max(maxY, wy2);
+    });
+    [fromEl ? null : fromPoint, toEl ? null : toPoint].filter(Boolean).forEach(point => {
+      minX = Math.min(minX, point.x - point.width / 2);
+      minY = Math.min(minY, point.y - point.height / 2);
+      maxX = Math.max(maxX, point.x + point.width / 2);
+      maxY = Math.max(maxY, point.y + point.height / 2);
     });
 
     minX -= 40;

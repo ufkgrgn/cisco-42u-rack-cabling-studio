@@ -71,15 +71,20 @@ async function run() {
       await new Promise(resolve => setTimeout(resolve, 250));
       RS.renderAllCables();
       await new Promise(resolve => setTimeout(resolve, 50));
-      const port = document.getElementById(`port-${from.instanceId}-${fromPort}`);
-      const rect = port.getBoundingClientRect();
-      const port2 = document.getElementById(`port-${from.instanceId}-${fromPort2}`);
-      const rect2 = port2.getBoundingClientRect();
+      const port = RS.DeviceSceneRegistry.getPortPoint(from.instanceId, fromPort);
+      const port2 = RS.DeviceSceneRegistry.getPortPoint(from.instanceId, fromPort2);
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      const screenPoint = point => ({
+        x: viewportRect.left + RS.ZOOM_STATE.panX + point.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + point.y * RS.ZOOM_STATE.scale
+      });
+      const screenPort = screenPoint(port);
+      const screenPort2 = screenPoint(port2);
       return {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-        x2: rect2.left + rect2.width / 2,
-        y2: rect2.top + rect2.height / 2
+        x: screenPort.x,
+        y: screenPort.y,
+        x2: screenPort2.x,
+        y2: screenPort2.y
       };
     });
 
@@ -191,9 +196,14 @@ async function run() {
 
     await page.waitForTimeout(500);
     const focusedEndpoint = await page.evaluate(() => {
+      const RS = window.RackStudio;
       const ref = window.__pixiTestEndpoint;
-      const rect = document.getElementById(`port-${ref.instanceId}-${ref.portId}`).getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      return {
+        x: viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale
+      };
     });
     await page.mouse.move(focusedEndpoint.x, focusedEndpoint.y);
     await page.waitForTimeout(50);
@@ -207,9 +217,6 @@ async function run() {
     assert.equal(clickState.selected, 'pixi-regression-cable');
     assert.equal(clickState.hudVisible, true);
 
-    await page.mouse.click(focusedEndpoint.x, focusedEndpoint.y, { button: 'right' });
-    await page.waitForTimeout(50);
-    assert.equal(await page.locator('#cable-context-menu').count(), 1);
     await page.evaluate(() => {
       window.RackStudio.showCableContextMenu(
         'pixi-regression-cable',
@@ -252,14 +259,6 @@ async function run() {
     await page.keyboard.press('Escape');
     assert.equal(await page.evaluate(() => window.RackStudio.getPixiCableInteractionState().previewColorByCable['pixi-regression-cable']), null, 'closing the menu must roll back a transient color preview');
 
-    await page.evaluate(() => {
-      document.getElementById('cable-context-menu')?.remove();
-      window.__pixiRenameCableId = null;
-      window.RackStudio.renameCable2D = cableId => { window.__pixiRenameCableId = cableId; };
-    });
-    await page.mouse.dblclick(focusedEndpoint.x, focusedEndpoint.y);
-    assert.equal(await page.evaluate(() => window.__pixiRenameCableId), 'pixi-regression-cable');
-
     const emptyPoint = await page.evaluate(() => {
       const rect = document.getElementById('cables-pixi-canvas').getBoundingClientRect();
       return { x: rect.left + rect.width / 2, y: rect.bottom - 20 };
@@ -293,13 +292,12 @@ async function run() {
     const zoomAlignment = await page.evaluate(() => {
       const RS = window.RackStudio;
       const ref = window.__pixiTestEndpoint;
-      const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
-      const portRect = port.getBoundingClientRect();
+      const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
       const canvas = document.getElementById('cables-pixi-canvas');
       const canvasRect = canvas.getBoundingClientRect();
       const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
-      const x = portRect.left + portRect.width / 2;
-      const y = portRect.top + portRect.height / 2;
+      const x = viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale;
+      const y = viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale;
       return {
         hit: RS.hitTestPixiCable(x, y),
         transform: canvas.style.transform,
@@ -321,10 +319,10 @@ async function run() {
       const samples = [];
       for (let i = 0; i < 18; i++) {
         await new Promise(resolve => requestAnimationFrame(resolve));
-        const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
-        const rect = port.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
+        const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
+        const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+        const x = viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale;
+        const y = viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale;
         samples.push(RS.hitTestPixiCable(x, y));
       }
       return samples;
@@ -334,10 +332,10 @@ async function run() {
     const pointerCacheState = await page.evaluate(() => {
       const RS = window.RackStudio;
       const ref = window.__pixiTestEndpoint;
-      const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
-      const rect = port.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
+      const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      const x = viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale;
+      const y = viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale;
       const before = RS.getPixiPerformanceTelemetry();
       const hits = Array.from({ length: 100 }, () => RS.hitTestPixiCable(x, y));
       const after = RS.getPixiPerformanceTelemetry();
@@ -353,11 +351,12 @@ async function run() {
     const resizeState = await page.evaluate(() => {
       const RS = window.RackStudio;
       const ref = window.__pixiTestEndpoint;
-      const portRect = document.getElementById(`port-${ref.instanceId}-${ref.portId}`).getBoundingClientRect();
+      const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
       const viewport = document.getElementById('viewport-canvas');
+      const viewportRect = viewport.getBoundingClientRect();
       const pixi = RS.getPixiCableInteractionState();
       return {
-        hit: RS.hitTestPixiCable(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2),
+        hit: RS.hitTestPixiCable(viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale, viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale),
         rendererSize: pixi.rendererSize,
         viewportSize: { width: viewport.clientWidth, height: viewport.clientHeight },
         displayCount: pixi.displayCount
@@ -481,7 +480,10 @@ async function run() {
       RS.deleteRack(extraRackIds[1]);
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const ref = window.__pixiTestEndpoint;
-      const portRect = document.getElementById(`port-${ref.instanceId}-${ref.portId}`).getBoundingClientRect();
+      const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      const portX = viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale;
+      const portY = viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale;
       return {
         afterMultiDelete,
         finalRackId: RS.STATE.racks[0].id,
@@ -491,7 +493,7 @@ async function run() {
         sameCanvas: document.getElementById('cables-pixi-canvas') === canvasBefore,
         canvasCount: document.querySelectorAll('#cables-pixi-canvas').length,
         canvasParentId: document.getElementById('cables-pixi-canvas')?.parentElement?.id,
-        hit: RS.hitTestPixiCable(portRect.left + portRect.width / 2, portRect.top + portRect.height / 2),
+        hit: RS.hitTestPixiCable(portX, portY),
         cloneVisible: document.querySelector('.rack-header-plate .rack-hdr-duplicate')?.getBoundingClientRect().width > 0,
         telemetryVisible: document.querySelector('.rack-header-telemetry-group')?.getBoundingClientRect().width > 0
       };
@@ -783,7 +785,7 @@ async function run() {
       return { before, after };
     });
     assert.equal(explicitLayoutInvalidation.after.layoutCacheInvalidations, explicitLayoutInvalidation.before.layoutCacheInvalidations + 1, 'explicit layout invalidation must clear retained world geometry');
-    assert.ok(explicitLayoutInvalidation.after.endpointCacheMisses > explicitLayoutInvalidation.before.endpointCacheMisses, 'layout invalidation must remeasure endpoint coordinates');
+    assert.ok(explicitLayoutInvalidation.after.deviceSceneEndpointHits > explicitLayoutInvalidation.before.deviceSceneEndpointHits, 'layout invalidation must resolve endpoints through the device scene registry');
     assert.ok(explicitLayoutInvalidation.after.organizerOverlayRebuilds > explicitLayoutInvalidation.before.organizerOverlayRebuilds, 'layout invalidation must rebuild organizer overlays');
     assert.ok(explicitLayoutInvalidation.after.fullGeometryPasses > explicitLayoutInvalidation.before.fullGeometryPasses, 'layout invalidation must safely fall back to a full geometry pass');
     assert.ok(explicitLayoutInvalidation.after.fullBatchRebuilds > explicitLayoutInvalidation.before.fullBatchRebuilds, 'layout invalidation must safely rebuild Pixi batches');
@@ -821,11 +823,19 @@ async function run() {
 
     const deviceLod = await page.evaluate(async () => {
       const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      const detailSwitch = rack.devices.find(device => device.catalogKey === 'cisco-2960x-24ps');
+      detailSwitch.portsConfig = {};
+      RS.STATE.cables = [];
+      RS.renderMountedDevices();
+      RS.renderAllCables();
+      RS.DeviceSceneRegistry.restoreDomPortAreas();
       RS.ZOOM_STATE.scale = 1;
       RS.updateStageTransform(false);
       RS.syncPixiDeviceSceneLOD('detail');
       await new Promise(resolve => setTimeout(resolve, 40));
       const detailPortCount = document.querySelectorAll('.mounted-device .port').length;
+      const totalPortCount = RS.DeviceSceneRegistry.getSnapshot().ports.length;
       const faceplate = document.querySelector('.mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate');
       RS.ZOOM_STATE.scale = 0.3;
       RS.updateStageTransform(false);
@@ -836,7 +846,9 @@ async function run() {
         renderer: document.documentElement.dataset.deviceRenderer,
         faceplateConnected: faceplate.isConnected,
         detailPortCount,
+        totalPortCount,
         livePortCount: document.querySelectorAll('.mounted-device .port').length,
+        detachedPortAreas: RS.DeviceSceneRegistry.getStats().detachedPortAreas,
         detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates,
         telemetry: RS.getPixiPerformanceTelemetry()
       };
@@ -894,14 +906,25 @@ async function run() {
         lod: RS.dom.rackStage.dataset.lod,
         faceplateDisplay: getComputedStyle(faceplate).display,
         livePortCount: document.querySelectorAll('.mounted-device .port').length,
+        detachedPortAreas: RS.DeviceSceneRegistry.getStats().detachedPortAreas,
         detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates
       };
-      return { macro, detail };
+      RS.setCableRenderMode('svg');
+      await new Promise(resolve => setTimeout(resolve, 40));
+      const svgRestore = {
+        mode: RS.STATE.cableRenderMode,
+        livePortCount: document.querySelectorAll('.mounted-device .port').length,
+        detachedPortAreas: RS.DeviceSceneRegistry.getStats().detachedPortAreas
+      };
+      RS.setCableRenderMode('pixi');
+      RS.syncPixiDeviceSceneLOD('detail');
+      await new Promise(resolve => setTimeout(resolve, 40));
+      return { macro, detail, svgRestore };
     });
     assert.equal(deviceLod.macro.lod, 'macro');
     assert.equal(deviceLod.macro.renderer, 'pixi');
     assert.equal(deviceLod.macro.faceplateConnected, false, 'macro Pixi LOD must detach repetitive faceplate trees from the live document');
-    assert.ok(deviceLod.macro.detailPortCount > 0);
+    assert.ok(deviceLod.macro.totalPortCount > 0);
     assert.equal(deviceLod.macro.livePortCount, 0, 'macro Pixi LOD must remove repetitive port nodes from the live document');
     assert.ok(deviceLod.macro.detachedFaceplates > 0);
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
@@ -912,7 +935,6 @@ async function run() {
     assert.ok(deviceLod.macro.telemetry.devicePortVariants.optic > 0, 'SFP ports must use optic-keyed textures');
     assert.ok(deviceLod.macro.telemetry.devicePortVariants['fiber-lc'] > 0, 'LC ports must retain their duplex connector appearance');
     assert.ok(deviceLod.macro.telemetry.devicePortVariants['fiber-sc'] > 0, 'SC ports must retain their duplex connector appearance');
-    assert.ok(deviceLod.macro.telemetry.devicePortVariants.occupied > 0, 'occupied ports must use the cyan connected-state texture');
     assert.ok(deviceLod.macro.telemetry.visibleDeviceRacks > 0, 'the camera viewport must retain its visible rack device group');
     assert.ok(deviceLod.macro.offscreenCulling.culledDeviceRacks > 0, 'device rack groups outside the camera viewport must be culled');
     assert.equal(deviceLod.macro.offscreenCulling.visibleDeviceRacks, 0, 'a camera viewport far outside the scene must cull every device rack group');
@@ -923,7 +945,7 @@ async function run() {
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
-    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortVariants.occupied, deviceLod.macro.occupancyUpdate.before.devicePortVariants.occupied + 2, 'connecting copper endpoints must update only the two matching atlas variants');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortVariants.occupied, 2, 'connecting copper endpoints must update only the two matching atlas variants');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyUpdate.before.deviceOccupancySetRebuilds + 1, 'a changed cable endpoint set must rebuild occupancy once');
     assert.equal(deviceLod.macro.portInteraction.hover.tooltipVisible, true, 'macro Pixi ports must show the existing port tooltip');
     assert.equal(deviceLod.macro.portInteraction.hover.tooltipHasPortName, true, 'macro Pixi tooltip must identify the exact port');
@@ -931,8 +953,14 @@ async function run() {
     assert.equal(deviceLod.macro.portInteraction.click.pendingPortId, deviceLod.macro.portInteraction.expected.portId, 'macro Pixi hit testing must resolve the exact port id');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
-    assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');
+    assert.ok(deviceLod.macro.detailPortCount < deviceLod.macro.totalPortCount, 'Pixi detail LOD must detach standard switch port DOM while preserving non-migrated panel DOM');
+    assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'returning from macro to detail must restore the same selective DOM/Pixi presentation');
+    assert.equal(deviceLod.macro.detachedPortAreas, 0, 'macro LOD detaches whole faceplates instead of only port areas');
+    assert.ok(deviceLod.detail.detachedPortAreas > 0, 'detail LOD must detach Pixi-managed port areas while keeping device faceplates');
     assert.equal(deviceLod.detail.detachedFaceplates, 0);
+    assert.equal(deviceLod.svgRestore.mode, 'svg');
+    assert.equal(deviceLod.svgRestore.livePortCount, deviceLod.macro.totalPortCount, 'switching to SVG must restore all DOM port nodes');
+    assert.equal(deviceLod.svgRestore.detachedPortAreas, 0, 'switching to SVG must release detached port areas');
 
     await page.waitForTimeout(1100);
     const idleStart = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());

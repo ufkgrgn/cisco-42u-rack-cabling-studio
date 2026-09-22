@@ -143,6 +143,7 @@
         }
 
         slotEl.appendChild(devEl);
+        existingDevices.set(dev.instanceId, devEl);
 
         // Listeners for devices, bezels, and action buttons are delegated at #rack-stage
       });
@@ -166,7 +167,8 @@
             dev.instanceId,
             dev.catalogKey || dev.catalogId,
             dev.topU,
-            dev.uHeight || 1
+            dev.uHeight || 1,
+            JSON.stringify(dev.portsConfig || {})
           ].join(':')).join(',')
         ].join('/')).join(';')
       ].join('||');
@@ -174,6 +176,10 @@
       if (!hasSceneGeometry || deviceSceneLayoutSignature !== lastDeviceSceneLayoutSignature) {
         RS.DeviceSceneRegistry.captureFromDom('mounted-devices');
         lastDeviceSceneLayoutSignature = deviceSceneLayoutSignature;
+      }
+      const changedOwners = RS.DeviceSceneRegistry.refreshDeviceOwners(existingDevices.values());
+      if (changedOwners.length && (RS.ZOOM_STATE?.scale || 1) >= 0.35 && document.documentElement.dataset.deviceRenderer === 'pixi') {
+        RS.DeviceSceneRegistry.suspendDomPortAreas(changedOwners);
       }
     }
 
