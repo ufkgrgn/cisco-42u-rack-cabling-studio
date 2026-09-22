@@ -62,7 +62,10 @@
   let lastDeviceSceneSignature = null;
   let lastDeviceGeometrySignature = null;
   let lastDeviceOccupancySignature = null;
-  let deviceChassisGraphics = null;
+  let deviceChassisContainer = null;
+  let deviceChassisOverlays = null;
+  let deviceChassisAtlas = null;
+  let deviceChassisTextures = null;
   let devicePortsContainer = null;
   let devicePortAtlas = null;
   let devicePortTextures = null;
@@ -128,6 +131,8 @@
     deviceSceneRebuilds: 0,
     deviceSceneSkippedRebuilds: 0,
     deviceChassisRebuilds: 0,
+    deviceChassisAtlasBuilds: 0,
+    deviceChassisSpriteCount: 0,
     devicePortRebuilds: 0,
     deviceOccupancyOnlyUpdates: 0,
     devicePortStateChanges: 0,
@@ -1467,21 +1472,81 @@
     return initPromise;
   }
 
-  function deviceSceneColor(category) {
-    if (category === 'switch' || category === 'fiber-switch' || category === 'compact') return 0x102943;
-    if (category === 'router') return 0x13283b;
-    if (category === 'patch') return 0x17191d;
-    if (category === 'fiber') return 0x111827;
-    if (category === 'pdu' || category === 'power') return 0x17251d;
-    return 0x111827;
+  const DEVICE_CHASSIS_STYLES = Object.freeze({
+    switch: Object.freeze({ key: 'switch', fill: 0x102943, accent: 0x00bceb }),
+    router: Object.freeze({ key: 'router', fill: 0x13283b, accent: 0x00bceb }),
+    patch: Object.freeze({ key: 'patch', fill: 0x17191d, accent: 0xf97316 }),
+    fiber: Object.freeze({ key: 'fiber', fill: 0x111827, accent: 0xa855f7 }),
+    power: Object.freeze({ key: 'power', fill: 0x17251d, accent: 0x22c55e }),
+    default: Object.freeze({ key: 'default', fill: 0x111827, accent: 0x64748b })
+  });
+
+  function deviceSceneStyle(category) {
+    if (category === 'router') return DEVICE_CHASSIS_STYLES.router;
+    if (category === 'patch') return DEVICE_CHASSIS_STYLES.patch;
+    if (category === 'fiber') return DEVICE_CHASSIS_STYLES.fiber;
+    if (category === 'pdu' || category === 'power') return DEVICE_CHASSIS_STYLES.power;
+    if (category === 'switch' || category === 'fiber-switch' || category === 'compact') return DEVICE_CHASSIS_STYLES.switch;
+    return DEVICE_CHASSIS_STYLES.default;
   }
 
-  function deviceSceneAccent(category) {
-    if (category === 'switch' || category === 'fiber-switch' || category === 'compact' || category === 'router') return 0x00bceb;
-    if (category === 'patch') return 0xf97316;
-    if (category === 'fiber') return 0xa855f7;
-    if (category === 'pdu' || category === 'power') return 0x22c55e;
-    return 0x64748b;
+  function ensureDeviceChassisTextures() {
+    if (deviceChassisTextures || !pixiApp?.renderer || !window.PIXI?.Texture) return deviceChassisTextures;
+    const styles = Object.values(DEVICE_CHASSIS_STYLES);
+    const cell = 32;
+    const atlasGraphics = new window.PIXI.Graphics();
+    styles.forEach((style, index) => {
+      atlasGraphics.roundRect(index * cell + 0.5, 0.5, cell - 1, cell - 1, 4)
+        .fill(style.fill)
+        .stroke({ width: 1, color: 0x334155, alpha: 1 });
+    });
+    deviceChassisAtlas = pixiApp.renderer.generateTexture({ target: atlasGraphics, resolution: 2, antialias: true });
+    atlasGraphics.destroy();
+    const Texture = window.PIXI.Texture;
+    const Rectangle = window.PIXI.Rectangle;
+    deviceChassisTextures = Object.fromEntries(styles.map((style, index) => [
+      style.key,
+      new Texture({
+        source: deviceChassisAtlas.source,
+        frame: new Rectangle(index * cell, 0, cell, cell),
+        label: `rack-device-chassis-${style.key}`
+      })
+    ]));
+    performanceTelemetry.deviceChassisAtlasBuilds++;
+    return deviceChassisTextures;
+  }
+
+  function buildDeviceChassis(devices) {
+    const textures = ensureDeviceChassisTextures();
+    if (!textures) return;
+    deviceChassisContainer?.removeChildren?.().forEach(sprite => sprite.destroy?.());
+    deviceChassisContainer = new window.PIXI.Container();
+    deviceChassisContainer.label = 'rack-device-chassis-sprites';
+    deviceChassisContainer.eventMode = 'none';
+    deviceChassisOverlays = new window.PIXI.Graphics();
+    deviceChassisOverlays.label = 'rack-device-chassis-overlays';
+    let spriteCount = 0;
+    devices.forEach(device => {
+      if (device.category === 'organizer' || device.category === 'blank') return;
+      const style = deviceSceneStyle(device.category);
+      const sprite = new window.PIXI.NineSliceSprite({
+        texture: textures[style.key],
+        leftWidth: 4,
+        rightWidth: 4,
+        topHeight: 4,
+        bottomHeight: 4,
+        width: device.width,
+        height: device.height
+      });
+      sprite.position.set(device.x, device.y);
+      sprite.eventMode = 'none';
+      deviceChassisContainer.addChild(sprite);
+      deviceChassisOverlays.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
+      deviceChassisOverlays.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
+        .fill({ color: 0x0b1726, alpha: 0.92 });
+      spriteCount++;
+    });
+    performanceTelemetry.deviceChassisSpriteCount = spriteCount;
   }
 
   function buildDeviceGeometrySignature(snapshot, lod) {
@@ -1616,19 +1681,7 @@
     }
 
     if (geometryChanged) {
-      deviceChassisGraphics?.destroy?.();
-      deviceChassisGraphics = new window.PIXI.Graphics();
-      snapshot.devices.forEach(device => {
-        if (device.category === 'organizer' || device.category === 'blank') return;
-        const radius = Math.min(4, Math.max(1, device.height * 0.12));
-        const accent = deviceSceneAccent(device.category);
-        deviceChassisGraphics.roundRect(device.x, device.y, device.width, device.height, radius)
-          .fill(deviceSceneColor(device.category))
-          .stroke({ width: 1, color: 0x334155, alpha: 1 });
-        deviceChassisGraphics.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(accent);
-        deviceChassisGraphics.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
-          .fill({ color: 0x0b1726, alpha: 0.92 });
-      });
+      buildDeviceChassis(snapshot.devices);
       performanceTelemetry.deviceChassisRebuilds++;
     }
 
@@ -1636,7 +1689,8 @@
       buildDevicePortSprites(snapshot.ports, occupied);
       performanceTelemetry.devicePortRebuilds++;
       deviceSceneContainer.removeChildren();
-      if (deviceChassisGraphics) deviceSceneContainer.addChild(deviceChassisGraphics);
+      if (deviceChassisContainer) deviceSceneContainer.addChild(deviceChassisContainer);
+      if (deviceChassisOverlays) deviceSceneContainer.addChild(deviceChassisOverlays);
       if (devicePortsContainer) deviceSceneContainer.addChild(devicePortsContainer);
     } else if (occupancyChanged) {
       const changedPorts = updateDevicePortOccupancy(snapshot.ports, occupied);
@@ -2479,6 +2533,8 @@
       deviceSceneRebuilds: performanceTelemetry.deviceSceneRebuilds,
       deviceSceneSkippedRebuilds: performanceTelemetry.deviceSceneSkippedRebuilds,
       deviceChassisRebuilds: performanceTelemetry.deviceChassisRebuilds,
+      deviceChassisAtlasBuilds: performanceTelemetry.deviceChassisAtlasBuilds,
+      deviceChassisSpriteCount: performanceTelemetry.deviceChassisSpriteCount,
       devicePortRebuilds: performanceTelemetry.devicePortRebuilds,
       deviceOccupancyOnlyUpdates: performanceTelemetry.deviceOccupancyOnlyUpdates,
       devicePortStateChanges: performanceTelemetry.devicePortStateChanges,

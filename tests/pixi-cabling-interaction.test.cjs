@@ -875,7 +875,10 @@ async function run() {
     assert.equal(deviceLod.macro.livePortCount, 0, 'macro Pixi LOD must remove repetitive port nodes from the live document');
     assert.ok(deviceLod.macro.detachedFaceplates > 0);
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
+    assert.ok(deviceLod.macro.telemetry.deviceChassisAtlasBuilds >= 1, 'macro LOD must rasterize the chassis style atlas once');
+    assert.ok(deviceLod.macro.telemetry.deviceChassisSpriteCount > 0, 'macro LOD must render chassis bodies from shared nine-slice textures');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisRebuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisRebuilds, 'cable occupancy changes must retain the chassis batch');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisAtlasBuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisAtlasBuilds, 'cable occupancy changes must reuse the chassis atlas');
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
