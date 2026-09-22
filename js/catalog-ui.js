@@ -20,18 +20,32 @@
     let stencilHoverGeneration = 0;
     let stencilHoverTimer = 0;
     let stencilHoverClearTimer = 0;
+    let stencilHoverAnchor = null;
+    let stencilHoverOriginalButton = null;
+    let stencilHoverOriginalUrl = '';
 
     function hideStencilHoverPreview() {
       stencilHoverGeneration++;
       clearTimeout(stencilHoverTimer);
+      const cancelPendingStencil = stencilHoverPreview.dataset.state === 'loading';
       stencilHoverPreview.classList.remove('visible');
+      stencilHoverPreview.dataset.state = 'idle';
+      if (stencilHoverOriginalButton?.isConnected) {
+        stencilHoverOriginalButton.textContent = 'Gerçek stencil’i göster';
+        stencilHoverOriginalButton.removeAttribute('aria-busy');
+      }
+      stencilHoverAnchor = null;
+      stencilHoverOriginalButton = null;
+      stencilHoverOriginalUrl = '';
       clearTimeout(stencilHoverClearTimer);
-      stencilHoverClearTimer = setTimeout(() => { stencilHoverImage.removeAttribute('src'); }, 1800);
+      if (cancelPendingStencil) stencilHoverImage.removeAttribute('src');
+      else stencilHoverClearTimer = setTimeout(() => { stencilHoverImage.removeAttribute('src'); }, 1800);
     }
 
     function showStencilHoverPreview(sourceImage, anchor, originalStencilUrl = '') {
       if (!sourceImage?.src) return;
       const generation = ++stencilHoverGeneration;
+      stencilHoverAnchor = anchor;
       clearTimeout(stencilHoverTimer);
       clearTimeout(stencilHoverClearTimer);
       stencilHoverImage.src = sourceImage.currentSrc || sourceImage.src;
@@ -56,11 +70,47 @@
       // Only decode the authentic (sometimes multi-megabyte) stencil after a
       // deliberate hover pause; the card itself always uses a tiny generated SVG.
       if (originalStencilUrl) {
+        stencilHoverOriginalButton = anchor.matches('button') ? anchor : null;
+        stencilHoverOriginalUrl = new URL(originalStencilUrl, document.baseURI).href;
+        stencilHoverPreview.dataset.state = 'loading';
+        if (stencilHoverOriginalButton) {
+          stencilHoverOriginalButton.textContent = 'Stencil yükleniyor…';
+          stencilHoverOriginalButton.setAttribute('aria-busy', 'true');
+        }
         stencilHoverTimer = setTimeout(() => {
-          if (generation === stencilHoverGeneration) stencilHoverImage.src = originalStencilUrl;
+          if (generation === stencilHoverGeneration) stencilHoverImage.src = stencilHoverOriginalUrl;
         }, 120);
+      } else {
+        stencilHoverPreview.dataset.state = 'preview';
       }
     }
+
+    stencilHoverImage.addEventListener('load', () => {
+      if (!stencilHoverOriginalUrl || stencilHoverImage.src !== stencilHoverOriginalUrl) return;
+      stencilHoverPreview.dataset.state = 'ready';
+      if (stencilHoverOriginalButton?.isConnected) {
+        stencilHoverOriginalButton.textContent = 'Gerçek stencil’i kapat';
+        stencilHoverOriginalButton.removeAttribute('aria-busy');
+      }
+    });
+    stencilHoverImage.addEventListener('error', () => {
+      if (!stencilHoverOriginalUrl || stencilHoverImage.src !== stencilHoverOriginalUrl) return;
+      stencilHoverPreview.dataset.state = 'error';
+      if (stencilHoverOriginalButton?.isConnected) {
+        stencilHoverOriginalButton.textContent = 'Stencil açılamadı — yeniden dene';
+        stencilHoverOriginalButton.removeAttribute('aria-busy');
+      }
+    });
+    document.addEventListener('pointerdown', event => {
+      if (stencilHoverPreview.classList.contains('visible') && !stencilHoverAnchor?.contains(event.target)) hideStencilHoverPreview();
+    }, true);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && stencilHoverPreview.classList.contains('visible')) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideStencilHoverPreview();
+      }
+    });
 
     function createGeneratedStencil(item, sku) {
       const portCount = Math.min(48, Math.max(4, getAccessPortCount(item) || 24));
@@ -557,7 +607,10 @@
       if (stencilUrl) {
         const actualPreview = make('button', 'Gerçek stencil’i göster', 'catalog-detail-stencil');
         actualPreview.type = 'button';
-        actualPreview.addEventListener('click', () => showStencilHoverPreview(generated, actualPreview, stencilUrl));
+        actualPreview.addEventListener('click', () => {
+          if (stencilHoverOriginalButton === actualPreview && stencilHoverPreview.classList.contains('visible') && stencilHoverPreview.dataset.state !== 'error') hideStencilHoverPreview();
+          else showStencilHoverPreview(generated, actualPreview, stencilUrl);
+        });
         actions.append(actualPreview);
       }
       detailPanel.append(close, visual, copy, actions);
