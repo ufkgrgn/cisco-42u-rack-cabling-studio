@@ -143,6 +143,7 @@ const assert = require('node:assert/strict');
       const virtualization=api.getRackVirtualizationState?.() || null;
       let cullingProbe=null;
       let rackCullingProbe=null;
+      let rackRevealProbe=null;
       if(renderAllRacks) {
         api.ZOOM_STATE.scale=1; api.ZOOM_STATE.panX=0; api.ZOOM_STATE.panY=0;
         api.syncRackViewportVisibility(api.ZOOM_STATE);
@@ -156,6 +157,17 @@ const assert = require('node:assert/strict');
         const stable=api.getPixiPerformanceTelemetry();
         cullingProbe={focused,stable};
         rackCullingProbe={focused:rackFocused,stable:rackStable};
+        api.ZOOM_STATE.panX=-(4 * (634 + 64));
+        api.syncRackViewportVisibility(api.ZOOM_STATE);
+        const shifted=api.getRackVirtualizationState();
+        const targetRack=document.querySelector('.rack-container[data-rack-id="bench-r4"]');
+        rackRevealProbe={
+          shifted,
+          targetVisible:targetRack?.dataset.viewportVisible === 'true',
+          targetContentVisibility:targetRack ? getComputedStyle(targetRack).contentVisibility : null
+        };
+        api.ZOOM_STATE.panX=0;
+        api.syncRackViewportVisibility(api.ZOOM_STATE);
       }
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
@@ -185,9 +197,13 @@ const assert = require('node:assert/strict');
         cullingStableSkipDelta:cullingProbe ? cullingProbe.stable.cullingUnchangedSkips-cullingProbe.focused.cullingUnchangedSkips : null,
         rackCullingVisible:rackCullingProbe?.focused.viewportVisibleRackCount ?? null,
         rackCullingCulled:rackCullingProbe?.focused.viewportCulledRackCount ?? null,
+        rackPaintSuppressed:rackCullingProbe?.focused.paintSuppressedRackCount ?? null,
         rackCullingStableWriteDelta:rackCullingProbe ? rackCullingProbe.stable.viewportVisibilityChanges-rackCullingProbe.focused.viewportVisibilityChanges : null,
         rackCullingStableSkipDelta:rackCullingProbe ? rackCullingProbe.stable.viewportUnchangedSkips-rackCullingProbe.focused.viewportUnchangedSkips : null,
         rackCullingSignatureSkipDelta:rackCullingProbe ? rackCullingProbe.stable.viewportSignatureSkips-rackCullingProbe.focused.viewportSignatureSkips : null,
+        rackRevealTargetVisible:rackRevealProbe?.targetVisible ?? null,
+        rackRevealTargetContentVisibility:rackRevealProbe?.targetContentVisibility ?? null,
+        rackRevealPaintSuppressed:rackRevealProbe?.shifted.paintSuppressedRackCount ?? null,
         batchDisplayCount:pixiState.renderStats.batchDisplayCount,
         batchRebuilds:pixiState.renderStats.batchRebuilds,
         viewportRendererV2:pixiState.viewportRendererV2,
@@ -257,6 +273,7 @@ const assert = require('node:assert/strict');
         styleRenderSubmits:styleAfter.performance.totalRenders-styleBefore.performance.totalRenders,
         nativeRackVirtualization:virtualization?.enabled ?? false,
         browserManagedRackCount:virtualization?.browserManagedRackCount ?? 0,
+        paintSuppressedRackCount:virtualization?.paintSuppressedRackCount ?? 0,
         averagePixiRenderMs:styleAfter.performance.averageRenderDurationMs,
         maxPixiRenderMs:styleAfter.performance.maxRenderDurationMs,
         pixiRendersOverBudget:styleAfter.performance.rendersOverFrameBudget,
@@ -279,12 +296,16 @@ const assert = require('node:assert/strict');
       assert.equal(results.cullingStableWriteDelta,0);
       assert.ok(results.cullingStableSkipDelta>0);
       assert.equal(results.nativeRackVirtualization,true);
-      assert.equal(results.browserManagedRackCount,results.rackCount);
+      assert.equal(results.browserManagedRackCount + results.paintSuppressedRackCount,results.rackCount);
       assert.ok(results.rackCullingCulled>0);
       assert.ok(results.rackCullingVisible<results.rackCount);
+      assert.equal(results.rackPaintSuppressed,results.rackCullingCulled);
       assert.equal(results.rackCullingStableWriteDelta,0);
       assert.ok(results.rackCullingStableSkipDelta>0);
       assert.ok(results.rackCullingSignatureSkipDelta>0);
+      assert.equal(results.rackRevealTargetVisible,true);
+      assert.equal(results.rackRevealTargetContentVisibility,'auto');
+      assert.ok(results.rackRevealPaintSuppressed>0);
     }
     assert.ok(results.rendererWidth <= 1600 && results.rendererHeight <= 1000);
     assert.ok(results.batchDisplayCount < (renderAllRacks ? 64 : 32));

@@ -399,7 +399,11 @@ async function run() {
     assert.equal(multiRackState.canvasParentId, 'viewport-canvas', 'persistent Pixi canvas must remain owned by the viewport');
     assert.equal(multiRackState.rackCount, 3);
     assert.equal(multiRackState.virtualization.enabled, true, 'multi-rack DOM must enable native content-visibility virtualization');
-    assert.equal(multiRackState.virtualization.browserManagedRackCount, 3, 'every mounted rack must participate in browser-managed virtualization');
+    assert.equal(
+      multiRackState.virtualization.browserManagedRackCount + multiRackState.virtualization.paintSuppressedRackCount,
+      3,
+      'every mounted rack must remain either browser-managed or explicitly paint-suppressed'
+    );
     assert.ok(multiRackState.headers.every(header => header.buttonCount === 6 && header.allVisible), 'all multi-rack header actions must remain visible inside each rack');
 
     const cullingState = await page.evaluate(() => {

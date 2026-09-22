@@ -228,6 +228,7 @@
     passes: 0,
     racksTested: 0,
     visibilityChanges: 0,
+    paintContainmentChanges: 0,
     unchangedSkips: 0,
     visibleRacks: 0,
     culledRacks: 0,
@@ -278,6 +279,7 @@
     if (!isMulti || !canvas) {
       entries.forEach(({ container }) => {
         container.style.visibility = '';
+        container.style.contentVisibility = '';
         delete container.dataset.viewportVisible;
       });
       rackViewportTelemetry.visibleRacks = entries.length;
@@ -323,6 +325,11 @@
       }
       container.dataset.viewportVisible = next;
       container.style.visibility = visible ? 'visible' : 'hidden';
+      const contentVisibility = visible ? 'auto' : 'hidden';
+      if (container.style.contentVisibility !== contentVisibility) {
+        container.style.contentVisibility = contentVisibility;
+        rackViewportTelemetry.paintContainmentChanges++;
+      }
       rackViewportTelemetry.visibilityChanges++;
     });
     rackViewportTelemetry.visibleRacks = visibleRacks;
@@ -381,6 +388,11 @@
     rackVisibilityObserver = null;
     rackViewportResizeObserver?.disconnect();
     rackViewportResizeObserver = null;
+    rackViewportEntries.forEach(({ container }) => {
+      container.style.visibility = '';
+      container.style.contentVisibility = '';
+      delete container.dataset.viewportVisible;
+    });
     rackViewportEntries = [];
     rackViewportMaxBottom = 0;
     rackViewportSignature = null;
@@ -819,12 +831,14 @@
       enabled: stage?.dataset.nativeRackVirtualization === 'true',
       rackCount: racks.length,
       browserManagedRackCount: racks.filter(rack => getComputedStyle(rack).contentVisibility === 'auto').length,
+      paintSuppressedRackCount: racks.filter(rack => getComputedStyle(rack).contentVisibility === 'hidden').length,
       observerManagedRackCount: racks.filter(rack => rack.dataset.virtualVisible === 'false').length,
       viewportVisibleRackCount: rackViewportTelemetry.visibleRacks,
       viewportCulledRackCount: rackViewportTelemetry.culledRacks,
       viewportPasses: rackViewportTelemetry.passes,
       viewportRacksTested: rackViewportTelemetry.racksTested,
       viewportVisibilityChanges: rackViewportTelemetry.visibilityChanges,
+      viewportPaintContainmentChanges: rackViewportTelemetry.paintContainmentChanges,
       viewportUnchangedSkips: rackViewportTelemetry.unchangedSkips,
       viewportSignatureSkips: rackViewportTelemetry.signatureSkips
     };
