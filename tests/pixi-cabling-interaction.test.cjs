@@ -329,6 +329,23 @@ async function run() {
     });
     assert.ok(collapseSamples.every(id => id === 'pixi-regression-cable'), 'sidebar transition must keep cable hit geometry aligned on every sampled frame');
 
+    const pointerCacheState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const ref = window.__pixiTestEndpoint;
+      const port = document.getElementById(`port-${ref.instanceId}-${ref.portId}`);
+      const rect = port.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const before = RS.getPixiPerformanceTelemetry();
+      const hits = Array.from({ length: 100 }, () => RS.hitTestPixiCable(x, y));
+      const after = RS.getPixiPerformanceTelemetry();
+      return { before, after, hits };
+    });
+    assert.ok(pointerCacheState.hits.every(id => id === 'pixi-regression-cable'));
+    assert.equal(pointerCacheState.after.pointerRectReads, pointerCacheState.before.pointerRectReads, 'stable pointer picking must not force canvas layout reads');
+    assert.ok(pointerCacheState.after.pointerRectCacheHits - pointerCacheState.before.pointerRectCacheHits >= 100);
+    assert.equal(pointerCacheState.after.pointerHitTests - pointerCacheState.before.pointerHitTests, 100);
+
     await page.setViewportSize({ width: 1420, height: 880 });
     await page.waitForTimeout(100);
     const resizeState = await page.evaluate(() => {

@@ -70,6 +70,7 @@ const assert = require('node:assert/strict');
       const firstPortRect = firstPort?.getBoundingClientRect();
       const pickingSamples = [];
       let pickingMisses = 0;
+      const pickingBefore = api.getPixiPerformanceTelemetry();
       if (firstPortRect) {
         const pickX = firstPortRect.left + firstPortRect.width / 2;
         const pickY = firstPortRect.top + firstPortRect.height / 2;
@@ -81,6 +82,7 @@ const assert = require('node:assert/strict');
         }
         pickingSamples.sort((a,b)=>a-b);
       }
+      const pickingAfter = api.getPixiPerformanceTelemetry();
       const mutationBefore=api.getPixiCableInteractionState();
       const mutationCable={
         id:'bench-retained-mutation',
@@ -167,6 +169,9 @@ const assert = require('node:assert/strict');
         pickingP99Ms:pickingSamples[Math.floor(pickingSamples.length*.99)] ?? null,
         pickingMaxMs:pickingSamples.at(-1) ?? null,
         pickingMisses,
+        pickingRectReadDelta:pickingAfter.pointerRectReads-pickingBefore.pointerRectReads,
+        pickingRectCacheHitDelta:pickingAfter.pointerRectCacheHits-pickingBefore.pointerRectCacheHits,
+        pickingHitTestDelta:pickingAfter.pointerHitTests-pickingBefore.pointerHitTests,
         retainedMutationMs,
         retainedMutationDomRectReads:mutationAfter.renderStats.domRectReads-mutationBefore.renderStats.domRectReads,
         retainedMutationEndpointHits:mutationAfter.performance.endpointCacheHits-mutationBefore.performance.endpointCacheHits,
@@ -234,6 +239,9 @@ const assert = require('node:assert/strict');
     assert.ok(results.retainedAverageMs <= 5, `retained render regression: ${results.retainedAverageMs}ms`);
     assert.equal(results.pickingSamples,500);
     assert.equal(results.pickingMisses,0);
+    assert.equal(results.pickingHitTestDelta,500);
+    assert.equal(results.pickingRectReadDelta,0, `stable pointer picking forced ${results.pickingRectReadDelta} canvas layout reads`);
+    assert.ok(results.pickingRectCacheHitDelta >= 500);
     assert.ok(results.retainedMutationMs <= 40, `retained cable mutation regression: ${results.retainedMutationMs}ms`);
     assert.ok(results.retainedMutationDomRectReads <= 3, `retained cable mutation read ${results.retainedMutationDomRectReads} DOM rects`);
     assert.equal(results.retainedMutationEndpointHits,0);

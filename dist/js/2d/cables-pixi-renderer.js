@@ -35,6 +35,9 @@
   let lastWorldWidth = 0;
   let lastWorldHeight = 0;
   let viewportResizeObserver = null;
+  let cachedCanvasRect = null;
+  let canvasRectRefreshFrame = 0;
+  const activeViewportTransitions = new Set();
   let currentRenderResolution = 0;
   let interactionResolutionActive = false;
   let lastCameraSignature = null;
@@ -58,6 +61,7 @@
   // Reused for every pointer sample. Allocating a Set at pointer frequency
   // creates avoidable young-generation GC pressure on dense cable scenes.
   const hitCandidates = new Set();
+  const hitTestPoint = { x: 0, y: 0 };
   const SPATIAL_CELL_SIZE = 32;
   const CABLE_VISUAL_STYLE = Object.freeze({
     casingWidth: 4.8,
@@ -134,6 +138,10 @@
     cullingUnchangedSkips: 0,
     visibleRackBatches: 0,
     culledRackBatches: 0,
+    pointerHitTests: 0,
+    pointerRectReads: 0,
+    pointerRectCacheHits: 0,
+    pointerRectInvalidations: 0,
     batchTransactions: 0,
     transactionFlushes: 0,
     transactionCables: 0,
@@ -202,6 +210,43 @@
       endpointSignature(cable.from), endpointSignature(cable.to),
       cable.ductSide || 'auto', STATE.cableRoutingMode || 'structured'
     ].join('|');
+  }
+
+  function refreshPixiCanvasRect() {
+    if (!pixiCanvas?.isConnected) {
+      cachedCanvasRect = null;
+      return null;
+    }
+    const rect = pixiCanvas.getBoundingClientRect();
+    performanceTelemetry.pointerRectReads++;
+    cachedCanvasRect = {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height
+    };
+    return cachedCanvasRect;
+  }
+
+  function getPixiCanvasRect() {
+    if (activeViewportTransitions.size > 0) return refreshPixiCanvasRect();
+    if (cachedCanvasRect?.width > 0 && cachedCanvasRect?.height > 0) {
+      performanceTelemetry.pointerRectCacheHits++;
+      return cachedCanvasRect;
+    }
+    return refreshPixiCanvasRect();
+  }
+
+  function invalidatePixiCanvasRect(scheduleRefresh = true) {
+    cachedCanvasRect = null;
+    performanceTelemetry.pointerRectInvalidations++;
+    if (!scheduleRefresh || canvasRectRefreshFrame) return;
+    canvasRectRefreshFrame = requestAnimationFrame(() => {
+      canvasRectRefreshFrame = 0;
+      refreshPixiCanvasRect();
+    });
   }
 
   function cableRackBatchKey(cable) {
@@ -821,9 +866,9 @@
     };
   }
 
-  function clientToRenderer(clientX, clientY) {
-    const point = { x: 0, y: 0 };
-    const rect = pixiCanvas?.getBoundingClientRect();
+  function clientToRenderer(clientX, clientY, rect = getPixiCanvasRect(), point = { x: 0, y: 0 }) {
+    point.x = 0;
+    point.y = 0;
     if (STATE.pixiViewportRendererV2 !== false && rect?.width > 0 && rect?.height > 0) {
       const scale = RS.ZOOM_STATE?.scale || 1;
       // V2 uses CSS pixels as its world-to-screen camera unit. Reading the
@@ -989,9 +1034,10 @@
   }
 
   function hitCableAt(clientX, clientY) {
-    const point = clientToRenderer(clientX, clientY);
-    const rect = pixiCanvas?.getBoundingClientRect();
+    performanceTelemetry.pointerHitTests++;
+    const rect = getPixiCanvasRect();
     if (!rect?.width || !rect?.height) return null;
+    const point = clientToRenderer(clientX, clientY, rect, hitTestPoint);
     const worldPerScreenPixel = (pixiApp?.renderer?.screen?.width || lastWidth || rect.width) / rect.width;
     const baseRadius = 6 * worldPerScreenPixel;
     const cellRadius = Math.ceil((baseRadius + 2 * worldPerScreenPixel) / SPATIAL_CELL_SIZE);
@@ -1086,7 +1132,8 @@
         return;
       }
 
-      const rect = pixiCanvas.getBoundingClientRect();
+      const rect = getPixiCanvasRect();
+      if (!rect) return;
       if (
         e.clientX < rect.left || e.clientX > rect.right ||
         e.clientY < rect.top || e.clientY > rect.bottom
@@ -1154,6 +1201,23 @@
     };
     pixiCanvas.addEventListener('dblclick', onDblClick);
     window.addEventListener('dblclick', onDblClick, { capture: true });
+    window.addEventListener('resize', () => invalidatePixiCanvasRect(), { passive: true });
+    window.addEventListener('scroll', () => invalidatePixiCanvasRect(), { passive: true, capture: true });
+    const trackViewportTransition = (e, active) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (!target?.matches('#sidebar-left, #sidebar-right')) return;
+      const key = `${target.id}:${e.propertyName || 'layout'}`;
+      if (active) {
+        activeViewportTransitions.add(key);
+        invalidatePixiCanvasRect(false);
+        return;
+      }
+      activeViewportTransitions.delete(key);
+      if (activeViewportTransitions.size === 0) refreshPixiCanvasRect();
+    };
+    document.addEventListener('transitionrun', e => trackViewportTransition(e, true), { capture: true });
+    document.addEventListener('transitionend', e => trackViewportTransition(e, false), { capture: true });
+    document.addEventListener('transitioncancel', e => trackViewportTransition(e, false), { capture: true });
   }
 
   function ensurePixiCanvas(svgEl, parentContainer) {
@@ -1205,6 +1269,7 @@
     pixiCanvas.style.zIndex = '10';
     pixiCanvas.style.imageRendering = 'auto';
 
+    refreshPixiCanvasRect();
     attachHitDetection();
     return pixiCanvas;
   }
@@ -1268,6 +1333,7 @@
     if (!viewport) return;
     viewportResizeObserver = new ResizeObserver(() => {
       if (!pixiApp || STATE.cableRenderMode !== 'pixi') return;
+      refreshPixiCanvasRect();
       const width = Math.max(1, Math.round(viewport.clientWidth));
       const height = Math.max(1, Math.round(viewport.clientHeight));
       if (width === lastWidth && height === lastHeight) return;
@@ -2095,6 +2161,7 @@
   // Alias used by cable-hud.js for preview hover on color swatches
   RS.setPixiCablePreviewColor = RS.previewPixiCableColor;
   RS.hitTestPixiCable = (clientX, clientY) => hitCableAt(clientX, clientY);
+  RS.invalidatePixiPointerBounds = () => invalidatePixiCanvasRect();
   RS.syncPixiViewportCamera = syncPixiViewportCamera;
   RS.updatePixiResolutionForZoom = () => applyPixiResolution(false, 'zoom-settled');
   RS.setPixiInteractionMode = (active, deferRender = false) => {
@@ -2168,6 +2235,10 @@
       cullingUnchangedSkips: performanceTelemetry.cullingUnchangedSkips,
       visibleRackBatches: performanceTelemetry.visibleRackBatches,
       culledRackBatches: performanceTelemetry.culledRackBatches,
+      pointerHitTests: performanceTelemetry.pointerHitTests,
+      pointerRectReads: performanceTelemetry.pointerRectReads,
+      pointerRectCacheHits: performanceTelemetry.pointerRectCacheHits,
+      pointerRectInvalidations: performanceTelemetry.pointerRectInvalidations,
       batchTransactions: performanceTelemetry.batchTransactions,
       transactionFlushes: performanceTelemetry.transactionFlushes,
       transactionCables: performanceTelemetry.transactionCables,
