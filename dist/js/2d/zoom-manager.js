@@ -11,6 +11,11 @@
   let lastTransformValue = null;
   let lastZoomBadgeValue = null;
   let pixiResolutionRefreshTimer = null;
+  const CAMERA_FRAME_INTERVAL_MS = 1000 / 60;
+  const cameraPerformanceTelemetry = {
+    panFrameCommits: 0,
+    panFramePacingSkips: 0
+  };
 
   function schedulePixiResolutionRefresh(scale, delay = 220) {
     if (pixiResolutionRefreshTimer) clearTimeout(pixiResolutionRefreshTimer);
@@ -51,6 +56,7 @@
       lastTransformValue = transformValue;
     }
     RS.setPixiInteractionMode?.(true, true);
+    RS.syncRackViewportVisibility?.(RS.ZOOM_STATE);
     RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
@@ -437,6 +443,7 @@
     let panFrameId = 0;
     let pendingPanPoint = null;
     let panCleanupTimer = 0;
+    let lastPanCommitTime = -Infinity;
 
     function applyPendingPan() {
       if (!pendingPanPoint) return;
@@ -451,10 +458,18 @@
     function schedulePan(clientX, clientY) {
       pendingPanPoint = { clientX, clientY };
       if (panFrameId) return;
-      panFrameId = requestAnimationFrame(() => {
+      const commitPan = now => {
+        if (now - lastPanCommitTime < CAMERA_FRAME_INTERVAL_MS - 1) {
+          cameraPerformanceTelemetry.panFramePacingSkips++;
+          panFrameId = requestAnimationFrame(commitPan);
+          return;
+        }
         panFrameId = 0;
+        lastPanCommitTime = now;
+        cameraPerformanceTelemetry.panFrameCommits++;
         applyPendingPan();
-      });
+      };
+      panFrameId = requestAnimationFrame(commitPan);
     }
 
     function beginPan(clientX, clientY) {
@@ -667,6 +682,7 @@
 
   RS.ensureStageTransitionListener = ensureStageTransitionListener;
   RS.updateStageTransform = updateStageTransform;
+  RS.getCameraPerformanceTelemetry = () => ({ ...cameraPerformanceTelemetry });
   RS.fitRackToScreen = fitRackToScreen;
   RS.fit = fitRackToScreen;
   RS.setZoom = setZoom;

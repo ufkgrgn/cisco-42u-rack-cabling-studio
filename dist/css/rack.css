@@ -2057,6 +2057,10 @@
   flex-shrink: 0 !important;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Keep rack DOM mounted for stable port geometry while allowing the browser
+     to skip style/layout/paint work for cabinets outside the viewport. */
+  content-visibility: auto;
+  contain-intrinsic-size: 634px var(--rack-intrinsic-height, 1428px);
 }
 
 

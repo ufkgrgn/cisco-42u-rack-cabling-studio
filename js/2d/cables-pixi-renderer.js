@@ -99,6 +99,12 @@
     resizeEvents: [],
     renderReasons: Object.create(null),
     totalRenders: 0,
+    totalRenderDurationMs: 0,
+    maxRenderDurationMs: 0,
+    rendersOverFrameBudget: 0,
+    longTaskCount: 0,
+    longTaskDurationMs: 0,
+    maxLongTaskDurationMs: 0,
     resolutionChanges: 0,
     avoidedFocusRenders: 0,
     duplicateCameraSkips: 0,
@@ -154,6 +160,19 @@
     maxTransactionSize: 0
   };
 
+  if (typeof PerformanceObserver === 'function' && PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+    try {
+      const longTaskObserver = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
+          performanceTelemetry.longTaskCount++;
+          performanceTelemetry.longTaskDurationMs += entry.duration;
+          performanceTelemetry.maxLongTaskDurationMs = Math.max(performanceTelemetry.maxLongTaskDurationMs, entry.duration);
+        });
+      });
+      longTaskObserver.observe({ type: 'longtask', buffered: true });
+    } catch (_) {}
+  }
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden || !pixiApp || STATE.cableRenderMode !== 'pixi') return;
     lastCameraSignature = null;
@@ -181,10 +200,15 @@
 
   function renderPixi(reason = 'unspecified') {
     if (!pixiApp || document.hidden) return false;
+    const started = performance.now();
     performanceTelemetry.totalRenders++;
     performanceTelemetry.renderReasons[reason] = (performanceTelemetry.renderReasons[reason] || 0) + 1;
     recordTimedEvent(performanceTelemetry.renderEvents);
     pixiApp.render();
+    const duration = performance.now() - started;
+    performanceTelemetry.totalRenderDurationMs += duration;
+    performanceTelemetry.maxRenderDurationMs = Math.max(performanceTelemetry.maxRenderDurationMs, duration);
+    if (duration > 16.7) performanceTelemetry.rendersOverFrameBudget++;
     return true;
   }
 
@@ -2208,6 +2232,14 @@
       hoverChangesPerSecond: eventsPerSecond(performanceTelemetry.hoverEvents),
       resizeEventsPerSecond: eventsPerSecond(performanceTelemetry.resizeEvents),
       totalRenders: performanceTelemetry.totalRenders,
+      averageRenderDurationMs: performanceTelemetry.totalRenders
+        ? performanceTelemetry.totalRenderDurationMs / performanceTelemetry.totalRenders
+        : 0,
+      maxRenderDurationMs: performanceTelemetry.maxRenderDurationMs,
+      rendersOverFrameBudget: performanceTelemetry.rendersOverFrameBudget,
+      longTaskCount: performanceTelemetry.longTaskCount,
+      longTaskDurationMs: performanceTelemetry.longTaskDurationMs,
+      maxLongTaskDurationMs: performanceTelemetry.maxLongTaskDurationMs,
       resolutionChanges: performanceTelemetry.resolutionChanges,
       avoidedFocusRenders: performanceTelemetry.avoidedFocusRenders,
       duplicateCameraSkips: performanceTelemetry.duplicateCameraSkips,

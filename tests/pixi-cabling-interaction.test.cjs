@@ -380,6 +380,7 @@ async function run() {
         canvasCount: document.querySelectorAll('#cables-pixi-canvas').length,
         canvasParentId: canvas?.parentElement?.id,
         rackCount: document.querySelectorAll('.multi-rack-stage .rack-container').length,
+        virtualization: RS.getRackVirtualizationState?.(),
         headers: Array.from(document.querySelectorAll('.multi-rack-stage .rack-header-plate')).map(header => {
           const headerRect = header.getBoundingClientRect();
           const buttons = Array.from(header.querySelectorAll('.rack-action-btn'));
@@ -397,6 +398,8 @@ async function run() {
     assert.equal(multiRackState.canvasCount, 1, 'multi-rack render must keep exactly one Pixi canvas');
     assert.equal(multiRackState.canvasParentId, 'viewport-canvas', 'persistent Pixi canvas must remain owned by the viewport');
     assert.equal(multiRackState.rackCount, 3);
+    assert.equal(multiRackState.virtualization.enabled, true, 'multi-rack DOM must enable native content-visibility virtualization');
+    assert.equal(multiRackState.virtualization.browserManagedRackCount, 3, 'every mounted rack must participate in browser-managed virtualization');
     assert.ok(multiRackState.headers.every(header => header.buttonCount === 6 && header.allVisible), 'all multi-rack header actions must remain visible inside each rack');
 
     const cullingState = await page.evaluate(() => {

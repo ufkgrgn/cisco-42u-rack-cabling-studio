@@ -219,6 +219,68 @@
 
   let rackVisibilityObserver = null;
   let rackVisibilityRefreshFrame = 0;
+  const rackViewportTelemetry = {
+    passes: 0,
+    racksTested: 0,
+    visibilityChanges: 0,
+    unchangedSkips: 0,
+    visibleRacks: 0,
+    culledRacks: 0
+  };
+
+  function syncRackViewportVisibility(camera = RS.ZOOM_STATE || {}) {
+    const rackStage = dom.rackStage || document.getElementById('rack-stage');
+    const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
+    const containers = Array.from(rackStage?.querySelectorAll('.rack-container[data-rack-id]') || []);
+    const isMulti = STATE.viewMode === 'multi' && containers.length > 1;
+    if (!isMulti || !canvas) {
+      containers.forEach(container => {
+        container.style.visibility = '';
+        delete container.dataset.viewportVisible;
+      });
+      rackViewportTelemetry.visibleRacks = containers.length;
+      rackViewportTelemetry.culledRacks = 0;
+      return false;
+    }
+
+    const scale = Number.isFinite(camera.scale) && camera.scale > 0 ? camera.scale : 1;
+    const viewportWorldLeft = -(camera.panX || 0) / scale;
+    const viewportWorldTop = -(camera.panY || 0) / scale;
+    const viewportWorldWidth = canvas.clientWidth / scale;
+    const viewportWorldHeight = canvas.clientHeight / scale;
+    const marginX = Math.max(320, viewportWorldWidth * 0.35);
+    const marginY = Math.max(180, viewportWorldHeight * 0.2);
+    const minX = viewportWorldLeft - marginX;
+    const maxX = viewportWorldLeft + viewportWorldWidth + marginX;
+    const minY = viewportWorldTop - marginY;
+    const maxY = viewportWorldTop + viewportWorldHeight + marginY;
+    let visibleRacks = 0;
+    let culledRacks = 0;
+    rackViewportTelemetry.passes++;
+
+    containers.forEach((container, index) => {
+      const rack = STATE.racks.find(candidate => candidate.id === container.dataset.rackId);
+      const left = 60 + index * (634 + 64);
+      const right = left + 634;
+      const top = 10;
+      const bottom = 76 + (rack?.heightU || 42) * 32 + 84;
+      const visible = right >= minX && left <= maxX && bottom >= minY && top <= maxY;
+      const next = visible ? 'true' : 'false';
+      rackViewportTelemetry.racksTested++;
+      if (visible) visibleRacks++;
+      else culledRacks++;
+      if (container.dataset.viewportVisible === next) {
+        rackViewportTelemetry.unchangedSkips++;
+        return;
+      }
+      container.dataset.viewportVisible = next;
+      container.style.visibility = visible ? 'visible' : 'hidden';
+      rackViewportTelemetry.visibilityChanges++;
+    });
+    rackViewportTelemetry.visibleRacks = visibleRacks;
+    rackViewportTelemetry.culledRacks = culledRacks;
+    return true;
+  }
 
   function refreshVisibleRackContent(renderChanges = true) {
     if (STATE.viewMode !== 'multi') return false;
@@ -258,6 +320,7 @@
         changed = true;
       }
     });
+    syncRackViewportVisibility(RS.ZOOM_STATE);
     if (changed && renderChanges) {
       renderMountedDevices();
       if (typeof RS.renderAllCables === 'function') RS.renderAllCables();
@@ -273,6 +336,13 @@
     const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
     const containers = Array.from(rackStage.querySelectorAll('.rack-container[data-rack-id]'));
     if (!canvas || !containers.length) return;
+
+    const nativeVirtualization = typeof CSS !== 'undefined' && CSS.supports?.('content-visibility', 'auto');
+    rackStage.dataset.nativeRackVirtualization = nativeVirtualization ? 'true' : 'false';
+    containers.forEach(container => {
+      const rack = STATE.racks.find(candidate => candidate.id === container.dataset.rackId);
+      container.style.setProperty('--rack-intrinsic-height', `${(rack?.heightU || 42) * 32 + 84}px`);
+    });
 
     if (containers.length <= 20) {
       containers.forEach(container => { container.dataset.virtualVisible = 'true'; });
@@ -683,6 +753,23 @@
   RS.updateRackHeaderTelemetry = updateRackHeaderTelemetry;
   RS.refreshVisibleRackContent = refreshVisibleRackContent;
   RS.configureMultiRackVisibility = configureMultiRackVisibility;
+  RS.syncRackViewportVisibility = syncRackViewportVisibility;
+  RS.getRackVirtualizationState = () => {
+    const stage = dom.rackStage || document.getElementById('rack-stage');
+    const racks = Array.from(stage?.querySelectorAll('.rack-container[data-rack-id]') || []);
+    return {
+      enabled: stage?.dataset.nativeRackVirtualization === 'true',
+      rackCount: racks.length,
+      browserManagedRackCount: racks.filter(rack => getComputedStyle(rack).contentVisibility === 'auto').length,
+      observerManagedRackCount: racks.filter(rack => rack.dataset.virtualVisible === 'false').length,
+      viewportVisibleRackCount: rackViewportTelemetry.visibleRacks,
+      viewportCulledRackCount: rackViewportTelemetry.culledRacks,
+      viewportPasses: rackViewportTelemetry.passes,
+      viewportRacksTested: rackViewportTelemetry.racksTested,
+      viewportVisibilityChanges: rackViewportTelemetry.visibilityChanges,
+      viewportUnchangedSkips: rackViewportTelemetry.unchangedSkips
+    };
+  };
 
   // Event delegation at #rack-stage for slots and mounted devices (NEW-2 & SEC-E1)
   function ensureRackStageDelegation() {

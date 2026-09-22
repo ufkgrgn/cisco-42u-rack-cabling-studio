@@ -57,6 +57,7 @@ const assert = require('node:assert/strict');
         window.dispatchEvent(new MouseEvent('mousemove',{bubbles:true,clientX:rect.left+10+frame%120,clientY:rect.top+10+frame%60}));
       }
       window.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+      const cameraTelemetry=api.getCameraPerformanceTelemetry?.() || {};
       const sorted=[...intervals].sort((a,b)=>a-b);
       const retainedBefore=api.getPixiCableInteractionState().renderStats;
       const retainedRenderCalls=100;
@@ -138,15 +139,22 @@ const assert = require('node:assert/strict');
       api.renderAllCables();
       const retainedStyleMutationMs=performance.now()-styleStart;
       const styleAfter=api.getPixiCableInteractionState();
+      const virtualization=api.getRackVirtualizationState?.() || null;
       let cullingProbe=null;
+      let rackCullingProbe=null;
       if(renderAllRacks) {
         api.ZOOM_STATE.scale=1; api.ZOOM_STATE.panX=0; api.ZOOM_STATE.panY=0;
+        api.syncRackViewportVisibility(api.ZOOM_STATE);
+        const rackFocused=api.getRackVirtualizationState();
         api.syncPixiViewportCamera(api.ZOOM_STATE,true,'benchmark-culling');
         const focused=api.getPixiPerformanceTelemetry();
         api.ZOOM_STATE.panX=-1;
+        api.syncRackViewportVisibility(api.ZOOM_STATE);
+        const rackStable=api.getRackVirtualizationState();
         api.syncPixiViewportCamera(api.ZOOM_STATE,true,'benchmark-culling-stable');
         const stable=api.getPixiPerformanceTelemetry();
         cullingProbe={focused,stable};
+        rackCullingProbe={focused:rackFocused,stable:rackStable};
       }
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
@@ -155,6 +163,8 @@ const assert = require('node:assert/strict');
         validationMs,importMs,panFrames:intervals.length,frameIntervalP50Ms:sorted[Math.floor(sorted.length*.5)],
         frameIntervalP95Ms:sorted[Math.floor(sorted.length*.95)],maxFrameIntervalMs:sorted.at(-1),
         intervalsAbove20Ms:intervals.filter(n=>n>20).length,
+        panFrameCommits:cameraTelemetry.panFrameCommits ?? 0,
+        panFramePacingSkips:cameraTelemetry.panFramePacingSkips ?? 0,
         pixiDisplayCount:pixiState.displayCount,
         retainedRenderCalls,
         retainedBatchMs,
@@ -166,6 +176,10 @@ const assert = require('node:assert/strict');
         cullingCulledBatches:cullingProbe?.focused.culledRackBatches ?? null,
         cullingStableWriteDelta:cullingProbe ? cullingProbe.stable.cullingVisibilityChanges-cullingProbe.focused.cullingVisibilityChanges : null,
         cullingStableSkipDelta:cullingProbe ? cullingProbe.stable.cullingUnchangedSkips-cullingProbe.focused.cullingUnchangedSkips : null,
+        rackCullingVisible:rackCullingProbe?.focused.viewportVisibleRackCount ?? null,
+        rackCullingCulled:rackCullingProbe?.focused.viewportCulledRackCount ?? null,
+        rackCullingStableWriteDelta:rackCullingProbe ? rackCullingProbe.stable.viewportVisibilityChanges-rackCullingProbe.focused.viewportVisibilityChanges : null,
+        rackCullingStableSkipDelta:rackCullingProbe ? rackCullingProbe.stable.viewportUnchangedSkips-rackCullingProbe.focused.viewportUnchangedSkips : null,
         batchDisplayCount:pixiState.renderStats.batchDisplayCount,
         batchRebuilds:pixiState.renderStats.batchRebuilds,
         viewportRendererV2:pixiState.viewportRendererV2,
@@ -233,6 +247,13 @@ const assert = require('node:assert/strict');
         stylePartialBatchRebuilds:styleAfter.performance.partialColorBatchRebuilds-styleBefore.performance.partialColorBatchRebuilds,
         styleAvoidedFullBatchRebuilds:styleAfter.performance.avoidedFullStyleBatchRebuilds-styleBefore.performance.avoidedFullStyleBatchRebuilds,
         styleRenderSubmits:styleAfter.performance.totalRenders-styleBefore.performance.totalRenders,
+        nativeRackVirtualization:virtualization?.enabled ?? false,
+        browserManagedRackCount:virtualization?.browserManagedRackCount ?? 0,
+        averagePixiRenderMs:styleAfter.performance.averageRenderDurationMs,
+        maxPixiRenderMs:styleAfter.performance.maxRenderDurationMs,
+        pixiRendersOverBudget:styleAfter.performance.rendersOverFrameBudget,
+        longTaskCount:styleAfter.performance.longTaskCount,
+        maxLongTaskDurationMs:styleAfter.performance.maxLongTaskDurationMs,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
         renderedCables:document.querySelectorAll('.cable-path').length};
@@ -249,11 +270,23 @@ const assert = require('node:assert/strict');
       assert.ok(results.cullingVisibleBatches<results.rackCount);
       assert.equal(results.cullingStableWriteDelta,0);
       assert.ok(results.cullingStableSkipDelta>0);
+      assert.equal(results.nativeRackVirtualization,true);
+      assert.equal(results.browserManagedRackCount,results.rackCount);
+      assert.ok(results.rackCullingCulled>0);
+      assert.ok(results.rackCullingVisible<results.rackCount);
+      assert.equal(results.rackCullingStableWriteDelta,0);
+      assert.ok(results.rackCullingStableSkipDelta>0);
     }
     assert.ok(results.rendererWidth <= 1600 && results.rendererHeight <= 1000);
     assert.ok(results.batchDisplayCount < (renderAllRacks ? 64 : 32));
     assert.ok(results.frameIntervalP95Ms <= 40, `pan p95 regression: ${results.frameIntervalP95Ms}ms`);
+    assert.ok(results.panFrameCommits <= results.panFrames);
+    if(results.baselineFrameIntervalP50Ms < 12) {
+      assert.ok(results.panFramePacingSkips>0);
+      assert.ok(results.panFrameCommits<results.panFrames);
+    }
     assert.ok(results.retainedAverageMs <= 5, `retained render regression: ${results.retainedAverageMs}ms`);
+    assert.ok(results.averagePixiRenderMs <= (results.renderAllRacks ? 10 : 3), `average Pixi render regression: ${results.averagePixiRenderMs}ms`);
     assert.equal(results.pickingSamples,500);
     assert.equal(results.pickingMisses,0);
     assert.equal(results.pickingHitTestDelta,500);
