@@ -125,6 +125,9 @@
     partialColorBatchRebuilds: 0,
     partialColorBatchCablesProcessed: 0,
     avoidedFullStyleBatchRebuilds: 0,
+    partialRackBatchRebuilds: 0,
+    partialRemovalBatchCablesProcessed: 0,
+    avoidedFullRemovalBatchRebuilds: 0,
     batchTransactions: 0,
     transactionFlushes: 0,
     transactionCables: 0,
@@ -484,6 +487,81 @@
         group.badges.push(textObj);
       } catch (_) {}
     }
+  }
+
+  function buildRetainedRackBatch(rackKey, displays, cableIndex = -1, connectorIndex = -1) {
+    const rackGroup = { displays: [...displays], byColor: new Map() };
+    const cableBatch = new window.PIXI.Container();
+    const connectorBatch = new window.PIXI.Container();
+    cableBatch.__rackId = connectorBatch.__rackId = rackKey;
+    const points = displays.flatMap(display => display.endpoints || []);
+    const bounds = points.length ? {
+      minX: Math.min(...points.map(point => point.x)) - 180,
+      minY: Math.min(...points.map(point => point.y)) - 180,
+      maxX: Math.max(...points.map(point => point.x)) + 180,
+      maxY: Math.max(...points.map(point => point.y)) + 180
+    } : null;
+    cableBatch.__worldBounds = connectorBatch.__worldBounds = bounds;
+    const casing = new window.PIXI.Graphics();
+    casing.eventMode = 'none';
+    displays.forEach(display => {
+      parseSvgPathD(casing, display.pathD);
+      let group = rackGroup.byColor.get(display.colorNum);
+      if (!group) {
+        group = { core: new window.PIXI.Graphics(), connectors: new window.PIXI.Graphics(), badges: [] };
+        group.core.eventMode = 'none';
+        group.connectors.eventMode = 'none';
+        rackGroup.byColor.set(display.colorNum, group);
+      }
+      parseSvgPathD(group.core, display.pathD);
+      display.endpoints.forEach(point => appendConnector(group.connectors, point, display.colorNum, false));
+      createStubBadge(display, group, display.colorNum);
+    });
+    casing.stroke({ width: CABLE_VISUAL_STYLE.casingWidth, color: 0x060913, alpha: 1, cap: 'round', join: 'round' });
+    cableBatch.addChild(casing);
+    rackGroup.byColor.forEach((group, color) => {
+      group.core.stroke({ width: CABLE_VISUAL_STYLE.coreWidth, color, alpha: 1, cap: 'round', join: 'round' });
+      cableBatch.addChild(group.core);
+      connectorBatch.addChild(group.connectors);
+      group.badges.forEach(badge => connectorBatch.addChild(badge));
+    });
+    if (cableIndex >= 0 && cablesContainer.addChildAt) cablesContainer.addChildAt(cableBatch, Math.min(cableIndex, cablesContainer.children.length));
+    else cablesContainer.addChild(cableBatch);
+    if (connectorIndex >= 0 && connectorsContainer.addChildAt) connectorsContainer.addChildAt(connectorBatch, Math.min(connectorIndex, connectorsContainer.children.length));
+    else connectorsContainer.addChild(connectorBatch);
+    rackGroup.cableBatch = cableBatch;
+    rackGroup.connectorBatch = connectorBatch;
+    rackGroup.casing = casing;
+    return rackGroup;
+  }
+
+  function rebuildBatchedRackGroups(rackKeys) {
+    if (!usesBatchedViewportRenderer() || !rackKeys.size) return false;
+    for (const rackKey of rackKeys) {
+      const rackGroup = batchedRackGroups.get(rackKey);
+      if (!rackGroup?.cableBatch || !rackGroup.connectorBatch) return false;
+    }
+    let processedDisplays = 0;
+    for (const rackKey of rackKeys) {
+      const previous = batchedRackGroups.get(rackKey);
+      const cableIndex = cablesContainer.getChildIndex ? cablesContainer.getChildIndex(previous.cableBatch) : -1;
+      const connectorIndex = connectorsContainer.getChildIndex ? connectorsContainer.getChildIndex(previous.connectorBatch) : -1;
+      previous.cableBatch.parent?.removeChild(previous.cableBatch);
+      previous.connectorBatch.parent?.removeChild(previous.connectorBatch);
+      destroyContainerChildren(previous.cableBatch);
+      destroyContainerChildren(previous.connectorBatch);
+      previous.cableBatch.destroy?.();
+      previous.connectorBatch.destroy?.();
+      batchedRackGroups.delete(rackKey);
+      const displays = Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__') === rackKey);
+      processedDisplays += displays.length;
+      if (displays.length) batchedRackGroups.set(rackKey, buildRetainedRackBatch(rackKey, displays, cableIndex, connectorIndex));
+    }
+    performanceTelemetry.partialRackBatchRebuilds += rackKeys.size;
+    performanceTelemetry.partialRemovalBatchCablesProcessed += processedDisplays;
+    performanceTelemetry.avoidedFullRemovalBatchRebuilds++;
+    renderStats.batchDisplayCount = cablesContainer.children.length + connectorsContainer.children.length + (focusContainer?.children?.length || 0);
+    return true;
   }
 
   function rebuildBatchedStyleGroups(previousColorsByCableId) {
@@ -1363,8 +1441,10 @@
     // removed retained displays and spatial memberships; do not remeasure DOM
     // endpoints or rebuild the geometry of every remaining cable.
     if (removalOnlyMutation) {
+      const affectedRackKeys = new Set();
       for (const cableId of removedCableIds) {
         const display = cableDisplays.get(cableId);
+        if (display) affectedRackKeys.add(display.rackKey || '__cross__');
         if (display) destroyCableDisplay(display);
         removeCableFromSpatialIndex(cableId);
         cableDisplays.delete(cableId);
@@ -1372,7 +1452,7 @@
         if (hoveredCableId === cableId) hoveredCableId = null;
       }
       if (usesBatchedViewportRenderer()) {
-        rebuildBatchedBase();
+        if (!rebuildBatchedRackGroups(affectedRackKeys)) rebuildBatchedBase();
         rebuildBatchedFocus();
       }
       performanceTelemetry.incrementalRemovalPasses++;
@@ -2056,6 +2136,9 @@
       partialColorBatchRebuilds: performanceTelemetry.partialColorBatchRebuilds,
       partialColorBatchCablesProcessed: performanceTelemetry.partialColorBatchCablesProcessed,
       avoidedFullStyleBatchRebuilds: performanceTelemetry.avoidedFullStyleBatchRebuilds,
+      partialRackBatchRebuilds: performanceTelemetry.partialRackBatchRebuilds,
+      partialRemovalBatchCablesProcessed: performanceTelemetry.partialRemovalBatchCablesProcessed,
+      avoidedFullRemovalBatchRebuilds: performanceTelemetry.avoidedFullRemovalBatchRebuilds,
       batchTransactions: performanceTelemetry.batchTransactions,
       transactionFlushes: performanceTelemetry.transactionFlushes,
       transactionCables: performanceTelemetry.transactionCables,

@@ -667,6 +667,9 @@ async function run() {
     assert.equal(incrementalRemoval.after.performance.incrementalRemovalPasses, incrementalRemoval.before.performance.incrementalRemovalPasses + 1);
     assert.equal(incrementalRemoval.after.performance.incrementalCablesRemoved, incrementalRemoval.before.performance.incrementalCablesRemoved + 1);
     assert.equal(incrementalRemoval.after.performance.spatialIncrementalRemovals, incrementalRemoval.before.performance.spatialIncrementalRemovals + 1);
+    assert.equal(incrementalRemoval.after.performance.fullBatchRebuilds, incrementalRemoval.before.performance.fullBatchRebuilds, 'cable removal must not rebuild unaffected rack batches');
+    assert.equal(incrementalRemoval.after.performance.partialRackBatchRebuilds, incrementalRemoval.before.performance.partialRackBatchRebuilds + 1);
+    assert.equal(incrementalRemoval.after.performance.avoidedFullRemovalBatchRebuilds, incrementalRemoval.before.performance.avoidedFullRemovalBatchRebuilds + 1);
     assert.equal(incrementalRemoval.after.performance.totalRenders, incrementalRemoval.before.performance.totalRenders + 1, 'incremental removal must submit one GPU render');
 
     const incrementalStyle = await page.evaluate(() => {

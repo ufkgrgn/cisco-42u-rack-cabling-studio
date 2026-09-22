@@ -182,6 +182,10 @@ const assert = require('node:assert/strict');
         removalPasses:removalAfter.performance.incrementalRemovalPasses-removalBefore.performance.incrementalRemovalPasses,
         removalCablesProcessed:removalAfter.performance.incrementalCablesRemoved-removalBefore.performance.incrementalCablesRemoved,
         removalSpatialUpdates:removalAfter.performance.spatialIncrementalRemovals-removalBefore.performance.spatialIncrementalRemovals,
+        removalFullBatchRebuilds:removalAfter.performance.fullBatchRebuilds-removalBefore.performance.fullBatchRebuilds,
+        removalPartialRackBatchRebuilds:removalAfter.performance.partialRackBatchRebuilds-removalBefore.performance.partialRackBatchRebuilds,
+        removalPartialBatchCablesProcessed:removalAfter.performance.partialRemovalBatchCablesProcessed-removalBefore.performance.partialRemovalBatchCablesProcessed,
+        removalAvoidedFullBatchRebuilds:removalAfter.performance.avoidedFullRemovalBatchRebuilds-removalBefore.performance.avoidedFullRemovalBatchRebuilds,
         removalRenderSubmits:removalAfter.performance.totalRenders-removalBefore.performance.totalRenders,
         retainedStyleMutationMs,
         styleCableCount:styledCables.length,
@@ -239,6 +243,10 @@ const assert = require('node:assert/strict');
     assert.equal(results.removalPasses,1);
     assert.equal(results.removalCablesProcessed,1);
     assert.equal(results.removalSpatialUpdates,1);
+    assert.equal(results.removalFullBatchRebuilds,0);
+    assert.equal(results.removalPartialRackBatchRebuilds,1);
+    assert.ok(results.removalPartialBatchCablesProcessed <= results.activeRackCableCount + 20, `removal rebuilt ${results.removalPartialBatchCablesProcessed} displays outside the affected rack budget`);
+    assert.equal(results.removalAvoidedFullBatchRebuilds,1);
     assert.equal(results.removalRenderSubmits,1);
     assert.ok(results.retainedStyleMutationMs <= 30, `retained cable style regression: ${results.retainedStyleMutationMs}ms`);
     assert.equal(results.styleCableCount,8);
