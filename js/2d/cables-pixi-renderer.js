@@ -2146,8 +2146,14 @@
                     document.querySelector(`.port[data-instance-id="${instB}"]`);
       }
 
+      // The macro device LOD detaches DOM faceplates, including their port
+      // nodes. Resolve retained registry coordinates before deciding whether
+      // a cable endpoint exists so the Pixi device scene and cable scene stay
+      // connected without requiring DOM port elements.
+      const p1 = getPortPoint(portFromEl, instA, portIdA);
+      const p2 = getPortPoint(portToEl, instB, portIdB);
       const isInterRack = cable.from?.rackId !== cable.to?.rackId;
-      if (!portFromEl && !portToEl) return;
+      if (!p1 && !p2) return;
 
       let isStub = false;
       let isFromMounted = true;
@@ -2155,14 +2161,11 @@
       let isRightExit = true;
       let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
-      if (isInterRack && (!portFromEl || !portToEl)) {
+      if (isInterRack && (!p1 || !p2)) {
         isStub = true;
-        isFromMounted = !!portFromEl;
-        const localPortEl = isFromMounted ? portFromEl : portToEl;
+        isFromMounted = !!p1;
         const remoteEndpoint = isFromMounted ? cable.to : cable.from;
-        const localInstanceId = isFromMounted ? instA : instB;
-        const localPortId = isFromMounted ? portIdA : portIdB;
-        const pLocal = getPortPoint(localPortEl, localInstanceId, localPortId);
+        const pLocal = isFromMounted ? p1 : p2;
         if (!pLocal) return;
 
         seenCableIds.add(cable.id);
@@ -2185,9 +2188,6 @@
         x2 = isFromMounted ? stubX : pLocal.x;
         y2 = isFromMounted ? stubY : pLocal.y;
       } else {
-        if (!portFromEl || !portToEl) return;
-        const p1 = getPortPoint(portFromEl, instA, portIdA);
-        const p2 = getPortPoint(portToEl, instB, portIdB);
         if (!p1 || !p2) return;
         seenCableIds.add(cable.id);
         x1 = p1.x;

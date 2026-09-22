@@ -160,6 +160,10 @@ async function runSample(browser, { mode, renderAllRacks, lod }) {
         pixiCanvasFound: !!pixiCanvas
       };
     }, { mode, renderAllRacks, lod, rackCount: RACK_COUNT, frameCount: FRAME_COUNT });
+    const expectedPixiCableCount = renderAllRacks ? RACK_COUNT * 200 : 200;
+    if (mode === 'pixi' && result.pixi?.displayCount !== expectedPixiCableCount) {
+      throw new Error(`${lod} Pixi LOD rendered ${result.pixi?.displayCount ?? 'no'} cable displays; expected ${expectedPixiCableCount}`);
+    }
     return { ...result, pageErrors: errors };
   } finally {
     await page.close();
