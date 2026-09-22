@@ -126,6 +126,16 @@ const assert = require('node:assert/strict');
       api.renderAllCables();
       const retainedStyleMutationMs=performance.now()-styleStart;
       const styleAfter=api.getPixiCableInteractionState();
+      let cullingProbe=null;
+      if(renderAllRacks) {
+        api.ZOOM_STATE.scale=1; api.ZOOM_STATE.panX=0; api.ZOOM_STATE.panY=0;
+        api.syncPixiViewportCamera(api.ZOOM_STATE,true,'benchmark-culling');
+        const focused=api.getPixiPerformanceTelemetry();
+        api.ZOOM_STATE.panX=-1;
+        api.syncPixiViewportCamera(api.ZOOM_STATE,true,'benchmark-culling-stable');
+        const stable=api.getPixiPerformanceTelemetry();
+        cullingProbe={focused,stable};
+      }
       return {rackCount:racks.length,deviceCount:racks.length * 30,cableCount:cables.length,activeRackCableCount:200,
         renderAllRacks,
         baselineFrameIntervalP50Ms:baseline[Math.floor(baseline.length*.5)],
@@ -140,6 +150,10 @@ const assert = require('node:assert/strict');
         retainedFastPathHits:retainedAfter.fastPathHits-retainedBefore.fastPathHits,
         retainedDomRectReadDelta:retainedAfter.domRectReads-retainedBefore.domRectReads,
         retainedDisplayAllocationDelta:retainedAfter.createdDisplays-retainedBefore.createdDisplays,
+        cullingVisibleBatches:cullingProbe?.focused.visibleRackBatches ?? null,
+        cullingCulledBatches:cullingProbe?.focused.culledRackBatches ?? null,
+        cullingStableWriteDelta:cullingProbe ? cullingProbe.stable.cullingVisibilityChanges-cullingProbe.focused.cullingVisibilityChanges : null,
+        cullingStableSkipDelta:cullingProbe ? cullingProbe.stable.cullingUnchangedSkips-cullingProbe.focused.cullingUnchangedSkips : null,
         batchDisplayCount:pixiState.renderStats.batchDisplayCount,
         batchRebuilds:pixiState.renderStats.batchRebuilds,
         viewportRendererV2:pixiState.viewportRendererV2,
@@ -208,6 +222,12 @@ const assert = require('node:assert/strict');
     assert.equal(results.retainedDomRectReadDelta,0);
     assert.equal(results.retainedDisplayAllocationDelta,0);
     assert.equal(results.viewportRendererV2,true);
+    if(results.renderAllRacks) {
+      assert.ok(results.cullingCulledBatches>0);
+      assert.ok(results.cullingVisibleBatches<results.rackCount);
+      assert.equal(results.cullingStableWriteDelta,0);
+      assert.ok(results.cullingStableSkipDelta>0);
+    }
     assert.ok(results.rendererWidth <= 1600 && results.rendererHeight <= 1000);
     assert.ok(results.batchDisplayCount < (renderAllRacks ? 64 : 32));
     assert.ok(results.frameIntervalP95Ms <= 40, `pan p95 regression: ${results.frameIntervalP95Ms}ms`);

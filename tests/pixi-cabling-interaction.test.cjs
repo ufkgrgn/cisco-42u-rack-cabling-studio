@@ -382,6 +382,23 @@ async function run() {
     assert.equal(multiRackState.rackCount, 3);
     assert.ok(multiRackState.headers.every(header => header.buttonCount === 6 && header.allVisible), 'all multi-rack header actions must remain visible inside each rack');
 
+    const cullingState = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.panX = -2000;
+      RS.ZOOM_STATE.panY = 0;
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'culling-regression');
+      const focused = RS.getPixiPerformanceTelemetry();
+      RS.ZOOM_STATE.panX = -2001;
+      RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'culling-stable-regression');
+      const stable = RS.getPixiPerformanceTelemetry();
+      return { focused, stable };
+    });
+    assert.ok(cullingState.focused.culledRackBatches > 0, 'zoomed multi-rack view must cull offscreen Pixi rack batches');
+    assert.ok(cullingState.focused.visibleRackBatches < cullingState.focused.visibleRackBatches + cullingState.focused.culledRackBatches);
+    assert.ok(cullingState.stable.cullingUnchangedSkips > cullingState.focused.cullingUnchangedSkips, 'camera movement within the same rack window must avoid redundant Pixi visibility writes');
+    assert.equal(cullingState.stable.cullingVisibilityChanges, cullingState.focused.cullingVisibilityChanges, 'stable culling window must not dirty retained batch visibility');
+
     const deleteRegression = await page.evaluate(async ({ originalRackId, extraRackIds }) => {
       const RS = window.RackStudio;
       const canvasBefore = document.getElementById('cables-pixi-canvas');

@@ -128,6 +128,12 @@
     partialRackBatchRebuilds: 0,
     partialRemovalBatchCablesProcessed: 0,
     avoidedFullRemovalBatchRebuilds: 0,
+    cullingPasses: 0,
+    cullingBatchesTested: 0,
+    cullingVisibilityChanges: 0,
+    cullingUnchangedSkips: 0,
+    visibleRackBatches: 0,
+    culledRackBatches: 0,
     batchTransactions: 0,
     transactionFlushes: 0,
     transactionCables: 0,
@@ -196,6 +202,13 @@
       endpointSignature(cable.from), endpointSignature(cable.to),
       cable.ductSide || 'auto', STATE.cableRoutingMode || 'structured'
     ].join('|');
+  }
+
+  function cableRackBatchKey(cable) {
+    const fromRack = cable?.from?.rackId;
+    const toRack = cable?.to?.rackId;
+    if (fromRack && fromRack === toRack) return fromRack;
+    return `__cross__:${[fromRack || 'unknown', toRack || 'unknown'].sort().join(':')}`;
   }
 
   function buildSceneSignature(stageW, stageH, isMulti, activeRack) {
@@ -319,7 +332,7 @@
     batchedRackGroups.clear();
     const byRack = new Map();
     for (const display of cableDisplays.values()) {
-      const rackKey = display.rackKey || '__cross__';
+      const rackKey = display.rackKey || '__cross__:unknown:unknown';
       let rackGroup = byRack.get(rackKey);
       if (!rackGroup) {
         rackGroup = { displays: [], byColor: new Map() };
@@ -420,7 +433,7 @@
     const pending = [];
     for (const cableId of cableIds) {
       const display = cableDisplays.get(cableId);
-      const rackGroup = display && batchedRackGroups.get(display.rackKey || '__cross__');
+      const rackGroup = display && batchedRackGroups.get(display.rackKey || '__cross__:unknown:unknown');
       if (!display || display.isStub || !rackGroup?.casing || !rackGroup.cableBatch || !rackGroup.connectorBatch) return false;
       pending.push({ display, rackGroup });
     }
@@ -553,7 +566,7 @@
       previous.cableBatch.destroy?.();
       previous.connectorBatch.destroy?.();
       batchedRackGroups.delete(rackKey);
-      const displays = Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__') === rackKey);
+      const displays = Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__:unknown:unknown') === rackKey);
       processedDisplays += displays.length;
       if (displays.length) batchedRackGroups.set(rackKey, buildRetainedRackBatch(rackKey, displays, cableIndex, connectorIndex));
     }
@@ -569,7 +582,7 @@
     const affectedByRack = new Map();
     for (const [cableId, previousColor] of previousColorsByCableId) {
       const display = cableDisplays.get(cableId);
-      const rackKey = display?.rackKey || '__cross__';
+      const rackKey = display?.rackKey || '__cross__:unknown:unknown';
       const rackGroup = batchedRackGroups.get(rackKey);
       if (!display || !rackGroup?.cableBatch || !rackGroup.connectorBatch) return false;
       if (!affectedByRack.has(rackKey)) affectedByRack.set(rackKey, new Set());
@@ -1218,19 +1231,29 @@
     const minY = -(camera.panY || 0) / scale - 160;
     const maxX = minX + viewportW / scale + 320;
     const maxY = minY + viewportH / scale + 320;
-    const updateVisibility = container => {
-      container?.children?.forEach(batch => {
-        if (!batch.__rackId || batch.__rackId === '__cross__') {
-          batch.visible = true;
+    let visibleBatches = 0;
+    let culledBatches = 0;
+    performanceTelemetry.cullingPasses++;
+    for (const rackGroup of batchedRackGroups.values()) {
+      const cableBatch = rackGroup.cableBatch;
+      const connectorBatch = rackGroup.connectorBatch;
+      const bounds = cableBatch?.__worldBounds || connectorBatch?.__worldBounds;
+      const visible = !bounds || (bounds.maxX >= minX && bounds.minX <= maxX && bounds.maxY >= minY && bounds.minY <= maxY);
+      performanceTelemetry.cullingBatchesTested++;
+      if (visible) visibleBatches++;
+      else culledBatches++;
+      [cableBatch, connectorBatch].forEach(batch => {
+        if (!batch) return;
+        if (batch.visible === visible) {
+          performanceTelemetry.cullingUnchangedSkips++;
           return;
         }
-        const bounds = batch.__worldBounds;
-        if (!bounds) return;
-        batch.visible = bounds.maxX >= minX && bounds.minX <= maxX && bounds.maxY >= minY && bounds.minY <= maxY;
+        batch.visible = visible;
+        performanceTelemetry.cullingVisibilityChanges++;
       });
-    };
-    updateVisibility(cablesContainer);
-    updateVisibility(connectorsContainer);
+    }
+    performanceTelemetry.visibleRackBatches = visibleBatches;
+    performanceTelemetry.culledRackBatches = culledBatches;
     return renderPixi(reason);
   }
 
@@ -1444,7 +1467,7 @@
       const affectedRackKeys = new Set();
       for (const cableId of removedCableIds) {
         const display = cableDisplays.get(cableId);
-        if (display) affectedRackKeys.add(display.rackKey || '__cross__');
+        if (display) affectedRackKeys.add(display.rackKey || '__cross__:unknown:unknown');
         if (display) destroyCableDisplay(display);
         removeCableFromSpatialIndex(cableId);
         cableDisplays.delete(cableId);
@@ -1866,7 +1889,7 @@
       display.pathD = pathD;
       display.colorNum = colorNum;
       display.geometrySignature = geometrySignature;
-      display.rackKey = cable.from?.rackId && cable.from.rackId === cable.to?.rackId ? cable.from.rackId : '__cross__';
+      display.rackKey = cableRackBatchKey(cable);
       display.isStub = isStub;
       display.stubBadgeText = stubBadgeText;
       display.stubPoint = isStub ? { x: isFromMounted ? x2 : x1, y: isFromMounted ? y2 : y1 } : null;
@@ -2139,6 +2162,12 @@
       partialRackBatchRebuilds: performanceTelemetry.partialRackBatchRebuilds,
       partialRemovalBatchCablesProcessed: performanceTelemetry.partialRemovalBatchCablesProcessed,
       avoidedFullRemovalBatchRebuilds: performanceTelemetry.avoidedFullRemovalBatchRebuilds,
+      cullingPasses: performanceTelemetry.cullingPasses,
+      cullingBatchesTested: performanceTelemetry.cullingBatchesTested,
+      cullingVisibilityChanges: performanceTelemetry.cullingVisibilityChanges,
+      cullingUnchangedSkips: performanceTelemetry.cullingUnchangedSkips,
+      visibleRackBatches: performanceTelemetry.visibleRackBatches,
+      culledRackBatches: performanceTelemetry.culledRackBatches,
       batchTransactions: performanceTelemetry.batchTransactions,
       transactionFlushes: performanceTelemetry.transactionFlushes,
       transactionCables: performanceTelemetry.transactionCables,
