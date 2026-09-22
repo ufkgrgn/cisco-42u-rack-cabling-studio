@@ -63,7 +63,11 @@
   let lastDeviceGeometrySignature = null;
   let lastDeviceOccupancySignature = null;
   let deviceChassisGraphics = null;
-  let devicePortsGraphics = null;
+  let devicePortsContainer = null;
+  let devicePortAtlas = null;
+  let devicePortTextures = null;
+  const devicePortSprites = new Map();
+  const devicePortOccupancy = new Map();
   // Reused for every pointer sample. Allocating a Set at pointer frequency
   // creates avoidable young-generation GC pressure on dense cable scenes.
   const hitCandidates = new Set();
@@ -126,6 +130,7 @@
     deviceChassisRebuilds: 0,
     devicePortRebuilds: 0,
     deviceOccupancyOnlyUpdates: 0,
+    devicePortStateChanges: 0,
     rackCacheHits: 0,
     rackCacheMisses: 0,
     organizerCacheHits: 0,
@@ -1496,6 +1501,92 @@
     return Array.from(occupied).sort().join('|');
   }
 
+  function ensureDevicePortTextures() {
+    if (devicePortTextures || !pixiApp?.renderer || !window.PIXI?.Texture) return devicePortTextures;
+    const cell = 16;
+    const atlasGraphics = new window.PIXI.Graphics();
+    const styles = [
+      { key: 'copper', fill: 0x07111f, stroke: 0x64748b },
+      { key: 'optic', fill: 0x1d4ed8, stroke: 0x93c5fd },
+      { key: 'occupied', fill: 0x22d3ee, stroke: 0xa5f3fc }
+    ];
+    styles.forEach((style, index) => {
+      atlasGraphics.roundRect(index * cell + 1, 2, cell - 2, cell - 4, 2)
+        .fill(style.fill)
+        .stroke({ width: 1, color: style.stroke, alpha: 1 });
+    });
+    devicePortAtlas = pixiApp.renderer.generateTexture({ target: atlasGraphics, resolution: 2, antialias: true });
+    atlasGraphics.destroy();
+    const Texture = window.PIXI.Texture;
+    const Rectangle = window.PIXI.Rectangle;
+    devicePortTextures = Object.fromEntries(styles.map((style, index) => [
+      style.key,
+      new Texture({
+        source: devicePortAtlas.source,
+        frame: new Rectangle(index * cell, 0, cell, cell),
+        label: `rack-device-port-${style.key}`
+      })
+    ]));
+    return devicePortTextures;
+  }
+
+  function devicePortTextureKey(port, isOccupied) {
+    if (isOccupied) return 'occupied';
+    return ['sfp', 'sfp+', 'qsfp28'].includes(String(port.type || '').toLowerCase()) ? 'optic' : 'copper';
+  }
+
+  function clearDevicePortSprites() {
+    if (devicePortsContainer) {
+      devicePortsContainer.removeChildren().forEach(sprite => sprite.destroy?.());
+    }
+    devicePortSprites.clear();
+    devicePortOccupancy.clear();
+  }
+
+  function buildDevicePortSprites(ports, occupied) {
+    const textures = ensureDevicePortTextures();
+    if (!textures) return;
+    clearDevicePortSprites();
+    devicePortsContainer = new window.PIXI.Container();
+    devicePortsContainer.label = 'rack-device-port-sprites';
+    devicePortsContainer.eventMode = 'none';
+    ports.forEach(port => {
+      if (port.category === 'organizer' || port.category === 'blank') return;
+      const key = `${port.instanceId}::${port.portId}`;
+      const isOccupied = occupied.has(key);
+      const width = Math.max(3, port.width * 0.82);
+      const height = Math.max(3, port.height * 0.82);
+      const sprite = new window.PIXI.Sprite(textures[devicePortTextureKey(port, isOccupied)]);
+      sprite.anchor.set(0.5);
+      sprite.position.set(port.x, port.y);
+      sprite.width = width;
+      sprite.height = height;
+      sprite.eventMode = 'none';
+      devicePortsContainer.addChild(sprite);
+      devicePortSprites.set(key, sprite);
+      devicePortOccupancy.set(key, isOccupied);
+    });
+  }
+
+  function updateDevicePortOccupancy(ports, occupied) {
+    const textures = ensureDevicePortTextures();
+    if (!textures) return 0;
+    let changed = 0;
+    ports.forEach(port => {
+      if (port.category === 'organizer' || port.category === 'blank') return;
+      const key = `${port.instanceId}::${port.portId}`;
+      const isOccupied = occupied.has(key);
+      if (devicePortOccupancy.get(key) === isOccupied) return;
+      const sprite = devicePortSprites.get(key);
+      if (sprite) {
+        sprite.texture = textures[devicePortTextureKey(port, isOccupied)];
+        devicePortOccupancy.set(key, isOccupied);
+        changed++;
+      }
+    });
+    return changed;
+  }
+
   function syncPixiDeviceSceneLOD(explicitLod) {
     if (!deviceSceneContainer || !pixiApp) return false;
     const lod = explicitLod || (RS.ZOOM_STATE?.scale < 0.35 ? 'macro' : 'detail');
@@ -1541,29 +1632,19 @@
       performanceTelemetry.deviceChassisRebuilds++;
     }
 
-    if (geometryChanged || occupancyChanged) {
-      devicePortsGraphics?.destroy?.();
-      devicePortsGraphics = new window.PIXI.Graphics();
-      snapshot.ports.forEach(port => {
-        if (port.category === 'organizer' || port.category === 'blank') return;
-        const isOccupied = occupied.has(`${port.instanceId}::${port.portId}`);
-        const w = Math.max(3, port.width * 0.82);
-        const h = Math.max(3, port.height * 0.82);
-        const x = port.x - w / 2;
-        const y = port.y - h / 2;
-        const optic = port.type === 'sfp' || port.type === 'sfp+' || port.type === 'qsfp28';
-        const fill = isOccupied ? 0x22d3ee : (optic ? 0x1d4ed8 : 0x07111f);
-        devicePortsGraphics.roundRect(x, y, w, h, Math.min(1.5, h * 0.2))
-          .fill(fill)
-          .stroke({ width: Math.max(0.6, h * 0.08), color: isOccupied ? 0xa5f3fc : 0x64748b, alpha: 1 });
-      });
+    if (geometryChanged) {
+      buildDevicePortSprites(snapshot.ports, occupied);
       performanceTelemetry.devicePortRebuilds++;
-      if (!geometryChanged && occupancyChanged) performanceTelemetry.deviceOccupancyOnlyUpdates++;
+      deviceSceneContainer.removeChildren();
+      if (deviceChassisGraphics) deviceSceneContainer.addChild(deviceChassisGraphics);
+      if (devicePortsContainer) deviceSceneContainer.addChild(devicePortsContainer);
+    } else if (occupancyChanged) {
+      const changedPorts = updateDevicePortOccupancy(snapshot.ports, occupied);
+      performanceTelemetry.devicePortStateChanges += changedPorts;
+      if (changedPorts) {
+        performanceTelemetry.deviceOccupancyOnlyUpdates++;
+      }
     }
-
-    deviceSceneContainer.removeChildren();
-    if (deviceChassisGraphics) deviceSceneContainer.addChild(deviceChassisGraphics);
-    if (devicePortsGraphics) deviceSceneContainer.addChild(devicePortsGraphics);
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
     RS.DeviceSceneRegistry?.suspendDomFaceplates();
     lastDeviceGeometrySignature = geometrySignature;
@@ -2400,6 +2481,7 @@
       deviceChassisRebuilds: performanceTelemetry.deviceChassisRebuilds,
       devicePortRebuilds: performanceTelemetry.devicePortRebuilds,
       deviceOccupancyOnlyUpdates: performanceTelemetry.deviceOccupancyOnlyUpdates,
+      devicePortStateChanges: performanceTelemetry.devicePortStateChanges,
       rackCacheHits: performanceTelemetry.rackCacheHits,
       rackCacheMisses: performanceTelemetry.rackCacheMisses,
       organizerCacheHits: performanceTelemetry.organizerCacheHits,

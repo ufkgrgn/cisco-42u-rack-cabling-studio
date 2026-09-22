@@ -876,8 +876,9 @@ async function run() {
     assert.ok(deviceLod.macro.detachedFaceplates > 0);
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceChassisRebuilds, deviceLod.macro.occupancyUpdate.before.deviceChassisRebuilds, 'cable occupancy changes must retain the chassis batch');
-    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds + 1, 'cable occupancy changes must rebuild only the port-state batch');
+    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortRebuilds, deviceLod.macro.occupancyUpdate.before.devicePortRebuilds, 'cable occupancy changes must reuse the retained port sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
+    assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
     assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');
