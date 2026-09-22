@@ -1304,6 +1304,9 @@ body.catalog-placement-mode .rack-slot:not(:has(.mounted-device)) { cursor: copy
   pointer-events: none;
 }
 .catalog-selection-detail button { pointer-events: auto; }
+.catalog-detail-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+.catalog-detail-actions button { min-height: 30px; font-size: .62rem; }
+.catalog-detail-stencil { white-space: nowrap; }
 
 @media (min-width: 1200px) {
   .sidebar-left { width: 360px; min-width: 360px; }
@@ -1390,7 +1393,7 @@ body.catalog-placement-mode .rack-slot:not(:has(.mounted-device)) { cursor: copy
 }
 
 @media (hover: none), (pointer: coarse) {
-  .catalog-stencil-hover-preview { display: none !important; }
+  .catalog-stencil-hover-preview { width: min(92vw, 520px); height: min(28vw, 160px); }
 }
 
 .sidebar-left .hw-card-info-row {

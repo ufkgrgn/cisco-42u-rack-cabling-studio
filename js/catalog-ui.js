@@ -17,13 +17,23 @@
     stencilHoverPreview.setAttribute('aria-hidden', 'true');
     stencilHoverPreview.append(stencilHoverImage);
     document.body.append(stencilHoverPreview);
+    let stencilHoverGeneration = 0;
+    let stencilHoverTimer = 0;
+    let stencilHoverClearTimer = 0;
 
     function hideStencilHoverPreview() {
+      stencilHoverGeneration++;
+      clearTimeout(stencilHoverTimer);
       stencilHoverPreview.classList.remove('visible');
+      clearTimeout(stencilHoverClearTimer);
+      stencilHoverClearTimer = setTimeout(() => { stencilHoverImage.removeAttribute('src'); }, 1800);
     }
 
-    function showStencilHoverPreview(sourceImage, anchor) {
+    function showStencilHoverPreview(sourceImage, anchor, originalStencilUrl = '') {
       if (!sourceImage?.src) return;
+      const generation = ++stencilHoverGeneration;
+      clearTimeout(stencilHoverTimer);
+      clearTimeout(stencilHoverClearTimer);
       stencilHoverImage.src = sourceImage.currentSrc || sourceImage.src;
       stencilHoverImage.alt = sourceImage.alt || '';
       const anchorRect = anchor.getBoundingClientRect();
@@ -40,26 +50,43 @@
       stencilHoverPreview.style.setProperty('--preview-height', `${previewHeight}px`);
       stencilHoverPreview.style.left = `${Math.round(left)}px`;
       stencilHoverPreview.style.top = `${Math.round(top)}px`;
-      requestAnimationFrame(() => stencilHoverPreview.classList.add('visible'));
+      requestAnimationFrame(() => {
+        if (generation === stencilHoverGeneration) stencilHoverPreview.classList.add('visible');
+      });
+      // Only decode the authentic (sometimes multi-megabyte) stencil after a
+      // deliberate hover pause; the card itself always uses a tiny generated SVG.
+      if (originalStencilUrl) {
+        stencilHoverTimer = setTimeout(() => {
+          if (generation === stencilHoverGeneration) stencilHoverImage.src = originalStencilUrl;
+        }, 120);
+      }
     }
 
     function createGeneratedStencil(item, sku) {
       const portCount = Math.min(48, Math.max(4, getAccessPortCount(item) || 24));
       const columns = Math.min(24, Math.ceil(portCount / (portCount > 24 ? 2 : 1)));
       const rows = Math.ceil(portCount / columns);
-      const portWidth = Math.min(12, 286 / columns);
-      const startX = 244;
+      const category = String(item?.category || '').toLowerCase();
+      const kind = category === 'patch' ? 'patch' : (category === 'fiber' ? 'fiber' : (category === 'fiber-switch' ? 'fiber-switch' : (category === 'switch' ? 'switch' : category || 'device')));
+      const portWidth = Math.min(12, (kind === 'patch' ? 420 : 286) / columns);
+      const startX = kind === 'patch' ? 146 : 244;
       const ports = Array.from({ length: portCount }, (_, index) => {
         const row = Math.floor(index / columns);
         const column = index % columns;
         const x = startX + column * (portWidth + 2);
         const y = rows === 1 ? 31 : 20 + row * 23;
-        return `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="1.8" fill="#07111d" stroke="#38bdf8" stroke-width="1"/><circle cx="${(x + portWidth / 2).toFixed(1)}" cy="${y + 7.5}" r="1.5" fill="#22c55e"/>`;
+        if (kind === 'patch') return `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="2" fill="#0b1724" stroke="#f59e0b" stroke-width="1.2"/><path d="M${(x + 2).toFixed(1)} ${y + 5}h${Math.max(2, portWidth - 4).toFixed(1)}M${(x + 2).toFixed(1)} ${y + 9}h${Math.max(2, portWidth - 4).toFixed(1)}" stroke="#fcd34d" stroke-width=".7"/>`;
+        const port = item?.ports?.[index];
+        const isOptical = kind === 'fiber' || /sfp|qsfp|fiber|lc|sc/i.test(port?.type || '');
+        const stroke = kind === 'fiber' || isOptical ? '#a78bfa' : '#38bdf8';
+        const shape = kind === 'fiber' ? `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="2" fill="#100f26" stroke="${stroke}" stroke-width="1.2"/><rect x="${(x + 2).toFixed(1)}" y="${y + 4}" width="${Math.max(2, (portWidth - 5) / 2).toFixed(1)}" height="7" rx="1" fill="#c4b5fd"/><rect x="${(x + portWidth / 2 + .5).toFixed(1)}" y="${y + 4}" width="${Math.max(2, (portWidth - 5) / 2).toFixed(1)}" height="7" rx="1" fill="#818cf8"/>` : (isOptical ? `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="2" fill="#0b1324" stroke="${stroke}" stroke-width="1.2"/><rect x="${(x + 2).toFixed(1)}" y="${y + 3}" width="${Math.max(2, portWidth - 4).toFixed(1)}" height="9" rx="1" fill="#352b67"/>` : `<rect x="${x.toFixed(1)}" y="${y}" width="${portWidth.toFixed(1)}" height="15" rx="1.8" fill="#07111d" stroke="${stroke}" stroke-width="1"/><circle cx="${(x + portWidth / 2).toFixed(1)}" cy="${y + 7.5}" r="1.5" fill="#22c55e"/>`);
+        return shape;
       }).join('');
       const label = escapeHtml(item.modelTag || sku || item.name || 'NETWORK DEVICE');
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 80" role="img"><defs><linearGradient id="chassis" x1="0" x2="0" y2="1"><stop stop-color="#26384b"/><stop offset="1" stop-color="#101923"/></linearGradient></defs><rect x="8" y="12" width="584" height="56" rx="5" fill="url(#chassis)" stroke="#64748b" stroke-width="2"/><rect x="1" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><rect x="587" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><circle cx="7" cy="40" r="2" fill="#94a3b8"/><circle cx="593" cy="40" r="2" fill="#94a3b8"/><text x="28" y="36" fill="#38bdf8" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="700">${label}</text><text x="28" y="53" fill="#94a3b8" font-family="ui-sans-serif,Arial" font-size="8">MODEL-AWARE FALLBACK</text><circle cx="203" cy="32" r="3" fill="#22c55e"/><circle cx="214" cy="32" r="3" fill="#22c55e"/>${ports}</svg>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 80" role="img" data-preview-kind="${kind}"><defs><linearGradient id="chassis" x1="0" x2="0" y2="1"><stop stop-color="#26384b"/><stop offset="1" stop-color="#101923"/></linearGradient></defs><rect x="8" y="12" width="584" height="56" rx="5" fill="url(#chassis)" stroke="${kind === 'patch' ? '#f59e0b' : (kind === 'fiber' ? '#a78bfa' : '#64748b')}" stroke-width="2"/><rect x="1" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><rect x="587" y="20" width="12" height="40" rx="2" fill="#1e293b" stroke="#64748b"/><circle cx="7" cy="40" r="2" fill="#94a3b8"/><circle cx="593" cy="40" r="2" fill="#94a3b8"/><text x="28" y="36" fill="#38bdf8" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="700">${label}</text><text x="28" y="53" fill="#94a3b8" font-family="ui-sans-serif,Arial" font-size="8">${kind === 'patch' ? 'PASSIVE COPPER PATCH' : (kind === 'fiber' ? 'PASSIVE FIBER ODF' : (kind === 'fiber-switch' ? 'FIBER ACCESS SWITCH' : 'NETWORK DEVICE'))}</text>${kind !== 'patch' && kind !== 'fiber' ? '<circle cx="203" cy="32" r="3" fill="#22c55e"/><circle cx="214" cy="32" r="3" fill="#22c55e"/>' : ''}${ports}</svg>`;
       const img = document.createElement('img');
       img.className = 'hw-stencil-preview hw-generated-stencil';
+      img.dataset.previewKind = kind;
       img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
       img.alt = `${sku} oluşturulmuş ön panel önizlemesi`;
       img.setAttribute('draggable', 'false');
@@ -513,15 +540,9 @@
       close.addEventListener('click', () => selectCustom(key));
       const visual = make('div', undefined, 'catalog-detail-visual');
       const stencilUrl = resolveStencil(item, key);
-      if (stencilUrl) {
-        const img = document.createElement('img');
-        img.src = stencilUrl;
-        img.alt = item.modelTag || item.name;
-        img.loading = 'eager';
-        img.decoding = 'async';
-        img.onerror = () => visual.classList.add('catalog-detail-visual-fallback');
-        visual.append(img);
-      }
+      const generated = createGeneratedStencil(item, item.modelTag || key);
+      generated.alt = `${item.modelTag || item.name} · ${generated.dataset.previewKind} önizlemesi`;
+      visual.append(generated);
       const copy = make('div', undefined, 'catalog-detail-copy');
       copy.append(
         make('strong', item.modelTag || item.name, 'catalog-detail-model'),
@@ -531,7 +552,15 @@
       const mount = make('button', 'İlk boş U’ya ekle', 'catalog-detail-mount');
       mount.type = 'button';
       mount.addEventListener('click', () => mountCardDeviceToRack(key));
-      detailPanel.append(close, visual, copy, mount);
+      const actions = make('div', undefined, 'catalog-detail-actions');
+      actions.append(mount);
+      if (stencilUrl) {
+        const actualPreview = make('button', 'Gerçek stencil’i göster', 'catalog-detail-stencil');
+        actualPreview.type = 'button';
+        actualPreview.addEventListener('click', () => showStencilHoverPreview(generated, actualPreview, stencilUrl));
+        actions.append(actualPreview);
+      }
+      detailPanel.append(close, visual, copy, actions);
     }
 
     function selectCustom(key) {
@@ -660,23 +689,25 @@
         const poeWattMatch = ((item.desc || '') + ' ' + (item.name || '')).match(/(\d+W)\b/i);
         const poeWatt = poeWattMatch ? ' (' + poeWattMatch[1] + ')' : '';
 
-        if (rj45Ports.length > 0) {
+        if (item.category === 'patch') {
+          const category = /cat6a/i.test(`${item.name || ''} ${item.desc || ''}`) ? 'Cat6A' : 'Cat6';
+          chips.push(`${rj45Ports.length || item.ports.length}× RJ45 ${category}`);
+        } else if (item.category === 'fiber') {
+          const connector = item.ports.some(p => p.type === 'sc') ? 'SC' : (item.ports.some(p => p.type === 'lc') ? 'LC' : 'Fiber');
+          chips.push(`${item.ports.length}× ${connector} fiber`);
+        } else if (rj45Ports.length > 0) {
           const is10G = rj45Ports.some(p => /10g|mgig/i.test(p.speed || ''));
           const speedStr = is10G ? 'mGig' : '1G';
           const poeStr = hasPoe ? ' PoE+' + poeWatt : '';
           chips.push(rj45Ports.length + 'x ' + speedStr + poeStr);
-        } else if (item.category === 'patch') {
-          chips.push(item.ports.length + 'x RJ45 Cat6');
         }
 
-        if (sfpPorts.length > 0) {
+        if (item.category !== 'fiber' && item.category !== 'patch' && sfpPorts.length > 0) {
           const is100G = sfpPorts.some(p => /100g|qsfp28/i.test(p.speed || ''));
           const is25G = sfpPorts.some(p => /25g|sfp28/i.test(p.speed || ''));
           const is10G = sfpPorts.some(p => /10g|sfp\+/i.test(p.speed || ''));
           const speed = is100G ? '100G QSFP28' : (is25G ? '25G SFP28' : (is10G ? '10G SFP+' : '1G SFP'));
           chips.push(sfpPorts.length + 'x ' + speed);
-        } else if (item.category === 'fiber') {
-          chips.push(item.ports.length + 'x Fiber LC');
         }
       }
 
@@ -825,42 +856,16 @@
         fallbackBezel.innerHTML = `<div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div><div class="mini-bezel-face"><span class="mini-cisco-text">${escapeHtml(bezelTag)}</span><span class="mini-led-dot mini-led-cyan"></span></div><div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>`;
       }
 
-      if (stencilUrl) {
-        const img = document.createElement('img');
-        let hoverSource = img;
-        img.className = 'hw-stencil-preview';
-        img.src = stencilUrl;
-        img.alt = sku;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.setAttribute('draggable', 'false');
-        img.onerror = () => {
-          img.style.display = 'none';
-          const generated = createGeneratedStencil(item, sku);
-          hoverSource = generated;
-          visualContainer.append(generated);
-        };
-        fallbackBezel.style.display = 'none';
-        visualContainer.append(img, fallbackBezel);
-        visualContainer.tabIndex = 0;
-        visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(hoverSource, visualContainer));
-        visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
-        visualContainer.addEventListener('mouseenter', () => showStencilHoverPreview(hoverSource, visualContainer));
-        visualContainer.addEventListener('mouseleave', hideStencilHoverPreview);
-        visualContainer.addEventListener('focusin', () => showStencilHoverPreview(hoverSource, visualContainer));
-        visualContainer.addEventListener('focusout', hideStencilHoverPreview);
-      } else {
-        const generated = createGeneratedStencil(item, sku);
-        fallbackBezel.style.display = 'none';
-        visualContainer.append(generated, fallbackBezel);
-        visualContainer.tabIndex = 0;
-        visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(generated, visualContainer));
-        visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
-        visualContainer.addEventListener('mouseenter', () => showStencilHoverPreview(generated, visualContainer));
-        visualContainer.addEventListener('mouseleave', hideStencilHoverPreview);
-        visualContainer.addEventListener('focusin', () => showStencilHoverPreview(generated, visualContainer));
-        visualContainer.addEventListener('focusout', hideStencilHoverPreview);
-      }
+      const generated = createGeneratedStencil(item, sku);
+      generated.alt = `${sku} · ${generated.dataset.previewKind} önizlemesi`;
+      generated.setAttribute('draggable', 'false');
+      fallbackBezel.style.display = 'none';
+      visualContainer.append(generated, fallbackBezel);
+      visualContainer.tabIndex = 0;
+      visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(generated, visualContainer));
+      visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
+      visualContainer.addEventListener('focusin', () => showStencilHoverPreview(generated, visualContainer));
+      visualContainer.addEventListener('focusout', hideStencilHoverPreview);
 
       // 3. Spec Chips
       const specChipsWrap = make('div', undefined, 'hw-spec-chips');
@@ -918,13 +923,16 @@
       if (cat === 'compact' || id.includes('3560') || name.includes('3560-cx')) {
         return { key: 'compact', title: 'Kompakt & Duvar', badge: 'COMPACT', order: 6 };
       }
-      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf') || name.includes('patch')) {
-        return { key: 'patch', title: 'Patch & ODF Paneller', badge: 'PATCH & ODF', order: 7 };
+      if (cat === 'fiber' || id.includes('odf') || name.includes('odf')) {
+        return { key: 'fiber-odf', title: 'Fiber Sonlandırma & ODF', badge: 'FIBER / ODF', order: 7 };
+      }
+      if (cat === 'patch' || id.includes('patch') || name.includes('patch')) {
+        return { key: 'copper-patch', title: 'Bakır Patch Paneller', badge: 'COPPER PATCH', order: 8 };
       }
       if (cat === 'organizer' || cat === 'blank' || id.includes('organizer') || id.includes('blank') || name.includes('düzenleyici') || name.includes('kör panel')) {
-        return { key: 'management', title: 'Düzenleyici & Kör', badge: 'D-RING', order: 8 };
+        return { key: 'management', title: 'Düzenleyici & Kör', badge: 'D-RING', order: 9 };
       }
-      return { key: 'custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 9 };
+      return { key: 'custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 10 };
     }
 
     function getDeviceCategoryGroup(deviceId, item) {
@@ -943,13 +951,16 @@
       if (cat === 'compact' || id.includes('3560')) {
         return { key: 'grp-compact', title: 'Kompakt & Duvar Tipi Switchler', badge: 'COMPACT', order: 4 };
       }
-      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf')) {
-        return { key: 'grp-patch', title: 'Patch Paneller & Sonlandırma', badge: 'PATCH', order: 5 };
+      if (cat === 'fiber' || id.includes('odf')) {
+        return { key: 'grp-odf', title: 'Fiber Sonlandırma & ODF', badge: 'FIBER', order: 5 };
+      }
+      if (cat === 'patch' || id.includes('patch')) {
+        return { key: 'grp-patch', title: 'Bakır Patch Paneller', badge: 'PATCH', order: 6 };
       }
       if (cat === 'organizer' || cat === 'blank') {
-        return { key: 'grp-org', title: 'Kablo Düzenleme & Boş Paneller', badge: 'D-RING', order: 6 };
+        return { key: 'grp-org', title: 'Kablo Düzenleme & Boş Paneller', badge: 'D-RING', order: 7 };
       }
-      return { key: 'grp-custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 7 };
+      return { key: 'grp-custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 8 };
     }
 
     const collapsedTreeGroups = new Set();

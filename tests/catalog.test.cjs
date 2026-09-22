@@ -18,12 +18,26 @@ const { pathToFileURL } = require('node:url');
     assert.equal(await page.locator('.catalog-view-segmented').isHidden(), true, 'redundant catalog view band is hidden');
     assert.ok(await page.locator('.sidebar-left .hw-visual-container').first().evaluate(el => el.getBoundingClientRect().width >= 200), 'stencil preview owns the full first row');
     assert.equal(await page.locator('.sidebar-left .hw-visual-container').first().evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(0, 0, 0, 0)', 'stencil preview background is transparent');
+    assert.equal(await page.locator('.sidebar-left .device-card[data-device-id="cisco-3850-24s"] .hw-generated-stencil').getAttribute('data-preview-kind'), 'fiber-switch', 'fiber switch uses an active optical faceplate preview');
+    assert.equal(await page.locator('.sidebar-left .device-card[data-device-id="patch-cat6-24"] .hw-generated-stencil').getAttribute('data-preview-kind'), 'patch', 'copper patch uses a passive keystone preview');
+    assert.equal(await page.locator('.sidebar-left .device-card[data-device-id="fiber-odf-24"] .hw-generated-stencil').getAttribute('data-preview-kind'), 'fiber', 'fiber ODF uses a distinct duplex connector preview');
+    assert.ok(await page.locator('.sidebar-left .device-card[data-device-id="patch-cat6-24"] .hw-spec-chips').textContent().then(text => text.includes('RJ45 Cat6')), 'patch panel metadata does not report active switch speed');
+    assert.ok(await page.locator('.sidebar-left .device-card[data-device-id="fiber-odf-24"] .hw-spec-chips').textContent().then(text => text.includes('LC fiber')), 'ODF metadata reports passive fiber connectors');
+    assert.equal(await page.locator('.sidebar-left .device-card[data-device-id="cisco-3850-24s"] img.hw-stencil-preview:not(.hw-generated-stencil)').count(), 0, 'catalog cards do not embed original heavy Cisco SVG files');
+    await page.evaluate(() => document.querySelector('.catalog-mode-btn[data-mode="category"]').click());
+    assert.ok(await page.locator('.catalog-tree-card[data-group-key="grp-odf"]').count(), 'category view separates fiber ODFs');
+    assert.ok(await page.locator('.catalog-tree-card[data-group-key="grp-patch"]').count(), 'category view separates copper patch panels');
+    await page.evaluate(() => document.querySelector('.catalog-mode-btn[data-mode="series"]').click());
     const firstStencil = page.locator('.sidebar-left .hw-stencil-preview').first();
     await firstStencil.locator('..').hover();
     await page.waitForTimeout(380);
     const hoverPreview = page.locator('.catalog-stencil-hover-preview');
     assert.ok(await hoverPreview.evaluate(el => el.classList.contains('visible') && Number(getComputedStyle(el).opacity) > .9), 'stencil expands in the body-level hover preview');
     assert.ok(await hoverPreview.evaluate(el => el.parentElement === document.body && getComputedStyle(el).position === 'fixed'), 'expanded stencil cannot be clipped by the sidebar');
+    assert.ok((await hoverPreview.locator('img').getAttribute('src')).startsWith('data:image/svg+xml'), 'hover expands the lightweight generated preview without decoding the original SVG');
+    await page.locator('.sidebar-left .device-card[data-device-id="cisco-9200l-24p"]').click();
+    const realStencilButton = page.getByRole('button', { name: 'Gerçek stencil’i göster' });
+    assert.equal(await realStencilButton.count(), 1, 'selected model exposes an explicit real-stencil preview for mouse and touch');
     await page.locator('.quick-filter-chip[data-filter="48p"]').click();
     const cat9kFilterState = await page.locator('.catalog-tree-card[data-group-key="cat9k"]').evaluate(group => ({
       badge: group.querySelector('.catalog-tree-count')?.textContent,
