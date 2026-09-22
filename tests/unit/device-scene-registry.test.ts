@@ -80,4 +80,24 @@ describe('DeviceSceneRegistry', () => {
     registry.captureFromDom('recapture');
     expect(registry.getStats().templatePortRectReads).toBe(1);
   });
+
+  it('detaches repetitive faceplates from the document and restores the same DOM nodes', () => {
+    const port = addDevice('dev-a', 100);
+    const device = port.parentElement as HTMLElement;
+    const faceplate = document.createElement('div');
+    faceplate.className = 'device-faceplate';
+    faceplate.appendChild(port);
+    device.appendChild(faceplate);
+    const registry = (window as any).RackStudio.DeviceSceneRegistry;
+    registry.captureFromDom('before-suspend');
+
+    expect(registry.suspendDomFaceplates()).toBe(1);
+    expect(document.querySelectorAll('.device-faceplate').length).toBe(0);
+    expect(document.querySelectorAll('.port').length).toBe(0);
+    expect(registry.getPortPoint('dev-a', 'p1')).not.toBeNull();
+
+    expect(registry.restoreDomFaceplates()).toBe(1);
+    expect(document.querySelector('.device-faceplate')).toBe(faceplate);
+    expect(document.querySelector('.port')).toBe(port);
+  });
 });

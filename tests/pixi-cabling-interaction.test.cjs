@@ -819,32 +819,46 @@ async function run() {
 
     const deviceLod = await page.evaluate(async () => {
       const RS = window.RackStudio;
-      const originalScale = RS.ZOOM_STATE.scale;
+      RS.ZOOM_STATE.scale = 1;
+      RS.updateStageTransform(false);
+      RS.syncPixiDeviceSceneLOD('detail');
+      await new Promise(resolve => setTimeout(resolve, 40));
+      const detailPortCount = document.querySelectorAll('.mounted-device .port').length;
+      const faceplate = document.querySelector('.mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate');
       RS.ZOOM_STATE.scale = 0.3;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 40));
-      const faceplate = document.querySelector('.mounted-device[data-category="switch"] .device-faceplate');
       const macro = {
         lod: RS.dom.rackStage.dataset.lod,
         renderer: document.documentElement.dataset.deviceRenderer,
-        faceplateDisplay: getComputedStyle(faceplate).display,
+        faceplateConnected: faceplate.isConnected,
+        detailPortCount,
+        livePortCount: document.querySelectorAll('.mounted-device .port').length,
+        detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates,
         telemetry: RS.getPixiPerformanceTelemetry()
       };
-      RS.ZOOM_STATE.scale = originalScale;
+      RS.ZOOM_STATE.scale = 1;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 40));
       const detail = {
         lod: RS.dom.rackStage.dataset.lod,
-        faceplateDisplay: getComputedStyle(faceplate).display
+        faceplateDisplay: getComputedStyle(faceplate).display,
+        livePortCount: document.querySelectorAll('.mounted-device .port').length,
+        detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates
       };
       return { macro, detail };
     });
     assert.equal(deviceLod.macro.lod, 'macro');
     assert.equal(deviceLod.macro.renderer, 'pixi');
-    assert.equal(deviceLod.macro.faceplateDisplay, 'none', 'macro Pixi LOD must suppress repetitive DOM faceplate layout and paint');
+    assert.equal(deviceLod.macro.faceplateConnected, false, 'macro Pixi LOD must detach repetitive faceplate trees from the live document');
+    assert.ok(deviceLod.macro.detailPortCount > 0);
+    assert.equal(deviceLod.macro.livePortCount, 0, 'macro Pixi LOD must remove repetitive port nodes from the live document');
+    assert.ok(deviceLod.macro.detachedFaceplates > 0);
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
+    assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');
+    assert.equal(deviceLod.detail.detachedFaceplates, 0);
 
     await page.waitForTimeout(1100);
     const idleStart = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());

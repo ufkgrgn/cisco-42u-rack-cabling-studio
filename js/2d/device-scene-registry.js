@@ -13,6 +13,7 @@
   const catalogTemplates = new Map();
   const deviceRecords = new Map();
   const portRecords = new Map();
+  const detachedFaceplates = new Map();
   let generation = 0;
   let lastCaptureReason = 'init';
 
@@ -169,12 +170,50 @@
     });
   }
 
+  function suspendDomFaceplates() {
+    const mountedById = new Map(Array.from(document.querySelectorAll('.mounted-device')).map(element => [
+      element.dataset.instanceId || element.id,
+      element
+    ]));
+
+    detachedFaceplates.forEach((entry, instanceId) => {
+      if (!entry.owner.isConnected || mountedById.get(instanceId) !== entry.owner) {
+        detachedFaceplates.delete(instanceId);
+      }
+    });
+
+    mountedById.forEach((deviceEl, instanceId) => {
+      const category = deviceEl.dataset.category || '';
+      if (category === 'organizer' || category === 'blank') return;
+      if (detachedFaceplates.has(instanceId)) return;
+      const faceplate = Array.from(deviceEl.children).find(child => child.classList?.contains('device-faceplate'));
+      if (!faceplate) return;
+      detachedFaceplates.set(instanceId, { owner: deviceEl, element: faceplate });
+      faceplate.remove();
+    });
+    return detachedFaceplates.size;
+  }
+
+  function restoreDomFaceplates() {
+    let restored = 0;
+    detachedFaceplates.forEach((entry, instanceId) => {
+      if (entry.owner.isConnected && !entry.owner.querySelector('.device-faceplate')) {
+        entry.owner.appendChild(entry.element);
+        restored++;
+      }
+      detachedFaceplates.delete(instanceId);
+    });
+    return restored;
+  }
+
   RS.DeviceSceneRegistry = Object.freeze({
     captureFromDom,
     invalidate,
     getPortPoint,
     getDeviceRecord,
     getSnapshot,
-    getStats: () => ({ ...stats, generation, templates: catalogTemplates.size })
+    suspendDomFaceplates,
+    restoreDomFaceplates,
+    getStats: () => ({ ...stats, generation, templates: catalogTemplates.size, detachedFaceplates: detachedFaceplates.size })
   });
 })();

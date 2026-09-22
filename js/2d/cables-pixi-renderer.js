@@ -1487,6 +1487,7 @@
     const enabled = STATE.cableRenderMode === 'pixi' && lod === 'macro';
     deviceSceneContainer.visible = enabled;
     if (!enabled) {
+      RS.DeviceSceneRegistry?.restoreDomFaceplates();
       document.documentElement.setAttribute('data-device-renderer', STATE.cableRenderMode === 'pixi' ? 'pixi' : 'dom');
       lastDeviceSceneSignature = `hidden:${lod}`;
       return false;
@@ -1541,6 +1542,7 @@
 
     deviceSceneContainer.addChild(chassis, ports);
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
+    RS.DeviceSceneRegistry?.suspendDomFaceplates();
     lastDeviceSceneSignature = signature;
     performanceTelemetry.deviceSceneRebuilds++;
     return true;
@@ -2193,6 +2195,7 @@
       if (canvas) canvas.style.display = 'block';
       if (svgEl) svgEl.style.display = 'none';
     } else {
+      RS.DeviceSceneRegistry?.restoreDomFaceplates();
       if (canvas) canvas.style.display = 'none';
       if (canvas) canvas.style.pointerEvents = 'none';
       if (svgEl) svgEl.style.display = 'block';
