@@ -8,6 +8,40 @@ const assert = require('node:assert/strict');
   const browser = await chromium.launch({channel:'msedge', headless:true});
   try {
     const page = await browser.newPage({viewport:{width:1600,height:1000}});
+    // Opt-in browser trace isolates the gesture from import and later mutation probes.
+    // Durations are inclusive and may overlap across nested events/threads.
+    let panTrace = null;
+    if (process.env.BENCH_TRACE === '1') {
+      const session = await page.context().newCDPSession(page);
+      const events = [];
+      session.on('Tracing.dataCollected', ({ value }) => events.push(...value));
+      await page.exposeFunction('startPanTrace', () => session.send('Tracing.start', {
+        categories: 'devtools.timeline,disabled-by-default-devtools.timeline,blink.user_timing',
+        transferMode: 'ReportEvents'
+      }));
+      await page.exposeFunction('stopPanTrace', async () => {
+        const complete = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Pan trace completion timed out')), 15000);
+          session.once('Tracing.tracingComplete', () => { clearTimeout(timeout); resolve(); });
+        });
+        await session.send('Tracing.end');
+        await complete;
+        const totals = new Map();
+        for (const event of events) {
+          if (event.ph !== 'X' || !Number.isFinite(event.dur)) continue;
+          const row = totals.get(event.name) || { name: event.name, count: 0, totalMs: 0, maxMs: 0 };
+          row.count++;
+          row.totalMs += event.dur / 1000;
+          row.maxMs = Math.max(row.maxMs, event.dur / 1000);
+          totals.set(event.name, row);
+        }
+        panTrace = {
+          scope: 'mousedown through mouseup; inclusive CPU event durations, not GPU execution times',
+          events: [...totals.values()].sort((a, b) => b.totalMs - a.totalMs).slice(0, 25)
+        };
+        await session.detach();
+      });
+    }
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto(pathToFileURL(path.resolve(__dirname,'../index.html')).href);
@@ -50,6 +84,7 @@ const assert = require('node:assert/strict');
       const canvas=document.getElementById('viewport-canvas');
       const rect=canvas.getBoundingClientRect();
       api.resetCameraPerformanceTelemetry?.();
+      if (window.startPanTrace) await window.startPanTrace();
       canvas.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:rect.left+10,clientY:rect.top+10}));
       const intervals=[]; let previous;
       for(let frame=0;frame<180;frame++) {
@@ -59,6 +94,7 @@ const assert = require('node:assert/strict');
       }
       window.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
       const cameraTelemetry=api.getCameraPerformanceTelemetry?.() || {};
+      if (window.stopPanTrace) await window.stopPanTrace();
       const sorted=[...intervals].sort((a,b)=>a-b);
       const retainedBefore=api.getPixiCableInteractionState().renderStats;
       const retainedRenderCalls=100;
@@ -377,7 +413,7 @@ const assert = require('node:assert/strict');
     assert.equal(results.styleAvoidedFullBatchRebuilds,1);
     assert.equal(results.styleRenderSubmits,1);
     assert.deepEqual(errors,[]);
-    const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,errors};
+    const report={timestamp:new Date().toISOString(),method:'Headless Edge, file URL, synthetic mouse pan, 1600x1000 viewport. Smoke measurement only; compositor/GPU behavior and real hardware 60 FPS are not certified.',...results,panTrace,errors};
     const reportFile = process.env.BENCH_REPORT_FILE || 'performance-results.json';
     fs.writeFileSync(path.join(__dirname, reportFile),JSON.stringify(report,null,2)+'\n');
     console.log(JSON.stringify(report,null,2));

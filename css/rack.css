@@ -2060,6 +2060,9 @@
   /* Keep rack DOM mounted for stable port geometry while allowing the browser
      to skip style/layout/paint work for cabinets outside the viewport. */
   contain: layout paint style;
+  /* The header extends 66px above the chassis. Preserve that overflow while
+     retaining cabinet-local paint containment. */
+  overflow-clip-margin: 76px;
   content-visibility: auto;
   contain-intrinsic-size: 634px var(--rack-intrinsic-height, 1428px);
 }

@@ -406,6 +406,46 @@ async function run() {
     );
     assert.ok(multiRackState.headers.every(header => header.buttonCount === 6 && header.allVisible), 'all multi-rack header actions must remain visible inside each rack');
 
+    const containmentRegression = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const stage = RS.dom.rackStage;
+      const saved = { ...RS.ZOOM_STATE };
+      const shortRack = RS.STATE.racks[1];
+      const savedHeight = shortRack.heightU;
+      const shortContainer = stage.querySelector(`[data-rack-id="${shortRack.id}"]`);
+      try {
+        Object.assign(RS.ZOOM_STATE, { scale: 1, panX: 0, panY: 100 });
+        RS.updateStageTransform(false);
+        const button = stage.querySelector('.rack-header-plate .rack-action-btn');
+        const rect = button.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        const headerHit = hit === button || button.contains(hit);
+        shortRack.heightU = 12;
+        RS.configureMultiRackVisibility(stage, true);
+        const camera = { scale: 0.3, panX: 0, panY: 0 };
+        RS.syncRackViewportVisibility(camera);
+        const before = shortContainer.dataset.viewportVisible;
+        const margin = Math.max(180, RS.dom.viewportCanvas.clientHeight / camera.scale * 0.2);
+        camera.panY = -(76 + 12 * 32 + 84 + margin + 1) * camera.scale;
+        RS.syncRackViewportVisibility(camera);
+        const below = shortContainer.dataset.viewportVisible;
+        const tallVisible = stage.querySelector('.rack-container').dataset.viewportVisible;
+        camera.panY = 0;
+        RS.syncRackViewportVisibility(camera);
+        return { headerHit, before, below, tallVisible, returned: shortContainer.dataset.viewportVisible };
+      } finally {
+        shortRack.heightU = savedHeight;
+        Object.assign(RS.ZOOM_STATE, saved);
+        RS.configureMultiRackVisibility(stage, true);
+        RS.updateStageTransform(false);
+      }
+    });
+    assert.equal(containmentRegression.headerHit, true, 'paint containment must not clip header button hit targets');
+    assert.equal(containmentRegression.before, 'true');
+    assert.equal(containmentRegression.below, 'false', 'short rack must leave view independently of taller racks');
+    assert.equal(containmentRegression.tallVisible, 'true');
+    assert.equal(containmentRegression.returned, 'true', 'short rack must reappear when panning back');
+
     const cullingState = await page.evaluate(() => {
       const RS = window.RackStudio;
       RS.ZOOM_STATE.scale = 1;

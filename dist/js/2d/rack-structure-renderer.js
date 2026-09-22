@@ -221,6 +221,7 @@
   let rackVisibilityRefreshFrame = 0;
   let rackViewportEntries = [];
   let rackViewportMaxBottom = 0;
+  let rackViewportBottoms = [];
   let rackViewportSignature = null;
   let rackViewportSize = { width: 0, height: 0 };
   let rackViewportResizeObserver = null;
@@ -248,6 +249,7 @@
       };
     });
     rackViewportMaxBottom = rackViewportEntries.reduce((max, entry) => Math.max(max, entry.bottom), 0);
+    rackViewportBottoms = [...new Set(rackViewportEntries.map(entry => entry.bottom))].sort((a, b) => a - b);
     rackViewportSignature = null;
   }
 
@@ -302,7 +304,16 @@
     const firstRack = Math.max(0, Math.ceil((minX - 60 - 634) / (634 + 64)));
     const lastRack = Math.min(entries.length - 1, Math.floor((maxX - 60) / (634 + 64)));
     const verticalVisible = maxY >= 10 && minY <= rackViewportMaxBottom;
-    const signature = `${firstRack}:${lastRack}:${verticalVisible ? 1 : 0}:${entries.length}`;
+    // Every distinct cabinet height is a visibility boundary. The tallest
+    // cabinet alone cannot describe shorter cabinets leaving/reentering view.
+    let low = 0;
+    let high = rackViewportBottoms.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (rackViewportBottoms[middle] < minY) low = middle + 1;
+      else high = middle;
+    }
+    const signature = `${firstRack}:${lastRack}:${verticalVisible ? 1 : 0}:${low}:${entries.length}`;
     if (signature === rackViewportSignature) {
       rackViewportTelemetry.signatureSkips++;
       rackViewportTelemetry.unchangedSkips += entries.length;
@@ -395,6 +406,7 @@
     });
     rackViewportEntries = [];
     rackViewportMaxBottom = 0;
+    rackViewportBottoms = [];
     rackViewportSignature = null;
     rackViewportSize = { width: 0, height: 0 };
     if (!isMulti) return;
