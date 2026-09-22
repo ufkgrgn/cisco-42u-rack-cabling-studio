@@ -864,6 +864,26 @@ async function run() {
       RS.STATE.cables.pop();
       RS.syncPixiDeviceSceneLOD('macro');
       macro.occupancyUpdate = { before: beforeOccupancy, after: afterOccupancy };
+      const interactionPort = freePorts[2];
+      const canvasRect = document.getElementById('cables-pixi-canvas').getBoundingClientRect();
+      const scale = RS.ZOOM_STATE.scale;
+      const point = {
+        x: canvasRect.left + RS.ZOOM_STATE.panX + interactionPort.x * scale + interactionPort.width * scale / 2,
+        y: canvasRect.top + RS.ZOOM_STATE.panY + interactionPort.y * scale + interactionPort.height * scale / 2
+      };
+      window.dispatchEvent(new PointerEvent('pointermove', { clientX: point.x, clientY: point.y, bubbles: true }));
+      await new Promise(resolve => setTimeout(resolve, 40));
+      const macroPortHover = {
+        tooltipVisible: RS.dom.tooltip?.style.display === 'block',
+        tooltipHasPortName: RS.dom.tooltip?.textContent.includes(interactionPort.name)
+      };
+      window.dispatchEvent(new PointerEvent('pointerdown', { clientX: point.x, clientY: point.y, button: 0, bubbles: true, cancelable: true }));
+      const macroPortClick = {
+        pendingInstanceId: RS.STATE.pendingConnection?.instanceId,
+        pendingPortId: RS.STATE.pendingConnection?.portId
+      };
+      RS.cancelPendingConnection();
+      macro.portInteraction = { hover: macroPortHover, click: macroPortClick, expected: interactionPort };
       RS.syncPixiViewportCamera({ scale: 0.3, panX: -100000, panY: -100000 }, true, 'device-culling-offscreen');
       macro.offscreenCulling = RS.getPixiPerformanceTelemetry();
       RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-restore');
@@ -905,6 +925,10 @@ async function run() {
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortVariants.occupied, deviceLod.macro.occupancyUpdate.before.devicePortVariants.occupied + 2, 'connecting copper endpoints must update only the two matching atlas variants');
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyUpdate.before.deviceOccupancySetRebuilds + 1, 'a changed cable endpoint set must rebuild occupancy once');
+    assert.equal(deviceLod.macro.portInteraction.hover.tooltipVisible, true, 'macro Pixi ports must show the existing port tooltip');
+    assert.equal(deviceLod.macro.portInteraction.hover.tooltipHasPortName, true, 'macro Pixi tooltip must identify the exact port');
+    assert.equal(deviceLod.macro.portInteraction.click.pendingInstanceId, deviceLod.macro.portInteraction.expected.instanceId, 'macro Pixi port click must start the existing connection workflow');
+    assert.equal(deviceLod.macro.portInteraction.click.pendingPortId, deviceLod.macro.portInteraction.expected.portId, 'macro Pixi hit testing must resolve the exact port id');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
     assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'detail LOD must restore every detached port node');

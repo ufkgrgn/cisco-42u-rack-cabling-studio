@@ -77,6 +77,9 @@
   const devicePortSprites = new Map();
   const devicePortOccupancy = new Map();
   const devicePortVariantCounts = new Map();
+  const devicePortHitGrid = new Map();
+  const DEVICE_PORT_HIT_CELL_SIZE = 32;
+  let hoveredDevicePortKey = null;
   // Reused for every pointer sample. Allocating a Set at pointer frequency
   // creates avoidable young-generation GC pressure on dense cable scenes.
   const hitCandidates = new Set();
@@ -1204,6 +1207,12 @@
         const domOwnsCableHover = !!target.closest(
           '#schedule-tbody [data-cable-id], #schedule-tbody .tree-switch-header'
         );
+        if (hoveredDevicePortKey) {
+          const previousKey = hoveredDevicePortKey;
+          hoveredDevicePortKey = null;
+          restoreDevicePortTint(previousKey);
+          dispatchDevicePortInteraction('leave');
+        }
         if (!domOwnsCableHover) setPixiHover(null);
         return;
       }
@@ -1218,13 +1227,37 @@
           pixiCanvas.style.pointerEvents = 'none';
           isPointerOverCable = false;
         }
+        if (hoveredDevicePortKey) {
+          const previousKey = hoveredDevicePortKey;
+          hoveredDevicePortKey = null;
+          restoreDevicePortTint(previousKey);
+          dispatchDevicePortInteraction('leave');
+        }
         setPixiHover(null);
         return;
       }
 
+      const port = hitDevicePortAt(e.clientX, e.clientY);
+      const nextPortKey = port ? `${port.instanceId}::${port.portId}` : null;
+      const portChanged = nextPortKey !== hoveredDevicePortKey;
+      if (portChanged) {
+        const previousKey = hoveredDevicePortKey;
+        if (previousKey) {
+          dispatchDevicePortInteraction('leave');
+        }
+        hoveredDevicePortKey = nextPortKey;
+        if (previousKey) restoreDevicePortTint(previousKey);
+        if (port) {
+          const sprite = devicePortSprites.get(nextPortKey);
+          if (sprite) sprite.tint = 0x67e8f9;
+        }
+      }
       const cableId = STATE.pendingConnection ? null : hitCableAt(e.clientX, e.clientY);
       const hitInteractive = !!cableId;
       setPixiHover(cableId, e);
+      if (portChanged && port) {
+        dispatchDevicePortInteraction('hover', port);
+      }
 
       if (hitInteractive && !isPointerOverCable) {
         pixiCanvas.style.pointerEvents = 'auto';
@@ -1235,6 +1268,15 @@
       }
       });
     }, { passive: true });
+
+    window.addEventListener('pointerdown', (e) => {
+      if (STATE?.cableRenderMode !== 'pixi' || e.button !== 0) return;
+      const port = hitDevicePortAt(e.clientX, e.clientY);
+      if (!port) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      dispatchDevicePortInteraction('click', port);
+    }, { capture: true });
 
     pixiCanvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
@@ -1256,6 +1298,13 @@
     // has pointerEvents:none (which happens while a cable is hovered/selected).
     window.addEventListener('contextmenu', (e) => {
       if (STATE?.cableRenderMode !== 'pixi' || !pixiApp || !pixiCanvas) return;
+      const port = hitDevicePortAt(e.clientX, e.clientY);
+      if (port) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        dispatchDevicePortInteraction('contextmenu', port);
+        return;
+      }
       const cableId = hitCableAt(e.clientX, e.clientY);
       if (!cableId) return;
       e.preventDefault();
@@ -1269,6 +1318,13 @@
     const onDblClick = (e) => {
       if (STATE?.cableRenderMode !== 'pixi') return;
       if (e.target?.closest?.('#cable-quick-hud, #cable-context-menu, .modal, input, button')) return;
+      const port = hitDevicePortAt(e.clientX, e.clientY);
+      if (port) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        dispatchDevicePortInteraction('dblclick', port);
+        return;
+      }
       const cableId = hitCableAt(e.clientX, e.clientY);
       if (!cableId) return;
       e.preventDefault();
@@ -1576,6 +1632,8 @@
     devicePortSprites.clear();
     devicePortOccupancy.clear();
     devicePortVariantCounts.clear();
+    devicePortHitGrid.clear();
+    hoveredDevicePortKey = null;
   }
 
   function getOrCreateDeviceRackScene(rackId) {
@@ -1584,7 +1642,7 @@
     if (scene) return scene;
     const container = new window.PIXI.Container();
     container.label = `rack-device-scene-${key}`;
-    container.eventMode = 'none';
+    container.eventMode = 'passive';
     const chassis = new window.PIXI.Container();
     chassis.label = `rack-device-chassis-${key}`;
     chassis.eventMode = 'none';
@@ -1592,7 +1650,7 @@
     overlays.label = `rack-device-overlays-${key}`;
     const ports = new window.PIXI.Container();
     ports.label = `rack-device-ports-${key}`;
-    ports.eventMode = 'none';
+    ports.eventMode = 'passive';
     container.addChild(chassis, overlays, ports);
     scene = { key, container, chassis, overlays, ports, bounds: null };
     deviceRackScenes.set(key, scene);
@@ -1610,6 +1668,78 @@
     bounds.minY = Math.min(bounds.minY, device.y);
     bounds.maxX = Math.max(bounds.maxX, device.x + device.width);
     bounds.maxY = Math.max(bounds.maxY, device.y + device.height);
+  }
+
+  function addDevicePortToHitGrid(port) {
+    const cellX = Math.floor(port.x / DEVICE_PORT_HIT_CELL_SIZE);
+    const cellY = Math.floor(port.y / DEVICE_PORT_HIT_CELL_SIZE);
+    const key = `${cellX}:${cellY}`;
+    let entries = devicePortHitGrid.get(key);
+    if (!entries) devicePortHitGrid.set(key, entries = []);
+    entries.push(port);
+  }
+
+  function hitDevicePortAt(clientX, clientY) {
+    if (!deviceSceneContainer?.visible) return null;
+    const rect = getPixiCanvasRect();
+    if (!rect?.width || !rect?.height) return null;
+    const point = clientToRenderer(clientX, clientY, rect, hitTestPoint);
+    const scale = Math.max(0.05, Number(RS.ZOOM_STATE?.scale) || 1);
+    const tolerance = Math.max(5, 8 / scale);
+    const cellRadius = Math.ceil(tolerance / DEVICE_PORT_HIT_CELL_SIZE);
+    const centerX = Math.floor(point.x / DEVICE_PORT_HIT_CELL_SIZE);
+    const centerY = Math.floor(point.y / DEVICE_PORT_HIT_CELL_SIZE);
+    let best = null;
+    let bestDistance = Infinity;
+    for (let x = centerX - cellRadius; x <= centerX + cellRadius; x++) {
+      for (let y = centerY - cellRadius; y <= centerY + cellRadius; y++) {
+        const candidates = devicePortHitGrid.get(`${x}:${y}`) || EMPTY_CABLE_LIST;
+        for (let index = 0; index < candidates.length; index++) {
+          const port = candidates[index];
+          const dx = point.x - port.x;
+          const dy = point.y - port.y;
+          const distance = dx * dx + dy * dy;
+          const radius = Math.max(tolerance, Math.max(port.width, port.height) * 0.65);
+          if (distance > radius * radius || distance >= bestDistance) continue;
+          best = port;
+          bestDistance = distance;
+        }
+      }
+    }
+    return best;
+  }
+
+  function getDevicePortClientRect(port) {
+    const canvasRect = getPixiCanvasRect();
+    if (!canvasRect) return null;
+    const scale = Number(RS.ZOOM_STATE?.scale) || 1;
+    const panX = Number(RS.ZOOM_STATE?.panX) || 0;
+    const panY = Number(RS.ZOOM_STATE?.panY) || 0;
+    const left = canvasRect.left + panX + port.x * scale;
+    const top = canvasRect.top + panY + port.y * scale;
+    const width = Math.max(1, port.width * scale);
+    const height = Math.max(1, port.height * scale);
+    return { left, top, right: left + width, bottom: top + height, width, height };
+  }
+
+  function dispatchDevicePortInteraction(action, port) {
+    if (!port || typeof RS.dispatchPixiPortInteraction !== 'function') return false;
+    const key = `${port.instanceId}::${port.portId}`;
+    const sprite = devicePortSprites.get(key);
+    const rect = getDevicePortClientRect(port);
+    const handled = RS.dispatchPixiPortInteraction(action, port, rect, sprite);
+    if (handled) renderPixi(`device-port-${action}`);
+    return handled;
+  }
+
+  function restoreDevicePortTint(key) {
+    const sprite = devicePortSprites.get(key);
+    const pending = STATE.pendingConnection;
+    const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
+    if (sprite) {
+      sprite.tint = isSelected || key === hoveredDevicePortKey ? 0x67e8f9 : 0xffffff;
+      renderPixi('device-port-hover');
+    }
   }
 
   function buildDeviceChassis(devices) {
@@ -1811,6 +1941,8 @@
       rackScene.ports.addChild(sprite);
       devicePortSprites.set(key, sprite);
       devicePortOccupancy.set(key, isOccupied);
+      const hitRecord = { ...port };
+      addDevicePortToHitGrid(hitRecord);
       adjustDevicePortVariantCount(textureKey, 1);
     });
   }

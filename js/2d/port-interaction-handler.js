@@ -16,6 +16,7 @@
 
   const getActiveRack = () => (RS.getActiveRack ? RS.getActiveRack() : RS.STATE?.racks?.[0]);
   const escapeHtml = (val) => RS.escapeHtml ? RS.escapeHtml(val) : String(val ?? '');
+  const resolveCatalogItem = (key) => HARDWARE_CATALOG[key] || RS.resolveCatalogItem?.(key) || RS.catalog?.[key] || STATE.customCatalog?.[key] || null;
   const portKey = (instanceId, portId) => (RS.portKey ? RS.portKey(instanceId, portId) : JSON.stringify([instanceId, portId]));
   const cancelPendingConnection = () => RS.cancelPendingConnection && RS.cancelPendingConnection();
   const renderMountedDevices = () => RS.renderMountedDevices && RS.renderMountedDevices();
@@ -207,6 +208,51 @@
     }
   }
 
+  // Pixi device LOD removes the DOM port nodes, but port selection must keep
+  // using the same connection/configuration rules as the DOM path. The small
+  // adapter below gives the existing handlers the DOM surface they need
+  // without manufacturing a node per Pixi port.
+  function dispatchPixiPortInteraction(action, port, rect, sprite) {
+    if (action === 'leave') {
+      handlePortLeave();
+      return true;
+    }
+    if (!port || !port.instanceId || port.portId == null) return false;
+    const target = {
+      dataset: {
+        instanceId: String(port.instanceId),
+        portId: String(port.portId),
+        portName: String(port.name || port.portId),
+        portType: String(port.type || ''),
+        portSpeed: String(port.speed || '')
+      },
+      getBoundingClientRect: () => rect || { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 },
+      classList: {
+        add(name) {
+          if (name === 'selected' && sprite) sprite.tint = 0x67e8f9;
+        },
+        remove(name) {
+          if (name === 'selected' && sprite) sprite.tint = 0xffffff;
+        }
+      }
+    };
+
+    if (action === 'hover') handlePortHover({ currentTarget: target, target });
+    else if (action === 'click') handlePortClick({ currentTarget: target, target, stopPropagation() {} });
+    else if (action === 'dblclick') {
+      const instanceId = target.dataset.instanceId;
+      const devRack = STATE.racks.find(rack => rack.devices.some(device => device.instanceId === instanceId));
+      const dev = devRack?.devices.find(device => device.instanceId === instanceId);
+      if (devRack && dev) cyclePortRole(instanceId, target.dataset.portId, target.dataset.portType);
+    }
+    else if (action === 'contextmenu') {
+      if (window.PortConfigEditor) window.PortConfigEditor.open(target.dataset.instanceId, target.dataset.portId, '2d');
+    } else return false;
+    return true;
+  }
+
+  RS.dispatchPixiPortInteraction = dispatchPixiPortInteraction;
+
   function handlePortHover(e) {
     const portEl = e.currentTarget;
     const instanceId = portEl.dataset.instanceId;
@@ -215,11 +261,13 @@
     const portSpeed = portEl.dataset.portSpeed;
 
     const activeRack = getActiveRack();
-    if (!activeRack) return;
+    const deviceRack = STATE.racks.find(rack => rack.devices.some(device => device.instanceId === instanceId)) || activeRack;
+    if (!deviceRack) return;
 
-    const dev = activeRack.devices.find(d => d.instanceId === instanceId);
+    const dev = deviceRack.devices.find(d => d.instanceId === instanceId);
     if (!dev) return;
-    const cat = HARDWARE_CATALOG[dev.catalogKey];
+    const cat = resolveCatalogItem(dev.catalogKey);
+    if (!cat) return;
 
     const connectedCable = STATE.cables.find(c =>
       (c.from.instanceId === instanceId && c.from.portId === portId) ||
@@ -232,10 +280,10 @@
       const otherEndpoint = isFrom ? connectedCable.to : connectedCable.from;
       const otherRack = STATE.racks.find(r => r.id === otherEndpoint.rackId);
       const otherDev = otherRack ? otherRack.devices.find(d => d.instanceId === otherEndpoint.instanceId) : null;
-      const otherCat = otherDev ? HARDWARE_CATALOG[otherDev.catalogKey] : null;
+      const otherCat = otherDev ? resolveCatalogItem(otherDev.catalogKey) : null;
       const otherPort = otherCat ? otherCat.ports.find(p => p.id === otherEndpoint.portId) : null;
 
-      const isInterRack = otherEndpoint.rackId !== activeRack.id;
+      const isInterRack = otherEndpoint.rackId !== deviceRack.id;
       connectionInfo = `<span style="color:${isInterRack ? '#38bdf8' : '#22c55e'}; font-weight:600;">
         Bağlı -> ${isInterRack ? `[${escapeHtml(otherRack ? otherRack.name : 'Dış Kabin')}] ` : ''}${escapeHtml(otherCat ? otherCat.name : '')} [${escapeHtml(otherPort ? otherPort.name : otherEndpoint.portId)}]
       </span>`;
@@ -271,7 +319,7 @@
 
     if (dom.inspectorInfo) {
       dom.inspectorInfo.innerHTML = `
-        <div style="font-weight:700; color:#fff; margin-bottom:3px;">${escapeHtml(cat.name)} (${escapeHtml(activeRack.name)} - U${dev.topU})</div>
+        <div style="font-weight:700; color:#fff; margin-bottom:3px;">${escapeHtml(cat.name)} (${escapeHtml(deviceRack.name)} - U${dev.topU})</div>
         <div><b>Port:</b> ${escapeHtml(portName)} (${escapeHtml(portSpeed)})</div>
         <div><b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
         ${configDetail}
@@ -317,7 +365,7 @@
         const rules = RS.NetworkRules || window.NetworkRules;
         const strict = STATE.strictCompliance !== false;
         const validation = rules && typeof rules.validateConnection === 'function'
-          ? rules.validateConnection(src, { rackId: activeRack.id, instanceId, portId }, STATE, HARDWARE_CATALOG, strict)
+          ? rules.validateConnection(src, { rackId: deviceRack.id, instanceId, portId }, STATE, HARDWARE_CATALOG, strict)
           : { allowed: true };
 
         if (!validation.allowed) {
@@ -428,7 +476,7 @@
 
       portEl.classList.add('selected');
       const dev = devRack.devices.find(d => d.instanceId === instanceId);
-      const cat = dev ? HARDWARE_CATALOG[dev.catalogKey] : null;
+      const cat = dev ? resolveCatalogItem(dev.catalogKey) : null;
       const port = cat ? cat.ports.find(p => p.id === portId) : null;
       if (window.SoundFX) {
         window.SoundFX.playPortClick(port?.type || 'copper');
@@ -483,8 +531,8 @@
       const sourceDev = STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId);
       const targetDev = devRack.devices?.find(d => d.instanceId === instanceId);
 
-      const sourceCat = sourceDev ? HARDWARE_CATALOG[sourceDev.catalogKey] : null;
-      const targetCat = targetDev ? HARDWARE_CATALOG[targetDev.catalogKey] : null;
+      const sourceCat = sourceDev ? resolveCatalogItem(sourceDev.catalogKey) : null;
+      const targetCat = targetDev ? resolveCatalogItem(targetDev.catalogKey) : null;
       const srcPort = sourceCat?.ports?.find(p => p.id === source.portId);
       const tgtPort = targetCat?.ports?.find(p => p.id === portId);
 
@@ -757,7 +805,7 @@
     const maxU = Math.max(devA.topU, devB.topU);
 
     return rack.devices.filter(d => {
-      const cat = HARDWARE_CATALOG[d.catalogKey];
+      const cat = resolveCatalogItem(d.catalogKey);
       if (!cat || cat.category !== 'organizer') return false;
       const u = Number(d.topU);
       return (u >= minU && u <= maxU) || Math.abs(u - devA.topU) <= 1 || Math.abs(u - devB.topU) <= 1;
@@ -782,8 +830,8 @@
     if (!devA || !devB) return 1.5;
 
     const uDiff = Math.abs(devA.topU - devB.topU);
-    const catA = HARDWARE_CATALOG[devA.catalogKey];
-    const catB = HARDWARE_CATALOG[devB.catalogKey];
+    const catA = resolveCatalogItem(devA.catalogKey);
+    const catB = resolveCatalogItem(devB.catalogKey);
     const isFiber = (catA && catA.category === 'fiber') || (catB && catB.category === 'fiber') ||
                     (devA.portsConfig && Object.values(devA.portsConfig).some(c => c.role === 'fiber')) ||
                     (devB.portsConfig && Object.values(devB.portsConfig).some(c => c.role === 'fiber'));
@@ -818,11 +866,11 @@
     let organizerAllowance = 0.0;
     if (hasOrganizer) {
       const hasBrush = routingOrganizers.some(d => {
-        const c = HARDWARE_CATALOG[d.catalogKey];
+        const c = resolveCatalogItem(d.catalogKey);
         return d.catalogKey === 'organizer-1u' || (c?.modelTag && c.modelTag.includes('BRUSH')) || (c?.name && c.name.toLowerCase().includes('fırça'));
       });
       const hasFinger = routingOrganizers.some(d => {
-        const c = HARDWARE_CATALOG[d.catalogKey];
+        const c = resolveCatalogItem(d.catalogKey);
         return d.catalogKey === 'organizer-2u' || (c?.modelTag && c.modelTag.includes('FINGER')) || (c?.name && c.name.toLowerCase().includes('parmak'));
       });
       if (hasBrush) organizerAllowance = 0.35; // Front-to-rear brush pass-through traverse

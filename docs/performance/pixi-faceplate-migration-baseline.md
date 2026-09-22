@@ -32,3 +32,11 @@ After the connector-atlas update, the same harness was rerun (`tests/performance
 The clearest remaining faceplate opportunity is repeated port/faceplate DOM in detail and multi-rack views. The current retained Pixi scene is intentionally coarse at macro zoom. The first implementation slice adds connector-specific shared atlas cells (RJ45, SFP, LC duplex, SC duplex, and power) while keeping the existing macro-only activation boundary. This is a visual-parity step; it is not yet evidence that detail faceplates or interaction hit-testing can safely move to Pixi.
 
 Before widening Pixi device rendering to detail LOD, require matched visual checks for device categories, connected/role-colored ports, organizers and labels; canvas hover/click/context-menu tests; and repeated SVG/Pixi runs on real project data and a lower-end device. Headless timings do not expose GPU utilization and do not certify physical presentation cadence.
+
+## Phase 2: macro Pixi port interaction bridge
+
+The macro Pixi LOD previously removed the faceplate DOM (including `.port` nodes) but exposed no replacement port hit testing. The renderer now builds a world-space spatial grid alongside the retained port sprites. Pointer movement examines only nearby grid cells, highlights the resolved port, and opens the existing port tooltip; primary click is routed into the existing connection workflow, while right-click opens the existing port configuration editor. The DOM faceplate remains the interaction path at detail LOD.
+
+The bridge uses a small DOM-like adapter rather than creating hidden nodes. Rack lookup now resolves the device's actual rack (important in multi-rack mode), and catalog lookup falls back to custom/catalog items. A Playwright regression probe verifies exact port identity for hover and starting a connection while macro LOD has detached all port nodes.
+
+This phase restores basic macro port interaction; it does not yet migrate detail faceplates, labels, port-role styling, or device controls into Pixi. The spatial lookup is bounded by nearby 32-world-unit cells, but no dedicated physical-device or pointer-latency benchmark was run for this change. Do not infer GPU or overall performance gains from the interaction test.
