@@ -46,7 +46,7 @@
     if (!container) return;
     container.removeChildren().forEach(child => {
       child.filters?.forEach(filter => filter.destroy?.());
-      child.destroy?.();
+      child.destroy?.({ children: true });
     });
   }
 
@@ -441,9 +441,11 @@
 
     const hoveredCableId = PixiContext.getHoveredCableId?.();
     const groupHoveredCableIds = PixiContext.getGroupHoveredCableIds?.() || new Set();
-    const hasHoverFocus = hoveredCableId !== null && hoveredCableId !== undefined || groupHoveredCableIds.size > 0;
-    cablesContainer.alpha = hasHoverFocus ? 0.14 : 1;
-    connectorsContainer.alpha = hasHoverFocus ? 0.14 : 1;
+    const hasHoverFocus = (hoveredCableId !== null && hoveredCableId !== undefined) || groupHoveredCableIds.size > 0;
+    const hasSelectFocus = !hasHoverFocus && !!STATE.highlightedCableId;
+    const dimmedAlpha = hasHoverFocus ? 0.14 : (hasSelectFocus ? 0.22 : 1);
+    cablesContainer.alpha = dimmedAlpha;
+    connectorsContainer.alpha = dimmedAlpha;
 
     const focusIds = new Set(groupHoveredCableIds);
     if (hoveredCableId) focusIds.add(hoveredCableId);
@@ -582,6 +584,8 @@
     redrawCableDisplay,
     refreshCableFocus
   };
+
+  RS.refreshCableFocus = refreshCableFocus;
 
   PixiContext.CABLE_VISUAL_STYLE = CABLE_VISUAL_STYLE;
   PixiContext.parseSvgPathD = parseSvgPathD;

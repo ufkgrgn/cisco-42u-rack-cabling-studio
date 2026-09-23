@@ -248,9 +248,11 @@
         }
       };
 
-      const savedMode = localStorage.getItem('rackstudio_cable_mode') || 'svg';
-      if (window.RackStudio?.setCableRenderMode && savedMode === 'pixi') {
+      const savedMode = (typeof localStorage !== 'undefined' && localStorage.getItem('rackstudio_cable_mode') === 'svg') ? 'svg' : 'pixi';
+      if (window.RackStudio?.setCableRenderMode) {
         window.RackStudio.setCableRenderMode(savedMode);
+      } else if (window.RackStudio?.STATE) {
+        window.RackStudio.STATE.cableRenderMode = savedMode;
       }
       updateEngineUI(savedMode);
 

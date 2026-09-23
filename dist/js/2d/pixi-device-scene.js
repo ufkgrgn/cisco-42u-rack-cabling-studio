@@ -104,6 +104,39 @@
     }
   }
 
+  function destroyDeviceRackScene(rackId) {
+    const key = String(rackId || '__unknown__');
+    const scene = deviceRackScenes.get(key);
+    if (!scene) return;
+    if (scene.container?.parent) scene.container.parent.removeChild(scene.container);
+    scene.container?.destroy?.({ children: true });
+    deviceRackScenes.delete(key);
+    for (const [devId, rk] of deviceRackByInstance) {
+      if (rk === key) { deviceContainers.delete(devId); deviceRackByInstance.delete(devId); }
+    }
+    lastDeviceGeometrySignature = lastDeviceSceneSignature = null;
+  }
+
+  function prunePixiDevice(instanceId) {
+    if (!instanceId) return;
+    const id = String(instanceId);
+    const dev = deviceContainers.get(id);
+    if (dev?.container) {
+      if (dev.container.parent) dev.container.parent.removeChild(dev.container);
+      dev.container.destroy?.({ children: true });
+    }
+    deviceContainers.delete(id);
+    deviceRackByInstance.delete(id);
+    for (const [k] of devicePortSprites) {
+      if (k.startsWith(`${id}::`)) { devicePortSprites.delete(k); devicePortOccupancy.delete(k); }
+    }
+    for (const [cKey, ports] of devicePortHitGrid) {
+      const rest = ports.filter(p => String(p.instanceId) !== id);
+      if (rest.length) devicePortHitGrid.set(cKey, rest); else devicePortHitGrid.delete(cKey);
+    }
+    lastDeviceGeometrySignature = lastDeviceSceneSignature = null;
+  }
+
   function getOrCreateDeviceRackScene(rackId) {
     const key = String(rackId || '__unknown__');
     let scene = deviceRackScenes.get(key);
@@ -722,6 +755,8 @@
   RS.PixiDeviceScene = {
     syncPixiDeviceSceneLOD,
     destroyDeviceRackScenes,
+    destroyDeviceRackScene,
+    prunePixiDevice,
     getOrCreateDeviceRackScene,
     applyDeviceViewportCulling,
     hitDevicePortAt,
@@ -747,6 +782,8 @@
   PixiContext.dispatchDevicePortInteraction = dispatchDevicePortInteraction;
   PixiContext.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
   PixiContext.destroyDeviceRackScenes = destroyDeviceRackScenes;
+  PixiContext.destroyDeviceRackScene = destroyDeviceRackScene;
+  PixiContext.prunePixiDevice = prunePixiDevice;
   PixiContext.applyDeviceViewportCulling = applyDeviceViewportCulling;
   PixiContext.getDevicePortVariantCounts = () => devicePortVariantCounts;
   PixiContext.getDeviceContainer = getDeviceContainer;

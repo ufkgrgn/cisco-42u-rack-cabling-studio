@@ -188,7 +188,7 @@
     const changed = new Set(previousGroup);
     if (previous) changed.add(previous);
     if (hoveredCableId) changed.add(hoveredCableId);
-    RS.refreshCableFocus?.(changed);
+    (RS.refreshCableFocus || RS.PixiCableBatch?.refreshCableFocus || PixiContext.refreshCableFocus)?.(changed);
   }
 
   function hitCableAt(clientX, clientY) {

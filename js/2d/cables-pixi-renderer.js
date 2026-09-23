@@ -128,10 +128,11 @@
     }
 
     const sceneSignature = buildSceneSignature(stageW, stageH, isMulti, activeRack);
-    const sceneChanged = sceneSignature !== lastSceneSignature;
     const layoutSignature = buildLayoutSignature(stageW, stageH, isMulti, activeRack);
     const layoutChanged = layoutSignature !== lastLayoutSignature;
-    if (layoutChanged) {
+    const isDragging = !!(RS.isDraggingDevice || STATE.isDraggingDevice);
+    const sceneChanged = (sceneSignature !== lastSceneSignature) || layoutChanged || isDragging;
+    if (layoutChanged || isDragging) {
       if (!layoutCacheWasExplicitlyInvalidated) {
         RS.PixiCableGeometry?.invalidateLayoutGeometryCache?.();
         if (performanceTelemetry) performanceTelemetry.layoutCacheInvalidations++;
@@ -202,7 +203,7 @@
     }
 
     // Fast Path (unchanged geometry)
-    if (!sceneChanged && visibleCables.length === cableDisplays.size) {
+    if (!sceneChanged && !layoutChanged && !isDragging && visibleCables.length === cableDisplays.size) {
       let geometryChanged = false;
       const styleChangedIds = new Set();
       const previousColorsByCableId = new Map();
@@ -254,7 +255,7 @@
     const geometryChangedIds = new Set();
     const organizerOverlayContainer = PixiContext.organizerOverlayContainer;
     if (layoutChanged && organizerOverlayContainer) {
-      organizerOverlayContainer.removeChildren().forEach(child => child.destroy?.());
+      organizerOverlayContainer.removeChildren().forEach(child => child.destroy?.({ children: true }));
     }
 
     const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
@@ -387,9 +388,15 @@
       if (performanceTelemetry) performanceTelemetry.organizerOverlayRebuilds++;
     }
 
-    lastSceneSignature = sceneSignature;
-    lastLayoutSignature = layoutSignature;
-    lastVisibleCableOrder = visibleCables.map(cable => cable.id);
+    if (isDragging) {
+      lastSceneSignature = null;
+      lastLayoutSignature = null;
+      lastVisibleCableOrder = [];
+    } else {
+      lastSceneSignature = sceneSignature;
+      lastLayoutSignature = layoutSignature;
+      lastVisibleCableOrder = visibleCables.map(cable => cable.id);
+    }
     lastChannelUsage = { left: leftChannelUsage, right: rightChannelUsage };
     if (renderStats) renderStats.lastDurationMs = performance.now() - renderStartedAt;
     if (STATE.pixiViewportRendererV2 !== false) {
@@ -432,7 +439,7 @@
       RS.renderAllCables();
     }
 
-    const btnIndicator = document.getElementById('cable-engine-indicator');
+    const btnIndicator = document.getElementById('cable-engine-indicator') || document.getElementById('engine-indicator');
     if (btnIndicator) {
       btnIndicator.textContent = mode === 'pixi' ? '⚡ GPU (Pixi)' : '🎨 SVG';
       btnIndicator.style.color = mode === 'pixi' ? '#00e5ff' : '#94a3b8';
@@ -537,6 +544,7 @@
     lastSceneSignature = null;
   };
   RS.invalidatePixiLayoutGeometry = invalidateLayoutGeometryCache;
+  RS.invalidateLayoutGeometryCache = invalidateLayoutGeometryCache;
   RS.previewPixiCableColor = (cableId, color) => {
     const display = cableDisplays.get(cableId);
     if (!display) return;

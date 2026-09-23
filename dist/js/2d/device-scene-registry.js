@@ -190,6 +190,7 @@
     }
     generation++;
     snapshotCache = null;
+    RS.PixiDeviceScene?.prunePixiDevice?.(id);
   }
 
   function invalidate(options) {
@@ -202,6 +203,7 @@
     suspendedGeneration = -1;
     if (options?.templates) catalogTemplates.clear();
     generation++;
+    RS.PixiDeviceScene?.destroyDeviceRackScenes?.();
   }
 
   function getPortPoint(instanceId, portId) {
@@ -290,6 +292,7 @@
       if (!['switch', 'fiber-switch', 'compact', 'router'].includes(record.category)) return;
       const owner = deviceElements.get(instanceId);
       if (!owner || detachedPortAreas.has(instanceId)) return;
+      if (owner.querySelector('.stencil-faceplate')) return;
       const portArea = owner.querySelector(':scope > .device-faceplate > .ports-area');
       if (!portArea) return;
       const placeholder = document.createElement('div');

@@ -717,6 +717,7 @@
         justDragged = true;
         setTimeout(() => { justDragged = false; }, 80);
       }
+      let moved = false;
       if (finished.active && e.type !== 'pointercancel') {
         const deltaU = -Math.round(finished.delta / finished.step);
         if (deltaU !== 0) {
@@ -726,8 +727,21 @@
             } else {
               move(finished.top + deltaU, finished.rackId);
             }
+            moved = true;
           }
           catch (error) { status(error.message, true); }
+        }
+      }
+      if (!moved) {
+        if (typeof api.invalidateLayoutGeometryCache === 'function') {
+          api.invalidateLayoutGeometryCache();
+        } else if (typeof api.invalidatePixiLayoutGeometry === 'function') {
+          api.invalidatePixiLayoutGeometry();
+        }
+        if (typeof api.renderAllCablesPixi === 'function') {
+          api.renderAllCablesPixi();
+        } else if (typeof api.renderAllCables === 'function') {
+          api.renderAllCables();
         }
       }
       if (api.PixiContext?.deviceSceneContainer && api.STATE?.cableRenderMode === 'pixi') {

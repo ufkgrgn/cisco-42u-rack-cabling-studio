@@ -133,6 +133,9 @@
       const shouldRefit = !!RS.ZOOM_STATE?.isFit;
       // Remove cables attached to this rack
       RS.STATE.cables = RS.STATE.cables.filter(c => c.from.rackId !== rackId && c.to.rackId !== rackId);
+      // Clean up Pixi scene and registry for removed rack
+      rackToDelete.devices?.forEach(d => RS.DeviceSceneRegistry?.pruneDevice?.(d.instanceId));
+      RS.PixiDeviceScene?.destroyDeviceRackScene?.(rackId);
       // Remove the rack itself
       RS.STATE.racks = RS.STATE.racks.filter(r => r.id !== rackId);
       if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();

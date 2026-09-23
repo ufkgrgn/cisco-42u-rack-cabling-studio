@@ -25,6 +25,7 @@
     selectedLibraryItem: null,
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
+    cableRenderMode: (typeof localStorage !== 'undefined' && localStorage.getItem('rackstudio_cable_mode') === 'svg') ? 'svg' : 'pixi',
     // V2 keeps the GPU surface viewport-sized and mirrors the camera inside
     // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.
     pixiViewportRendererV2: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_pixi_viewport_v2') !== '0',
