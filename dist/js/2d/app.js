@@ -387,11 +387,15 @@
         RS.ZOOM_STATE.hasMoved = false;
         return;
       }
+      const domPortUnder = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+        ? document.elementFromPoint(e.clientX, e.clientY)?.closest('.port')
+        : null;
       const isPixiPortHit = STATE.cableRenderMode === 'pixi' && (
         (typeof RS.hitPixiDevicePortAt === 'function' && !!RS.hitPixiDevicePortAt(e.clientX, e.clientY)) ||
+        (typeof RS.hitDevicePortAt === 'function' && !!RS.hitDevicePortAt(e.clientX, e.clientY)) ||
         (RS.lastHandledPixiPortTime && Date.now() - RS.lastHandledPixiPortTime < 350)
       );
-      if (!e.target.closest('.port') && !isPixiPortHit) {
+      if (!e.target.closest('.port') && !domPortUnder && !isPixiPortHit) {
         cancelPendingConnection();
       }
     });

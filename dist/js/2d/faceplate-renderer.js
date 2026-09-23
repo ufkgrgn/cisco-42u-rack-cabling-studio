@@ -106,8 +106,17 @@
         if (!slotEl) return;
 
         const cableState = (cableStateByDevice.get(dev.instanceId) || []).sort();
+        const devIdentity = {
+          instanceId: dev.instanceId,
+          catalogKey: catKey,
+          uHeight: dev.uHeight,
+          name: dev.name || '',
+          hostname: dev.hostname || '',
+          portsConfig: dev.portsConfig || null,
+          customAttrs: dev.customAttrs || null
+        };
         const renderKey = JSON.stringify([
-          dev,
+          devIdentity,
           cableState,
           STATE.deviceLabelMode || 'name'
         ]);
@@ -196,6 +205,10 @@
       if (changedOwners.length && (RS.ZOOM_STATE?.scale || 1) >= 0.35 && document.documentElement.dataset.deviceRenderer === 'pixi') {
         RS.DeviceSceneRegistry.suspendDomPortAreas(changedOwners);
       }
+    }
+
+    if (STATE.cableRenderMode === 'pixi' && typeof RS.syncPixiDeviceSceneLOD === 'function') {
+      RS.syncPixiDeviceSceneLOD();
     }
 
     bindPortInteractions();

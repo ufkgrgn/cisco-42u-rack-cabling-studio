@@ -159,7 +159,7 @@
     function renderMultiSelectPill() {
       if (!multiselectPill) return;
       const count = state.multiSelectedDevices ? state.multiSelectedDevices.size : 0;
-      const isMultiActive = count > 0 || state.multiSelectMode;
+      const isMultiActive = (count > 1) || (count > 0 && state.multiSelectMode) || !!state.multiSelectMode;
       document.body.classList.toggle('multi-select-active', isMultiActive);
       const stage = api.dom?.rackStage || document.getElementById('rack-stage');
       if (stage) stage.classList.toggle('multi-select-active', isMultiActive);
@@ -186,7 +186,7 @@
         multiselectPill.classList.add('hidden');
       }
       document.querySelectorAll('.mounted-device').forEach(el => {
-        el.classList.toggle('studio-multi-selected', state.multiSelectedDevices?.has(el.id) || false);
+        el.classList.toggle('studio-multi-selected', (state.multiSelectedDevices?.has(el.id) && (count > 1 || state.multiSelectMode)) || false);
       });
     }
 
@@ -476,27 +476,72 @@
       } catch (error) { status(error.message, true); }
     }
     bar.addEventListener('click', e => { const button = e.target.closest('[data-command]'); if (button) command(button.dataset.command); });
+    let justDragged = false;
     document.addEventListener('click', e => {
-      if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu')) return;
+      if (justDragged) {
+        justDragged = false;
+        return;
+      }
+      if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
+
       const device = e.target.closest('.mounted-device');
       if (device) {
         if (state.multiSelectMode || e.shiftKey) {
           toggleMultiSelect(device.id);
+        } else if (selected === device.id) {
+          selected = null;
+          if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
+          sync();
         } else {
           selected = device.id;
           state.multiSelectedDevices = new Set([device.id]);
           field('target').value = api.getActiveRack().id;
           sync();
         }
+        return;
+      }
+
+      // Check if clicked through canvas onto a port, button or device
+      const hasCoords = (e.clientX != null && e.clientY != null && (e.clientX !== 0 || e.clientY !== 0));
+      const elUnder = (hasCoords && typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+        ? document.elementFromPoint(e.clientX, e.clientY)
+        : null;
+      if (elUnder?.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
+      if (hasCoords && (window.RackStudio?.hitDevicePortAt?.(e.clientX, e.clientY) || (window.RackStudio?.lastHandledPixiPortTime && Date.now() - window.RackStudio.lastHandledPixiPortTime < 350))) return;
+
+      const deviceUnder = elUnder?.closest('.mounted-device');
+      if (deviceUnder) {
+        if (state.multiSelectMode || e.shiftKey) {
+          toggleMultiSelect(deviceUnder.id);
+        } else if (selected === deviceUnder.id) {
+          selected = null;
+          if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
+          sync();
+        } else {
+          selected = deviceUnder.id;
+          state.multiSelectedDevices = new Set([deviceUnder.id]);
+          field('target').value = api.getActiveRack().id;
+          sync();
+        }
+        return;
+      }
+
+      // Clicked outside any device: clear selection & multi-select mode
+      if (selected || (state.multiSelectedDevices && state.multiSelectedDevices.size > 0) || state.multiSelectMode) {
+        clearMultiSelect();
+        selected = null;
+        sync();
       }
     });
     document.addEventListener('keydown', e => {
       if (e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
       if (e.key === 'Escape') {
-        if (state.multiSelectMode || (state.multiSelectedDevices && state.multiSelectedDevices.size > 0)) {
+        if (selected || state.multiSelectMode || (state.multiSelectedDevices && state.multiSelectedDevices.size > 0)) {
           e.preventDefault();
           clearMultiSelect();
-          status('Çoklu seçim iptal edildi');
+          selected = null;
+          sync();
+          status('Seçim iptal edildi');
           return;
         }
       }
@@ -538,17 +583,15 @@
 
       // When dragging via ear handle, prioritize dragging over selection toggle
       if (isDragHandle) {
-        if (!state.multiSelectedDevices?.has(el.id)) {
-          selected = el.id;
-          state.multiSelectedDevices = new Set([el.id]);
-          sync();
+        let found = selection();
+        if (!found || found.device.instanceId !== el.id) {
+          for (const rack of state.racks) {
+            const device = rack.devices.find(d => d.instanceId === el.id);
+            if (device) { found = {rack, device}; break; }
+          }
         }
-        const found = selection();
         if (!found) return;
         drag = {el, y: e.clientY, x: e.clientX, delta: 0, top: found.device.topU, rackId: found.rack.id, step: slot.getBoundingClientRect().height, active: false, isHandle: true};
-        api.isDraggingDevice = true;
-        api.dom?.rackStage?.classList.add('device-dragging-active');
-        if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
         e.stopPropagation();
         return;
       }
@@ -562,12 +605,13 @@
 
       // If device is already part of a multi-selection block
       const isAlreadyMultiSelected = state.multiSelectedDevices?.has(el.id) && state.multiSelectedDevices.size > 1;
-      if (!isAlreadyMultiSelected) {
-        selected = el.id;
-        state.multiSelectedDevices = new Set([el.id]);
-        sync();
+      let found = selection();
+      if (!found || found.device.instanceId !== el.id) {
+        for (const rack of state.racks) {
+          const device = rack.devices.find(d => d.instanceId === el.id);
+          if (device) { found = {rack, device}; break; }
+        }
       }
-      const found = selection();
       if (!found) return;
 
       if (e.pointerType === 'touch' || e.pointerType === 'pen') {
@@ -604,6 +648,13 @@
       if (!drag) return;
       drag.delta = e.clientY - drag.y;
       if (Math.abs(drag.delta) > 4) {
+        if (!drag.active) {
+          selected = drag.el.id;
+          if (!state.multiSelectedDevices?.has(drag.el.id)) {
+            state.multiSelectedDevices = new Set([drag.el.id]);
+          }
+          sync();
+        }
         drag.active = true;
         api.isDraggingDevice = true;
         api.dom?.rackStage?.classList.add('device-dragging-active');
@@ -627,7 +678,13 @@
                   other.style.transform = `translateY(${stepOffset}px)`;
                 }
               }
+              api.movePixiDeviceByOffset?.(id, 0, stepOffset);
             });
+          } else {
+            api.movePixiDeviceByOffset?.(drag.el.id, 0, stepOffset);
+          }
+          if (api.STATE?.cableRenderMode === 'pixi' && typeof api.renderAllCablesPixi === 'function') {
+            api.renderAllCablesPixi();
           }
         }
       });
@@ -644,6 +701,9 @@
       const finished = drag; drag = null; cancelAnimationFrame(frame); frame = 0;
       finished.el.style.transform = '';
       finished.el.classList.remove('studio-dragging', 'studio-lifted');
+      if (typeof api.resetPixiDevicePositions === 'function') {
+        api.resetPixiDevicePositions();
+      }
       if (state.multiSelectedDevices?.size > 1) {
         state.multiSelectedDevices.forEach(id => {
           const other = document.getElementById(id);
@@ -652,6 +712,10 @@
             other.classList.remove('studio-dragging', 'studio-lifted');
           }
         });
+      }
+      if (finished.active) {
+        justDragged = true;
+        setTimeout(() => { justDragged = false; }, 80);
       }
       if (finished.active && e.type !== 'pointercancel') {
         const deltaU = -Math.round(finished.delta / finished.step);
@@ -665,6 +729,9 @@
           }
           catch (error) { status(error.message, true); }
         }
+      }
+      if (api.PixiContext?.deviceSceneContainer && api.STATE?.cableRenderMode === 'pixi') {
+        api.PixiContext.deviceSceneContainer.visible = true;
       }
     }
     document.addEventListener('pointerup', endDrag);

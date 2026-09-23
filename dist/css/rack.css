@@ -2070,9 +2070,15 @@
 
 /* The macro LOD uses retained Pixi batches for repetitive faceplates. D-rings
    and blanking panels remain DOM-rendered because their physical shapes are
-   part of cable routing and rack structure. */
-[data-device-renderer="pixi"] [data-lod="macro"] .mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate {
+   part of cable routing and rack structure. While dragging a device, the DOM
+   faceplate remains visible so the user sees the real faceplate moving. */
+[data-device-renderer="pixi"] [data-lod="macro"] .mounted-device:not([data-category="organizer"]):not([data-category="blank"]):not(.studio-dragging) .device-faceplate {
   display: none !important;
+}
+
+.mounted-device.studio-dragging .device-faceplate,
+.device-dragging-active .mounted-device.studio-dragging .device-faceplate {
+  display: flex !important;
 }
 
 /* Disable hit testing once at the retained-scene root while dragging or zooming.

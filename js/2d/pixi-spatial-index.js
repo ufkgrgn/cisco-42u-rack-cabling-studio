@@ -249,110 +249,154 @@
 
   function attachHitDetection(canvasArg) {
     const pixiCanvas = canvasArg || PixiContext.pixiCanvas;
-    if (moveListenerAttached || !pixiCanvas) return;
-    moveListenerAttached = true;
+    if (!pixiCanvas) return;
 
-    window.addEventListener('pointermove', (e) => {
-      const pixiApp = PixiContext.pixiApp;
-      const canvas = PixiContext.pixiCanvas || pixiCanvas;
-      if (!pixiApp || !canvas || STATE?.cableRenderMode !== 'pixi') return;
-      latestPointerMove = e;
-      if (pointerMoveFrame) return;
-      pointerMoveFrame = requestAnimationFrame(() => {
-        pointerMoveFrame = 0;
-        const e = latestPointerMove;
-        if (!e || !PixiContext.pixiApp || !PixiContext.pixiCanvas || STATE?.cableRenderMode !== 'pixi') return;
-
-        const target = e.target instanceof Element ? e.target : null;
-        const isHudOrMenuOpen = !!document.getElementById('cable-quick-hud') || !!document.getElementById('cable-context-menu') || !!document.querySelector('.modal.show, .modal.active');
-        const inHudOrMenu = !!target?.closest('#cable-quick-hud, #cable-context-menu, .cable-quick-hud, .cable-context-menu, .modal');
-        if (isHudOrMenuOpen || inHudOrMenu) {
-          if (isPointerOverCable) {
-            canvas.style.pointerEvents = 'none';
-            isPointerOverCable = false;
-          }
-          if (dom?.tooltip) dom.tooltip.style.display = 'none';
-          return;
-        }
-
-        const inScheduleSidebar = !!target?.closest('#sidebar-right');
-        if (inScheduleSidebar) {
-          if (isPointerOverCable) {
-            canvas.style.pointerEvents = 'none';
-            isPointerOverCable = false;
-          }
-          const domOwnsCableHover = !!target.closest('#schedule-tbody [data-cable-id], #schedule-tbody .tree-switch-header');
-          const currentPortKey = RS.getHoveredDevicePortKey?.();
-          if (currentPortKey) {
-            RS.setHoveredDevicePortKey?.(null);
-            RS.restoreDevicePortTint?.(currentPortKey);
-            RS.dispatchDevicePortInteraction?.('leave');
-          }
-          if (!domOwnsCableHover) setPixiHover(null);
-          return;
-        }
-
-        if (RS.ZOOM_STATE?.isPanning || RS.ZOOM_STATE?.isFocusing || RS.isDraggingDevice) {
-          if (isPointerOverCable) {
-            canvas.style.pointerEvents = 'none';
-            isPointerOverCable = false;
-          }
-          const currentPortKey = RS.getHoveredDevicePortKey?.();
-          if (currentPortKey) {
-            RS.setHoveredDevicePortKey?.(null);
-            RS.restoreDevicePortTint?.(currentPortKey);
-            RS.dispatchDevicePortInteraction?.('leave');
-          }
-          if (hoveredCableId) setPixiHover(null);
-          if (dom?.tooltip) dom.tooltip.style.display = 'none';
-          return;
-        }
-
-        const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-        const portKey = port ? `${port.instanceId}::${port.portId}` : null;
-        const previousPortKey = RS.getHoveredDevicePortKey?.();
-        if (portKey !== previousPortKey) {
-          if (previousPortKey) {
-            RS.setHoveredDevicePortKey?.(null);
-            RS.restoreDevicePortTint?.(previousPortKey);
-            RS.dispatchDevicePortInteraction?.('leave');
-          }
-          if (port) {
-            RS.setHoveredDevicePortKey?.(portKey);
-            RS.restoreDevicePortTint?.(portKey);
-            RS.dispatchDevicePortInteraction?.('hover', port);
-          }
-        }
-
-        const cableId = STATE.pendingConnection ? null : hitCableAt(e.clientX, e.clientY);
-        const hitInteractive = !!cableId;
-        setPixiHover(cableId, e);
-
-        if (hitInteractive && !isPointerOverCable) {
-          canvas.style.pointerEvents = 'auto';
-          isPointerOverCable = true;
-        } else if (!hitInteractive && isPointerOverCable) {
-          canvas.style.pointerEvents = 'none';
-          isPointerOverCable = false;
-        }
-      });
-    }, { passive: true });
-
-    window.addEventListener('pointerdown', (e) => {
-      if (STATE?.cableRenderMode !== 'pixi' || e.button !== 0) return;
-      const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-      if (!port) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      RS.lastHandledPixiPortTime = Date.now();
-      RS.dispatchDevicePortInteraction?.('click', port);
-    }, { capture: true });
-
-    window.addEventListener('click', (e) => {
+    const onDblClick = (e) => {
       if (STATE?.cableRenderMode !== 'pixi') return;
+      if (e.target?.closest?.('#cable-quick-hud, #cable-context-menu, .modal, input, button')) return;
       const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-      if (port) e.stopPropagation();
-    }, { capture: true });
+      if (port) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        RS.dispatchDevicePortInteraction?.('dblclick', port);
+        return;
+      }
+      const cableId = hitCableAt(e.clientX, e.clientY);
+      if (!cableId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      renameCable2D(cableId);
+    };
+
+    if (!moveListenerAttached) {
+      moveListenerAttached = true;
+
+      window.addEventListener('pointermove', (e) => {
+        const pixiApp = PixiContext.pixiApp;
+        const canvas = PixiContext.pixiCanvas || pixiCanvas;
+        if (!pixiApp || !canvas || STATE?.cableRenderMode !== 'pixi') return;
+        latestPointerMove = e;
+        if (pointerMoveFrame) return;
+        pointerMoveFrame = requestAnimationFrame(() => {
+          pointerMoveFrame = 0;
+          const e = latestPointerMove;
+          if (!e || !PixiContext.pixiApp || !PixiContext.pixiCanvas || STATE?.cableRenderMode !== 'pixi') return;
+
+          const target = e.target instanceof Element ? e.target : null;
+          const isHudOrMenuOpen = !!document.getElementById('cable-quick-hud') || !!document.getElementById('cable-context-menu') || !!document.querySelector('.modal.show, .modal.active');
+          const inHudOrMenu = !!target?.closest('#cable-quick-hud, #cable-context-menu, .cable-quick-hud, .cable-context-menu, .modal');
+          if (isHudOrMenuOpen || inHudOrMenu) {
+            if (isPointerOverCable) {
+              canvas.style.pointerEvents = 'none';
+              isPointerOverCable = false;
+            }
+            if (dom?.tooltip) dom.tooltip.style.display = 'none';
+            return;
+          }
+
+          const inScheduleSidebar = !!target?.closest('#sidebar-right');
+          if (inScheduleSidebar) {
+            if (isPointerOverCable) {
+              canvas.style.pointerEvents = 'none';
+              isPointerOverCable = false;
+            }
+            const domOwnsCableHover = !!target.closest('#schedule-tbody [data-cable-id], #schedule-tbody .tree-switch-header');
+            const currentPortKey = RS.getHoveredDevicePortKey?.();
+            if (currentPortKey) {
+              RS.setHoveredDevicePortKey?.(null);
+              RS.restoreDevicePortTint?.(currentPortKey);
+              RS.dispatchDevicePortInteraction?.('leave');
+            }
+            if (!domOwnsCableHover) setPixiHover(null);
+            return;
+          }
+
+          if (RS.ZOOM_STATE?.isPanning || RS.ZOOM_STATE?.isFocusing || RS.isDraggingDevice) {
+            if (isPointerOverCable) {
+              canvas.style.pointerEvents = 'none';
+              isPointerOverCable = false;
+            }
+            const currentPortKey = RS.getHoveredDevicePortKey?.();
+            if (currentPortKey) {
+              RS.setHoveredDevicePortKey?.(null);
+              RS.restoreDevicePortTint?.(currentPortKey);
+              RS.dispatchDevicePortInteraction?.('leave');
+            }
+            if (hoveredCableId) setPixiHover(null);
+            if (dom?.tooltip) dom.tooltip.style.display = 'none';
+            return;
+          }
+
+          const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+          const portKey = port ? `${port.instanceId}::${port.portId}` : null;
+          const previousPortKey = RS.getHoveredDevicePortKey?.();
+          if (portKey !== previousPortKey) {
+            if (previousPortKey) {
+              RS.setHoveredDevicePortKey?.(null);
+              RS.restoreDevicePortTint?.(previousPortKey);
+              RS.dispatchDevicePortInteraction?.('leave');
+            }
+            if (port) {
+              RS.setHoveredDevicePortKey?.(portKey);
+              RS.restoreDevicePortTint?.(portKey);
+              RS.dispatchDevicePortInteraction?.('hover', port);
+            }
+          }
+
+          const cableId = STATE.pendingConnection ? null : hitCableAt(e.clientX, e.clientY);
+          const hitInteractive = !!cableId;
+          setPixiHover(cableId, e);
+
+          if (hitInteractive && !isPointerOverCable) {
+            canvas.style.pointerEvents = 'auto';
+            isPointerOverCable = true;
+          } else if (!hitInteractive && isPointerOverCable) {
+            canvas.style.pointerEvents = 'none';
+            isPointerOverCable = false;
+          }
+        });
+      }, { passive: true });
+
+      window.addEventListener('pointerdown', (e) => {
+        if (STATE?.cableRenderMode !== 'pixi' || e.button !== 0) return;
+        const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+        if (!port) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        RS.lastHandledPixiPortTime = Date.now();
+        RS.dispatchDevicePortInteraction?.('click', port);
+      }, { capture: true });
+
+      window.addEventListener('click', (e) => {
+        if (STATE?.cableRenderMode !== 'pixi') return;
+        const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+        if (port) e.stopPropagation();
+      }, { capture: true });
+
+      window.addEventListener('contextmenu', (e) => {
+        if (STATE?.cableRenderMode !== 'pixi' || !PixiContext.pixiApp || !PixiContext.pixiCanvas) return;
+        const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+        if (port) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          RS.dispatchDevicePortInteraction?.('contextmenu', port);
+          return;
+        }
+        const cableId = hitCableAt(e.clientX, e.clientY);
+        if (!cableId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        highlightCable(cableId, true);
+        RS.redrawCableDisplay?.(cableId);
+        showCableContextMenu(cableId, e.clientX, e.clientY);
+        PixiContext.renderPixi?.('context-menu');
+      }, { capture: true });
+
+      window.addEventListener('dblclick', onDblClick, { capture: true });
+    }
+
+    if (pixiCanvas._rsHitAttached) return;
+    pixiCanvas._rsHitAttached = true;
 
     pixiCanvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
@@ -369,6 +413,7 @@
       const elUnder = document.elementFromPoint(e.clientX, e.clientY);
       const domPort = elUnder?.closest?.('.port');
       if (domPort) {
+        RS.lastHandledPixiPortTime = Date.now();
         domPort.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY }));
         return;
       }
@@ -391,50 +436,17 @@
       isPointerOverCable = false;
       const elUnder = document.elementFromPoint(e.clientX, e.clientY);
       const domPort = elUnder?.closest?.('.port');
-      if (domPort) return;
+      if (domPort) {
+        e.stopPropagation();
+        return;
+      }
       const cableId = STATE.pendingConnection ? null : hitCableAt(e.clientX, e.clientY);
       if (!cableId) return;
       e.preventDefault();
       e.stopPropagation();
     });
 
-    window.addEventListener('contextmenu', (e) => {
-      if (STATE?.cableRenderMode !== 'pixi' || !PixiContext.pixiApp || !PixiContext.pixiCanvas) return;
-      const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-      if (port) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        RS.dispatchDevicePortInteraction?.('contextmenu', port);
-        return;
-      }
-      const cableId = hitCableAt(e.clientX, e.clientY);
-      if (!cableId) return;
-      e.preventDefault();
-      e.stopPropagation();
-      highlightCable(cableId, true);
-      RS.redrawCableDisplay?.(cableId);
-      showCableContextMenu(cableId, e.clientX, e.clientY);
-      PixiContext.renderPixi?.('context-menu');
-    }, { capture: true });
-
-    const onDblClick = (e) => {
-      if (STATE?.cableRenderMode !== 'pixi') return;
-      if (e.target?.closest?.('#cable-quick-hud, #cable-context-menu, .modal, input, button')) return;
-      const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-      if (port) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        RS.dispatchDevicePortInteraction?.('dblclick', port);
-        return;
-      }
-      const cableId = hitCableAt(e.clientX, e.clientY);
-      if (!cableId) return;
-      e.preventDefault();
-      e.stopPropagation();
-      renameCable2D(cableId);
-    };
     pixiCanvas.addEventListener('dblclick', onDblClick);
-    window.addEventListener('dblclick', onDblClick, { capture: true });
   }
 
   // Exports

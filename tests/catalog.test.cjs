@@ -30,8 +30,11 @@ const { pathToFileURL } = require('node:url');
     await page.evaluate(() => document.querySelector('.catalog-mode-btn[data-mode="series"]').click());
     const firstStencil = page.locator('.sidebar-left .hw-stencil-preview').first();
     await firstStencil.locator('..').hover();
-    await page.waitForTimeout(380);
     const hoverPreview = page.locator('.catalog-stencil-hover-preview');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.catalog-stencil-hover-preview');
+      return el && el.classList.contains('visible') && Number(getComputedStyle(el).opacity) > 0.9;
+    }, null, { timeout: 5000 });
     assert.ok(await hoverPreview.evaluate(el => el.classList.contains('visible') && Number(getComputedStyle(el).opacity) > .9), 'stencil expands in the body-level hover preview');
     assert.ok(await hoverPreview.evaluate(el => el.parentElement === document.body && getComputedStyle(el).position === 'fixed'), 'expanded stencil cannot be clipped by the sidebar');
     assert.ok((await hoverPreview.locator('img').getAttribute('src')).startsWith('data:image/svg+xml'), 'hover expands the lightweight generated preview without decoding the original SVG');

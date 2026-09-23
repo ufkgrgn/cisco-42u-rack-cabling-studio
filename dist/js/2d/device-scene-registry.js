@@ -132,6 +132,8 @@
       nextDevices.set(instanceId, deviceRecord);
 
       template.ports.forEach((port, portId) => {
+        const localX = width * port.nx;
+        const localY = height * port.ny;
         const worldPort = Object.freeze({
           instanceId,
           portId,
@@ -141,8 +143,12 @@
           type: port.type,
           speed: port.speed,
           preserveDom: false,
-          x: topLeft.x + width * port.nx,
-          y: topLeft.y + height * port.ny,
+          localX,
+          localY,
+          nx: port.nx,
+          ny: port.ny,
+          x: topLeft.x + localX,
+          y: topLeft.y + localY,
           width: width * port.nw,
           height: height * port.nh
         });
@@ -199,7 +205,19 @@
   }
 
   function getPortPoint(instanceId, portId) {
-    return portRecords.get(endpointKey(instanceId, portId)) || null;
+    const port = portRecords.get(endpointKey(instanceId, portId));
+    if (!port) return null;
+    const devPos = window.RackStudio?.PixiDeviceScene?.getDevicePosition?.(instanceId);
+    if (devPos) {
+      const lx = (port.localX !== undefined) ? port.localX : (port.x - devPos.originX);
+      const ly = (port.localY !== undefined) ? port.localY : (port.y - devPos.originY);
+      return {
+        ...port,
+        x: devPos.x + lx,
+        y: devPos.y + ly
+      };
+    }
+    return port;
   }
 
   function getDeviceRecord(instanceId) {

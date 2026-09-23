@@ -29,6 +29,7 @@
   let deviceChassisTextures = null;
   const deviceRackScenes = new Map();
   const deviceRackByInstance = new Map();
+  const deviceContainers = new Map();
   let devicePortAtlas = null;
   let devicePortTextures = null;
   const devicePortSprites = new Map();
@@ -87,14 +88,11 @@
 
   function destroyDeviceRackScenes() {
     PixiContext.deviceSceneContainer?.removeChildren?.().forEach(rackContainer => {
-      rackContainer.removeChildren?.().forEach(layer => {
-        layer.removeChildren?.().forEach(child => child.destroy?.());
-        layer.destroy?.();
-      });
-      rackContainer.destroy?.();
+      rackContainer.destroy?.({ children: true });
     });
     deviceRackScenes.clear();
     deviceRackByInstance.clear();
+    deviceContainers.clear();
     devicePortSprites.clear();
     devicePortOccupancy.clear();
     devicePortVariantCounts.clear();
@@ -113,16 +111,7 @@
     const container = new window.PIXI.Container();
     container.label = `rack-device-scene-${key}`;
     container.eventMode = 'passive';
-    const chassis = new window.PIXI.Container();
-    chassis.label = `rack-device-chassis-${key}`;
-    chassis.eventMode = 'none';
-    const overlays = new window.PIXI.Graphics();
-    overlays.label = `rack-device-overlays-${key}`;
-    const ports = new window.PIXI.Container();
-    ports.label = `rack-device-ports-${key}`;
-    ports.eventMode = 'passive';
-    container.addChild(chassis, overlays, ports);
-    scene = { key, container, chassis, overlays, ports, bounds: null };
+    scene = { key, container, bounds: null };
     deviceRackScenes.set(key, scene);
     return scene;
   }
@@ -166,8 +155,11 @@
         const candidates = devicePortHitGrid.get(`${x}:${y}`) || EMPTY_CABLE_LIST;
         for (let index = 0; index < candidates.length; index++) {
           const port = candidates[index];
-          const dx = point.x - port.x;
-          const dy = point.y - port.y;
+          const devEntry = deviceContainers.get(String(port.instanceId));
+          const portX = devEntry ? (devEntry.container.x + (port.localX ?? (port.x - devEntry.originX))) : port.x;
+          const portY = devEntry ? (devEntry.container.y + (port.localY ?? (port.y - devEntry.originY))) : port.y;
+          const dx = point.x - portX;
+          const dy = point.y - portY;
           const distance = dx * dx + dy * dy;
           const radius = Math.max(tolerance, Math.max(port.width, port.height) * 0.65);
           if (distance > radius * radius || distance >= bestDistance) continue;
@@ -185,8 +177,11 @@
     const scale = Number(RS.ZOOM_STATE?.scale) || 1;
     const panX = Number(RS.ZOOM_STATE?.panX) || 0;
     const panY = Number(RS.ZOOM_STATE?.panY) || 0;
-    const left = canvasRect.left + panX + port.x * scale;
-    const top = canvasRect.top + panY + port.y * scale;
+    const devEntry = deviceContainers.get(String(port.instanceId));
+    const portX = devEntry ? (devEntry.container.x + (port.localX ?? (port.x - devEntry.originX))) : port.x;
+    const portY = devEntry ? (devEntry.container.y + (port.localY ?? (port.y - devEntry.originY))) : port.y;
+    const left = canvasRect.left + panX + portX * scale;
+    const top = canvasRect.top + panY + portY * scale;
     const width = Math.max(1, port.width * scale);
     const height = Math.max(1, port.height * scale);
     return { left, top, right: left + width, bottom: top + height, width, height };
@@ -259,24 +254,59 @@
       const scene = getOrCreateDeviceRackScene(device.rackId);
       deviceRackByInstance.set(String(device.instanceId), scene.key);
       includeDeviceInRackBounds(scene, device);
-      if (lod !== 'macro' || device.category === 'organizer' || device.category === 'blank') return;
-      const style = deviceSceneStyle(device.category);
-      const sprite = new window.PIXI.NineSliceSprite({
-        texture: textures[style.key],
-        leftWidth: 4,
-        rightWidth: 4,
-        topHeight: 4,
-        bottomHeight: 4,
+
+      const devContainer = new window.PIXI.Container();
+      devContainer.label = `device-${device.instanceId}`;
+      devContainer.position.set(device.x, device.y);
+      devContainer.eventMode = 'passive';
+
+      const portsContainer = new window.PIXI.Container();
+      portsContainer.label = `device-ports-${device.instanceId}`;
+      portsContainer.position.set(0, 0);
+      portsContainer.eventMode = 'passive';
+
+      let chassisSprite = null;
+      let overlays = null;
+
+      if (device.category !== 'organizer' && device.category !== 'blank') {
+        const style = deviceSceneStyle(device.category);
+        chassisSprite = new window.PIXI.NineSliceSprite({
+          texture: textures[style.key],
+          leftWidth: 4,
+          rightWidth: 4,
+          topHeight: 4,
+          bottomHeight: 4,
+          width: device.width,
+          height: device.height
+        });
+        chassisSprite.position.set(0, 0);
+        chassisSprite.eventMode = 'none';
+        chassisSprite.visible = lod === 'macro';
+
+        overlays = new window.PIXI.Graphics();
+        overlays.rect(0, 0, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
+        overlays.rect(8, 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
+          .fill({ color: 0x0b1726, alpha: 0.92 });
+        overlays.visible = lod === 'macro';
+
+        devContainer.addChild(chassisSprite, overlays);
+        spriteCount++;
+      }
+
+      devContainer.addChild(portsContainer);
+      scene.container.addChild(devContainer);
+
+      deviceContainers.set(String(device.instanceId), {
+        container: devContainer,
+        chassis: chassisSprite,
+        overlays,
+        ports: portsContainer,
+        device,
+        originX: device.x,
+        originY: device.y,
         width: device.width,
         height: device.height
       });
-      sprite.position.set(device.x, device.y);
-      sprite.eventMode = 'none';
-      scene.chassis.addChild(sprite);
-      scene.overlays.rect(device.x, device.y, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
-      scene.overlays.rect(device.x + 8, device.y + 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
-        .fill({ color: 0x0b1726, alpha: 0.92 });
-      spriteCount++;
     });
     deviceRackScenes.forEach(scene => PixiContext.deviceSceneContainer?.addChild(scene.container));
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisSpriteCount = spriteCount;
@@ -439,15 +469,17 @@
         !['switch', 'fiber-switch', 'compact', 'router'].includes(port.category)
       )) return;
       const key = `${port.instanceId}::${port.portId}`;
-      const rackScene = deviceRackScenes.get(deviceRackByInstance.get(String(port.instanceId)));
-      if (!rackScene) return;
+      const devEntry = deviceContainers.get(String(port.instanceId));
+      if (!devEntry) return;
       const isOccupied = occupied.has(key);
       const textureKey = devicePortTextureKey(port, isOccupied);
       const width = Math.max(3, port.width * 0.82);
       const height = Math.max(3, port.height * 0.82);
       const sprite = new window.PIXI.Sprite(textures[textureKey]);
       sprite.anchor.set(0.5);
-      sprite.position.set(port.x, port.y);
+      const localX = (port.localX !== undefined) ? port.localX : (port.x - devEntry.originX);
+      const localY = (port.localY !== undefined) ? port.localY : (port.y - devEntry.originY);
+      sprite.position.set(localX, localY);
       sprite.width = width;
       sprite.height = height;
       sprite.eventMode = 'none';
@@ -459,10 +491,10 @@
       } else if (roleColor !== null && !isOccupied) {
         sprite.tint = roleColor;
       }
-      rackScene.ports.addChild(sprite);
+      devEntry.ports.addChild(sprite);
       devicePortSprites.set(key, sprite);
       devicePortOccupancy.set(key, isOccupied);
-      const hitRecord = { ...port };
+      const hitRecord = { ...port, localX, localY };
       addDevicePortToHitGrid(hitRecord);
       adjustDevicePortVariantCount(textureKey, 1);
     });
@@ -558,10 +590,10 @@
       return false;
     }
     activeDeviceSceneLod = lod;
-    deviceRackScenes.forEach(scene => {
-      scene.chassis.visible = lod === 'macro';
-      scene.overlays.visible = lod === 'macro';
-      scene.ports.visible = true;
+    deviceContainers.forEach(dev => {
+      if (dev.chassis) dev.chassis.visible = lod === 'macro';
+      if (dev.overlays) dev.overlays.visible = lod === 'macro';
+      if (dev.ports) dev.ports.visible = true;
     });
     const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
     const occupied = collectDeviceOccupancy();
@@ -596,10 +628,10 @@
         if (changedPorts) PixiContext.performanceTelemetry.deviceOccupancyOnlyUpdates++;
       }
     }
-    deviceRackScenes.forEach(scene => {
-      scene.chassis.visible = lod === 'macro';
-      scene.overlays.visible = lod === 'macro';
-      scene.ports.visible = true;
+    deviceContainers.forEach(dev => {
+      if (dev.chassis) dev.chassis.visible = lod === 'macro';
+      if (dev.overlays) dev.overlays.visible = lod === 'macro';
+      if (dev.ports) dev.ports.visible = true;
     });
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
     if (lod === 'macro') {
@@ -630,6 +662,43 @@
     deviceOccupancyChanged = false;
   }
 
+  function getDeviceContainer(instanceId) {
+    return deviceContainers.get(String(instanceId))?.container || null;
+  }
+
+  function getDevicePosition(instanceId) {
+    const dev = deviceContainers.get(String(instanceId));
+    if (!dev) return null;
+    return { x: dev.container.x, y: dev.container.y, originX: dev.originX, originY: dev.originY };
+  }
+
+  function setDevicePosition(instanceId, x, y) {
+    const dev = deviceContainers.get(String(instanceId));
+    if (!dev) return false;
+    dev.container.position.set(x, y);
+    return true;
+  }
+
+  function moveDeviceByOffset(instanceId, dx, dy) {
+    const dev = deviceContainers.get(String(instanceId));
+    if (!dev) return false;
+    dev.container.position.set(dev.originX + dx, dev.originY + dy);
+    return true;
+  }
+
+  function resetDevicePosition(instanceId) {
+    const dev = deviceContainers.get(String(instanceId));
+    if (!dev) return false;
+    dev.container.position.set(dev.originX, dev.originY);
+    return true;
+  }
+
+  function resetAllDevicePositions() {
+    deviceContainers.forEach(dev => {
+      dev.container.position.set(dev.originX, dev.originY);
+    });
+  }
+
   // Export to RackStudio namespace
   RS.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
   RS.destroyDeviceRackScenes = destroyDeviceRackScenes;
@@ -644,6 +713,11 @@
   RS.setHoveredDevicePortKey = (key) => { hoveredDevicePortKey = key; };
   RS.getHoveredDevicePortKey = () => hoveredDevicePortKey;
   RS.collectDeviceOccupancy = collectDeviceOccupancy;
+  RS.getPixiDeviceContainer = getDeviceContainer;
+  RS.getPixiDevicePosition = getDevicePosition;
+  RS.setPixiDevicePosition = setDevicePosition;
+  RS.movePixiDeviceByOffset = moveDeviceByOffset;
+  RS.resetPixiDevicePositions = resetAllDevicePositions;
 
   RS.PixiDeviceScene = {
     syncPixiDeviceSceneLOD,
@@ -656,10 +730,17 @@
     getDevicePortRoleColor,
     restoreDevicePortTint,
     invalidatePixiDeviceScene,
-    collectDeviceOccupancy
+    collectDeviceOccupancy,
+    getDeviceContainer,
+    getDevicePosition,
+    setDevicePosition,
+    moveDeviceByOffset,
+    resetDevicePosition,
+    resetAllDevicePositions
   };
 
   PixiContext.deviceRackScenes = deviceRackScenes;
+  PixiContext.deviceContainers = deviceContainers;
   PixiContext.devicePortSprites = devicePortSprites;
   PixiContext.devicePortOccupancy = devicePortOccupancy;
   PixiContext.hitDevicePortAt = hitDevicePortAt;
@@ -668,4 +749,9 @@
   PixiContext.destroyDeviceRackScenes = destroyDeviceRackScenes;
   PixiContext.applyDeviceViewportCulling = applyDeviceViewportCulling;
   PixiContext.getDevicePortVariantCounts = () => devicePortVariantCounts;
+  PixiContext.getDeviceContainer = getDeviceContainer;
+  PixiContext.getDevicePosition = getDevicePosition;
+  PixiContext.setDevicePosition = setDevicePosition;
+  PixiContext.moveDeviceByOffset = moveDeviceByOffset;
+  PixiContext.resetDevicePositions = resetAllDevicePositions;
 })();

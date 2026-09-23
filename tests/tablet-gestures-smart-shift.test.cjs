@@ -177,6 +177,61 @@ test('Tablet gestures, ear handles, smart ripple push, multi-select and U-space 
     });
     const afterPanY = await page.evaluate(() => window.RackStudio.ZOOM_STATE.panY);
     assert.notEqual(initialPanY, afterPanY, '1-finger touch drag on empty canvas must smoothly update viewport pan');
+    await page.waitForTimeout(150);
+
+    // 13. Single Selection Deselect & Outside Click Deselect Regressions
+    // Click on a device: selects it, but MUST NOT activate multi-select-active (cables/controls intact)
+    const firstDevEar = page.locator('.mounted-device .device-ear-left').first();
+    await firstDevEar.click();
+    const singleSelectState = await page.evaluate(() => ({
+      hasSelectedClass: document.querySelector('.mounted-device.studio-selected') !== null,
+      hasMultiActiveClass: document.body.classList.contains('multi-select-active'),
+      isMultiPillHidden: document.getElementById('studio-multiselect-pill')?.classList.contains('hidden')
+    }));
+    assert.equal(singleSelectState.hasSelectedClass, true, 'Single click must mark device as studio-selected');
+    assert.equal(singleSelectState.hasMultiActiveClass, false, 'Single click MUST NOT activate multi-select-active');
+    assert.equal(singleSelectState.isMultiPillHidden, true, 'Single click MUST NOT show multi-select pill');
+
+    // Click on the SAME device again: must toggle/deselect!
+    await firstDevEar.click();
+    const afterReclickState = await page.evaluate(() => ({
+      hasSelectedClass: document.querySelector('.mounted-device.studio-selected') !== null,
+      selectionText: document.getElementById('studio-selection')?.textContent
+    }));
+    assert.equal(afterReclickState.hasSelectedClass, false, 'Clicking selected device again MUST deselect it');
+    assert.equal(afterReclickState.selectionText, 'Cihaz seçin', 'Editor selection text must reset');
+
+    // Click on device again to select, then click outside: must deselect!
+    await firstDevEar.click();
+    assert.equal(await page.locator('.mounted-device.studio-selected').count(), 1, 'Device selected again');
+    await page.mouse.click(50, 200);
+    const afterOutsideClickState = await page.evaluate(() => ({
+      hasSelectedClass: document.querySelector('.mounted-device.studio-selected') !== null,
+      selectionText: document.getElementById('studio-selection')?.textContent
+    }));
+    assert.equal(afterOutsideClickState.hasSelectedClass, false, 'Clicking outside MUST deselect device');
+
+    // 14. Faceplate visual persistence during drag
+    const devToDrag = page.locator('.mounted-device').first();
+    const devBox = await devToDrag.boundingBox();
+    await page.mouse.move(devBox.x + devBox.width / 2, devBox.y + devBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(devBox.x + devBox.width / 2, devBox.y + devBox.height / 2 + slotStep * 2, { steps: 5 });
+    const duringDragFaceplate = await page.evaluate(() => {
+      const draggingEl = document.querySelector('.mounted-device.studio-dragging');
+      if (!draggingEl) return null;
+      const faceplate = draggingEl.querySelector('.device-faceplate');
+      const style = faceplate ? window.getComputedStyle(faceplate) : null;
+      return {
+        hasFaceplate: !!faceplate,
+        display: style?.display,
+        visibility: style?.visibility
+      };
+    });
+    await page.mouse.up();
+    assert.ok(duringDragFaceplate, 'Must detect dragging device');
+    assert.equal(duringDragFaceplate.hasFaceplate, true, 'Device faceplate MUST remain attached during drag');
+    assert.notEqual(duringDragFaceplate.display, 'none', 'Device faceplate MUST NOT be display:none during drag');
 
     assert.deepEqual(errors, []);
   } finally {
