@@ -68,6 +68,7 @@
       bar.querySelector('[data-command="undo"]').disabled = !undo.length;
       bar.querySelector('[data-command="redo"]').disabled = !redo.length;
       document.querySelectorAll('.mounted-device').forEach(el => el.classList.toggle('studio-selected', el.id === selected));
+      if (typeof renderMultiSelectPill === 'function') renderMultiSelectPill();
     }
     async function save() {
       clearTimeout(saveTimer);
@@ -131,19 +132,318 @@
       rack.units = Array((rack.heightU || 42) + 1).fill(null);
       rack.devices.forEach(d => { for (let u = d.topU - d.uHeight + 1; u <= d.topU; u++) rack.units[u] = d.instanceId; });
     }
+    let multiselectPill = document.getElementById('studio-multiselect-pill');
+    if (!multiselectPill) {
+      multiselectPill = document.createElement('div');
+      multiselectPill.id = 'studio-multiselect-pill';
+      multiselectPill.className = 'studio-multiselect-pill hidden';
+      document.body.appendChild(multiselectPill);
+      multiselectPill.addEventListener('click', e => {
+        const btn = e.target.closest('[data-multi-action]');
+        if (!btn) return;
+        const action = btn.dataset.multiAction;
+        if (action === 'up') moveMultiSelectedBlock(1, api.getActiveRack()?.id);
+        else if (action === 'down') moveMultiSelectedBlock(-1, api.getActiveRack()?.id);
+        else if (action === 'delete') deleteMultiSelectedBlock();
+        else if (action === 'deselect') {
+          if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
+          sync();
+          status('Seçim temizlendi');
+        } else if (action === 'clear') {
+          clearMultiSelect();
+          status('Çoklu seçim modu kapatıldı');
+        }
+      });
+    }
+
+    function renderMultiSelectPill() {
+      if (!multiselectPill) return;
+      const count = state.multiSelectedDevices ? state.multiSelectedDevices.size : 0;
+      const isMultiActive = count > 0 || state.multiSelectMode;
+      document.body.classList.toggle('multi-select-active', isMultiActive);
+      const stage = api.dom?.rackStage || document.getElementById('rack-stage');
+      if (stage) stage.classList.toggle('multi-select-active', isMultiActive);
+
+      if (count > 1 || (count > 0 && state.multiSelectMode)) {
+        multiselectPill.classList.remove('hidden');
+        multiselectPill.innerHTML = `
+          <span class="pill-badge">🟣 Çoklu Seçim</span>
+          <span class="pill-count"><strong>${count}</strong> cihaz seçildi</span>
+          <button class="pill-btn" data-multi-action="up" title="Tümünü 1U Yukarı Taşı">⬆️ +1U</button>
+          <button class="pill-btn" data-multi-action="down" title="Tümünü 1U Aşağı Taşı">⬇️ -1U</button>
+          <button class="pill-btn pill-btn-danger" data-multi-action="delete" title="Seçilen Cihazları Sil">🗑️ Sil</button>
+          <button class="pill-btn" data-multi-action="deselect" title="Seçimleri Temizle">⤹ Seçimi Temizle</button>
+          <button class="pill-btn pill-btn-close" data-multi-action="clear" title="Çoklu Seçimden Çık">✕ Vazgeç / Kapat</button>
+        `;
+      } else if (count === 0 && state.multiSelectMode) {
+        multiselectPill.classList.remove('hidden');
+        multiselectPill.innerHTML = `
+          <span class="pill-badge">🟣 Çoklu Seçim Modu</span>
+          <span class="pill-count" style="color: #cbd5e1;">Seçmek için cihazlara dokunun</span>
+          <button class="pill-btn pill-btn-close" data-multi-action="clear" title="Çoklu Seçimden Çık">✕ Vazgeç / Kapat</button>
+        `;
+      } else {
+        multiselectPill.classList.add('hidden');
+      }
+      document.querySelectorAll('.mounted-device').forEach(el => {
+        el.classList.toggle('studio-multi-selected', state.multiSelectedDevices?.has(el.id) || false);
+      });
+    }
+
+    function toggleMultiSelect(instanceId) {
+      if (!state.multiSelectedDevices) state.multiSelectedDevices = new Set();
+      if (state.multiSelectedDevices.has(instanceId)) {
+        state.multiSelectedDevices.delete(instanceId);
+        if (selected === instanceId) {
+          selected = state.multiSelectedDevices.size > 0 ? Array.from(state.multiSelectedDevices)[0] : null;
+        }
+      } else {
+        state.multiSelectedDevices.add(instanceId);
+        selected = instanceId;
+      }
+      sync();
+    }
+
+    function clearMultiSelect() {
+      if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
+      state.multiSelectMode = false;
+      document.body.classList.remove('multi-select-active');
+      const stage = api.dom?.rackStage || document.getElementById('rack-stage');
+      if (stage) stage.classList.remove('multi-select-active');
+      sync();
+    }
+
+    function deleteMultiSelectedBlock() {
+      if (!state.multiSelectedDevices || state.multiSelectedDevices.size === 0) return;
+      const toDelete = new Set(state.multiSelectedDevices);
+      const count = toDelete.size;
+      state.racks.forEach(rack => {
+        rack.devices = rack.devices.filter(d => !toDelete.has(d.instanceId));
+        rebuild(rack);
+      });
+      state.cables = state.cables.filter(c => !toDelete.has(c.from.instanceId) && !toDelete.has(c.to.instanceId));
+      clearMultiSelect();
+      selected = null;
+      state.pendingConnection = null;
+      api.refresh();
+      record();
+      status(`${count} cihaz silindi`);
+    }
+
+    function moveMultiSelectedBlock(deltaU, rackId) {
+      if (!deltaU || !state.multiSelectedDevices || state.multiSelectedDevices.size === 0) return;
+      const targetRack = state.racks.find(r => r.id === rackId) || api.getActiveRack();
+      if (!targetRack) return;
+
+      const devices = targetRack.devices.filter(d => state.multiSelectedDevices.has(d.instanceId));
+      if (devices.length === 0) return;
+
+      const maxU = targetRack.heightU || 42;
+      for (const d of devices) {
+        const nextTop = d.topU + deltaU;
+        const nextBot = nextTop - d.uHeight + 1;
+        if (nextTop > maxU || nextBot < 1) {
+          throw new Error('Cihaz bloğu kabin sınırlarını aşıyor (1–' + maxU + ' U).');
+        }
+      }
+
+      const unselected = targetRack.devices.filter(d => !state.multiSelectedDevices.has(d.instanceId));
+      const hasDirectCollision = devices.some(d => {
+        const nextTop = d.topU + deltaU;
+        const nextBot = nextTop - d.uHeight + 1;
+        return unselected.some(u => nextTop >= (u.topU - u.uHeight + 1) && nextBot <= u.topU);
+      });
+
+      if (hasDirectCollision) {
+        if (deltaU < 0) {
+          const sorted = [...unselected].sort((a, b) => b.topU - a.topU);
+          const lowestSelected = Math.min(...devices.map(d => d.topU + deltaU - d.uHeight + 1));
+          const collidingUnselected = sorted.filter(u => u.topU >= lowestSelected);
+          for (const u of collidingUnselected) {
+            u.topU += deltaU;
+            if (u.topU - u.uHeight + 1 < 1) throw new Error('Cihaz bloğu kaydırılamıyor: kabin altında boş yer yok.');
+          }
+        } else {
+          const sorted = [...unselected].sort((a, b) => a.topU - b.topU);
+          const highestSelected = Math.max(...devices.map(d => d.topU + deltaU));
+          const collidingUnselected = sorted.filter(u => (u.topU - u.uHeight + 1) <= highestSelected);
+          for (const u of collidingUnselected) {
+            u.topU += deltaU;
+            if (u.topU > maxU) throw new Error('Cihaz bloğu kaydırılamıyor: kabin üstünde boş yer yok.');
+          }
+        }
+      }
+
+      devices.forEach(d => { d.topU += deltaU; });
+      rebuild(targetRack);
+      api.refresh();
+      record();
+      sync();
+      status(`${devices.length} cihaz ${deltaU > 0 ? '+' + deltaU : deltaU} U kaydırıldı`);
+    }
+
+    function insertUSpace(rackId, atU, count = 1) {
+      const rack = state.racks.find(r => r.id === rackId) || api.getActiveRack();
+      if (!rack) return false;
+      const maxU = rack.heightU || 42;
+
+      const devicesBelow = rack.devices.filter(d => d.topU <= atU);
+      const devicesAbove = rack.devices.filter(d => d.topU > atU);
+
+      const canShiftDown = devicesBelow.length > 0 && devicesBelow.every(d => (d.topU - count - d.uHeight + 1) >= 1);
+      const canShiftUp = devicesAbove.length > 0 && devicesAbove.every(d => (d.topU + count) <= maxU);
+
+      if (canShiftDown) {
+        devicesBelow.forEach(d => { d.topU -= count; });
+      } else if (canShiftUp) {
+        devicesAbove.forEach(d => { d.topU += count; });
+      } else {
+        status('Kabin sınırları nedeniyle araya boşluk açılamıyor', true);
+        return false;
+      }
+
+      rebuild(rack);
+      api.refresh();
+      record();
+      status(`U ${atU} arasına ${count}U boşluk açıldı`);
+      return true;
+    }
+
+    function collapseUSpace(rackId, atU, count = 1) {
+      const rack = state.racks.find(r => r.id === rackId) || api.getActiveRack();
+      if (!rack) return false;
+
+      const occupied = rack.devices.some(d => atU <= d.topU && atU >= d.topU - d.uHeight + 1);
+      if (occupied) {
+        status(`U ${atU} dolu, önce boşaltın veya boş bir U seçin`, true);
+        return false;
+      }
+
+      const devicesBelow = rack.devices.filter(d => d.topU < atU);
+      if (devicesBelow.length === 0) {
+        status(`U ${atU} altında kaydırılacak cihaz bulunamadı`, true);
+        return false;
+      }
+
+      const maxU = rack.heightU || 42;
+      const canShiftUp = devicesBelow.every(d => (d.topU + count) <= maxU);
+      if (!canShiftUp) {
+        status('Boşluk kapatılamıyor: cihazlar kabin sınırını aşıyor', true);
+        return false;
+      }
+
+      devicesBelow.forEach(d => { d.topU += count; });
+      rebuild(rack);
+      api.refresh();
+      record();
+      status(`U ${atU} boşluğu kapatıldı`);
+      return true;
+    }
+
+    function smartRippleMove(device, targetTopU, targetRack, duplicate = false) {
+      if (!Number.isInteger(targetTopU)) throw new Error('Geçersiz U pozisyonu.');
+      const maxU = targetRack.heightU || 42;
+      const targetBotU = targetTopU - device.uHeight + 1;
+      if (targetTopU > maxU || targetBotU < 1) {
+        throw new Error('Yerleşim çakışıyor veya kabin sınırları dışında.');
+      }
+
+      if (canPlace(targetRack, device, targetTopU, duplicate ? null : device.instanceId)) {
+        return [{ device, topU: targetTopU }];
+      }
+
+      const otherDevices = targetRack.devices.filter(d => duplicate || d.instanceId !== device.instanceId);
+      const preferDown = device.topU ? (device.topU >= targetTopU) : true;
+
+      function tryShiftDown() {
+        const sorted = [...otherDevices].sort((a, b) => b.topU - a.topU);
+        const moves = new Map();
+        let currentBot = targetBotU;
+
+        for (const d of sorted) {
+          const curTop = moves.has(d.instanceId) ? moves.get(d.instanceId) : d.topU;
+          const curBot = curTop - d.uHeight + 1;
+          if (curTop >= currentBot && curBot <= targetTopU) {
+            const newTop = currentBot - 1;
+            const newBot = newTop - d.uHeight + 1;
+            if (newBot < 1) return null;
+            moves.set(d.instanceId, newTop);
+            currentBot = newBot;
+          } else if (moves.size > 0 && curTop >= currentBot) {
+            const newTop = currentBot - 1;
+            const newBot = newTop - d.uHeight + 1;
+            if (newBot < 1) return null;
+            moves.set(d.instanceId, newTop);
+            currentBot = newBot;
+          }
+        }
+        return moves;
+      }
+
+      function tryShiftUp() {
+        const sorted = [...otherDevices].sort((a, b) => a.topU - b.topU);
+        const moves = new Map();
+        let currentTop = targetTopU;
+
+        for (const d of sorted) {
+          const curTop = moves.has(d.instanceId) ? moves.get(d.instanceId) : d.topU;
+          const curBot = curTop - d.uHeight + 1;
+          if (curTop >= targetBotU && curBot <= currentTop) {
+            const newBot = currentTop + 1;
+            const newTop = newBot + d.uHeight - 1;
+            if (newTop > maxU) return null;
+            moves.set(d.instanceId, newTop);
+            currentTop = newTop;
+          } else if (moves.size > 0 && curBot <= currentTop) {
+            const newBot = currentTop + 1;
+            const newTop = newBot + d.uHeight - 1;
+            if (newTop > maxU) return null;
+            moves.set(d.instanceId, newTop);
+            currentTop = newTop;
+          }
+        }
+        return moves;
+      }
+
+      let rippleMoves = preferDown ? (tryShiftDown() || tryShiftUp()) : (tryShiftUp() || tryShiftDown());
+      if (!rippleMoves) {
+        throw new Error('Yerleşim çakışıyor veya kabin sınırları dışında.');
+      }
+
+      const result = [{ device, topU: targetTopU }];
+      rippleMoves.forEach((newTop, instanceId) => {
+        const d = targetRack.devices.find(item => item.instanceId === instanceId);
+        if (d) result.push({ device: d, topU: newTop });
+      });
+      return result;
+    }
+
     function move(topU, rackId, duplicate = false) {
       const found = selection(), target = state.racks.find(r => r.id === rackId);
       if (!found || !target) return;
       const {rack, device} = found;
-      if (!canPlace(target, device, topU, duplicate ? null : device.instanceId)) throw new Error('Yerleşim çakışıyor veya kabin sınırları dışında.');
+      const plannedMoves = smartRippleMove(device, topU, target, duplicate);
+
       if (duplicate) {
         const created = api.mountDeviceAt(device.catalogKey, topU, target.id);
         if (!created) throw new Error('Cihaz eklenemedi.');
         selected = created.instanceId;
+        plannedMoves.forEach(m => {
+          if (m.device.instanceId !== device.instanceId) m.device.topU = m.topU;
+        });
       } else {
-        rack.devices = rack.devices.filter(d => d.instanceId !== device.instanceId);
-        target.devices.push(device); device.topU = topU;
-        for (const cable of state.cables) for (const end of [cable.from, cable.to]) if (end.instanceId === device.instanceId) end.rackId = target.id;
+        if (rack.id !== target.id) {
+          rack.devices = rack.devices.filter(d => d.instanceId !== device.instanceId);
+          target.devices.push(device);
+          for (const cable of state.cables) {
+            for (const end of [cable.from, cable.to]) {
+              if (end.instanceId === device.instanceId) end.rackId = target.id;
+            }
+          }
+        }
+        plannedMoves.forEach(m => {
+          m.device.topU = m.topU;
+        });
       }
       rebuild(rack); rebuild(target); state.activeRackId = target.id;
       state.pendingConnection = null; api.refresh(); record();
@@ -164,55 +464,207 @@
           while (top >= found.device.uHeight && !canPlace(target, found.device, top)) top--;
           move(top, target.id, true);
         } else if (name === 'delete') {
-          const found = selection(); if (!found) return;
-          found.rack.devices = found.rack.devices.filter(d => d.instanceId !== selected);
-          state.cables = state.cables.filter(c => c.from.instanceId !== selected && c.to.instanceId !== selected);
-          rebuild(found.rack); selected = null; state.pendingConnection = null; api.refresh(); record();
+          if (state.multiSelectedDevices?.size > 1) {
+            deleteMultiSelectedBlock();
+          } else {
+            const found = selection(); if (!found) return;
+            found.rack.devices = found.rack.devices.filter(d => d.instanceId !== selected);
+            state.cables = state.cables.filter(c => c.from.instanceId !== selected && c.to.instanceId !== selected);
+            rebuild(found.rack); selected = null; state.pendingConnection = null; api.refresh(); record();
+          }
         }
       } catch (error) { status(error.message, true); }
     }
     bar.addEventListener('click', e => { const button = e.target.closest('[data-command]'); if (button) command(button.dataset.command); });
     document.addEventListener('click', e => {
-      if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea')) return;
+      if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu')) return;
       const device = e.target.closest('.mounted-device');
-      if (device) { selected = device.id; field('target').value = api.getActiveRack().id; sync(); }
+      if (device) {
+        if (state.multiSelectMode || e.shiftKey) {
+          toggleMultiSelect(device.id);
+        } else {
+          selected = device.id;
+          state.multiSelectedDevices = new Set([device.id]);
+          field('target').value = api.getActiveRack().id;
+          sync();
+        }
+      }
     });
     document.addEventListener('keydown', e => {
       if (e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+      if (e.key === 'Escape') {
+        if (state.multiSelectMode || (state.multiSelectedDevices && state.multiSelectedDevices.size > 0)) {
+          e.preventDefault();
+          clearMultiSelect();
+          status('Çoklu seçim iptal edildi');
+          return;
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); command(e.shiftKey ? 'redo' : 'undo'); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); command('redo'); }
       else if (selected && ['Delete','ArrowUp','ArrowDown'].includes(e.key)) {
         e.preventDefault();
-        if (e.key === 'Delete') command('delete');
-        else { const found = selection(); if (found) { field('position').value = found.device.topU + (e.key === 'ArrowUp' ? 1 : -1); field('target').value = found.rack.id; command('move'); } }
+        if (e.key === 'Delete') {
+          if (state.multiSelectedDevices?.size > 1) {
+            deleteMultiSelectedBlock();
+          } else {
+            command('delete');
+          }
+        } else {
+          const delta = e.key === 'ArrowUp' ? 1 : -1;
+          if (state.multiSelectedDevices?.size > 1) {
+            moveMultiSelectedBlock(delta, api.getActiveRack()?.id);
+          } else {
+            const found = selection();
+            if (found) { field('position').value = found.device.topU + delta; field('target').value = found.rack.id; command('move'); }
+          }
+        }
       }
     });
-    let drag = null, frame = 0;
-    document.addEventListener('mousedown', e => { if (e.target.closest('.mounted-device') && !e.target.closest('button,.port')) e.stopPropagation(); }, true);
+    let drag = null, frame = 0, longPressTimer = null, pendingTouch = null;
+    document.addEventListener('mousedown', e => {
+      const dev = e.target.closest('.mounted-device');
+      const isHandle = !!e.target.closest('[data-drag-handle="true"]');
+      if (isHandle || (dev && state.multiSelectedDevices?.has(dev.id)) || api.isDraggingDevice) {
+        e.stopPropagation();
+      }
+    }, true);
     document.addEventListener('pointerdown', e => {
       const el = e.target.closest('.mounted-device');
       if (e.button !== 0 || !el || e.target.closest('button,.port-icon,.port,[data-port-id]')) return;
-      selected = el.id; sync();
-      const found = selection(), slot = el.closest('.rack-slot');
-      if (!found || !slot) return;
-      drag = {el, y: e.clientY, delta: 0, top: found.device.topU, rackId: found.rack.id, step: slot.getBoundingClientRect().height, active: false};
-      e.stopPropagation();
+      const isDragHandle = !!e.target.closest('[data-drag-handle="true"]');
+      const slot = el.closest('.rack-slot');
+      if (!slot) return;
+
+      // When dragging via ear handle, prioritize dragging over selection toggle
+      if (isDragHandle) {
+        if (!state.multiSelectedDevices?.has(el.id)) {
+          selected = el.id;
+          state.multiSelectedDevices = new Set([el.id]);
+          sync();
+        }
+        const found = selection();
+        if (!found) return;
+        drag = {el, y: e.clientY, x: e.clientX, delta: 0, top: found.device.topU, rackId: found.rack.id, step: slot.getBoundingClientRect().height, active: false, isHandle: true};
+        api.isDraggingDevice = true;
+        api.dom?.rackStage?.classList.add('device-dragging-active');
+        if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
+        e.stopPropagation();
+        return;
+      }
+
+      // If in multiSelectMode or Shift key: toggle selection on faceplate
+      if (state.multiSelectMode || e.shiftKey) {
+        toggleMultiSelect(el.id);
+        e.stopPropagation();
+        return;
+      }
+
+      // If device is already part of a multi-selection block
+      const isAlreadyMultiSelected = state.multiSelectedDevices?.has(el.id) && state.multiSelectedDevices.size > 1;
+      if (!isAlreadyMultiSelected) {
+        selected = el.id;
+        state.multiSelectedDevices = new Set([el.id]);
+        sync();
+      }
+      const found = selection();
+      if (!found) return;
+
+      if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+        pendingTouch = {el, x: e.clientX, y: e.clientY, top: found.device.topU, rackId: found.rack.id, step: slot.getBoundingClientRect().height};
+        longPressTimer = setTimeout(() => {
+          if (!pendingTouch) return;
+          try { navigator.vibrate?.(45); } catch (_) {}
+          pendingTouch.el.classList.add('studio-lifted');
+          drag = {el: pendingTouch.el, y: pendingTouch.y, x: pendingTouch.x, delta: 0, top: pendingTouch.top, rackId: pendingTouch.rackId, step: pendingTouch.step, active: true, isLifted: true};
+          pendingTouch = null;
+          api.isDraggingDevice = true;
+          api.dom?.rackStage?.classList.add('device-dragging-active');
+          if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
+        }, 320);
+      } else {
+        drag = {el, y: e.clientY, x: e.clientX, delta: 0, top: found.device.topU, rackId: found.rack.id, step: slot.getBoundingClientRect().height, active: false};
+        if (isAlreadyMultiSelected) {
+          api.isDraggingDevice = true;
+          api.dom?.rackStage?.classList.add('device-dragging-active');
+          if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
+          e.stopPropagation();
+        }
+      }
     }, true);
     document.addEventListener('pointermove', e => {
+      if (pendingTouch) {
+        const dist = Math.hypot(e.clientX - pendingTouch.x, e.clientY - pendingTouch.y);
+        if (dist > 8) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+          pendingTouch = null;
+        }
+      }
       if (!drag) return;
       drag.delta = e.clientY - drag.y;
-      if (Math.abs(drag.delta) > 5) drag.active = true;
+      if (Math.abs(drag.delta) > 4) {
+        drag.active = true;
+        api.isDraggingDevice = true;
+        api.dom?.rackStage?.classList.add('device-dragging-active');
+        if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
+      }
       if (!drag.active) return;
       e.preventDefault();
-      if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (drag) { drag.el.classList.add('studio-dragging'); drag.el.style.transform = `translateY(${Math.round(drag.delta / drag.step) * 32}px)`; } });
+      e.stopPropagation();
+      if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (drag) {
+          drag.el.classList.add('studio-dragging');
+          const stepOffset = Math.round(drag.delta / drag.step) * 32;
+          drag.el.style.transform = `translateY(${stepOffset}px)`;
+          if (state.multiSelectedDevices?.has(drag.el.id) && state.multiSelectedDevices.size > 1) {
+            state.multiSelectedDevices.forEach(id => {
+              if (id !== drag.el.id) {
+                const other = document.getElementById(id);
+                if (other) {
+                  other.classList.add('studio-dragging');
+                  other.style.transform = `translateY(${stepOffset}px)`;
+                }
+              }
+            });
+          }
+        }
+      });
     }, {passive: false});
     function endDrag(e) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+      pendingTouch = null;
+      api.isDraggingDevice = false;
+      api.dom?.rackStage?.classList.remove('device-dragging-active');
       if (!drag) return;
       const finished = drag; drag = null; cancelAnimationFrame(frame); frame = 0;
-      finished.el.style.transform = ''; finished.el.classList.remove('studio-dragging');
+      finished.el.style.transform = '';
+      finished.el.classList.remove('studio-dragging', 'studio-lifted');
+      if (state.multiSelectedDevices?.size > 1) {
+        state.multiSelectedDevices.forEach(id => {
+          const other = document.getElementById(id);
+          if (other) {
+            other.style.transform = '';
+            other.classList.remove('studio-dragging', 'studio-lifted');
+          }
+        });
+      }
       if (finished.active && e.type !== 'pointercancel') {
-        try { move(finished.top - Math.round(finished.delta / finished.step), finished.rackId); }
-        catch (error) { status(error.message, true); }
+        const deltaU = -Math.round(finished.delta / finished.step);
+        if (deltaU !== 0) {
+          try {
+            if (state.multiSelectedDevices?.has(finished.el.id) && state.multiSelectedDevices.size > 1) {
+              moveMultiSelectedBlock(deltaU, finished.rackId);
+            } else {
+              move(finished.top + deltaU, finished.rackId);
+            }
+          }
+          catch (error) { status(error.message, true); }
+        }
       }
     }
     document.addEventListener('pointerup', endDrag);
@@ -223,6 +675,18 @@
     }, true);
     document.addEventListener('change', e => { if (!e.target.closest('.studio-editor')) scheduleRecord(); }, true);
     document.addEventListener('drop', scheduleRecord, true);
+
+    api.insertUSpace = insertUSpace;
+    api.collapseUSpace = collapseUSpace;
+    api.smartRippleMove = smartRippleMove;
+    api.moveMultiSelectedBlock = moveMultiSelectedBlock;
+    api.deleteMultiSelectedBlock = deleteMultiSelectedBlock;
+    api.setMultiSelectMode = (enabled) => {
+      state.multiSelectMode = !!enabled;
+      renderMultiSelectPill();
+    };
+    api.clearMultiSelect = clearMultiSelect;
+    api.toggleMultiSelect = toggleMultiSelect;
     const handleImmediateChange = (e) => {
       if (e?.detail?.immediate) { record(); save(); }
       else scheduleRecord();

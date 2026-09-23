@@ -69,6 +69,7 @@
   }
 
   function showCableQuickHud(cableId, clientX, clientY) {
+    if (STATE.multiSelectMode || (STATE.multiSelectedDevices && STATE.multiSelectedDevices.size > 0) || RS.isDraggingDevice) return;
     hideCableQuickHud();
     hideCableContextMenu();
     lastHudOpenTime = Date.now();
@@ -143,6 +144,7 @@
   }
 
   function showCableContextMenu(cableId, clientX, clientY) {
+    if (STATE.multiSelectMode || (STATE.multiSelectedDevices && STATE.multiSelectedDevices.size > 0) || RS.isDraggingDevice) return;
     hideCableContextMenu();
     hideCableQuickHud();
     lastHudOpenTime = Date.now();

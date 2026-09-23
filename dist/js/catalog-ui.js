@@ -4,13 +4,19 @@
     const api = window.RackStudio;
     const sidebar = document.querySelector('.sidebar-left');
     if (!api || !sidebar) return;
+    const escapeHtml = api.escapeHtml || (value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]));
     const make = (tag, text, className) => {
       const node = document.createElement(tag);
       if (text !== undefined) node.textContent = text;
       if (className) node.className = className;
       return node;
     };
-    const normalize = value => String(value || '').toLocaleLowerCase('tr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9]/g, '');
+    // Stencil hover preview and procedural SVG generators extracted to js/catalog-stencil-resolver.js
+    const hideStencilHoverPreview = () => window.CatalogStencil?.hideStencilHoverPreview?.();
+    const showStencilHoverPreview = (...args) => window.CatalogStencil?.showStencilHoverPreview?.(...args);
+    const toggleStencilHover = (...args) => window.CatalogStencil?.toggleStencilHover?.(...args);
+    const createGeneratedStencil = (...args) => window.CatalogStencil?.createGeneratedStencil?.(...args);
+    const normalize = (value) => window.CatalogStencil?.normalize ? window.CatalogStencil.normalize(value) : String(value || "").toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
     let favorites = new Set();
     try { const saved = JSON.parse(localStorage.getItem('rackstudio.favorites') || '[]'); if (Array.isArray(saved)) favorites = new Set(saved.filter(v => typeof v === 'string')); } catch (_) { /* Optional preference storage. */ }
     const toolbar = make('section', undefined, 'panel-section catalog-tools');
@@ -176,267 +182,13 @@
     }
 
     // --- Cisco Master Switch Catalog Modal Logic ---
-    const ciscoModal = document.getElementById('modal-cisco-catalog');
-    const railCiscoBtn = document.getElementById('rail-btn-cisco-catalog');
-    const btnOpenCisco = document.getElementById('btn-open-cisco-catalog');
-    const btnCloseCisco = document.getElementById('btn-close-cisco-catalog');
-    const btnCloseCiscoFooter = document.getElementById('btn-close-cisco-catalog-footer');
-    const ciscoSearch = document.getElementById('cisco-catalog-search');
-    const ciscoClearBtn = document.getElementById('cisco-search-clear');
-    const ciscoCardsGrid = document.getElementById('cisco-cards-grid');
-    const ciscoEmptyState = document.getElementById('cisco-empty-state');
-    const btnResetFilters = document.getElementById('btn-cisco-reset-filters');
-    const ciscoTotalBadge = document.getElementById('cisco-modal-total-badge');
-    const pillCountAll = document.getElementById('pill-count-all');
-    const ciscoPills = document.querySelectorAll('#cisco-filter-pills .cisco-pill');
-
-    let activeCiscoFilter = 'all';
-
-    function openCiscoModal() {
-      if (!ciscoModal) return;
-      ciscoModal.style.display = 'flex';
-      if (ciscoSearch) {
-        ciscoSearch.value = '';
-        if (ciscoClearBtn) ciscoClearBtn.style.display = 'none';
-      }
-      activeCiscoFilter = 'all';
-      ciscoPills.forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
-      renderCiscoCards();
-      setTimeout(() => ciscoSearch?.focus(), 50);
-    }
-
-    function closeCiscoModal() {
-      if (!ciscoModal) return;
-      ciscoModal.style.display = 'none';
-    }
-
-    if (railCiscoBtn) {
-      railCiscoBtn.addEventListener('click', () => {
-        openCiscoModal();
-      });
-    }
-    if (btnOpenCisco) {
-      btnOpenCisco.addEventListener('click', () => {
-        openCiscoModal();
-      });
-    }
-    if (btnCloseCisco) btnCloseCisco.addEventListener('click', closeCiscoModal);
-    if (btnCloseCiscoFooter) btnCloseCiscoFooter.addEventListener('click', closeCiscoModal);
-    if (ciscoModal) {
-      ciscoModal.addEventListener('click', (e) => {
-        if (e.target === ciscoModal) closeCiscoModal();
-      });
-    }
-
-    if (ciscoSearch) {
-      ciscoSearch.addEventListener('input', () => {
-        if (ciscoClearBtn) ciscoClearBtn.style.display = ciscoSearch.value ? 'block' : 'none';
-        renderCiscoCards();
-      });
-    }
-    if (ciscoClearBtn) {
-      ciscoClearBtn.addEventListener('click', () => {
-        ciscoSearch.value = '';
-        ciscoClearBtn.style.display = 'none';
-        ciscoSearch.focus();
-        renderCiscoCards();
-      });
-    }
-
-    ciscoPills.forEach(pill => {
-      pill.addEventListener('click', () => {
-        activeCiscoFilter = pill.dataset.filter || 'all';
-        ciscoPills.forEach(p => p.classList.toggle('active', p === pill));
-        renderCiscoCards();
-      });
-    });
-
-    if (btnResetFilters) {
-      btnResetFilters.addEventListener('click', () => {
-        if (ciscoSearch) ciscoSearch.value = '';
-        if (ciscoClearBtn) ciscoClearBtn.style.display = 'none';
-        activeCiscoFilter = 'all';
-        ciscoPills.forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
-        renderCiscoCards();
-      });
-    }
-
-    function addModelToLibrary(model) {
-      api.STATE.customCatalog = api.STATE.customCatalog || {};
-      const clone = {
-        name: model.name,
-        u: model.u || 1,
-        category: model.category || 'switch',
-        logo: 'CISCO',
-        series: model.series || 'cat9k',
-        modelTag: model.modelTag,
-        desc: model.desc,
-        ports: JSON.parse(JSON.stringify(model.ports))
-      };
-      api.STATE.customCatalog[model.id] = clone;
-      api.catalog[model.id] = clone;
-      api.STATE.selectedLibraryItem = model.id;
-      api.refresh();
-      restore();
-
-      const toast = document.getElementById('studio-toast');
-      if (toast) {
-        toast.textContent = `✓ ${model.name} kütüphanenize eklendi!`;
-        toast.className = 'show';
-        setTimeout(() => { toast.className = ''; }, 3000);
-      }
-    }
-
-    function mountModelToActiveRack(model) {
-      if (!api.catalog[model.id]) {
-        addModelToLibrary(model);
-      }
-      const activeRack = (typeof api.getActiveRack === 'function') ? api.getActiveRack() : api.STATE.racks?.[0];
-      if (!activeRack) return;
-      const heightU = activeRack.heightU || 42;
-      const uHeight = model.u || 1;
-      let placedU = null;
-      for (let topU = heightU; topU >= uHeight; topU--) {
-        let free = true;
-        for (let u = topU - uHeight + 1; u <= topU; u++) {
-          if (activeRack.units[u]) { free = false; break; }
-        }
-        if (free) {
-          placedU = topU;
-          break;
-        }
-      }
-
-      if (placedU === null) {
-        alert(`Kabinde (${activeRack.name}) ${uHeight}U yüksekliğinde boş yer bulunamadı.`);
-        return;
-      }
-
-      if (typeof api.mountDeviceAt === 'function') {
-        api.mountDeviceAt(model.id, placedU, activeRack.id);
-      }
-      closeCiscoModal();
-      api.refresh();
-
-      const toast = document.getElementById('studio-toast');
-      if (toast) {
-        toast.textContent = `✓ ${model.name} U${placedU} seviyesine monte edildi!`;
-        toast.className = 'show';
-        setTimeout(() => { toast.className = ''; }, 3000);
-      }
-    }
-
-    function renderCiscoCards() {
-      if (!ciscoCardsGrid) return;
-      const master = window.CISCO_MASTER_CATALOG || [];
-      if (ciscoTotalBadge) ciscoTotalBadge.textContent = `${master.length} Model`;
-      if (pillCountAll) pillCountAll.textContent = String(master.length);
-
-      const query = normalize(ciscoSearch?.value || '');
-
-      const filtered = master.filter(model => {
-        if (activeCiscoFilter === 'current' && model.generation !== 'current') return false;
-        if (activeCiscoFilter === 'legacy' && model.generation !== 'legacy') return false;
-        if (activeCiscoFilter === '24p') {
-          const is24 = (model.ports.filter(p => p.type === 'rj45' || !p.type.includes('sfp')).length === 24) || model.modelTag.includes('-24') || model.name.includes('-24');
-          if (!is24) return false;
-        }
-        if (activeCiscoFilter === '48p') {
-          const is48 = (model.ports.filter(p => p.type === 'rj45' || !p.type.includes('sfp')).length === 48) || model.modelTag.includes('-48') || model.name.includes('-48');
-          if (!is48) return false;
-        }
-        if (activeCiscoFilter === 'poe' && !/poe|upoe/i.test(model.poeBudget || '')) return false;
-        if (activeCiscoFilter === 'fiber') {
-          const isFiber = model.category === 'fiber-switch' || /fiber|sfp28|core/i.test(model.desc || '') || model.ports.every(p => p.type.includes('sfp') || p.type.includes('qsfp'));
-          if (!isFiber) return false;
-        }
-        if (activeCiscoFilter === 'compact' && model.category !== 'compact' && model.series !== 'compact' && model.ports.length > 16) return false;
-
-        if (query) {
-          const hay = normalize([model.name, model.modelTag, model.desc, model.poeBudget, model.uplinkSummary, model.series].join(' '));
-          if (!hay.includes(query)) return false;
-        }
-        return true;
-      });
-
-      if (ciscoEmptyState) ciscoEmptyState.style.display = filtered.length === 0 ? 'flex' : 'none';
-      ciscoCardsGrid.style.display = filtered.length === 0 ? 'none' : 'grid';
-      ciscoCardsGrid.replaceChildren();
-
-      filtered.forEach(model => {
-        const isAdded = Object.hasOwn(api.STATE.customCatalog || {}, model.id) || Object.hasOwn(api.catalog, model.id);
-        const card = make('div', undefined, 'cisco-card');
-
-        // Top: Title & Badges
-        const top = make('div', undefined, 'cisco-card-top');
-        const titleGroup = make('div', undefined, 'cisco-card-title-group');
-        const nameEl = make('h4', model.name, 'cisco-card-name');
-        nameEl.title = model.name;
-        const tagEl = make('div', model.modelTag, 'cisco-card-tag');
-        titleGroup.append(nameEl, tagEl);
-
-        const badges = make('div', undefined, 'cisco-card-badges');
-        const genBadge = make('span', model.generation === 'current' ? 'GÜNCEL' : 'LEGACY', `badge-gen ${model.generation}`);
-        const uBadge = make('span', `${model.u || 1}U`, 'badge-u');
-        badges.append(genBadge, uBadge);
-        top.append(titleGroup, badges);
-
-        // Mini Bezel Visual
-        const bezel = make('div', undefined, 'cisco-card-bezel');
-        const earL = make('div', undefined, 'mini-bezel-ear');
-        const textEl = make('span', model.modelTag, 'mini-cisco-text');
-        const portsPreview = make('div', undefined, 'mini-bezel-ports-preview');
-        const dotCount = Math.min(8, Math.ceil(model.ports.length / 4));
-        for (let k = 0; k < dotCount; k++) {
-          const dot = make('span', undefined, 'dot-port');
-          portsPreview.append(dot);
-        }
-        const earR = make('div', undefined, 'mini-bezel-ear');
-        bezel.append(earL, textEl, portsPreview, earR);
-
-        // Specs Chips
-        const specs = make('div', undefined, 'cisco-card-specs');
-        const portCountBadge = make('span', `${model.ports.length} Port`, 'spec-chip');
-        specs.append(portCountBadge);
-        if (model.poeBudget) {
-          const poeChip = make('span', model.poeBudget, 'spec-chip poe');
-          specs.append(poeChip);
-        }
-        if (model.uplinkSummary) {
-          const upChip = make('span', model.uplinkSummary, 'spec-chip uplink');
-          specs.append(upChip);
-        }
-
-        // Desc
-        const descEl = make('p', model.desc, 'cisco-card-desc');
-        descEl.title = model.desc;
-
-        // Actions
-        const actions = make('div', undefined, 'cisco-card-actions');
-        const addBtn = make('button', isAdded ? '✓ Kütüphanede' : '➕ Kütüphaneye Ekle', `btn-card-add-lib ${isAdded ? 'added' : ''}`);
-        addBtn.type = 'button';
-        if (!isAdded) {
-          addBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            addModelToLibrary(model);
-            addBtn.textContent = '✓ Kütüphanede';
-            addBtn.classList.add('added');
-          });
-        }
-
-        const mountBtn = make('button', '🚀 Kabine Ekle', 'btn-card-mount-rack');
-        mountBtn.type = 'button';
-        mountBtn.title = 'Aktif kabindeki ilk boş U pozisyonuna monte et';
-        mountBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          mountModelToActiveRack(model);
-        });
-
-        actions.append(addBtn, mountBtn);
-        card.append(top, bezel, specs, descEl, actions);
-        ciscoCardsGrid.append(card);
-      });
-    }
+    // Extracted to js/catalog-cisco-modal.js
+    const ciscoModalController = window.CiscoCatalogModal?.init(api, () => restore());
+    const openCiscoModal = () => ciscoModalController?.openCiscoModal();
+    const closeCiscoModal = () => ciscoModalController?.closeCiscoModal();
+    const renderCiscoCards = () => ciscoModalController?.renderCiscoCards();
+    const addModelToLibrary = (model) => ciscoModalController?.addModelToLibrary(model);
+    const mountModelToActiveRack = (model) => ciscoModalController?.mountModelToActiveRack(model);
 
     const status = document.getElementById('status-selection-text');
     const detailPanel = make('section', undefined, 'catalog-selection-detail');
@@ -458,15 +210,9 @@
       close.addEventListener('click', () => selectCustom(key));
       const visual = make('div', undefined, 'catalog-detail-visual');
       const stencilUrl = resolveStencil(item, key);
-      if (stencilUrl) {
-        const img = document.createElement('img');
-        img.src = stencilUrl;
-        img.alt = item.modelTag || item.name;
-        img.loading = 'eager';
-        img.decoding = 'async';
-        img.onerror = () => visual.classList.add('catalog-detail-visual-fallback');
-        visual.append(img);
-      }
+      const generated = createGeneratedStencil(item, item.modelTag || key);
+      generated.alt = `${item.modelTag || item.name} · ${generated.dataset.previewKind} önizlemesi`;
+      visual.append(generated);
       const copy = make('div', undefined, 'catalog-detail-copy');
       copy.append(
         make('strong', item.modelTag || item.name, 'catalog-detail-model'),
@@ -476,7 +222,17 @@
       const mount = make('button', 'İlk boş U’ya ekle', 'catalog-detail-mount');
       mount.type = 'button';
       mount.addEventListener('click', () => mountCardDeviceToRack(key));
-      detailPanel.append(close, visual, copy, mount);
+      const actions = make('div', undefined, 'catalog-detail-actions');
+      actions.append(mount);
+      if (stencilUrl) {
+        const actualPreview = make('button', 'Gerçek stencil’i göster', 'catalog-detail-stencil');
+        actualPreview.type = 'button';
+        actualPreview.addEventListener('click', () => {
+          toggleStencilHover(generated, actualPreview, stencilUrl);
+        });
+        actions.append(actualPreview);
+      }
+      detailPanel.append(close, visual, copy, actions);
     }
 
     function selectCustom(key) {
@@ -488,103 +244,9 @@
         window.setLeftSidebarCollapsed(true);
       }
     }
-    const LEGACY_FRONT_STENCILS = [
-      '1u_CISCO_C9200_24_FRONT.svg','1U__CISCO_C9200-24T Front.svg','4u_C9404R Front.svg','C1111-8PLTEEA_Front.svg',
-      'C9120AXE_Front.svg','C9120AXI_Front.svg','C9120AXP_Front.svg','C9200-24P Front.svg','C9200-24P_Front.svg',
-      'C9200-24T_Front.svg','C9200-48P Front.svg','C9200-48P_Front.svg','C9200-48T Front.svg','C9200-48T_Front.svg',
-      'C9200CX-12P-2X2G Front.svg','C9200CX-12P-2X2G_Front.svg','C9200CX-12P-2XGH Front.svg','C9200CX-12P-2XGH_Front.svg',
-      'C9200CX-12T-2X2G Front.svg','C9200CX-12T-2X2G_Front.svg','C9200CX-8P-2X2G Front.svg','C9200CX-8P-2X2G_Front.svg',
-      'C9200CX-8P-2XGH Front.svg','C9200CX-8P-2XGH_Front.svg','C9200CX-8UXG-2X Front.svg','C9200CX-8UXG-2XH Front.svg',
-      'C9200CX-8UXG-2XH_Front.svg','C9200CX-8UXG-2X_Front.svg','C9200L-24P-4G Front.svg','C9200L-24P-4G_Front.svg',
-      'C9200L-24P-4X_Front.svg','C9200L-24T-4G_Front.svg','C9200L-24T-4X_Front.svg','C9200L-48P-4G Front.svg',
-      'C9200L-48P-4G_Front.svg','C9200L-48P-4X_Front.svg','C9200L-48T-4G_Front.svg','C9200L-48T-4X_Front.svg',
-      'C9300-24P Front.svg','C9300-24P_Front.svg','C9300-24S Front.svg','C9300-24S_Front.svg','C9300-24U Front.svg',
-      'C9300-24U_Front.svg','C9300-48P Front.svg','C9300-48P_Front.svg','C9300-48S Front.svg','C9300-48S_Front.svg',
-      'C9300-48U Front.svg','C9300-48U_Front.svg','C9300L-24P-4G Front.svg','C9300L-24P-4G_Front.svg',
-      'C9300L-24P-4X_Front.svg','C9300L-24T-4G_Front.svg','C9300L-24T-4X_Front.svg','C9300L-48P-4G Front.svg',
-      'C9300L-48P-4G_Front.svg','C9300L-48P-4X_Front.svg','C9300L-48T-4G_Front.svg','C9300L-48T-4X_Front.svg',
-      'C9300LM-24U-4Y Front.svg','C9300LM-24U-4Y_Front.svg','C9300LM-48T-4Y Front.svg','C9300LM-48T-4Y_Front.svg',
-      'C9300LM-48U-4Y_Front.svg','C9300LM-48UX-4Y_Front.svg','C9300X-12Y Front.svg','C9300X-12Y_Front.svg',
-      'C9300X-24HX Front.svg','C9300X-24HX_Front.svg','C9300X-24Y Front.svg','C9300X-24Y_Front.svg',
-      'C9300X-48HX Front.svg','C9300X-48HXN Front.svg','C9300X-48HXN_Front.svg','C9300X-48HX_Front.svg',
-      'C9300X-48TX Front.svg','C9300X-48TX_Front.svg','C9404R_Front.svg','C9407R_Front.svg','C9410R_Front.svg',
-      'C9500-16X Front.svg','C9500-16X_Front.svg','C9500-24Y4C Front.svg','C9500-24Y4C_Front.svg','C9500-32C Front.svg',
-      'C9500-32C_Front.svg','C9500-32QC_Front.svg','C9500-40X.svg','C9500-48Y4C_Front.svg','C9500X-28C8D_Front.svg',
-      'C9500X-60L4D_Front.svg','C9606-FAN_Front.svg','C9606R_Front.svg','C9610R_Front.svg','C9800-40-K9 Front.svg',
-      'C9800-40-K9_Front.svg','C9800-80-K9 Front.svg','C9800-80-K9_Front.svg','C9800-L-C-K9 Front.svg',
-      'C9800-L-C-K9_Front.svg','C9800-L-F-K9 Front.svg','C9800-L-F-K9_Front.svg','Cisco_ISR_C1111-4P_Front.svg',
-      'Cisco_ISR_C1111-8P_Front.svg','Cisco_R42610_Front.svg','Cisco_R42610_Front_2.svg','ISR1100-4GLTE_Front.svg',
-      'ISR1100-4G_Front.svg','ISR1100-6G_Front.svg','N3K-C3016Q-40GE_Front.svg','N3K-C3048TP_Front.svg',
-      'N3K-C3064PQ_Front.svg','N3K-C3064TQ-10GT_Front.svg','N3K-C3132Q-40GE_Front.svg','N3K-C3164Q-40GE_Front.svg',
-      'N3K-C3172PQ-10GE_Front.svg','N3K-C3172TQ-10GT_Front.svg','N3K-C3548P-10G_Front.svg','N5K-C5010P-BF_Front.svg',
-      'N5K-C5548P-FA_Front.svg','N5K-C5548UP-FA_Front.svg','N5K-C5596UP-FA_Front.svg','N5K-C5672UP-16G_Front.svg',
-      'WS-C2960S-24PD-L_Front.svg','WS-C2960S-24PS-L_Front.svg','WS-C2960S-24TD-L_Front.svg','WS-C2960S-24TS-L_Front.svg',
-      'WS-C2960S-24TS-S_Front.svg','WS-C2960S-48FPD-L_Front.svg','WS-C2960S-48FPS-L_Front.svg','WS-C2960S-48LPD-L_Front.svg',
-      'WS-C2960S-48LPS-L_Front.svg','WS-C2960S-48TD-L_Front.svg','WS-C2960S-48TS-L_Front.svg','WS-C2960S-48TS-S_Front.svg',
-      'WS-C4948E-F_Front.svg','WS-C4948E_Front.svg','WS-C4948_Front.svg'
-    ];
-    const FRONT_STENCILS = Array.isArray(window.RACK_STENCIL_MANIFEST) && window.RACK_STENCIL_MANIFEST.length
-      ? window.RACK_STENCIL_MANIFEST
-      : LEGACY_FRONT_STENCILS;
-    const STENCIL_BY_NORMALIZED_NAME = new Map(FRONT_STENCILS.map(file => [normalize(file), file]));
-    const stencilCoverage = { matched: [], missing: [] };
-    window.RACK_STENCIL_COVERAGE = stencilCoverage;
-
-    function recordStencilCoverage(deviceId, stencilUrl) {
-      const target = stencilUrl ? stencilCoverage.matched : stencilCoverage.missing;
-      const other = stencilUrl ? stencilCoverage.missing : stencilCoverage.matched;
-      const otherIndex = other.findIndex(entry => entry.deviceId === deviceId);
-      if (otherIndex >= 0) other.splice(otherIndex, 1);
-      if (!target.some(entry => entry.deviceId === deviceId)) target.push({ deviceId, stencilUrl: stencilUrl || null });
-    }
-
-    function resolveStencil(item, deviceId) {
-      if (!item) return null;
-      const tag = (item.modelTag || '').replace(/[\(\)]/g, '').trim();
-      const id = (deviceId || '').trim();
-
-      // 1. Direct candidate matching
-      const exactCandidates = [
-        tag + '_Front.svg', tag + ' Front.svg', tag + '.svg',
-        'WS-' + tag + '_Front.svg', tag.replace(/^WS-/, '') + '_Front.svg',
-        id + '_Front.svg', id.replace(/^cisco-m-/, '').toUpperCase() + '_Front.svg'
-      ];
-      for (const c of exactCandidates) {
-        const f = STENCIL_BY_NORMALIZED_NAME.get(normalize(c));
-        if (f) return 'assets/stencils/' + f;
-      }
-
-      // 2. Clean base tag without trailing suffixes (-S, -I, -L, etc.)
-      const cleanTag = tag.split(' ')[0].replace(/-(S|I|L|FX|10GE|K9)$/i, '');
-      const baseCandidates = [
-        cleanTag + '_Front.svg', cleanTag + ' Front.svg', cleanTag + '.svg',
-        cleanTag.replace(/^WS-/, '') + '_Front.svg',
-        'WS-' + cleanTag + '_Front.svg'
-      ];
-      for (const c of baseCandidates) {
-        const f = STENCIL_BY_NORMALIZED_NAME.get(normalize(c));
-        if (f) return 'assets/stencils/' + f;
-      }
-
-      // 3. Catalyst 2960 family alias to authentic 2960S stencils
-      if (/2960/i.test(tag) || /2960/i.test(id)) {
-        const is48 = /48/i.test(tag) || /48/i.test(id);
-        const isPoe = /p|poe/i.test(tag) || /p|poe/i.test(id);
-        if (is48 && isPoe) return 'assets/stencils/WS-C2960S-48FPS-L_Front.svg';
-        if (is48) return 'assets/stencils/WS-C2960S-48TS-L_Front.svg';
-        if (isPoe) return 'assets/stencils/WS-C2960S-24PS-L_Front.svg';
-        return 'assets/stencils/WS-C2960S-24TS-L_Front.svg';
-      }
-
-      // 4. Substring normalized matching
-      const norm = cleanTag.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-      if (norm.length >= 5) {
-        const f = FRONT_STENCILS.find(s => normalize(s).includes(norm));
-        if (f) return 'assets/stencils/' + f;
-      }
-
-      return null;
-    }
+    // Stencil resolution and coverage tracking extracted to js/catalog-stencil-resolver.js
+    const resolveStencil = (item, deviceId) => window.CatalogStencil?.resolveStencil ? window.CatalogStencil.resolveStencil(item, deviceId) : null;
+    const recordStencilCoverage = (deviceId, stencilUrl) => window.CatalogStencil?.recordStencilCoverage && window.CatalogStencil.recordStencilCoverage(deviceId, stencilUrl);
 
     function getDeviceSpecChips(item) {
       const chips = [];
@@ -605,23 +267,25 @@
         const poeWattMatch = ((item.desc || '') + ' ' + (item.name || '')).match(/(\d+W)\b/i);
         const poeWatt = poeWattMatch ? ' (' + poeWattMatch[1] + ')' : '';
 
-        if (rj45Ports.length > 0) {
+        if (item.category === 'patch') {
+          const category = /cat6a/i.test(`${item.name || ''} ${item.desc || ''}`) ? 'Cat6A' : 'Cat6';
+          chips.push(`${rj45Ports.length || item.ports.length}× RJ45 ${category}`);
+        } else if (item.category === 'fiber') {
+          const connector = item.ports.some(p => p.type === 'sc') ? 'SC' : (item.ports.some(p => p.type === 'lc') ? 'LC' : 'Fiber');
+          chips.push(`${item.ports.length}× ${connector} fiber`);
+        } else if (rj45Ports.length > 0) {
           const is10G = rj45Ports.some(p => /10g|mgig/i.test(p.speed || ''));
           const speedStr = is10G ? 'mGig' : '1G';
           const poeStr = hasPoe ? ' PoE+' + poeWatt : '';
           chips.push(rj45Ports.length + 'x ' + speedStr + poeStr);
-        } else if (item.category === 'patch') {
-          chips.push(item.ports.length + 'x RJ45 Cat6');
         }
 
-        if (sfpPorts.length > 0) {
+        if (item.category !== 'fiber' && item.category !== 'patch' && sfpPorts.length > 0) {
           const is100G = sfpPorts.some(p => /100g|qsfp28/i.test(p.speed || ''));
           const is25G = sfpPorts.some(p => /25g|sfp28/i.test(p.speed || ''));
           const is10G = sfpPorts.some(p => /10g|sfp\+/i.test(p.speed || ''));
           const speed = is100G ? '100G QSFP28' : (is25G ? '25G SFP28' : (is10G ? '10G SFP+' : '1G SFP'));
           chips.push(sfpPorts.length + 'x ' + speed);
-        } else if (item.category === 'fiber') {
-          chips.push(item.ports.length + 'x Fiber LC');
         }
       }
 
@@ -770,24 +434,16 @@
         fallbackBezel.innerHTML = `<div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div><div class="mini-bezel-face"><span class="mini-cisco-text">${escapeHtml(bezelTag)}</span><span class="mini-led-dot mini-led-cyan"></span></div><div class="mini-bezel-ear"><div class="mini-screw-hole"></div></div>`;
       }
 
-      if (stencilUrl) {
-        const img = document.createElement('img');
-        img.className = 'hw-stencil-preview';
-        img.src = stencilUrl;
-        img.alt = sku;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.setAttribute('draggable', 'false');
-        img.onerror = () => {
-          img.style.display = 'none';
-          fallbackBezel.style.display = 'flex';
-        };
-        fallbackBezel.style.display = 'none';
-        visualContainer.append(img, fallbackBezel);
-      } else {
-        fallbackBezel.style.display = 'flex';
-        visualContainer.append(fallbackBezel);
-      }
+      const generated = createGeneratedStencil(item, sku);
+      generated.alt = `${sku} · ${generated.dataset.previewKind} önizlemesi`;
+      generated.setAttribute('draggable', 'false');
+      fallbackBezel.style.display = 'none';
+      visualContainer.append(generated, fallbackBezel);
+      visualContainer.tabIndex = 0;
+      visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(generated, visualContainer));
+      visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
+      visualContainer.addEventListener('focusin', () => showStencilHoverPreview(generated, visualContainer));
+      visualContainer.addEventListener('focusout', hideStencilHoverPreview);
 
       // 3. Spec Chips
       const specChipsWrap = make('div', undefined, 'hw-spec-chips');
@@ -845,13 +501,16 @@
       if (cat === 'compact' || id.includes('3560') || name.includes('3560-cx')) {
         return { key: 'compact', title: 'Kompakt & Duvar', badge: 'COMPACT', order: 6 };
       }
-      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf') || name.includes('patch')) {
-        return { key: 'patch', title: 'Patch & ODF Paneller', badge: 'PATCH & ODF', order: 7 };
+      if (cat === 'fiber' || id.includes('odf') || name.includes('odf')) {
+        return { key: 'fiber-odf', title: 'Fiber Sonlandırma & ODF', badge: 'FIBER / ODF', order: 7 };
+      }
+      if (cat === 'patch' || id.includes('patch') || name.includes('patch')) {
+        return { key: 'copper-patch', title: 'Bakır Patch Paneller', badge: 'COPPER PATCH', order: 8 };
       }
       if (cat === 'organizer' || cat === 'blank' || id.includes('organizer') || id.includes('blank') || name.includes('düzenleyici') || name.includes('kör panel')) {
-        return { key: 'management', title: 'Düzenleyici & Kör', badge: 'D-RING', order: 8 };
+        return { key: 'management', title: 'Düzenleyici & Kör', badge: 'D-RING', order: 9 };
       }
-      return { key: 'custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 9 };
+      return { key: 'custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 10 };
     }
 
     function getDeviceCategoryGroup(deviceId, item) {
@@ -870,13 +529,16 @@
       if (cat === 'compact' || id.includes('3560')) {
         return { key: 'grp-compact', title: 'Kompakt & Duvar Tipi Switchler', badge: 'COMPACT', order: 4 };
       }
-      if (cat === 'patch' || cat === 'fiber' || id.includes('patch') || id.includes('odf')) {
-        return { key: 'grp-patch', title: 'Patch Paneller & Sonlandırma', badge: 'PATCH', order: 5 };
+      if (cat === 'fiber' || id.includes('odf')) {
+        return { key: 'grp-odf', title: 'Fiber Sonlandırma & ODF', badge: 'FIBER', order: 5 };
+      }
+      if (cat === 'patch' || id.includes('patch')) {
+        return { key: 'grp-patch', title: 'Bakır Patch Paneller', badge: 'PATCH', order: 6 };
       }
       if (cat === 'organizer' || cat === 'blank') {
-        return { key: 'grp-org', title: 'Kablo Düzenleme & Boş Paneller', badge: 'D-RING', order: 6 };
+        return { key: 'grp-org', title: 'Kablo Düzenleme & Boş Paneller', badge: 'D-RING', order: 7 };
       }
-      return { key: 'grp-custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 7 };
+      return { key: 'grp-custom', title: 'Özel Donanımlar', badge: 'CUSTOM', order: 8 };
     }
 
     const collapsedTreeGroups = new Set();

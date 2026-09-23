@@ -387,7 +387,11 @@
         RS.ZOOM_STATE.hasMoved = false;
         return;
       }
-      if (!e.target.closest('.port')) {
+      const isPixiPortHit = STATE.cableRenderMode === 'pixi' && (
+        (typeof RS.hitPixiDevicePortAt === 'function' && !!RS.hitPixiDevicePortAt(e.clientX, e.clientY)) ||
+        (RS.lastHandledPixiPortTime && Date.now() - RS.lastHandledPixiPortTime < 350)
+      );
+      if (!e.target.closest('.port') && !isPixiPortHit) {
         cancelPendingConnection();
       }
     });

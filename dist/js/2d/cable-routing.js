@@ -555,6 +555,81 @@
     return points.join(' ');
   }
 
+  const resolveCatalogItem = (key) => HARDWARE_CATALOG[key] || RS.resolveCatalogItem?.(key) || RS.catalog?.[key] || STATE.customCatalog?.[key] || null;
+
+  function findRoutingOrganizers(rack, devA, devB) {
+    if (!rack || !rack.devices || !devA || !devB) return [];
+    const minU = Math.min(devA.topU, devB.topU);
+    const maxU = Math.max(devA.topU, devB.topU);
+
+    return rack.devices.filter(d => {
+      const cat = resolveCatalogItem(d.catalogKey);
+      if (!cat || cat.category !== "organizer") return false;
+      const u = Number(d.topU);
+      return (u >= minU && u <= maxU) || Math.abs(u - devA.topU) <= 1 || Math.abs(u - devB.topU) <= 1;
+    }).sort((a, b) => {
+      return devA.topU > devB.topU ? (b.topU - a.topU) : (a.topU - b.topU);
+    });
+  }
+
+  function calculateCableLengthMeters(instA, instB, isInterRack) {
+    if (isInterRack) {
+      if (STATE.cableRoutingMode === "direct") {
+        return 3.0;
+      }
+      const baseTieRun = 14.0;
+      return parseFloat((baseTieRun * 1.10).toFixed(2));
+    }
+    const activeRack = getActiveRack();
+    if (!activeRack) return 1.5;
+    const devA = activeRack.devices.find(d => d.instanceId === instA);
+    const devB = activeRack.devices.find(d => d.instanceId === instB);
+    if (!devA || !devB) return 1.5;
+
+    const uDiff = Math.abs(devA.topU - devB.topU);
+    const catA = resolveCatalogItem(devA.catalogKey);
+    const catB = resolveCatalogItem(devB.catalogKey);
+    const isFiber = (catA && catA.category === "fiber") || (catB && catB.category === "fiber") ||
+                    (devA.portsConfig && Object.values(devA.portsConfig).some(c => c.role === "fiber")) ||
+                    (devB.portsConfig && Object.values(devB.portsConfig).some(c => c.role === "fiber"));
+
+    const isDirect = STATE.cableRoutingMode === "direct";
+    if (isDirect) {
+      const directVertical = uDiff * 0.0445;
+      const directHorizontal = 0.12;
+      const directBend = isFiber ? 0.12 : 0.08;
+      const rawDirect = directVertical + directHorizontal + directBend;
+      const withMargin = rawDirect * 1.05;
+      return Math.max(0.25, parseFloat(withMargin.toFixed(2)));
+    }
+
+    const routingOrganizers = findRoutingOrganizers(activeRack, devA, devB);
+    const hasOrganizer = routingOrganizers.length > 0;
+
+    const horizontalToDuct = 0.50;
+    const verticalDuct = uDiff * 0.0445;
+    let organizerAllowance = 0.0;
+    if (hasOrganizer) {
+      const hasBrush = routingOrganizers.some(d => {
+        const c = resolveCatalogItem(d.catalogKey);
+        return d.catalogKey === "organizer-1u" || (c?.modelTag && c.modelTag.includes("BRUSH")) || (c?.name && c.name.toLowerCase().includes("fırça"));
+      });
+      const hasFinger = routingOrganizers.some(d => {
+        const c = resolveCatalogItem(d.catalogKey);
+        return d.catalogKey === "organizer-2u" || (c?.modelTag && c.modelTag.includes("FINGER")) || (c?.name && c.name.toLowerCase().includes("parmak"));
+      });
+      if (hasBrush) organizerAllowance = 0.35;
+      else if (hasFinger) organizerAllowance = 0.25;
+      else organizerAllowance = 0.20;
+    }
+    const bendRadiusAllowance = isFiber ? 0.20 : 0.15;
+
+    const rawLength = horizontalToDuct + verticalDuct + organizerAllowance + bendRadiusAllowance;
+    const withServiceLoop = rawLength * 1.10;
+
+    return Math.max(0.5, parseFloat(withServiceLoop.toFixed(2)));
+  }
+
   RS.computeCableLength = computeCableLength;
   RS.getEndpointOrganizerChannelYs = getEndpointOrganizerChannelYs;
   RS.resolveCableDuctSide = resolveCableDuctSide;
@@ -565,4 +640,6 @@
   RS.renderOrganizerOverlays = renderOrganizerOverlays;
   RS.renderDRingOverlays = renderDRingOverlays;
   RS.buildStructuredCablePath = buildStructuredCablePath;
+  RS.findRoutingOrganizers = findRoutingOrganizers;
+  RS.calculateCableLengthMeters = calculateCableLengthMeters;
 })();

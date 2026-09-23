@@ -27,19 +27,23 @@
   function createRackUnitAndSlot(rack, u, clickHandler, isSingleOrActive) {
     const leftU = document.createElement('div');
     leftU.className = 'u-unit';
+    leftU.dataset.u = u;
+    leftU.dataset.rackId = rack.id;
     leftU.innerHTML = `
       <div class="rack-holes">
         <div class="hole"></div>
         <div class="hole"></div>
         <div class="hole"></div>
       </div>
-      <div class="u-label">${u}</div>
+      <div class="u-label interactive-u-label" data-u="${u}" data-rack-id="${rack.id}" title="U ${u} — Araya U Ekle / Boşluğu Kapat / Çoklu Seçim"><span class="u-num">${u}</span><span class="u-dot">▾</span></div>
     `;
 
     const rightU = document.createElement('div');
     rightU.className = 'u-unit';
+    rightU.dataset.u = u;
+    rightU.dataset.rackId = rack.id;
     rightU.innerHTML = `
-      <div class="u-label">${u}</div>
+      <div class="u-label interactive-u-label" data-u="${u}" data-rack-id="${rack.id}" title="U ${u} — Araya U Ekle / Boşluğu Kapat / Çoklu Seçim"><span class="u-num">${u}</span><span class="u-dot">▾</span></div>
       <div class="rack-holes">
         <div class="hole"></div>
         <div class="hole"></div>
@@ -59,107 +63,6 @@
   }
 
   // --- RACK MODULE ---
-
-  /**
-   * Injects two floating "+" buttons into the viewport canvas (parent of rack-stage)
-   * so they sit beside the rack without being affected by the zoom/pan transform.
-   * Buttons are absolutely positioned and use CSS transitions for a subtle hover reveal.
-   */
-  function _injectFloatingRackButtons(activeRack) {
-    const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
-    if (!canvas) return;
-
-    // Remove previously injected floating buttons
-    canvas.querySelectorAll('.rack-float-add-btn').forEach(b => b.remove());
-
-    function makeAddBtn(direction) {
-      const btn = document.createElement('button');
-      btn.className = 'rack-float-add-btn rack-float-add-' + direction;
-      btn.title = direction === 'left' ? 'Sola Yeni Kabin Ekle' : 'Sağa Yeni Kabin Ekle';
-      btn.textContent = '+';
-      btn.addEventListener('click', () => {
-        if (!RS.addNewRack) return;
-        const newRack = RS.addNewRack();
-        if (newRack && direction === 'left') {
-          const newIdx = STATE.racks.findIndex(r => r.id === newRack.id);
-          const activeIdx = STATE.racks.findIndex(r => r.id === activeRack.id);
-          if (newIdx !== -1 && activeIdx !== -1) {
-            STATE.racks.splice(newIdx, 1);
-            const insertAt = STATE.racks.findIndex(r => r.id === activeRack.id);
-            STATE.racks.splice(insertAt, 0, newRack);
-            if (RS.renderRackTabs) RS.renderRackTabs();
-          }
-        }
-        // Switch to multi mode so both racks are visible
-        if (RS.setViewMode) {
-          RS.setViewMode('multi');
-        } else {
-          STATE.viewMode = 'multi';
-          const modeToggle = document.getElementById('btn-view-mode-multi') || document.getElementById('btn-view-multi');
-          if (modeToggle) modeToggle.click();
-          else renderRackRailsAndSlots(STATE.onSlotClick);
-        }
-      });
-      return btn;
-    }
-
-    canvas.appendChild(makeAddBtn('left'));
-    canvas.appendChild(makeAddBtn('right'));
-  }
-
-  /**
-   * Binds pointer events on a rack's bottom resize handle to allow dragging to change U height (12U-60U).
-   */
-  function _bindRackResizeHandle(handleEl, rack) {
-    if (!handleEl || !rack) return;
-    let startY = 0;
-    let startU = 0;
-    let isDragging = false;
-
-    const onPointerMove = (e) => {
-      if (!isDragging) return;
-      const deltaY = e.clientY - startY;
-      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
-      // Moving down increases U height, moving up decreases U height
-      const deltaU = Math.round(deltaY / uHeightPx);
-      const targetU = Math.max(12, Math.min(60, startU + deltaU));
-
-      if (RS.showTemporaryTooltip) {
-        RS.showTemporaryTooltip(e.clientX, e.clientY - 30, `📐 Kabin Boyutu: ${targetU}U (Bırakıldığında uygulanır)`);
-      }
-    };
-
-    const onPointerUp = (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-      handleEl.classList.remove('active');
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
-
-      const deltaY = e.clientY - startY;
-      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
-      const deltaU = Math.round(deltaY / uHeightPx);
-      const targetU = Math.max(12, Math.min(60, startU + deltaU));
-
-      if (targetU !== startU && RS.resizeRackHeight) {
-        RS.resizeRackHeight(rack.id, targetU);
-      }
-    };
-
-    handleEl.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-      e.stopPropagation();
-      e.preventDefault();
-      isDragging = true;
-      startY = e.clientY;
-      startU = rack.heightU || 42;
-      handleEl.classList.add('active');
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-      window.addEventListener('pointercancel', onPointerUp);
-    });
-  }
 
   function getRackTelemetry(rack) {
     let totalWatts = 0;
@@ -538,7 +441,7 @@
       // Wire bottom resize handle for single rack
       const resizeHandle = document.getElementById('rack-resize-handle');
       if (resizeHandle) {
-        _bindRackResizeHandle(resizeHandle, activeRack);
+        RS._bindRackResizeHandle?.(resizeHandle, activeRack);
       }
 
       // Wire header actions for single rack
@@ -606,7 +509,7 @@
 
       // Inject floating + buttons into the viewport canvas (NOT the scaled rack-stage)
       // so they are unaffected by zoom/pan transforms and stay visually beside the rack.
-      _injectFloatingRackButtons(activeRack);
+      RS._injectFloatingRackButtons?.(activeRack);
 
       for (let u = heightU; u >= 1; u--) {
         const { leftU, rightU, slot } = createRackUnitAndSlot(activeRack, u, clickHandler, true);
@@ -809,7 +712,7 @@
         resizeHandle.title = 'Kabin Yüksekliğini Ayarlamak İçin Sürükleyin (Alt Kenar)';
         resizeHandle.innerHTML = '<span class="rack-resize-grip"></span>';
         cont.appendChild(resizeHandle);
-        _bindRackResizeHandle(resizeHandle, rack);
+        RS._bindRackResizeHandle?.(resizeHandle, rack);
 
         const rHeightU = rack.heightU || 42;
         for (let u = rHeightU; u >= 1; u--) {
@@ -829,8 +732,6 @@
   }
 
   RS.createRackUnitAndSlot = createRackUnitAndSlot;
-  RS._injectFloatingRackButtons = _injectFloatingRackButtons;
-  RS._bindRackResizeHandle = _bindRackResizeHandle;
   RS.getRackTelemetry = getRackTelemetry;
   RS.updateRackHeaderTelemetry = updateRackHeaderTelemetry;
   RS.refreshVisibleRackContent = refreshVisibleRackContent;
@@ -856,139 +757,7 @@
     };
   };
 
-  // Event delegation at #rack-stage for slots and mounted devices (NEW-2 & SEC-E1)
-  function ensureRackStageDelegation() {
-    const stage = dom.rackStage || document.getElementById('rack-stage');
-    if (!stage || stage.__RACK_STAGE_DELEGATED__) return;
-    stage.__RACK_STAGE_DELEGATED__ = true;
+  const ensureRackStageDelegation = () => RS.ensureRackStageDelegation?.();
 
-    function resolveDropSlot(e) {
-      const direct = e.target?.closest?.('.rack-slot[data-u], .rack-unit[data-u]');
-      if (direct) {
-        return {
-          element: direct,
-          u: Number(direct.dataset.u),
-          rackId: direct.dataset.rackId || direct.closest('.rack-container')?.dataset.rackId || getActiveRack()?.id
-        };
-      }
-
-      const stack = typeof document.elementsFromPoint === 'function'
-        ? document.elementsFromPoint(e.clientX, e.clientY)
-        : [];
-      const stackedSlot = stack.map(el => el.closest?.('.rack-slot[data-u], .rack-unit[data-u]')).find(Boolean);
-      if (stackedSlot) {
-        return {
-          element: stackedSlot,
-          u: Number(stackedSlot.dataset.u),
-          rackId: stackedSlot.dataset.rackId || stackedSlot.closest('.rack-container')?.dataset.rackId || getActiveRack()?.id
-        };
-      }
-
-      const container = e.target?.closest?.('.rack-container') ||
-        stack.map(el => el.closest?.('.rack-container')).find(Boolean);
-      if (!container) return null;
-      let nearest = null;
-      let nearestDistance = Infinity;
-      container.querySelectorAll('.rack-slot[data-u]').forEach(slot => {
-        const rect = slot.getBoundingClientRect();
-        const distance = Math.abs(e.clientY - (rect.top + rect.height / 2));
-        if (distance < nearestDistance) {
-          nearest = slot;
-          nearestDistance = distance;
-        }
-      });
-      return nearest ? {
-        element: nearest,
-        u: Number(nearest.dataset.u),
-        rackId: nearest.dataset.rackId || container.dataset.rackId || getActiveRack()?.id
-      } : null;
-    }
-
-    // Single click on rack slot
-    stage.addEventListener('click', (e) => {
-      const slot = e.target.closest('.rack-slot');
-      if (slot && !e.target.closest('.mounted-device')) {
-        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
-        if (STATE.selectedLibraryItem) {
-          const u = Number(slot.dataset.u);
-          const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
-          const touchPlacement = window.matchMedia?.('(hover: none), (pointer: coarse)')?.matches || window.innerWidth <= 1024;
-          if (touchPlacement && typeof window.mountDeviceFromAction === 'function') {
-            e.preventDefault();
-            e.stopPropagation();
-            window.mountDeviceFromAction(STATE.selectedLibraryItem, u, e, rackId);
-            return;
-          }
-          const rack = (RS.getRackById ? RS.getRackById(rackId) : null) || STATE.racks?.find(r => r.id === rackId) || getActiveRack();
-          const item = (RS.resolveCatalogItem ? RS.resolveCatalogItem(STATE.selectedLibraryItem) : null) || HARDWARE_CATALOG[STATE.selectedLibraryItem] || (RS.catalog && RS.catalog[STATE.selectedLibraryItem]) || (STATE.customCatalog && STATE.customCatalog[STATE.selectedLibraryItem]);
-          const name = item ? item.name : 'Donanım';
-          showTemporaryTooltip(e.clientX, e.clientY, `[${name}] eklemek için [${rack ? rack.name : 'Kabin'}] U${u} yuvasına ÇİFT TIKLAYIN veya sürükleyip bırakın.`);
-        }
-      }
-    });
-
-    // Double click on rack slot
-    stage.addEventListener('dblclick', (e) => {
-      const slot = e.target.closest('.rack-slot');
-      if (slot && !e.target.closest('.mounted-device')) {
-        e.stopPropagation();
-        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
-        const u = Number(slot.dataset.u);
-        const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
-        if (typeof window.handleSlotDoubleClick === 'function') {
-          window.handleSlotDoubleClick(u, e, rackId);
-        } else if (typeof window.mountDeviceFromAction === 'function' && STATE.selectedLibraryItem) {
-          window.mountDeviceFromAction(STATE.selectedLibraryItem, u, e, rackId);
-        }
-      }
-    });
-
-    // Dragover on rack stage / slots
-    stage.addEventListener('dragover', (e) => {
-      const target = resolveDropSlot(e);
-      if (target && Number.isInteger(target.u)) {
-        e.preventDefault();
-        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-        const draggedDev = window.__RACK_DRAGGED_DEVICE__ || STATE.selectedLibraryItem;
-        highlightDropSlots(target.u, draggedDev, true, target.rackId);
-      }
-    });
-
-    // Dragleave on rack stage / slots
-    stage.addEventListener('dragleave', (e) => {
-      if (!e.relatedTarget || !stage.contains(e.relatedTarget)) highlightDropSlots(null, null, false);
-    });
-
-    // Drop on rack slot / rails
-    stage.addEventListener('drop', (e) => {
-      const target = resolveDropSlot(e);
-      if (target && Number.isInteger(target.u)) {
-        e.preventDefault();
-        e.stopPropagation();
-        highlightDropSlots(null, null, false);
-        const devId = e.dataTransfer?.getData('application/x-rack-device') ||
-                      e.dataTransfer?.getData('text/plain') ||
-                      window.__RACK_DRAGGED_DEVICE__ || 
-                      STATE.selectedLibraryItem;
-        window.__RACK_DRAGGED_DEVICE__ = null;
-        if (!devId) return;
-        if (typeof window.mountDeviceFromAction === 'function') {
-          window.mountDeviceFromAction(devId, target.u, e, target.rackId);
-        } else if (typeof RS.mountDeviceAt === 'function') {
-          RS.mountDeviceAt(devId, target.u, target.rackId);
-        }
-      }
-    });
-  }
-
-  RS.ensureRackStageDelegation = ensureRackStageDelegation;
   RS.renderRackRailsAndSlots = renderRackRailsAndSlots;
-
-  if (typeof document !== 'undefined') {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', ensureRackStageDelegation);
-    } else {
-      ensureRackStageDelegation();
-    }
-  }
 })();

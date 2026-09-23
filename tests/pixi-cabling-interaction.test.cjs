@@ -550,6 +550,7 @@ async function run() {
       // Configure port p1 with role: 'routed' (Red 'R')
       swDev.portsConfig['p1'] = { role: 'routed', color: '#b91c1c' };
       RS.renderMountedDevices();
+      RS.DeviceSceneRegistry.restoreDomPortAreas();
 
       const swPort1 = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
       const swPort1Before = {
@@ -571,6 +572,7 @@ async function run() {
       });
       RS.renderMountedDevices();
       RS.renderAllCables();
+      RS.DeviceSceneRegistry.restoreDomPortAreas();
 
       const swPort1Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
       const swPort1After = {
@@ -591,6 +593,7 @@ async function run() {
       });
       RS.renderMountedDevices();
       RS.renderAllCables();
+      RS.DeviceSceneRegistry.restoreDomPortAreas();
 
       const swPort2Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p2"]`);
       const swPort2After = {
@@ -969,6 +972,161 @@ async function run() {
     assert.equal(idleEnd.totalRenders, idleStart.totalRenders, 'a static Pixi scene must not continuously render');
     assert.equal(idleEnd.rendersPerSecond, 0, 'static Pixi scene must report zero renders per second');
     assert.equal(idleEnd.staticIdle, true, 'telemetry must identify a settled static scene');
+
+    // Regression Test Suite for Pixi Engine Migrations:
+    // 1. Bidirectional Cabling (Switch Port [Pixi] -> Patch Panel Port [DOM] and vice versa)
+    // 2. Port Double-Click Role Cycling staying on Pixi (no SVG fallback)
+    // 3. Device removal and rack clear memory & hit detection lifecycle
+    const setupCabling = await page.evaluate(async () => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      rack.devices = [];
+      RS.STATE.cables = [];
+      RS.cancelPendingConnection();
+      RS.mountDeviceAt('cisco-2960x-24ps', 31);
+      RS.mountDeviceAt('patch-cat6-24', 29);
+      RS.renderMountedDevices();
+      RS.setCableRenderMode('pixi');
+      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.panX = 0;
+      RS.ZOOM_STATE.panY = 0;
+      RS.updateStageTransform(false);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      RS.renderAllCables();
+
+      const sw = rack.devices.find(d => d.catalogKey === 'cisco-2960x-24ps');
+      const patch = rack.devices.find(d => d.catalogKey === 'patch-cat6-24');
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      const p1World = RS.DeviceSceneRegistry.getPortPoint(sw.instanceId, 'p1');
+      const p2World = RS.DeviceSceneRegistry.getPortPoint(sw.instanceId, 'p2');
+      const p3World = RS.DeviceSceneRegistry.getPortPoint(sw.instanceId, 'p3');
+
+      const swPort1Screen = {
+        x: viewportRect.left + RS.ZOOM_STATE.panX + p1World.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + p1World.y * RS.ZOOM_STATE.scale
+      };
+      const swPort2Screen = {
+        x: viewportRect.left + RS.ZOOM_STATE.panX + p2World.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + p2World.y * RS.ZOOM_STATE.scale
+      };
+      const swPort3Screen = {
+        x: viewportRect.left + RS.ZOOM_STATE.panX + p3World.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + p3World.y * RS.ZOOM_STATE.scale
+      };
+
+      const patchPort1El = document.querySelector(`.port[data-instance-id="${patch.instanceId}"][data-port-id="pt1"]`);
+      const patchPort2El = document.querySelector(`.port[data-instance-id="${patch.instanceId}"][data-port-id="pt2"]`);
+      const patchPort1Rect = patchPort1El.getBoundingClientRect();
+      const patchPort2Rect = patchPort2El.getBoundingClientRect();
+
+      return {
+        swId: sw.instanceId,
+        patchId: patch.instanceId,
+        swPort1: swPort1Screen,
+        swPort2: swPort2Screen,
+        swPort3: swPort3Screen,
+        patchPort1: { x: patchPort1Rect.left + patchPort1Rect.width / 2, y: patchPort1Rect.top + patchPort1Rect.height / 2 },
+        patchPort2: { x: patchPort2Rect.left + patchPort2Rect.width / 2, y: patchPort2Rect.top + patchPort2Rect.height / 2 }
+      };
+    });
+
+    // Test 1a: Switch port (Pixi) -> Patch panel port (DOM)
+    await page.mouse.click(setupCabling.swPort1.x, setupCabling.swPort1.y);
+    await page.waitForTimeout(50);
+    const pendingFromSwitch = await page.evaluate(() => window.RackStudio.STATE.pendingConnection);
+    assert.ok(pendingFromSwitch, 'clicking Pixi switch port must initiate pending connection');
+    assert.equal(pendingFromSwitch.portId, 'p1');
+
+    await page.mouse.click(setupCabling.patchPort1.x, setupCabling.patchPort1.y);
+    await page.waitForTimeout(100);
+    const cablesAfterSwitchToPatch = await page.evaluate(() => window.RackStudio.STATE.cables);
+    assert.equal(cablesAfterSwitchToPatch.length, 1, 'Switch port -> Patch panel port must establish cable connection');
+    assert.ok(
+      (cablesAfterSwitchToPatch[0].from.portId === 'p1' && cablesAfterSwitchToPatch[0].to.portId === 'pt1') ||
+      (cablesAfterSwitchToPatch[0].from.portId === 'pt1' && cablesAfterSwitchToPatch[0].to.portId === 'p1'),
+      'connected cable must match switch p1 and patch pt1'
+    );
+
+    // Test 1b: Patch panel port (DOM) -> Switch port (Pixi)
+    const patchPort2Point = await page.evaluate(({ patchId }) => {
+      const el = document.querySelector(`.port[data-instance-id="${patchId}"][data-port-id="pt2"]`);
+      const rect = el.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }, { patchId: setupCabling.patchId });
+
+    await page.mouse.click(patchPort2Point.x, patchPort2Point.y);
+    await page.waitForTimeout(50);
+    const pendingFromPatch = await page.evaluate(() => window.RackStudio.STATE.pendingConnection);
+    assert.ok(pendingFromPatch, 'clicking DOM patch port must initiate pending connection');
+    assert.equal(pendingFromPatch.portId, 'pt2');
+
+    await page.mouse.click(setupCabling.swPort2.x, setupCabling.swPort2.y);
+    await page.waitForTimeout(100);
+    const cablesAfterPatchToSwitch = await page.evaluate(() => window.RackStudio.STATE.cables);
+    const firstCableId = cablesAfterSwitchToPatch[0].id;
+    const secondCable = cablesAfterPatchToSwitch.find(c => c.id !== firstCableId);
+    assert.ok(secondCable, 'second cable must exist');
+    assert.ok(
+      (secondCable.from.portId === 'pt2' && secondCable.to.portId === 'p2') ||
+      (secondCable.from.portId === 'p2' && secondCable.to.portId === 'pt2'),
+      'connected cable must match patch pt2 and switch p2'
+    );
+
+    // Test 2: Double-click port on Pixi switch must cycle role without falling back to DOM/SVG
+    await page.mouse.dblclick(setupCabling.swPort3.x, setupCabling.swPort3.y);
+    await page.waitForTimeout(100);
+    const dblClickResult = await page.evaluate(({ swId }) => {
+      const RS = window.RackStudio;
+      const sw = RS.getActiveRack().devices.find(d => d.instanceId === swId);
+      const portConfig = sw.portsConfig?.['p3'];
+      const deviceRenderer = document.documentElement.dataset.deviceRenderer;
+      const stats = RS.DeviceSceneRegistry.getStats();
+      const roleColor = RS.getPixiPortRoleColor(sw, 'p3');
+      return {
+        role: portConfig?.role,
+        deviceRenderer,
+        detachedPortAreas: stats.detachedPortAreas,
+        roleColor
+      };
+    }, { swId: setupCabling.swId });
+
+    assert.ok(dblClickResult.role, 'double clicking switch port must assign a role');
+    assert.equal(dblClickResult.deviceRenderer, 'pixi', 'double clicking switch port must NOT fallback to SVG/DOM renderer');
+    assert.ok(dblClickResult.detachedPortAreas > 0, 'switch port area must stay detached on Pixi');
+    assert.ok(dblClickResult.roleColor, 'port role color must be resolved for Pixi sprite rendering');
+
+    // Test 3: Device removal and rack clear memory & hit detection lifecycle
+    const removeResult = await page.evaluate(({ swId, swPoint }) => {
+      const RS = window.RackStudio;
+      RS.removeDevice(swId);
+      const portPointAfterRemove = RS.DeviceSceneRegistry.getPortPoint(swId, 'p1');
+      const hitAfterRemove = RS.hitPixiDevicePortAt(swPoint.x, swPoint.y);
+      const devRecord = RS.DeviceSceneRegistry.getDeviceRecord(swId);
+      return {
+        portPointAfterRemove,
+        hitAfterRemove,
+        devRecord
+      };
+    }, { swId: setupCabling.swId, swPoint: setupCabling.swPort1 });
+
+    assert.equal(removeResult.portPointAfterRemove, null, 'device removal must prune ports from DeviceSceneRegistry');
+    assert.equal(removeResult.hitAfterRemove, null, 'device removal must clear hit detection for removed device');
+    assert.equal(removeResult.devRecord, null, 'device removal must unregister device record');
+
+    const clearResult = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const rack = RS.getActiveRack();
+      RS.clearRackDevices(rack.id);
+      return {
+        devicesRemaining: rack.devices.length,
+        snapshotDevices: RS.DeviceSceneRegistry.getSnapshot().devices.length,
+        telemetry: RS.getPixiPerformanceTelemetry()
+      };
+    });
+
+    assert.equal(clearResult.devicesRemaining, 0, 'clearRackDevices must empty rack device array');
+    assert.equal(clearResult.snapshotDevices, 0, 'clearRackDevices must empty DeviceSceneRegistry snapshot');
+    assert.equal(clearResult.telemetry.visibleDeviceRacks, 0, 'clearRackDevices must destroy and clear all Pixi device scenes');
 
     assert.deepEqual(pageErrors, []);
   } finally {

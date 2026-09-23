@@ -28,123 +28,12 @@
   const showUplinkVisualConfirmModal = (...args) => RS.showUplinkVisualConfirmModal && RS.showUplinkVisualConfirmModal(...args);
   const getNextCableId = () => (RS.getNextCableId ? RS.getNextCableId() : 'cable-' + Date.now());
 
-  // --- PORT ROLE CYCLE on EMPTY PORT double-click ---
-  // Copper/generic cycle: none → access → trunk → uplink → routed → poe → management → console → none
-  // Fiber-type cycle   : none → fiber → none
-  const PORT_ROLE_CYCLES = {
-    copper: [null, 'access', 'trunk', 'uplink', 'routed', 'poe', 'management', 'console'],
-    fiber:  [null, 'fiber'],
-  };
-  const PORT_ROLE_META = {
-    null:       { label: 'Boş (Rol Yok)',   icon: '⚪', color: '#475569' },
-    access:     { label: 'Access',           icon: '🔵', color: '#38bdf8' },
-    trunk:      { label: 'Trunk 802.1Q',     icon: '🟣', color: '#7c3aed' },
-    uplink:     { label: 'Uplink ▲',         icon: '🔷', color: '#00d2ff' },
-    routed:     { label: 'Routed (L3)',      icon: '🔴', color: '#b91c1c' },
-    poe:        { label: 'PoE ⚡',           icon: '🟡', color: '#f59e0b' },
-    management: { label: 'Management',       icon: '🟢', color: '#059669' },
-    console:    { label: 'Console',          icon: '🔵', color: '#00bceb' },
-    fiber:      { label: 'Fiber',            icon: '🟡', color: '#facc15' },
-  };
-
-  function getPortAliases(portId) {
-    const pIdStr = String(portId || '');
-    const numMatch = pIdStr.match(/\d+$/);
-    const num = numMatch ? numMatch[0] : '';
-    const aliases = new Set([pIdStr]);
-    if (num) {
-      aliases.add(num);
-      aliases.add('p' + num);
-      aliases.add('pt' + num);
-      aliases.add('port' + num);
-      aliases.add('port-' + num);
-      aliases.add('lc' + num);
-      aliases.add('sc' + num);
-    }
-    return Array.from(aliases);
-  }
-
-  function cyclePortRole(instanceId, portId, portType) {
-    const isFiber = ['lc', 'sc', 'sfp', 'sfp+', 'qsfp28'].includes((portType || '').toLowerCase());
-    const cycle = isFiber ? PORT_ROLE_CYCLES.fiber : PORT_ROLE_CYCLES.copper;
-
-    // Find device across all racks
-    const devRack = STATE.racks.find(r => r.devices.some(d => d.instanceId === instanceId));
-    if (!devRack) return;
-    const dev = devRack.devices.find(d => d.instanceId === instanceId);
-    if (!dev) return;
-
-    // Ensure portsConfig exists
-    if (!dev.portsConfig) dev.portsConfig = {};
-
-    const canonicalKey = String(portId || '');
-    const aliases = getPortAliases(portId);
-
-    // Resolve existing config from canonical key or any alias
-    let currentCfg = dev.portsConfig[canonicalKey];
-    if (currentCfg === undefined) {
-      for (const a of aliases) {
-        if (dev.portsConfig[a] !== undefined) {
-          currentCfg = dev.portsConfig[a];
-          break;
-        }
-      }
-    }
-
-    const currentRole = currentCfg?.role || null;
-
-    // Purge numeric/prefix aliases completely
-    aliases.forEach(a => {
-      delete dev.portsConfig[a];
-    });
-
-    // Find current index in cycle
-    const idx = cycle.indexOf(currentRole);
-    const nextRole = cycle[(idx + 1) % cycle.length];
-
-    if (nextRole !== null) {
-      const meta = PORT_ROLE_META[nextRole] || {};
-      dev.portsConfig[canonicalKey] = {
-        ...(currentCfg || {}),
-        role: nextRole,
-        color: meta.color,
-      };
-    }
-
-    // Persist & re-render
-    renderMountedDevices();
-    renderAllCables();
-    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
-    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
-
-    // Show mini toast feedback
-    const meta = PORT_ROLE_META[nextRole] || PORT_ROLE_META['null'];
-    showPortRoleCycleToast(portId, nextRole, meta);
-  }
-
-  function showPortRoleCycleToast(portId, role, meta) {
-    let toast = document.getElementById('port-role-cycle-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'port-role-cycle-toast';
-      toast.style.cssText = [
-        'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
-        'background:rgba(15,23,42,0.96)', 'border:1px solid #334155',
-        'border-radius:8px', 'padding:8px 18px',
-        'font-size:0.78rem', 'font-family:monospace', 'font-weight:600',
-        'color:#f8fafc', 'z-index:99999',
-        'box-shadow:0 4px 24px rgba(0,0,0,0.5)',
-        'pointer-events:none', 'transition:opacity 0.25s',
-      ].join(';');
-      document.body.appendChild(toast);
-    }
-    const label = meta.label || role || 'Boş';
-    const color = meta.color || '#94a3b8';
-    toast.innerHTML = `${meta.icon || '⚪'} <span style="color:#94a3b8">Port ${escapeHtml(portId)}:</span> <span style="color:${color}">${escapeHtml(label)}</span>`;
-    toast.style.opacity = '1';
-    clearTimeout(toast.__hideTimer);
-    toast.__hideTimer = setTimeout(() => { toast.style.opacity = '0'; }, 1800);
-  }
+  // Port role cycling logic is extracted to js/2d/port-role-cycling.js
+  const PORT_ROLE_CYCLES = RS.PORT_ROLE_CYCLES || { copper: [null, 'access', 'trunk', 'uplink', 'routed', 'poe', 'management', 'console'], fiber: [null, 'fiber'] };
+  const PORT_ROLE_META = RS.PORT_ROLE_META || {};
+  const getPortAliases = (portId) => RS.getPortAliases ? RS.getPortAliases(portId) : [String(portId || '')];
+  const cyclePortRole = (...args) => RS.cyclePortRole && RS.cyclePortRole(...args);
+  const showPortRoleCycleToast = (...args) => RS.showPortRoleCycleToast && RS.showPortRoleCycleToast(...args);
   // --- END PORT ROLE CYCLE ---
 
   let portDelegationBound = false;
@@ -166,6 +55,15 @@
       stage.addEventListener('click', (e) => {
         const portEl = e.target.closest('.port');
         if (!portEl) return;
+        if (STATE.multiSelectMode) {
+          const dev = portEl.closest('.mounted-device');
+          if (dev) {
+            e.preventDefault();
+            e.stopPropagation();
+            RS.toggleMultiSelect?.(dev.id);
+            return;
+          }
+        }
         if (e.shiftKey) {
           e.preventDefault();
           e.stopPropagation();
@@ -232,7 +130,10 @@
           if (name === 'selected' && sprite) sprite.tint = 0x67e8f9;
         },
         remove(name) {
-          if (name === 'selected' && sprite) sprite.tint = 0xffffff;
+          if (name === 'selected' && sprite) {
+            const roleColor = RS.getPixiPortRoleColor ? RS.getPixiPortRoleColor(target.dataset.instanceId, target.dataset.portId) : null;
+            sprite.tint = roleColor !== null ? roleColor : 0xffffff;
+          }
         }
       }
     };
@@ -241,9 +142,14 @@
     else if (action === 'click') handlePortClick({ currentTarget: target, target, stopPropagation() {} });
     else if (action === 'dblclick') {
       const instanceId = target.dataset.instanceId;
+      const portId = target.dataset.portId;
+      const portType = target.dataset.portType;
+      const isOccupied = (RS.occupiedPortKeys || new Set()).has(portKey(instanceId, portId));
+      if (isOccupied) return true;
+      if (STATE.pendingConnection) cancelPendingConnection();
       const devRack = STATE.racks.find(rack => rack.devices.some(device => device.instanceId === instanceId));
       const dev = devRack?.devices.find(device => device.instanceId === instanceId);
-      if (devRack && dev) cyclePortRole(instanceId, target.dataset.portId, target.dataset.portType);
+      if (devRack && dev) cyclePortRole(instanceId, portId, portType);
     }
     else if (action === 'contextmenu') {
       if (window.PortConfigEditor) window.PortConfigEditor.open(target.dataset.instanceId, target.dataset.portId, '2d');
@@ -799,101 +705,18 @@
     }
   }
 
-  function findRoutingOrganizers(rack, devA, devB) {
-    if (!rack || !rack.devices || !devA || !devB) return [];
-    const minU = Math.min(devA.topU, devB.topU);
-    const maxU = Math.max(devA.topU, devB.topU);
-
-    return rack.devices.filter(d => {
-      const cat = resolveCatalogItem(d.catalogKey);
-      if (!cat || cat.category !== 'organizer') return false;
-      const u = Number(d.topU);
-      return (u >= minU && u <= maxU) || Math.abs(u - devA.topU) <= 1 || Math.abs(u - devB.topU) <= 1;
-    }).sort((a, b) => {
-      return devA.topU > devB.topU ? (b.topU - a.topU) : (a.topU - b.topU);
-    });
-  }
-
-  function calculateCableLengthMeters(instA, instB, isInterRack) {
-    if (isInterRack) {
-      if (STATE.cableRoutingMode === 'direct') {
-        return 3.0; // Direct aerial jumper between adjacent cabinets
-      }
-      // Inter-rack structured tie cable (overhead ladder rack + vertical drops + service loops)
-      const baseTieRun = 14.0;
-      return parseFloat((baseTieRun * 1.10).toFixed(2)); // 15.40m
-    }
-    const activeRack = getActiveRack();
-    if (!activeRack) return 1.5;
-    const devA = activeRack.devices.find(d => d.instanceId === instA);
-    const devB = activeRack.devices.find(d => d.instanceId === instB);
-    if (!devA || !devB) return 1.5;
-
-    const uDiff = Math.abs(devA.topU - devB.topU);
-    const catA = resolveCatalogItem(devA.catalogKey);
-    const catB = resolveCatalogItem(devB.catalogKey);
-    const isFiber = (catA && catA.category === 'fiber') || (catB && catB.category === 'fiber') ||
-                    (devA.portsConfig && Object.values(devA.portsConfig).some(c => c.role === 'fiber')) ||
-                    (devB.portsConfig && Object.values(devB.portsConfig).some(c => c.role === 'fiber'));
-
-    // Routing Mode: Direct (Sıkı Doğrudan) vs Structured (Yapısal Kanal)
-    const isDirect = STATE.cableRoutingMode === 'direct';
-    if (isDirect) {
-      // Sıkı Doğrudan: Point-to-Point direct patch cord between adjacent patch panels and switches.
-      // 1. Direct vertical distance between ports: uDiff * 0.0445m (1U = 44.45mm EIA-310-D)
-      // 2. Direct horizontal span / curve allowance: 0.12m
-      // 3. Connector & bend radius allowance: 0.08m (copper) / 0.12m (fiber)
-      // For adjacent devices (uDiff <= 1): (1 * 0.0445) + 0.12 + 0.08 = ~0.25m -> standard 30cm short patch cord!
-      const directVertical = uDiff * 0.0445;
-      const directHorizontal = 0.12;
-      const directBend = isFiber ? 0.12 : 0.08;
-      const rawDirect = directVertical + directHorizontal + directBend;
-      const withMargin = rawDirect * 1.05;
-      return Math.max(0.25, parseFloat(withMargin.toFixed(2)));
-    }
-
-    const routingOrganizers = findRoutingOrganizers(activeRack, devA, devB);
-    const hasOrganizer = routingOrganizers.length > 0;
-
-    // Field Metrology Standard (Yapısal Yan Kanal):
-    // 1. Horizontal duct traverse: 2x 0.25m = 0.50m (port to vertical wire manager)
-    // 2. Vertical duct traverse: uDiff * 0.0445m (1U = 44.45mm EIA-310-D)
-    // 3. Horizontal wire manager / brush organizer traversal: 0.25m
-    // 4. Bend radius & dressing allowance: 0.15m copper / 0.20m fiber
-    // 5. Field Service Loop (Servis Halkası Payı): +10% standard margin
-    const horizontalToDuct = 0.50;
-    const verticalDuct = uDiff * 0.0445;
-    let organizerAllowance = 0.0;
-    if (hasOrganizer) {
-      const hasBrush = routingOrganizers.some(d => {
-        const c = resolveCatalogItem(d.catalogKey);
-        return d.catalogKey === 'organizer-1u' || (c?.modelTag && c.modelTag.includes('BRUSH')) || (c?.name && c.name.toLowerCase().includes('fırça'));
-      });
-      const hasFinger = routingOrganizers.some(d => {
-        const c = resolveCatalogItem(d.catalogKey);
-        return d.catalogKey === 'organizer-2u' || (c?.modelTag && c.modelTag.includes('FINGER')) || (c?.name && c.name.toLowerCase().includes('parmak'));
-      });
-      if (hasBrush) organizerAllowance = 0.35; // Front-to-rear brush pass-through traverse
-      else if (hasFinger) organizerAllowance = 0.25; // 2U internal slotted duct channel traverse
-      else organizerAllowance = 0.20; // D-Ring hoop loop traverse
-    }
-    const bendRadiusAllowance = isFiber ? 0.20 : 0.15;
-
-    const rawLength = horizontalToDuct + verticalDuct + organizerAllowance + bendRadiusAllowance;
-    const withServiceLoop = rawLength * 1.10;
-
-    return Math.max(0.5, parseFloat(withServiceLoop.toFixed(2)));
-  }
+  const findRoutingOrganizers = (...args) => RS.findRoutingOrganizers ? RS.findRoutingOrganizers(...args) : [];
+  const calculateCableLengthMeters = (...args) => RS.calculateCableLengthMeters ? RS.calculateCableLengthMeters(...args) : 1.5;
 
   RS.PORT_ROLE_CYCLES = PORT_ROLE_CYCLES;
   RS.PORT_ROLE_META = PORT_ROLE_META;
   RS.getPortAliases = getPortAliases;
-  RS.cyclePortRole = cyclePortRole;
-  RS.showPortRoleCycleToast = showPortRoleCycleToast;
+  if (!RS.cyclePortRole) RS.cyclePortRole = cyclePortRole;
+  if (!RS.showPortRoleCycleToast) RS.showPortRoleCycleToast = showPortRoleCycleToast;
   RS.bindPortInteractions = bindPortInteractions;
   RS.handlePortHover = handlePortHover;
   RS.handlePortLeave = handlePortLeave;
   RS.handlePortClick = handlePortClick;
-  RS.findRoutingOrganizers = findRoutingOrganizers;
-  RS.calculateCableLengthMeters = calculateCableLengthMeters;
+  if (!RS.findRoutingOrganizers) RS.findRoutingOrganizers = findRoutingOrganizers;
+  if (!RS.calculateCableLengthMeters) RS.calculateCableLengthMeters = calculateCableLengthMeters;
 })();
