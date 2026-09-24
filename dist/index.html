@@ -1466,20 +1466,33 @@
 
       <!-- Multi-Rack Tabs & Cabinet Switcher Bar (Floating Deck) -->
       <div class="rack-floating-topdeck" id="rack-floating-topdeck">
-        <div class="rack-tabs-bar" id="rack-tabs-bar">
-          <div class="rack-tabs-list" id="rack-tabs-list">
-            <!-- Dynamically generated rack tabs -->
-          </div>
-          <div class="rack-tabs-actions">
-            <div class="multi-rack-view-toggle">
-              <button class="btn-rack-action" id="btn-view-mode-single" title="Tek Kabin Odak Modu">Tek</button>
-              <button class="btn-rack-action active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster (Multi-Rack Row)">Yan Yana</button>
+        <div class="rack-topdeck-zone rack-topdeck-racks">
+          <span class="rack-topdeck-label">Kabinler</span>
+          <div class="rack-tabs-scroller">
+            <div class="rack-tabs-list" id="rack-tabs-list">
+              <!-- Dynamically generated rack tabs -->
             </div>
-            <button class="btn-rack-action icon-btn" id="btn-add-rack" title="Yeni Kabin Ekle">
-              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
-            </button>
-            <button class="btn-rack-action icon-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">✎</button>
           </div>
+          <button class="btn-rack-action icon-btn rack-add-btn" id="btn-add-rack" title="Yeni Kabin Ekle" aria-label="Yeni Kabin Ekle">
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+          </button>
+        </div>
+
+        <div class="rack-topdeck-zone rack-topdeck-view" role="group" aria-label="Kabin görünüm modu">
+          <div class="rack-view-mode-switch" id="rack-view-mode-switch">
+            <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek Kabin Odak Modu">
+              <span class="rack-view-mode-icon" aria-hidden="true">▣</span>
+              <span class="rack-view-mode-text">Tek Kabin</span>
+            </button>
+            <button type="button" class="rack-view-mode-btn active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster">
+              <span class="rack-view-mode-icon" aria-hidden="true">▥</span>
+              <span class="rack-view-mode-text">Yan Yana</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="rack-topdeck-zone rack-topdeck-actions">
+          <button class="btn-rack-action icon-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir" aria-label="Kabini yeniden adlandır">✎</button>
         </div>
       </div>
       

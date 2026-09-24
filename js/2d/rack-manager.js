@@ -11,18 +11,23 @@
     RS.dom.rackTabsList.innerHTML = '';
 
     RS.STATE.racks.forEach((rack, idx) => {
-      const tab = document.createElement('div');
+      const tab = document.createElement('button');
+      tab.type = 'button';
       tab.className = `rack-tab ${rack.id === RS.STATE.activeRackId ? 'active' : ''}`;
       tab.dataset.rackId = rack.id;
+      tab.setAttribute('aria-pressed', rack.id === RS.STATE.activeRackId ? 'true' : 'false');
 
       const deviceCount = rack.devices.length;
       const canDelete = RS.STATE.racks.length > 1;
+      const indexLabel = String(idx + 1).padStart(2, '0');
 
       tab.innerHTML = `
-        <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
-        <span>${RS.escapeHtml(rack.name)}</span>
-        <span class="rack-tab-badge">${deviceCount} Cihaz</span>
-        ${canDelete ? `<span class="rack-tab-close" data-rack-id="${rack.id}" title="Kabini Sil">✕</span>` : ''}
+        <span class="rack-tab-index">${indexLabel}</span>
+        <span class="rack-tab-body">
+          <span class="rack-tab-name">${RS.escapeHtml(rack.name)}</span>
+          <span class="rack-tab-meta">${deviceCount} cihaz</span>
+        </span>
+        ${canDelete ? `<span class="rack-tab-close" data-rack-id="${rack.id}" title="Kabini Sil" role="button" tabindex="0">✕</span>` : ''}
       `;
 
       tab.addEventListener('click', (e) => {
@@ -37,6 +42,12 @@
 
       RS.dom.rackTabsList.appendChild(tab);
     });
+
+    const isMulti = RS.STATE.viewMode === 'multi';
+    RS.dom.btnViewModeSingle?.classList.toggle('active', !isMulti);
+    RS.dom.btnViewModeMulti?.classList.toggle('active', isMulti);
+    RS.dom.btnViewModeSingle?.setAttribute('aria-pressed', !isMulti ? 'true' : 'false');
+    RS.dom.btnViewModeMulti?.setAttribute('aria-pressed', isMulti ? 'true' : 'false');
   }
 
   function switchActiveRack(rackId) {
