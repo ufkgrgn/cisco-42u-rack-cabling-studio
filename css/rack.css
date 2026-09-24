@@ -1805,9 +1805,9 @@
   width: 26px;
   height: 12px;
   border-radius: 2px;
-  background: #06090f;
-  border: 1px solid #1a2332;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+  background: #18202c;
+  border: 1px solid #283548;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .dring-bracket:hover .dring-loop {

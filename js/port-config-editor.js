@@ -50,7 +50,13 @@
         }
       } else if (window.RackStudio && window.RackStudio.STATE) {
         const racks = window.RackStudio.STATE.racks || [];
-        const rack = racks.find(item => item.devices.some(d => d.instanceId === devId));
+        const rack = racks.find(item => item.devices && item.devices.some(d => d.instanceId === devId));
+        if (rack) {
+          dev = rack.devices.find(d => d.instanceId === devId);
+        }
+        if (!dev && window.RackStudio.getDeviceById) {
+          dev = window.RackStudio.getDeviceById(devId);
+        }
         const RS = window.RackStudio;
         const cat = dev && (
           (RS?.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) ||
@@ -75,8 +81,8 @@
 
           if (!portCfg && window.RackStudio && window.RackStudio.STATE) {
             const connectedCable = (window.RackStudio.STATE.cables || []).find(c =>
-              (c.from.instanceId === devId && (c.from.portId === this.activePortId || String(c.from.portId).replace(/^p/i, '') === pNumStr)) ||
-              (c.to.instanceId === devId && (c.to.portId === this.activePortId || String(c.to.portId).replace(/^p/i, '') === pNumStr))
+              (c.from?.instanceId === devId && (c.from?.portId === this.activePortId || String(c.from?.portId).replace(/^p/i, '') === pNumStr)) ||
+              (c.to?.instanceId === devId && (c.to?.portId === this.activePortId || String(c.to?.portId).replace(/^p/i, '') === pNumStr))
             );
             if (connectedCable && connectedCable.role) {
               portCfg = {
@@ -146,7 +152,13 @@
     },
 
     save() {
-      if (!this.activeDevId) return;
+      const modal = document.getElementById('modal-port-edit');
+      const devId = this.activeDevId || modal?.dataset?.deviceId;
+      if (!devId) {
+        this.close();
+        return;
+      }
+      this.activeDevId = devId;
       try {
         const role = document.getElementById('port-edit-role')?.value || 'access';
         const poeState = document.getElementById('port-edit-poe')?.value || 'auto';
@@ -201,7 +213,13 @@
     },
 
     reset() {
-      if (!this.activeDevId) return;
+      const modal = document.getElementById('modal-port-edit');
+      const devId = this.activeDevId || modal?.dataset?.deviceId;
+      if (!devId) {
+        this.close();
+        return;
+      }
+      this.activeDevId = devId;
       try {
         if (window.RackStudio && window.RackStudio.updatePortConfig) {
           window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);

@@ -455,7 +455,7 @@
       graphics.roundRect(rx - 2, ry - 1, rw + 4, rh + 2, 3).fill(0x1c2432).stroke({ width: 1, color: 0x334155 });
       graphics.circle(rx - 0.5, ry + rh / 2, 1.2).fill(0x64748b);
       graphics.circle(rx + rw + 0.5, ry + rh / 2, 1.2).fill(0x64748b);
-      graphics.roundRect(rx + 2.5, ry + 2.5, rw - 5, rh - 5, 2.5).fill(0x0c111a);
+      graphics.roundRect(rx + 2.5, ry + 2.5, rw - 5, rh - 5, 2.5).fill(0x18202c).stroke({ width: 0.8, color: 0x242d3d });
     }
   }
 

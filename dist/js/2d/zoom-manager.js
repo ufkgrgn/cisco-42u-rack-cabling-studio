@@ -503,16 +503,6 @@
       }
     }, { capture: true });
 
-    window.addEventListener('pointerdown', (e) => {
-      if (isSpacePressed) {
-        if (!e.target.closest('input, textarea, select, .studio-modal, .modal-backdrop, .modal-card')) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-        }
-      }
-    }, { capture: true });
-
     window.addEventListener('dragstart', (e) => {
       if (isSpacePressed) {
         e.preventDefault();
