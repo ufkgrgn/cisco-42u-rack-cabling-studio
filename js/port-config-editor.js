@@ -51,9 +51,14 @@
       } else if (window.RackStudio && window.RackStudio.STATE) {
         const racks = window.RackStudio.STATE.racks || [];
         const rack = racks.find(item => item.devices.some(d => d.instanceId === devId));
-        dev = rack && rack.devices.find(d => d.instanceId === devId);
-        const cat = dev && (window.RackStudio.catalog[dev.catalogKey] || (window.CATALOG_3D || []).find(c => c.id === dev.catalogKey));
-        const pObj = (cat && cat.ports) ? cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId) : null;
+        const RS = window.RackStudio;
+        const cat = dev && (
+          (RS?.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) ||
+          RS?.catalog?.[dev.catalogKey] ||
+          window.HARDWARE_CATALOG?.[dev.catalogKey] ||
+          (window.CATALOG_3D || []).find(c => c.id === dev.catalogKey)
+        );
+        const pObj = (cat && cat.ports) ? cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId || (portIdxOrId && String(p.id).replace(/\D+/g, '') === String(portIdxOrId).replace(/\D+/g, ''))) : null;
         portIdx = pObj ? (cat.ports.indexOf(pObj) + 1) : (parseInt(portIdxOrId, 10) || 1);
         this.activePortIdx = portIdx;
         this.activePortId = (pObj && pObj.id) || (typeof portIdxOrId === 'string' ? portIdxOrId : 'p' + portIdx);
@@ -142,70 +147,84 @@
 
     save() {
       if (!this.activeDevId) return;
-      const role = document.getElementById('port-edit-role')?.value || 'access';
-      const poeState = document.getElementById('port-edit-poe')?.value || 'auto';
-      const color = document.getElementById('port-edit-color')?.value || ROLE_DEFAULT_COLORS[role] || '#7c3aed';
-      const ciscoName = document.getElementById('port-edit-cisco-name')?.value.trim() || '';
-      const vlan = document.getElementById('port-edit-vlan')?.value.trim() || '';
-      const desc = document.getElementById('port-edit-desc')?.value.trim() || '';
-      const autoCableColor = document.getElementById('port-edit-auto-cable-color')?.checked ?? true;
+      try {
+        const role = document.getElementById('port-edit-role')?.value || 'access';
+        const poeState = document.getElementById('port-edit-poe')?.value || 'auto';
+        const color = document.getElementById('port-edit-color')?.value || ROLE_DEFAULT_COLORS[role] || '#7c3aed';
+        const ciscoName = (document.getElementById('port-edit-cisco-name')?.value || '').trim();
+        const vlan = (document.getElementById('port-edit-vlan')?.value || '').trim();
+        const desc = (document.getElementById('port-edit-desc')?.value || '').trim();
+        const autoCableColor = document.getElementById('port-edit-auto-cable-color')?.checked ?? true;
 
-      const isTrunk = role === 'trunk' || role === 'uplink' || role === 'trunk-ap';
+        const isTrunk = role === 'trunk' || role === 'uplink' || role === 'trunk-ap';
 
-      const config = {
-        role,
-        isTrunk,
-        poeState,
-        color,
-        ciscoName,
-        vlan,
-        description: desc,
-        autoCableColor
-      };
+        const config = {
+          role,
+          isTrunk,
+          poeState,
+          color,
+          ciscoName,
+          vlan,
+          description: desc,
+          autoCableColor
+        };
 
-      // 3D Engine update
-      if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-        window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, config);
-      }
+        // 2D Engine update first
+        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, config);
+        }
 
-      // 2D Engine update
-      if (window.RackStudio && window.RackStudio.updatePortConfig) {
-        window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, config);
-      }
+        // 3D Engine update (guarded)
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          try {
+            window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, config);
+          } catch (e) {
+            console.warn('[PortConfigEditor] 3D port config update skipped:', e);
+          }
+        }
 
-      this.close();
+        // Dispatch global change events to persist state and update undo stack
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+        document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+        window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
 
-      // Dispatch global change events to persist state and update undo stack
-      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
-      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
-      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
-
-      if (window.is3DMode) {
-        if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
-      } else {
-        if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+        try {
+          if (window.is3DMode) {
+            if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
+          } else {
+            if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+          }
+        } catch (e) {}
+      } finally {
+        this.close();
       }
     },
 
     reset() {
       if (!this.activeDevId) return;
-      if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-        window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, null);
-      }
-      if (window.RackStudio && window.RackStudio.updatePortConfig) {
-        window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
-      }
-      this.close();
+      try {
+        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
+        }
+        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+          try {
+            window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, null);
+          } catch (e) {}
+        }
 
-      // Dispatch global change events to persist reset state and update undo stack
-      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
-      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
-      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+        document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+        document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+        window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
 
-      if (window.is3DMode) {
-        if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
-      } else {
-        if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+        try {
+          if (window.is3DMode) {
+            if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
+          } else {
+            if (typeof window.sync2Dto3D === 'function') window.sync2Dto3D();
+          }
+        } catch (e) {}
+      } finally {
+        this.close();
       }
     }
   };

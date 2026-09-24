@@ -148,11 +148,11 @@
       const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'C1000');
       ctx.fillStyle = '#1e293b';
       ctx.font = '700 9.5px ui-monospace, monospace';
-      ctx.fillText(String(model).slice(0, 9), 8, 24);
-      // Recessed dark port well background on white chassis
-      ctx.fillStyle = '#1e293b';
-      roundRect(ctx, 81, 3, w - 85, h - 6, 2);
-      ctx.fill();
+      // Clean top and bottom metallic bevels for the chassis body
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(79, 1, w - 80, 1.5);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(79, h - 2, w - 80, 1);
       // Status LEDs on bezel
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
@@ -429,8 +429,10 @@
       return;
     }
     if (kind === 'dring') {
-      graphics.rect(0, 0, w, h).fill(0x121820);
-      paintRings(graphics, 0, 0, w, h);
+      graphics.rect(0, 0, w, h).fill(0x131822);
+      graphics.rect(0, 0, w, 1.2).fill(0x334155);
+      graphics.rect(0, h - 1.2, w, 1.2).fill(0x0a0d14);
+      paintDringBackplate(graphics, 0, 0, w, h);
       return;
     }
     graphics.rect(0, 0, w, h).fill(0x17191d);
@@ -442,7 +444,7 @@
     graphics.rect(8, h * 0.4, w - 16, Math.max(2, h * 0.2)).fill(0x0b0d13);
   }
 
-  function paintRings(graphics, x, y, w, h) {
+  function paintDringBackplate(graphics, x, y, w, h) {
     const count = 5;
     const slot = w / count;
     for (let index = 0; index < count; index++) {
@@ -450,9 +452,27 @@
       const rh = h * 0.7;
       const rx = x + slot * index + (slot - rw) / 2;
       const ry = y + (h - rh) / 2;
-      graphics.roundRect(rx, ry, rw, rh, 4).stroke({ width: Math.max(1.6, rw * 0.08), color: 0x56687e });
-      graphics.roundRect(rx + rw * 0.18, ry + rh * 0.22, rw * 0.64, rh * 0.56, 2)
-        .stroke({ width: 1, color: 0x1a2332 });
+      graphics.roundRect(rx - 2, ry - 1, rw + 4, rh + 2, 3).fill(0x1c2432).stroke({ width: 1, color: 0x334155 });
+      graphics.circle(rx - 0.5, ry + rh / 2, 1.2).fill(0x64748b);
+      graphics.circle(rx + rw + 0.5, ry + rh / 2, 1.2).fill(0x64748b);
+      graphics.roundRect(rx + 2.5, ry + 2.5, rw - 5, rh - 5, 2.5).fill(0x0c111a);
+    }
+  }
+
+  function paintDringHoops(graphics, x, y, w, h) {
+    const count = 5;
+    const slot = w / count;
+    const bar = 3.5;
+    for (let index = 0; index < count; index++) {
+      const rw = Math.min(34, slot * 0.62);
+      const rh = h * 0.7;
+      const rx = x + slot * index + (slot - rw) / 2;
+      const ry = y + (h - rh) / 2;
+      graphics.roundRect(rx, ry, rw, bar, 1.5).fill(0x384556).stroke({ width: 0.8, color: 0x64748b });
+      graphics.roundRect(rx, ry + rh - bar, rw, bar, 1.5).fill(0x2a3442).stroke({ width: 0.8, color: 0x475569 });
+      graphics.roundRect(rx, ry, bar, rh, 1.5).fill(0x334154).stroke({ width: 0.8, color: 0x55657a });
+      graphics.roundRect(rx + rw - bar, ry, bar, rh, 1.5).fill(0x334154).stroke({ width: 0.8, color: 0x55657a });
+      graphics.rect(rx + 1, ry + 0.5, rw - 2, 0.8).fill({ color: 0xffffff, alpha: 0.28 });
     }
   }
 
@@ -461,7 +481,7 @@
       if (frame.category !== 'organizer') return;
       const kind = organizerKind(frame.catalogKey, 'organizer');
       if (kind === 'dring') {
-        paintRings(graphics, frame.x, frame.y, frame.width, frame.height);
+        paintDringHoops(graphics, frame.x, frame.y, frame.width, frame.height);
         return;
       }
       if (kind === 'finger') {

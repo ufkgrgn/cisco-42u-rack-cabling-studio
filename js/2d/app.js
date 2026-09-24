@@ -440,7 +440,7 @@
     const pIdStr = String(portId || '');
     const pNumStr = pIdStr.replace(/\D+/g, '');
     const isNumericPort = Boolean(pNumStr);
-    const cat = HARDWARE_CATALOG[dev.catalogKey];
+    const cat = (RS.resolveCatalogItem ? RS.resolveCatalogItem(dev.catalogKey) : HARDWARE_CATALOG[dev.catalogKey]);
     const portObj = cat?.ports?.find(p => p.id === portId || p.name === portId || (isNumericPort && String(p.id).replace(/\D+/g, '') === pNumStr));
     const portName = portObj?.name;
 
@@ -533,11 +533,19 @@
       if (portName) delete dev.portsConfig[portName];
 
       dev.portsConfig[pIdStr] = cleanCfg;
+      if (pNumStr) {
+        dev.portsConfig[pNumStr] = cleanCfg;
+        dev.portsConfig['p' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('pt')) dev.portsConfig['pt' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('lc')) dev.portsConfig['lc' + pNumStr] = cleanCfg;
+        if (pIdStr.startsWith('sc')) dev.portsConfig['sc' + pNumStr] = cleanCfg;
+      }
+      if (portName) dev.portsConfig[portName] = cleanCfg;
 
       if (config.autoCableColor !== false) {
         const connectedCable = STATE.cables.find(c =>
-          (c.from.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
-          (c.to.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
+          (c.from?.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
+          (c.to?.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
         );
         if (connectedCable) {
           connectedCable.color = resolvedColor;
@@ -547,18 +555,18 @@
           const cleanName = (connectedCable.name || connectedCable.id).replace(/^\[(TRUNK|UPLINK|POE|MGMT|MANAGEMENT|AP-TRUNK|ROUTED|FIBER|CONSOLE)\]\s*/i, '');
           connectedCable.name = prefix + cleanName;
 
-          const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
+          const otherEndpoint = (connectedCable.from?.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
           let otherDev = null;
           for (const r of (STATE.racks || [])) {
-            const found = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId);
+            const found = r.devices?.find(d => d.instanceId === otherEndpoint?.instanceId);
             if (found) { otherDev = found; break; }
           }
           if (otherDev) {
             if (!otherDev.portsConfig) otherDev.portsConfig = {};
-            const oIdStr = String(otherEndpoint.portId || '');
+            const oIdStr = String(otherEndpoint?.portId || '');
             const oNumStr = oIdStr.replace(/\D+/g, '');
-            const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
-            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
+            const oCat = (RS.resolveCatalogItem ? RS.resolveCatalogItem(otherDev.catalogKey) : HARDWARE_CATALOG[otherDev.catalogKey]);
+            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint?.portId || p.name === otherEndpoint?.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
 
             delete otherDev.portsConfig['p' + oIdStr];
             if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
@@ -571,6 +579,7 @@
               if (oIdStr.startsWith('lc')) otherDev.portsConfig['lc' + oNumStr] = cleanCfg;
               if (oIdStr.startsWith('sc')) otherDev.portsConfig['sc' + oNumStr] = cleanCfg;
             }
+            if (oPortObj?.name) otherDev.portsConfig[oPortObj.name] = cleanCfg;
           }
         }
       }
@@ -579,6 +588,10 @@
     renderMountedDevices();
     renderScheduleTable();
     renderAllCables();
+
+    if (RS.invalidatePixiDeviceScene) RS.invalidatePixiDeviceScene();
+    if (typeof RS.syncPixiDeviceSceneLOD === 'function') RS.syncPixiDeviceSceneLOD();
+    if (window.PixiContext?.renderPixi) window.PixiContext.renderPixi('port-config-update');
 
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));

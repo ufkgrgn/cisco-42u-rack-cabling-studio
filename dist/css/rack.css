@@ -220,8 +220,8 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 16px 0 16px;
-  gap: 5px;
+  padding: 0 12px 0 0;
+  gap: 4px;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -348,9 +348,9 @@
 
 /* Cisco Catalyst Integrated Compact Front Bezel (Option A & Stencil Standard) */
 .cisco-integrated-bezel {
-  flex: 0 0 74px;
-  width: 74px;
-  max-width: 74px;
+  flex: 0 0 78px;
+  width: 78px;
+  max-width: 78px;
   height: 24px;
   display: flex;
   flex-direction: column;
@@ -604,21 +604,11 @@
 }
 
 .switch-block-strip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 5px;
-  line-height: 5px;
-  margin-bottom: 1px;
+  display: none !important;
 }
 
 .port-block-range {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 5px;
-  font-weight: 700;
-  color: var(--silkscreen-dim, #94a3b8);
-  letter-spacing: 0.3px;
-  opacity: 0.9;
+  display: none !important;
 }
 
 /* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
@@ -631,12 +621,7 @@
 }
 
 .cisco-uplink-strip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 5px;
-  line-height: 5px;
-  margin-bottom: 1px;
+  display: none !important;
 }
 
 .uplink-badge {
@@ -694,11 +679,11 @@
   box-shadow: none;
 }
 
-/* Compact Integrated Patch Panel Front Bezel (74px width, perfectly aligned with Cisco switches) */
+/* Compact Integrated Patch Panel Front Bezel (78px width, perfectly aligned with Cisco switches) */
 .patch-integrated-bezel {
-  flex: 0 0 74px;
-  width: 74px;
-  max-width: 74px;
+  flex: 0 0 78px;
+  width: 78px;
+  max-width: 78px;
   height: 24px;
   display: flex;
   flex-direction: column;
@@ -803,26 +788,11 @@
 
 /* The signature white write-on identification label strip with orange accent tab */
 .patch-id-strip {
-  height: 4.5px;
-  width: 100%;
-  background: #fff7ed;
-  border: 1px solid rgba(249, 115, 22, 0.45);
-  border-left: 3px solid #ea580c;
-  border-radius: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 3px;
-  margin-bottom: 1.5px;
-  box-sizing: border-box;
+  display: none !important;
 }
 
 .patch-id-strip span {
-  font-family: ui-monospace, Consolas, monospace;
-  font-size: 4px;
-  font-weight: 800;
-  color: #1e293b;
-  line-height: 1;
+  display: none !important;
 }
 
 /* Patch Panel RJ45 Keystones (Orange Accent Bezel) */
@@ -987,7 +957,7 @@
 .faceplate-switch .ports-area {
   justify-content: flex-start;
   gap: 6px;
-  padding-left: 8px;
+  padding-left: 4px;
 }
 
 .faceplate-switch .cisco-uplink-bay {
@@ -1016,7 +986,7 @@
   flex-direction: column;
   gap: 1.5px;
   background: rgba(0, 0, 0, 0.4);
-  padding: 1px 2.5px;
+  padding: 1px 2px;
   border-radius: 2px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
