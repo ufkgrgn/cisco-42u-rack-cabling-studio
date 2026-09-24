@@ -283,8 +283,16 @@
     if (next === hoveredDeviceId) return false;
     const previous = hoveredDeviceId;
     hoveredDeviceId = next;
-    if (previous && deviceContainers.get(previous)) paintDeviceChrome(deviceContainers.get(previous));
-    if (next && deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
+    if (previous) {
+      const prevEl = document.getElementById(previous);
+      if (prevEl) prevEl.classList.remove('pixi-hovered');
+      if (deviceContainers.get(previous)) paintDeviceChrome(deviceContainers.get(previous));
+    }
+    if (next) {
+      const nextEl = document.getElementById(next);
+      if (nextEl) nextEl.classList.add('pixi-hovered');
+      if (deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
+    }
     PixiContext.renderPixi?.('device-hover');
     return true;
   }

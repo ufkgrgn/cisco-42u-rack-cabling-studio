@@ -417,13 +417,22 @@
           return;
         }
         const cableId = hitCableAt(e.clientX, e.clientY);
-        if (!cableId) return;
-        e.preventDefault();
-        e.stopPropagation();
-        highlightCable(cableId, true);
-        RS.redrawCableDisplay?.(cableId);
-        showCableContextMenu(cableId, e.clientX, e.clientY);
-        PixiContext.renderPixi?.('context-menu');
+        if (cableId) {
+          e.preventDefault();
+          e.stopPropagation();
+          highlightCable(cableId, true);
+          RS.redrawCableDisplay?.(cableId);
+          showCableContextMenu(cableId, e.clientX, e.clientY);
+          PixiContext.renderPixi?.('context-menu');
+          return;
+        }
+        const hitDevice = RS.hitDeviceBodyAt?.(e.clientX, e.clientY) || (e.target?.closest?.('.mounted-device') ? { instanceId: e.target.closest('.mounted-device').id } : null);
+        if (hitDevice && RS.showDeviceContextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          RS.showDeviceContextMenu(hitDevice.instanceId, e.clientX, e.clientY);
+          return;
+        }
       }, { capture: true });
 
       window.addEventListener('dblclick', onDblClick, { capture: true });

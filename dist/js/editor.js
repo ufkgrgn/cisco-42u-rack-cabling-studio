@@ -550,9 +550,9 @@
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); command(e.shiftKey ? 'redo' : 'undo'); }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); command('redo'); }
-      else if (selected && ['Delete','ArrowUp','ArrowDown'].includes(e.key)) {
+      else if (selected && ['Delete','Backspace','ArrowUp','ArrowDown'].includes(e.key)) {
         e.preventDefault();
-        if (e.key === 'Delete') {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
           if (state.multiSelectedDevices?.size > 1) {
             deleteMultiSelectedBlock();
           } else {

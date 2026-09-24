@@ -2170,10 +2170,72 @@
 }
 [data-device-renderer="pixi"] .device-faceplate,
 [data-device-renderer="pixi"] .organizer-faceplate,
-[data-device-renderer="pixi"] .blank-faceplate,
-[data-device-renderer="pixi"] .device-controls,
-[data-device-renderer="pixi"] .del-device-btn {
+[data-device-renderer="pixi"] .blank-faceplate {
   display: none !important;
+}
+[data-device-renderer="pixi"] .device-controls {
+  position: absolute;
+  top: 3px;
+  right: 18px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.95);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  z-index: 25;
+  pointer-events: auto;
+}
+[data-device-renderer="pixi"] .mounted-device:hover .device-controls,
+[data-device-renderer="pixi"] .mounted-device.pixi-hovered .device-controls,
+[data-device-renderer="pixi"] .mounted-device.studio-selected .device-controls {
+  display: flex !important;
+}
+[data-device-renderer="pixi"] .dev-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 3px;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+[data-device-renderer="pixi"] .dev-btn:hover {
+  background: rgba(51, 65, 85, 0.95);
+  color: #f8fafc;
+  transform: scale(1.1);
+}
+[data-device-renderer="pixi"] .dev-btn.del-device-btn:hover {
+  background: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.7);
+  color: #ef4444;
+}
+[data-device-renderer="pixi"] .dev-btn.autofill-device-btn:hover {
+  background: rgba(234, 179, 8, 0.35);
+  border-color: rgba(234, 179, 8, 0.7);
+  color: #eab308;
+}
+[data-device-renderer="pixi"] .dev-btn.color-device-cables-btn:hover {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.7);
+  color: #38bdf8;
+}
+[data-device-renderer="pixi"] .dev-btn.clear-device-cables-btn:hover {
+  background: rgba(244, 63, 94, 0.35);
+  border-color: rgba(244, 63, 94, 0.7);
+  color: #f43f5e;
+}
+[data-device-renderer="pixi"] .dev-btn.finger-toggle-btn:hover {
+  background: rgba(168, 85, 247, 0.35);
+  border-color: rgba(168, 85, 247, 0.7);
+  color: #c084fc;
 }
 .pixi-device-body {
   position: absolute;

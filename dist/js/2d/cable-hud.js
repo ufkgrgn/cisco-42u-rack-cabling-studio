@@ -326,6 +326,141 @@
     RS.PixiCabinScene?.updateDropHighlight?.(targetU, reqU, !isBlocked, targetRack?.id);
   }
 
+  let deviceContextMenuEl = null;
+
+  function hideDeviceContextMenu() {
+    if (deviceContextMenuEl) {
+      deviceContextMenuEl.remove();
+      deviceContextMenuEl = null;
+    }
+  }
+
+  function showDeviceContextMenu(instanceId, clientX, clientY) {
+    hideCableQuickHud();
+    hideCableContextMenu();
+    hideDeviceContextMenu();
+
+    const dev = RS.getDeviceById ? RS.getDeviceById(instanceId) : null;
+    const cat = dev ? (HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]) || {}) : {};
+    const devName = dev?.hostname || dev?.name || dev?.panelLabel || cat.name || 'Cihaz';
+    const isPatch = cat.category === 'patch' || cat.category === 'fiber';
+    const isOrg = cat.category === 'organizer';
+    const isBlank = cat.category === 'blank';
+    const isFinger = isOrg && (cat.subType === 'finger-duct' || /finger/i.test(cat.name || ''));
+
+    const devCables = (STATE.cables || []).filter(c => c.from?.instanceId === instanceId || c.to?.instanceId === instanceId);
+    const hasCables = devCables.length > 0;
+    const connPorts = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
+    const hasFree = connPorts > devCables.length;
+
+    const menu = document.createElement('div');
+    menu.className = 'cable-context-menu device-context-menu';
+    menu.id = 'device-context-menu';
+
+    let html = `
+      <div class="context-menu-header" style="padding:6px 12px; font-weight:700; color:#38bdf8; border-bottom:1px solid #334155; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+        <span>📦 ${escapeHtml(devName)}</span>
+        <span style="font-size:10px; color:#94a3b8; background:#1e293b; padding:1px 4px; border-radius:3px;">U${dev?.topU || ''}</span>
+      </div>
+      <div class="context-menu-body" style="padding:4px 0;">
+    `;
+
+    if (hasFree && (cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact' || isPatch || cat.category === 'router')) {
+      html += `<button class="context-menu-item" id="ctx-dev-autofill" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">⚡ Boş Portları Otomatik Bağla (Auto-Fill)</button>`;
+    }
+    if (hasCables) {
+      html += `<button class="context-menu-item" id="ctx-dev-color" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">🎨 Kabloları Renklendir</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-clear" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">✂️ Tüm Kabloları Sök (${devCables.length} Kablo)</button>`;
+    }
+    if (isFinger) {
+      html += `<button class="context-menu-item" id="ctx-dev-toggle-cover" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">📂 Kanal Kapağını Aç/Kapat</button>`;
+    }
+    if (cat.category !== 'blank') {
+      html += `<button class="context-menu-item" id="ctx-dev-config" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">⚙️ Cihaz Bilgilerini Düzenle</button>`;
+    }
+
+    const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
+    html += `
+        <div style="height:1px; background:#334155; margin:4px 0;"></div>
+        <button class="context-menu-item" id="ctx-dev-delete" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#ef4444; font-size:12px; text-align:left; cursor:pointer; font-weight:600;">🗑️ ${delTitle} (Sil)</button>
+        <button class="context-menu-item" id="ctx-dev-cancel" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#94a3b8; font-size:11px; text-align:left; cursor:pointer;">✕ İptal</button>
+      </div>
+    `;
+
+    menu.innerHTML = html;
+    document.body.appendChild(menu);
+    deviceContextMenuEl = menu;
+
+    menu.querySelectorAll('.context-menu-item').forEach(btn => {
+      btn.addEventListener('mouseenter', () => { btn.style.background = '#1e293b'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
+    });
+
+    const menuRect = menu.getBoundingClientRect();
+    const left = Math.max(10, Math.min(window.innerWidth - menuRect.width - 10, clientX));
+    const top = Math.max(10, Math.min(window.innerHeight - menuRect.height - 10, clientY));
+    menu.style.position = 'fixed';
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.style.zIndex = '1000';
+    menu.style.background = '#0f172a';
+    menu.style.border = '1px solid #334155';
+    menu.style.borderRadius = '6px';
+    menu.style.boxShadow = '0 8px 24px rgba(0,0,0,0.7)';
+
+    menu.querySelector('#ctx-dev-delete')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      const targetEl = document.getElementById(instanceId) || document.body;
+      if (RS.showInlineDeleteConfirm) {
+        RS.showInlineDeleteConfirm(targetEl, devName, { category: cat.category, cableCount: devCables.length }, () => {
+          RS.removeDevice?.(instanceId);
+        });
+      } else {
+        RS.removeDevice?.(instanceId);
+      }
+    });
+
+    menu.querySelector('#ctx-dev-autofill')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      const devEl = document.getElementById(instanceId);
+      const btn = devEl?.querySelector('.autofill-device-btn') || menu;
+      RS.openSwitchAutoFillPopover?.(btn, instanceId);
+    });
+
+    menu.querySelector('#ctx-dev-color')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      const devEl = document.getElementById(instanceId);
+      const btn = devEl?.querySelector('.color-device-cables-btn') || menu;
+      RS.openSwitchBulkColorPopover?.(btn, instanceId);
+    });
+
+    menu.querySelector('#ctx-dev-clear')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      RS.clearDeviceCables?.(instanceId);
+    });
+
+    menu.querySelector('#ctx-dev-toggle-cover')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      RS.toggleOrganizerCover?.(instanceId);
+    });
+
+    menu.querySelector('#ctx-dev-config')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+      RS.openDeviceMetadataEditor?.(instanceId);
+    });
+
+    menu.querySelector('#ctx-dev-cancel')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideDeviceContextMenu();
+    });
+  }
+
   // Global keydown and click listeners for keyboard shortcuts & auto-dismiss
   if (typeof window !== 'undefined' && !window.__CABLE_INTERACTIONS_BOUND__) {
     window.__CABLE_INTERACTIONS_BOUND__ = true;
@@ -334,7 +469,7 @@
       if (Date.now() - lastHudOpenTime < 250) {
         return;
       }
-      if (e.target.closest('#cable-quick-hud') || e.target.closest('#cable-context-menu')) {
+      if (e.target.closest('#cable-quick-hud') || e.target.closest('#cable-context-menu') || e.target.closest('#device-context-menu')) {
         return;
       }
       if (e.target.closest('.cable-path') || e.target.closest('.cable-boot')) {
@@ -346,9 +481,10 @@
       if (STATE?.cableRenderMode === 'pixi' && RS.hitTestPixiCable && RS.hitTestPixiCable(e.clientX, e.clientY)) {
         return;
       }
-      if (quickHudEl || contextMenuEl || STATE.highlightedCableId) {
+      if (quickHudEl || contextMenuEl || deviceContextMenuEl || STATE.highlightedCableId) {
         hideCableQuickHud();
         hideCableContextMenu();
+        hideDeviceContextMenu();
         highlightCable(null);
       }
     });
@@ -357,6 +493,7 @@
       if (e.key === 'Escape') {
         hideCableQuickHud();
         hideCableContextMenu();
+        hideDeviceContextMenu();
         highlightCable(null);
         return;
       }
@@ -373,6 +510,23 @@
         if (STATE.highlightedCableId) {
           e.preventDefault();
           disconnectCable(STATE.highlightedCableId);
+          return;
+        }
+
+        const selectedDevId = STATE.selectedDeviceId || document.querySelector('.mounted-device.studio-selected')?.id;
+        if (selectedDevId && RS.removeDevice) {
+          e.preventDefault();
+          const dev = RS.getDeviceById ? RS.getDeviceById(selectedDevId) : null;
+          const cat = dev ? (HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]) || {}) : {};
+          const devName = dev?.hostname || dev?.name || dev?.panelLabel || cat.name || 'Cihaz';
+          const targetEl = document.getElementById(selectedDevId) || document.body;
+          if (RS.showInlineDeleteConfirm) {
+            RS.showInlineDeleteConfirm(targetEl, devName, { category: cat.category }, () => {
+              RS.removeDevice(selectedDevId);
+            });
+          } else {
+            RS.removeDevice(selectedDevId);
+          }
         }
       }
     });
@@ -382,5 +536,7 @@
   RS.hideCableQuickHud = hideCableQuickHud;
   RS.showCableContextMenu = showCableContextMenu;
   RS.hideCableContextMenu = hideCableContextMenu;
+  RS.showDeviceContextMenu = showDeviceContextMenu;
+  RS.hideDeviceContextMenu = hideDeviceContextMenu;
   RS.highlightDropSlots = highlightDropSlots;
 })();

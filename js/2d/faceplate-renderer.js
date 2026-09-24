@@ -34,6 +34,30 @@
            null;
   };
 
+  function renderDeviceControlsHtml(cat, dev, occupiedCount, hasCables) {
+    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact';
+    const isPatch = cat.category === 'patch' || cat.category === 'fiber';
+    const isOrg = cat.category === 'organizer';
+    const isBlank = cat.category === 'blank';
+    const isFinger = isOrg && (cat.subType === 'finger-duct' || /finger/i.test(cat.name || ''));
+    const connPorts = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
+    const hasFree = connPorts > occupiedCount;
+    let btns = '';
+    if (hasFree && (isSwitch || isPatch || cat.category === 'router')) {
+      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>`;
+    }
+    if (hasCables) {
+      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>`;
+      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatch ? 'Panelin tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">✂️</button>`;
+    }
+    if (isFinger) {
+      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${dev.instanceId}" title="Kanal Kapağını Aç/Kapat">📂</button>`;
+    }
+    const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
+    btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${dev.instanceId}" title="${delTitle}">✕</button>`;
+    return `<div class="device-controls" data-instance-id="${dev.instanceId}">${btns}</div>`;
+  }
+
   function renderMountedDevices() {
     ensureDeviceFaceplateDelegation();
     const isMulti = STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
@@ -122,12 +146,23 @@
         ]);
         let devEl = existingDevices.get(dev.instanceId);
         const needsPortMeasure = !!(cat.ports && cat.ports.length) && !RS.DeviceSceneRegistry?.hasTemplate?.(catKey);
+        const devCables = (STATE.cables || []).filter(c => c.from?.instanceId === dev.instanceId || c.to?.instanceId === dev.instanceId);
+        const hasCables = devCables.length > 0;
+        const occupiedCount = devCables.length;
+        const controlsHtml = renderDeviceControlsHtml(cat, dev, occupiedCount, hasCables);
+
         if (devEl && devEl.dataset.renderKey === renderKey && !needsPortMeasure) {
           devEl.dataset.instanceId = dev.instanceId;
           devEl.dataset.catalogKey = catKey;
           devEl.dataset.category = cat.category || '';
           devEl.dataset.rackId = rack.id;
           if (devEl.parentElement !== slotEl) slotEl.appendChild(devEl);
+          const existingControls = devEl.querySelector('.device-controls');
+          if (existingControls) {
+            existingControls.outerHTML = controlsHtml;
+          } else {
+            devEl.insertAdjacentHTML('beforeend', controlsHtml);
+          }
           return;
         }
         if (devEl) devEl.remove();
@@ -143,11 +178,11 @@
         devEl.dataset.rackId = rack.id;
 
         if (needsPortMeasure && cat.category === 'router') {
-          devEl.innerHTML = renderRouterFaceplate(cat, dev);
+          devEl.innerHTML = renderRouterFaceplate(cat, dev) + controlsHtml;
         } else if (needsPortMeasure) {
-          devEl.innerHTML = renderSwitchOrPatchFaceplate(cat, dev);
+          devEl.innerHTML = renderSwitchOrPatchFaceplate(cat, dev) + controlsHtml;
         } else {
-          devEl.innerHTML = '<div class="pixi-device-body" aria-hidden="true"></div>';
+          devEl.innerHTML = '<div class="pixi-device-body" aria-hidden="true"></div>' + controlsHtml;
         }
 
         const earScrewsCount = Math.max(2, (dev.uHeight || 1) * 2);
