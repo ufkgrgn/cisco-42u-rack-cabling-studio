@@ -548,13 +548,49 @@
       activeFloatingDeviceId = null;
     };
     if (immediate) doHide();
-    else floatingControlsHideTimer = setTimeout(doHide, 150);
+    else floatingControlsHideTimer = setTimeout(doHide, 250);
+  }
+
+  function isPointerOverActiveDevice(clientX, clientY) {
+    if (!activeFloatingDeviceId) return false;
+    if (deviceFloatingControlsEl && deviceFloatingControlsEl.style.display !== 'none') {
+      const cRect = deviceFloatingControlsEl.getBoundingClientRect();
+      if (clientX >= cRect.left - 4 && clientX <= cRect.right + 4 &&
+          clientY >= cRect.top - 4 && clientY <= cRect.bottom + 4) {
+        return true;
+      }
+    }
+    const devEl = document.getElementById(activeFloatingDeviceId);
+    let dRect = devEl ? devEl.getBoundingClientRect() : null;
+    if (!dRect || dRect.width === 0) {
+      const rec = RS.DeviceSceneRegistry?.getDeviceRecord?.(activeFloatingDeviceId);
+      if (rec) {
+        const viewportHost = document.getElementById('viewport-canvas');
+        const vRect = viewportHost ? viewportHost.getBoundingClientRect() : { left: 0, top: 0 };
+        const scale = Number(RS.ZOOM_STATE?.scale) || 1;
+        const panX = Number(RS.ZOOM_STATE?.panX) || 0;
+        const panY = Number(RS.ZOOM_STATE?.panY) || 0;
+        const left = vRect.left + panX + rec.x * scale;
+        const top = vRect.top + panY + rec.y * scale;
+        dRect = { left, top, right: left + rec.width * scale, bottom: top + rec.height * scale };
+      }
+    }
+    if (dRect) {
+      return clientX >= dRect.left - 6 && clientX <= dRect.right + 6 &&
+             clientY >= dRect.top - 6 && clientY <= dRect.bottom + 6;
+    }
+    return false;
   }
 
   function updateDeviceFloatingControlsPosition(instanceId) {
     if (!deviceFloatingControlsEl || activeFloatingDeviceId !== instanceId) return;
     const viewportHost = document.getElementById('viewport-canvas');
     if (!viewportHost) return;
+    const scale = Number(RS.ZOOM_STATE?.scale) || 1;
+    if (scale < 0.28) {
+      deviceFloatingControlsEl.style.display = 'none';
+      return;
+    }
     const vRect = viewportHost.getBoundingClientRect();
     const devEl = document.getElementById(instanceId);
     let dRect = devEl ? devEl.getBoundingClientRect() : null;
@@ -562,7 +598,6 @@
     if (!dRect || dRect.width === 0) {
       const rec = RS.DeviceSceneRegistry?.getDeviceRecord?.(instanceId);
       if (rec) {
-        const scale = Number(RS.ZOOM_STATE?.scale) || 1;
         const panX = Number(RS.ZOOM_STATE?.panX) || 0;
         const panY = Number(RS.ZOOM_STATE?.panY) || 0;
         const left = vRect.left + panX + rec.x * scale;
@@ -574,10 +609,13 @@
     }
 
     if (dRect && dRect.width > 0) {
-      const top = Math.round(dRect.top - vRect.top + 3);
-      const right = Math.round(vRect.right - dRect.right + 18);
+      const pillScale = Math.max(0.35, Math.min(1.15, scale));
+      const top = Math.round(dRect.top - vRect.top + 3 * scale);
+      const right = Math.round(vRect.right - dRect.right + 14 * scale);
       deviceFloatingControlsEl.style.top = `${top}px`;
       deviceFloatingControlsEl.style.right = `${right}px`;
+      deviceFloatingControlsEl.style.transform = `scale(${pillScale})`;
+      deviceFloatingControlsEl.style.transformOrigin = 'top right';
       deviceFloatingControlsEl.style.display = 'flex';
     }
   }
@@ -626,8 +664,10 @@
           floatingControlsHideTimer = null;
         }
       });
-      deviceFloatingControlsEl.addEventListener('mouseleave', () => {
-        hideDeviceFloatingControls();
+      deviceFloatingControlsEl.addEventListener('mouseleave', (e) => {
+        if (!isPointerOverActiveDevice(e.clientX, e.clientY)) {
+          hideDeviceFloatingControls();
+        }
       });
     }
 
@@ -708,4 +748,6 @@
   RS.showDeviceFloatingControls = showDeviceFloatingControls;
   RS.hideDeviceFloatingControls = hideDeviceFloatingControls;
   RS.updateDeviceFloatingControlsPosition = updateDeviceFloatingControlsPosition;
+  RS.getActiveFloatingDeviceId = () => activeFloatingDeviceId;
+  RS.isPointerOverActiveDevice = isPointerOverActiveDevice;
 })();

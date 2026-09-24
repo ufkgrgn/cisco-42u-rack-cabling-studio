@@ -295,8 +295,17 @@
           if (!e || !PixiContext.pixiApp || !PixiContext.pixiCanvas || STATE?.cableRenderMode !== 'pixi') return;
 
           const target = e.target instanceof Element ? e.target : null;
-          const isHudOrMenuOpen = !!document.getElementById('cable-quick-hud') || !!document.getElementById('cable-context-menu') || !!document.querySelector('.modal.show, .modal.active');
-          const inHudOrMenu = !!target?.closest('#cable-quick-hud, #cable-context-menu, .cable-quick-hud, .cable-context-menu, .modal, #device-floating-controls, .device-controls-floating');
+          const inFloatingControls = !!target?.closest('#device-floating-controls, .device-controls-floating');
+          const isHudOrMenuOpen = !!document.getElementById('cable-quick-hud') || !!document.getElementById('cable-context-menu') || !!document.querySelector('.modal.show, .modal.active, .inline-delete-popover');
+          const inHudOrMenu = !!target?.closest('#cable-quick-hud, #cable-context-menu, .cable-quick-hud, .cable-context-menu, .modal, .inline-delete-popover');
+          if (inFloatingControls) {
+            if (isPointerOverCable) {
+              canvas.style.pointerEvents = 'none';
+              isPointerOverCable = false;
+            }
+            if (dom?.tooltip) dom.tooltip.style.display = 'none';
+            return;
+          }
           if (isHudOrMenuOpen || inHudOrMenu) {
             if (isPointerOverCable) {
               canvas.style.pointerEvents = 'none';
@@ -330,7 +339,13 @@
               RS.restoreDevicePortTint?.(currentPortKey);
               RS.dispatchDevicePortInteraction?.('leave');
             }
-            RS.setPixiDeviceHover?.(null);
+            const earDevice = target.closest?.('.mounted-device');
+            const earDeviceId = earDevice?.id || earDevice?.dataset?.instanceId || null;
+            if (earDeviceId) {
+              RS.setPixiDeviceHover?.(earDeviceId);
+            } else if (!RS.isPointerOverActiveDevice?.(e.clientX, e.clientY)) {
+              RS.setPixiDeviceHover?.(null);
+            }
             if (isPointerOverCable) {
               canvas.style.pointerEvents = 'none';
               isPointerOverCable = false;
@@ -349,6 +364,7 @@
               RS.restoreDevicePortTint?.(currentPortKey);
               RS.dispatchDevicePortInteraction?.('leave');
             }
+            RS.hideDeviceFloatingControls?.(true);
             if (hoveredCableId) setPixiHover(null);
             if (dom?.tooltip) dom.tooltip.style.display = 'none';
             return;
@@ -356,7 +372,11 @@
 
           const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
           const hitDev = RS.hitDeviceBodyAt?.(e.clientX, e.clientY);
-          RS.setPixiDeviceHover?.(hitDev?.instanceId || (port ? port.instanceId : null));
+          let targetDevId = hitDev?.instanceId || (port ? port.instanceId : null);
+          if (!targetDevId && RS.isPointerOverActiveDevice?.(e.clientX, e.clientY)) {
+            targetDevId = RS.getActiveFloatingDeviceId?.();
+          }
+          RS.setPixiDeviceHover?.(targetDevId);
           const portKey = port ? `${port.instanceId}::${port.portId}` : null;
           const previousPortKey = RS.getHoveredDevicePortKey?.();
           if (portKey !== previousPortKey) {

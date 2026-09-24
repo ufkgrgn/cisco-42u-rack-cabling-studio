@@ -80,6 +80,10 @@
     const pixiSyncStarted = performance.now();
     RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
     cameraPerformanceTelemetry.totalPixiSyncDurationMs += performance.now() - pixiSyncStarted;
+    const activeDevId = RS.getActiveFloatingDeviceId?.();
+    if (activeDevId) {
+      RS.updateDeviceFloatingControlsPosition?.(activeDevId);
+    }
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
       RS.dom.zoomBadge.textContent = zoomBadgeValue;
