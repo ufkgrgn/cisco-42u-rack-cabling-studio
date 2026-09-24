@@ -532,6 +532,172 @@
     });
   }
 
+  let deviceFloatingControlsEl = null;
+  let activeFloatingDeviceId = null;
+  let floatingControlsHideTimer = null;
+
+  function hideDeviceFloatingControls(immediate = false) {
+    if (floatingControlsHideTimer) {
+      clearTimeout(floatingControlsHideTimer);
+      floatingControlsHideTimer = null;
+    }
+    const doHide = () => {
+      if (deviceFloatingControlsEl) {
+        deviceFloatingControlsEl.style.display = 'none';
+      }
+      activeFloatingDeviceId = null;
+    };
+    if (immediate) doHide();
+    else floatingControlsHideTimer = setTimeout(doHide, 150);
+  }
+
+  function updateDeviceFloatingControlsPosition(instanceId) {
+    if (!deviceFloatingControlsEl || activeFloatingDeviceId !== instanceId) return;
+    const viewportHost = document.getElementById('viewport-canvas');
+    if (!viewportHost) return;
+    const vRect = viewportHost.getBoundingClientRect();
+    const devEl = document.getElementById(instanceId);
+    let dRect = devEl ? devEl.getBoundingClientRect() : null;
+
+    if (!dRect || dRect.width === 0) {
+      const rec = RS.DeviceSceneRegistry?.getDeviceRecord?.(instanceId);
+      if (rec) {
+        const scale = Number(RS.ZOOM_STATE?.scale) || 1;
+        const panX = Number(RS.ZOOM_STATE?.panX) || 0;
+        const panY = Number(RS.ZOOM_STATE?.panY) || 0;
+        const left = vRect.left + panX + rec.x * scale;
+        const top = vRect.top + panY + rec.y * scale;
+        const width = rec.width * scale;
+        const height = rec.height * scale;
+        dRect = { left, top, right: left + width, bottom: top + height, width, height };
+      }
+    }
+
+    if (dRect && dRect.width > 0) {
+      const top = Math.round(dRect.top - vRect.top + 3);
+      const right = Math.round(vRect.right - dRect.right + 18);
+      deviceFloatingControlsEl.style.top = `${top}px`;
+      deviceFloatingControlsEl.style.right = `${right}px`;
+      deviceFloatingControlsEl.style.display = 'flex';
+    }
+  }
+
+  function showDeviceFloatingControls(instanceId) {
+    if (!instanceId) {
+      hideDeviceFloatingControls();
+      return;
+    }
+    if (floatingControlsHideTimer) {
+      clearTimeout(floatingControlsHideTimer);
+      floatingControlsHideTimer = null;
+    }
+    if (activeFloatingDeviceId === instanceId && deviceFloatingControlsEl && deviceFloatingControlsEl.style.display !== 'none') {
+      updateDeviceFloatingControlsPosition(instanceId);
+      return;
+    }
+
+    const dev = RS.getDeviceById ? RS.getDeviceById(instanceId) : null;
+    if (!dev) {
+      hideDeviceFloatingControls(true);
+      return;
+    }
+    const cat = (HARDWARE_CATALOG && HARDWARE_CATALOG[dev.catalogKey]) || (RS.catalog && RS.catalog[dev.catalogKey]) || RS.resolveCatalogItem?.(dev.catalogKey) || {};
+    const devCables = (STATE.cables || []).filter(c => c.from?.instanceId === instanceId || c.to?.instanceId === instanceId);
+    const occupiedCount = devCables.length;
+    const hasCables = occupiedCount > 0;
+    const isSwitch = cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact';
+    const isPatch = cat.category === 'patch' || cat.category === 'fiber';
+    const isOrg = cat.category === 'organizer';
+    const isBlank = cat.category === 'blank';
+    const isFinger = isOrg && (cat.subType === 'finger-duct' || /finger/i.test(cat.name || ''));
+    const connPorts = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
+    const hasFree = connPorts > occupiedCount;
+
+    if (!deviceFloatingControlsEl) {
+      deviceFloatingControlsEl = document.createElement('div');
+      deviceFloatingControlsEl.id = 'device-floating-controls';
+      deviceFloatingControlsEl.className = 'device-controls-floating';
+      const host = document.getElementById('viewport-canvas') || document.body;
+      host.appendChild(deviceFloatingControlsEl);
+
+      deviceFloatingControlsEl.addEventListener('mouseenter', () => {
+        if (floatingControlsHideTimer) {
+          clearTimeout(floatingControlsHideTimer);
+          floatingControlsHideTimer = null;
+        }
+      });
+      deviceFloatingControlsEl.addEventListener('mouseleave', () => {
+        hideDeviceFloatingControls();
+      });
+    }
+
+    activeFloatingDeviceId = instanceId;
+    deviceFloatingControlsEl.dataset.instanceId = instanceId;
+
+    let btns = '';
+    if (hasFree && (isSwitch || isPatch || cat.category === 'router')) {
+      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${instanceId}" title="Boş portları akıllıca bağla (Auto-Fill)">⚡</button>`;
+    }
+    if (hasCables) {
+      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>`;
+      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları temizle / sök">✂️</button>`;
+    }
+    if (isFinger) {
+      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${instanceId}" title="Kanal Kapağını Aç/Kapat">📂</button>`;
+    }
+    if (!isOrg && !isBlank) {
+      btns += `<button type="button" class="dev-btn cfg-device-btn" data-instance-id="${instanceId}" title="Cihaz Ayarları & Bilgileri">⚙️</button>`;
+    }
+    const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
+    btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${instanceId}" title="${delTitle}">✕</button>`;
+    deviceFloatingControlsEl.innerHTML = btns;
+
+    deviceFloatingControlsEl.querySelectorAll('.dev-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const instId = activeFloatingDeviceId;
+        if (!instId) return;
+
+        if (btn.classList.contains('del-device-btn')) {
+          const d = RS.getDeviceById ? RS.getDeviceById(instId) : null;
+          const c = d ? ((HARDWARE_CATALOG && HARDWARE_CATALOG[d.catalogKey]) || RS.resolveCatalogItem?.(d.catalogKey) || {}) : {};
+          const name = d?.hostname || d?.name || d?.panelLabel || c.name || 'Cihaz';
+          const cables = (STATE.cables || []).filter(item => item.from?.instanceId === instId || item.to?.instanceId === instId);
+          if (RS.showInlineDeleteConfirm) {
+            RS.showInlineDeleteConfirm(btn, name, { category: c.category, cableCount: cables.length }, () => {
+              hideDeviceFloatingControls(true);
+              RS.removeDevice?.(instId);
+            });
+          } else {
+            hideDeviceFloatingControls(true);
+            RS.removeDevice?.(instId);
+          }
+        } else if (btn.classList.contains('autofill-device-btn')) {
+          RS.openSwitchAutoFillPopover?.(btn, instId);
+        } else if (btn.classList.contains('color-device-cables-btn')) {
+          RS.openSwitchBulkColorPopover?.(btn, instId);
+        } else if (btn.classList.contains('clear-device-cables-btn')) {
+          RS.clearDeviceCables?.(instId, btn);
+          showDeviceFloatingControls(instId);
+        } else if (btn.classList.contains('cfg-device-btn')) {
+          window.DeviceMetadataEditor?.open2D(instId);
+        } else if (btn.classList.contains('finger-toggle-btn')) {
+          RS.toggleOrganizerCover?.(instId);
+        }
+      });
+    });
+
+    updateDeviceFloatingControlsPosition(instanceId);
+  }
+
+  window.addEventListener('rackstudio:zoom', () => {
+    if (activeFloatingDeviceId) updateDeviceFloatingControlsPosition(activeFloatingDeviceId);
+  });
+  window.addEventListener('resize', () => {
+    if (activeFloatingDeviceId) updateDeviceFloatingControlsPosition(activeFloatingDeviceId);
+  });
+
   RS.showCableQuickHud = showCableQuickHud;
   RS.hideCableQuickHud = hideCableQuickHud;
   RS.showCableContextMenu = showCableContextMenu;
@@ -539,4 +705,7 @@
   RS.showDeviceContextMenu = showDeviceContextMenu;
   RS.hideDeviceContextMenu = hideDeviceContextMenu;
   RS.highlightDropSlots = highlightDropSlots;
+  RS.showDeviceFloatingControls = showDeviceFloatingControls;
+  RS.hideDeviceFloatingControls = hideDeviceFloatingControls;
+  RS.updateDeviceFloatingControlsPosition = updateDeviceFloatingControlsPosition;
 })();

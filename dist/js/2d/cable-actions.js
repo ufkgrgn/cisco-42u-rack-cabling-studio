@@ -24,6 +24,7 @@
       STATE.pendingConnection.element.classList.remove('selected');
     }
     STATE.pendingConnection = null;
+    RS.refreshPixiPortHighlights?.();
     if (dom.connectionStatusHint) {
       dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
     }

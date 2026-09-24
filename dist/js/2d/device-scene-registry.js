@@ -66,7 +66,7 @@
   }
 
   function withMeasurableFaceplate(deviceEl, measure) {
-    const nodes = deviceEl.querySelectorAll('.device-faceplate, .organizer-faceplate, .blank-faceplate, .ports-area');
+    const nodes = deviceEl.querySelectorAll(':scope > .device-faceplate, :scope > .organizer-faceplate, :scope > .blank-faceplate');
     const previous = [];
     nodes.forEach(node => {
       previous.push(node.style.cssText);

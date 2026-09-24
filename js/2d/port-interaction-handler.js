@@ -389,6 +389,7 @@
       };
 
       portEl.classList.add('selected');
+      RS.refreshPixiPortHighlights?.();
       const dev = devRack.devices.find(d => d.instanceId === instanceId);
       const cat = dev ? resolveCatalogItem(dev.catalogKey) : null;
       const port = cat ? cat.ports.find(p => p.id === portId) : null;

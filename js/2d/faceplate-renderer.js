@@ -612,7 +612,8 @@
     const occupiedCount = cat.ports ? cat.ports.filter(p => p.type !== 'power' && occupiedPortKeys.has(portKey(dev.instanceId, p.id))).length : 0;
     const connectablePortsCount = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
     const hasFreePorts = isSwitch && connectablePortsCount > occupiedCount;
-    const faceplateStencil = isSwitch && cat.faceplate?.stencil ? cat.faceplate : null;
+    const isPixiMode = STATE.cableRenderMode === 'pixi' || (typeof document !== 'undefined' && document.documentElement?.getAttribute('data-device-renderer') === 'pixi');
+    const faceplateStencil = !isPixiMode && isSwitch && cat.faceplate?.stencil ? cat.faceplate : null;
     const portsRect = faceplateStencil?.portsRect || { left: 32, top: 12, width: 58, height: 76 };
     const faceplateStyle = faceplateStencil
       ? ` style="--fp-ports-left:${Number(portsRect.left) || 0}%;--fp-ports-top:${Number(portsRect.top) || 0}%;--fp-ports-width:${Number(portsRect.width) || 100}%;--fp-ports-height:${Number(portsRect.height) || 100}%;"`

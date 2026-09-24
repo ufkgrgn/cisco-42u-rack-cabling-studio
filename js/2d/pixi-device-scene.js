@@ -257,23 +257,45 @@
     const multi = !!el?.classList.contains('studio-multi-selected');
     const selected = multi || !!el?.classList.contains('studio-selected');
     const hovered = hoveredDeviceId === id && !selected;
-    if (!selected && !hovered) return;
-    const color = multi ? 0xa855f7 : 0x38bdf8;
-    const alpha = hovered ? 0.75 : 1;
-    const w = entry.width;
-    const h = entry.height;
-    const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
-    const t = Math.max(1.5, Math.min(2.4, h * 0.08));
-    const bars = [
-      [0, 0, arm, t], [0, 0, t, arm],
-      [w - arm, 0, arm, t], [w - t, 0, t, arm],
-      [0, h - t, arm, t], [0, h - arm, t, arm],
-      [w - arm, h - t, arm, t], [w - t, h - arm, t, arm]
-    ];
-    bars.forEach(([x, y, bw, bh]) => graphics.rect(x, y, bw, bh).fill({ color, alpha }));
+    if (selected || hovered) {
+      const color = multi ? 0xa855f7 : 0x38bdf8;
+      const alpha = hovered ? 0.75 : 1;
+      const w = entry.width, h = entry.height;
+      const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
+      const t = Math.max(1.5, Math.min(2.4, h * 0.08));
+      const bars = [
+        [0, 0, arm, t], [0, 0, t, arm], [w - arm, 0, arm, t], [w - t, 0, t, arm],
+        [0, h - t, arm, t], [0, h - arm, t, arm], [w - arm, h - t, arm, t], [w - t, h - arm, t, arm]
+      ];
+      bars.forEach(([x, y, bw, bh]) => graphics.rect(x, y, bw, bh).fill({ color, alpha }));
+    }
+
+    const pending = STATE?.pendingConnection;
+    if (pending && String(pending.instanceId) === id) {
+      const sprite = devicePortSprites.get(`${id}::${pending.portId}`);
+      if (sprite) {
+        graphics.roundRect(sprite.x - 4, sprite.y - 4, sprite.width + 8, sprite.height + 8, 4)
+          .fill({ color: 0x00e5ff, alpha: 0.35 }).stroke({ width: 2, color: 0x22d3ee, alpha: 0.95 });
+        graphics.roundRect(sprite.x - 1.5, sprite.y - 1.5, sprite.width + 3, sprite.height + 3, 2.5)
+          .stroke({ width: 1.5, color: 0xffffff, alpha: 0.95 });
+      }
+    }
+
+    if (hoveredDevicePortKey) {
+      const [hDevId, hPortId] = hoveredDevicePortKey.split('::');
+      if (hDevId === id && (!pending || String(pending.portId) !== hPortId)) {
+        const sprite = devicePortSprites.get(hoveredDevicePortKey);
+        if (sprite) {
+          graphics.roundRect(sprite.x - 2, sprite.y - 2, sprite.width + 4, sprite.height + 4, 3)
+            .fill({ color: 0x38bdf8, alpha: 0.2 }).stroke({ width: 1.5, color: 0x38bdf8, alpha: 0.9 });
+        }
+      }
+    }
   }
 
   function syncPixiDeviceSelection(options) {
+    const selectedId = STATE.selectedDeviceId || document.querySelector('.mounted-device.studio-selected')?.id;
+    if (selectedId) RS.showDeviceFloatingControls?.(selectedId);
     deviceContainers.forEach(entry => paintDeviceChrome(entry));
     if (!options || options.render !== false) PixiContext.renderPixi?.('device-selection');
   }
@@ -292,6 +314,9 @@
       const nextEl = document.getElementById(next);
       if (nextEl) nextEl.classList.add('pixi-hovered');
       if (deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
+      RS.showDeviceFloatingControls?.(next);
+    } else {
+      RS.hideDeviceFloatingControls?.();
     }
     PixiContext.renderPixi?.('device-hover');
     return true;
@@ -663,42 +688,13 @@
     deviceOccupancyChanged = false;
   }
 
-  function getDeviceContainer(instanceId) {
-    return deviceContainers.get(String(instanceId))?.container || null;
-  }
-
-  function getDevicePosition(instanceId) {
-    const dev = deviceContainers.get(String(instanceId));
-    if (!dev) return null;
-    return { x: dev.container.x, y: dev.container.y, originX: dev.originX, originY: dev.originY };
-  }
-
-  function setDevicePosition(instanceId, x, y) {
-    const dev = deviceContainers.get(String(instanceId));
-    if (!dev) return false;
-    dev.container.position.set(x, y);
-    return true;
-  }
-
-  function moveDeviceByOffset(instanceId, dx, dy) {
-    const dev = deviceContainers.get(String(instanceId));
-    if (!dev) return false;
-    dev.container.position.set(dev.originX + dx, dev.originY + dy);
-    return true;
-  }
-
-  function resetDevicePosition(instanceId) {
-    const dev = deviceContainers.get(String(instanceId));
-    if (!dev) return false;
-    dev.container.position.set(dev.originX, dev.originY);
-    return true;
-  }
-
-  function resetAllDevicePositions() {
-    deviceContainers.forEach(dev => {
-      dev.container.position.set(dev.originX, dev.originY);
-    });
-  }
+  const getDeviceContainer = (id) => deviceContainers.get(String(id))?.container || null;
+  const getDevicePosition = (id) => { const dev = deviceContainers.get(String(id)); return dev ? { x: dev.container.x, y: dev.container.y, originX: dev.originX, originY: dev.originY } : null; };
+  const setDevicePosition = (id, x, y) => { const dev = deviceContainers.get(String(id)); if (!dev) return false; dev.container.position.set(x, y); return true; };
+  const moveDeviceByOffset = (id, dx, dy) => { const dev = deviceContainers.get(String(id)); if (!dev) return false; dev.container.position.set(dev.originX + dx, dev.originY + dy); return true; };
+  const resetDevicePosition = (id) => { const dev = deviceContainers.get(String(id)); if (!dev) return false; dev.container.position.set(dev.originX, dev.originY); return true; };
+  const resetAllDevicePositions = () => { deviceContainers.forEach(dev => dev.container.position.set(dev.originX, dev.originY)); };
+  const refreshPixiPortHighlights = () => { deviceContainers.forEach(entry => paintDeviceChrome(entry)); PixiContext.renderPixi?.('port-highlights'); };
 
   // Export to RackStudio namespace
   RS.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
@@ -733,6 +729,7 @@
   RS.resetPixiDevicePositions = resetAllDevicePositions;
   RS.hitDeviceChassisAt = hitDeviceBodyAt;
   RS.updatePixiDeviceSelection = syncPixiDeviceSelection;
+  RS.refreshPixiPortHighlights = refreshPixiPortHighlights;
 
   RS.PixiDeviceScene = {
     syncPixiDeviceSceneLOD,
