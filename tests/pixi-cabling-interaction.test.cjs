@@ -982,18 +982,10 @@ async function run() {
 
       const patchPort1World = RS.DeviceSceneRegistry.getPortPoint(patch.instanceId, 'pt1');
       const patchPort2World = RS.DeviceSceneRegistry.getPortPoint(patch.instanceId, 'pt2');
-      const patchPort1Rect = {
-        left: viewportRect.left + RS.ZOOM_STATE.panX + patchPort1World.x * RS.ZOOM_STATE.scale,
-        top: viewportRect.top + RS.ZOOM_STATE.panY + patchPort1World.y * RS.ZOOM_STATE.scale,
-        width: patchPort1World.width * RS.ZOOM_STATE.scale,
-        height: patchPort1World.height * RS.ZOOM_STATE.scale
-      };
-      const patchPort2Rect = {
-        left: viewportRect.left + RS.ZOOM_STATE.panX + patchPort2World.x * RS.ZOOM_STATE.scale,
-        top: viewportRect.top + RS.ZOOM_STATE.panY + patchPort2World.y * RS.ZOOM_STATE.scale,
-        width: patchPort2World.width * RS.ZOOM_STATE.scale,
-        height: patchPort2World.height * RS.ZOOM_STATE.scale
-      };
+      const toScreen = point => ({
+        x: viewportRect.left + RS.ZOOM_STATE.panX + point.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + point.y * RS.ZOOM_STATE.scale
+      });
 
       return {
         swId: sw.instanceId,
@@ -1001,8 +993,8 @@ async function run() {
         swPort1: swPort1Screen,
         swPort2: swPort2Screen,
         swPort3: swPort3Screen,
-        patchPort1: { x: patchPort1Rect.left + patchPort1Rect.width / 2, y: patchPort1Rect.top + patchPort1Rect.height / 2 },
-        patchPort2: { x: patchPort2Rect.left + patchPort2Rect.width / 2, y: patchPort2Rect.top + patchPort2Rect.height / 2 }
+        patchPort1: toScreen(patchPort1World),
+        patchPort2: toScreen(patchPort2World)
       };
     });
 

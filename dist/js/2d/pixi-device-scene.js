@@ -273,9 +273,9 @@
     bars.forEach(([x, y, bw, bh]) => graphics.rect(x, y, bw, bh).fill({ color, alpha }));
   }
 
-  function syncPixiDeviceSelection() {
+  function syncPixiDeviceSelection(options) {
     deviceContainers.forEach(entry => paintDeviceChrome(entry));
-    PixiContext.renderPixi?.('device-selection');
+    if (!options || options.render !== false) PixiContext.renderPixi?.('device-selection');
   }
 
   function setPixiDeviceHover(instanceId) {
@@ -633,7 +633,7 @@
       }
     }
     revealDeviceSprites();
-    syncPixiDeviceSelection();
+    syncPixiDeviceSelection({ render: false });
     lastDeviceGeometrySignature = geometrySignature;
     lastDevicePresentationKey = presentationKey;
     lastDeviceSceneSignature = `${geometrySignature}|${cachedOccupancyCableCount}:${cachedOccupancyEndpointCount}:${cachedOccupancyHashA}:${cachedOccupancyHashB}`;

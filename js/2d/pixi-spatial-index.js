@@ -247,12 +247,18 @@
     PixiContext.renderPixi?.('selection');
   }
 
+  function pointerOnDomChrome(e) {
+    const target = e.target instanceof Element ? e.target : null;
+    return !!target?.closest?.('.device-ear-handle, .u-label, .slot-label, #rack-u-action-menu');
+  }
+
   function attachHitDetection(canvasArg) {
     const pixiCanvas = canvasArg || PixiContext.pixiCanvas;
     if (!pixiCanvas) return;
 
     const onDblClick = (e) => {
       if (STATE?.cableRenderMode !== 'pixi') return;
+      if (pointerOnDomChrome(e)) return;
       if (e.target?.closest?.('#cable-quick-hud, #cable-context-menu, .modal, input, button')) return;
       const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
       if (port) {
@@ -317,6 +323,21 @@
             return;
           }
 
+          if (target?.closest?.('.device-ear-handle, .u-label, .slot-label')) {
+            const currentPortKey = RS.getHoveredDevicePortKey?.();
+            if (currentPortKey) {
+              RS.setHoveredDevicePortKey?.(null);
+              RS.restoreDevicePortTint?.(currentPortKey);
+              RS.dispatchDevicePortInteraction?.('leave');
+            }
+            RS.setPixiDeviceHover?.(null);
+            if (isPointerOverCable) {
+              canvas.style.pointerEvents = 'none';
+              isPointerOverCable = false;
+            }
+            return;
+          }
+
           if (RS.ZOOM_STATE?.isPanning || RS.ZOOM_STATE?.isFocusing || RS.isDraggingDevice) {
             if (isPointerOverCable) {
               canvas.style.pointerEvents = 'none';
@@ -366,6 +387,7 @@
 
       window.addEventListener('pointerdown', (e) => {
         if (STATE?.cableRenderMode !== 'pixi' || e.button !== 0) return;
+        if (pointerOnDomChrome(e)) return;
         const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
         if (!port) return;
         e.preventDefault();
@@ -376,12 +398,14 @@
 
       window.addEventListener('click', (e) => {
         if (STATE?.cableRenderMode !== 'pixi') return;
+        if (pointerOnDomChrome(e)) return;
         const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
         if (port) e.stopPropagation();
       }, { capture: true });
 
       window.addEventListener('contextmenu', (e) => {
         if (STATE?.cableRenderMode !== 'pixi' || !PixiContext.pixiApp || !PixiContext.pixiCanvas) return;
+        if (pointerOnDomChrome(e)) return;
         const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
         if (port) {
           e.preventDefault();

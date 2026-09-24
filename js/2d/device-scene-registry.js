@@ -65,6 +65,27 @@
     };
   }
 
+  function withMeasurableFaceplate(deviceEl, measure) {
+    const nodes = deviceEl.querySelectorAll('.device-faceplate, .organizer-faceplate, .blank-faceplate, .ports-area');
+    const previous = [];
+    nodes.forEach(node => {
+      previous.push(node.style.cssText);
+      node.style.setProperty('display', 'flex', 'important');
+      node.style.setProperty('visibility', 'hidden', 'important');
+      node.style.setProperty('position', 'absolute', 'important');
+      node.style.setProperty('inset', '0', 'important');
+      node.style.setProperty('pointer-events', 'none', 'important');
+    });
+    if (nodes.length) void deviceEl.offsetWidth;
+    try {
+      return measure();
+    } finally {
+      nodes.forEach((node, index) => {
+        node.style.cssText = previous[index];
+      });
+    }
+  }
+
   function buildTemplate(deviceEl, deviceRect, catalogKey) {
     const ports = new Map();
     const portEls = deviceEl.querySelectorAll('.port[data-port-id]');
@@ -73,6 +94,7 @@
 
     portEls.forEach(portEl => {
       const rect = portEl.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
       stats.templatePortRectReads++;
       ports.set(String(portEl.dataset.portId), Object.freeze({
         nx: (rect.left + rect.width / 2 - deviceRect.left) / safeWidth,
@@ -84,6 +106,13 @@
         speed: portEl.dataset.portSpeed || ''
       }));
     });
+
+    if (portEls.length && ports.size !== portEls.length) return null;
+    if (ports.size > 1) {
+      const samples = [...ports.values()];
+      const collapsed = samples.every(port => Math.abs(port.nx - samples[0].nx) < 0.001 && Math.abs(port.ny - samples[0].ny) < 0.001);
+      if (collapsed) return null;
+    }
 
     const template = Object.freeze({ catalogKey, ports });
     catalogTemplates.set(catalogKey, template);
@@ -134,8 +163,11 @@
       if (rect.width <= 0 || rect.height <= 0) return;
 
       let template = catalogTemplates.get(catalogKey);
-      if (!template) template = buildTemplate(deviceEl, rect, catalogKey);
-      else stats.templateHits++;
+      if (!template) {
+        template = withMeasurableFaceplate(deviceEl, () => buildTemplate(deviceEl, deviceEl.getBoundingClientRect(), catalogKey));
+        stats.deviceRectReads++;
+      } else stats.templateHits++;
+      if (!template) return;
 
       const topLeft = clientToWorld(rect.left, rect.top, transform);
       const bottomRight = clientToWorld(rect.right, rect.bottom, transform);
