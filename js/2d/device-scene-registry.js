@@ -91,6 +91,29 @@
     return template;
   }
 
+  function hasTemplate(catalogKey) {
+    return catalogTemplates.has(String(catalogKey || ''));
+  }
+
+  function stripLiveFaceplates() {
+    let stripped = 0;
+    document.querySelectorAll('.mounted-device').forEach(deviceEl => {
+      deviceEl.querySelectorAll('.device-faceplate, .organizer-faceplate, .blank-faceplate, .ports-area').forEach(node => {
+        node.remove();
+        stripped++;
+      });
+      if (!deviceEl.querySelector('.pixi-device-body')) {
+        const body = document.createElement('div');
+        body.className = 'pixi-device-body';
+        body.setAttribute('aria-hidden', 'true');
+        const rightEar = deviceEl.querySelector('.device-ear-right');
+        if (rightEar) deviceEl.insertBefore(body, rightEar);
+        else deviceEl.appendChild(body);
+      }
+    });
+    return stripped;
+  }
+
   function captureFromDom(reason) {
     const transform = getViewportTransform();
     if (!transform) return false;
@@ -338,6 +361,8 @@
 
   RS.DeviceSceneRegistry = Object.freeze({
     captureFromDom,
+    hasTemplate,
+    stripLiveFaceplates,
     pruneDevice,
     invalidate,
     getPortPoint,

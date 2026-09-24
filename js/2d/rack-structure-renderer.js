@@ -421,7 +421,7 @@
           <div class="rack-resize-handle" id="rack-resize-handle" title="Kabin Yüksekliğini Ayarlamak İçin Sürükleyin (Alt Kenar)">
             <span class="rack-resize-grip"></span>
           </div>
-          <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:${STATE.cableRenderMode === 'pixi' ? 'none' : 'block'};">
+          <svg class="cables-svg-layer" id="cables-svg" viewBox="0 0 618 ${heightU * 32}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:none;">
             <defs>
               <filter id="cable-shadow" x="-10%" y="-10%" width="120%" height="120%">
                 <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.6"/>

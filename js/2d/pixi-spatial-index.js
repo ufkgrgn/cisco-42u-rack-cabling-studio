@@ -261,6 +261,12 @@
         RS.dispatchDevicePortInteraction?.('dblclick', port);
         return;
       }
+      const body = RS.hitDeviceBodyAt?.(e.clientX, e.clientY);
+      if (body && RS.FaceplateTextures?.isFingerOrganizer?.(body)) {
+        e.preventDefault();
+        RS.toggleOrganizerCover?.(body.instanceId);
+        return;
+      }
       const cableId = hitCableAt(e.clientX, e.clientY);
       if (!cableId) return;
       e.preventDefault();
@@ -328,6 +334,7 @@
           }
 
           const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+          RS.setPixiDeviceHover?.(port ? null : (RS.hitDeviceBodyAt?.(e.clientX, e.clientY)?.instanceId || null));
           const portKey = port ? `${port.instanceId}::${port.portId}` : null;
           const previousPortKey = RS.getHoveredDevicePortKey?.();
           if (portKey !== previousPortKey) {

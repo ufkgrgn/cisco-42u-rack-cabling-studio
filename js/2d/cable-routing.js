@@ -255,281 +255,44 @@
 
   function getDRingBracketCoords(organizer, contRect, curScale) {
     const el = document.getElementById(organizer.instanceId);
-    if (!el) return [];
+    if (!el || !contRect) return [];
     const brackets = el.querySelectorAll('.dring-bracket');
-    if (!brackets || !brackets.length) return [];
+    if (brackets && brackets.length) {
+      const coords = [];
+      brackets.forEach((bEl, idx) => {
+        const rect = bEl.getBoundingClientRect();
+        coords.push({
+          index: idx,
+          x: (rect.left + rect.width / 2 - (contRect.left + 8 * curScale)) / curScale,
+          y: (rect.top + rect.height / 2 - (contRect.top + 8 * curScale)) / curScale,
+          width: rect.width / curScale,
+          height: rect.height / curScale
+        });
+      });
+      return coords;
+    }
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return [];
+    const count = 5;
+    const slot = rect.width / count;
     const coords = [];
-    brackets.forEach((bEl, idx) => {
-      const rect = bEl.getBoundingClientRect();
+    for (let idx = 0; idx < count; idx++) {
+      const cx = rect.left + slot * (idx + 0.5);
+      const cy = rect.top + rect.height / 2;
       coords.push({
         index: idx,
-        x: (rect.left + rect.width / 2 - (contRect.left + 8 * curScale)) / curScale,
-        y: (rect.top + rect.height / 2 - (contRect.top + 8 * curScale)) / curScale,
-        width: rect.width / curScale,
-        height: rect.height / curScale
+        x: (cx - (contRect.left + 8 * curScale)) / curScale,
+        y: (cy - (contRect.top + 8 * curScale)) / curScale,
+        width: (slot * 0.62) / curScale,
+        height: (rect.height * 0.7) / curScale
       });
-    });
+    }
     return coords;
   }
 
-  function renderOrganizerOverlays(activeRack, clientToSvg) {
+  function renderOrganizerOverlays() {
     const overlayGroup = dom.dringOverlayGroup || document.getElementById('dring-overlay-group');
-    if (!overlayGroup) return;
-
-    const svgEl = dom.cablesSvg || document.getElementById('cables-svg');
-    if (!svgEl) return;
-
-    let toSvg = clientToSvg;
-    if (!toSvg) {
-      const ctmInv = svgEl.getScreenCTM ? svgEl.getScreenCTM()?.inverse() : null;
-      const svgPoint = svgEl.createSVGPoint ? svgEl.createSVGPoint() : null;
-      if (ctmInv && svgPoint) {
-        toSvg = (cx, cy) => {
-          svgPoint.x = cx;
-          svgPoint.y = cy;
-          const pt = svgPoint.matrixTransform(ctmInv);
-          return { x: pt.x, y: pt.y };
-        };
-      }
-    }
-    if (!toSvg) return;
-
-    // Phase 1: Batch all DOM getBoundingClientRect() reads BEFORE writing any SVG nodes
-    const dringElements = Array.from(document.querySelectorAll('.dring-faceplate .dring-loop'));
-    const dringRects = dringElements.map(el => el.getBoundingClientRect());
-
-    const brushElements = Array.from(document.querySelectorAll('.brush-faceplate .brush-slot'));
-    const brushRects = brushElements.map(el => el.getBoundingClientRect());
-
-    const fingerPlates = Array.from(document.querySelectorAll('.finger-duct-faceplate'));
-    const fingerData = fingerPlates.map(fpEl => {
-      const tines = Array.from(fpEl.querySelectorAll('.finger-tine'));
-      const tineRects = tines.map(tEl => tEl.getBoundingClientRect());
-      const coverEl = fpEl.querySelector('.finger-duct-cover');
-      const coverRect = coverEl ? coverEl.getBoundingClientRect() : null;
-      const labelEl = fpEl.querySelector('.finger-duct-label');
-      const labelText = labelEl ? (labelEl.textContent || '') : '';
-      return { tineRects, coverRect, labelText };
-    });
-
-    // Phase 2: Batch DOM writes using a DocumentFragment
-    const frag = document.createDocumentFragment();
-
-    // 1. D-Ring Overlays
-    dringRects.forEach(rect => {
-      if (!rect || rect.width <= 0 || rect.height <= 0) return;
-
-      const p1 = toSvg(rect.left, rect.top);
-      const p2 = toSvg(rect.right, rect.bottom);
-      const x = p1.x;
-      const y = p1.y;
-      const w = p2.x - p1.x;
-      const h = p2.y - p1.y;
-
-      if (w <= 0 || h <= 0) return;
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('class', 'dring-svg-bracket');
-      g.setAttribute('style', 'pointer-events:none;');
-
-      const apW = w * (26 / 38);
-      const apH = h * (12 / 22);
-      const apX = x + (w - apW) / 2;
-      const apY = y + (h - apH) / 2;
-      const rx = 4 * (w / 38);
-      const apRx = 2 * (w / 38);
-
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const d = `
-        M ${x + rx} ${y}
-        h ${w - 2 * rx}
-        a ${rx} ${rx} 0 0 1 ${rx} ${rx}
-        v ${h - 2 * rx}
-        a ${rx} ${rx} 0 0 1 -${rx} ${rx}
-        h -${w - 2 * rx}
-        a ${rx} ${rx} 0 0 1 -${rx} -${rx}
-        v -${h - 2 * rx}
-        a ${rx} ${rx} 0 0 1 ${rx} -${rx}
-        Z
-        M ${apX + apRx} ${apY}
-        h ${apW - 2 * apRx}
-        a ${apRx} ${apRx} 0 0 1 ${apRx} ${apRx}
-        v ${apH - 2 * apRx}
-        a ${apRx} ${apRx} 0 0 1 -${apRx} ${apRx}
-        h -${apW - 2 * apRx}
-        a ${apRx} ${apRx} 0 0 1 -${apRx} -${apRx}
-        v -${apH - 2 * apRx}
-        a ${apRx} ${apRx} 0 0 1 ${apRx} -${apRx}
-        Z
-      `;
-      path.setAttribute('d', d.trim().replace(/\s+/g, ' '));
-      path.setAttribute('fill', '#141b26');
-      path.setAttribute('fill-rule', 'evenodd');
-      path.setAttribute('stroke', 'none');
-      g.appendChild(path);
-
-      const outerRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      outerRect.setAttribute('x', x.toFixed(2));
-      outerRect.setAttribute('y', y.toFixed(2));
-      outerRect.setAttribute('width', w.toFixed(2));
-      outerRect.setAttribute('height', h.toFixed(2));
-      outerRect.setAttribute('rx', rx.toFixed(2));
-      outerRect.setAttribute('fill', 'none');
-      outerRect.setAttribute('stroke', '#56687e');
-      outerRect.setAttribute('stroke-width', (1.8 * (w / 38)).toFixed(2));
-      g.appendChild(outerRect);
-
-      const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      highlight.setAttribute('d', `M ${(x + rx).toFixed(2)} ${(y + 0.8).toFixed(2)} h ${(w - 2 * rx).toFixed(2)}`);
-      highlight.setAttribute('stroke', 'rgba(255, 255, 255, 0.25)');
-      highlight.setAttribute('stroke-width', (0.8 * (w / 38)).toFixed(2));
-      highlight.setAttribute('stroke-linecap', 'round');
-      g.appendChild(highlight);
-
-      const apBorder = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      apBorder.setAttribute('x', apX.toFixed(2));
-      apBorder.setAttribute('y', apY.toFixed(2));
-      apBorder.setAttribute('width', apW.toFixed(2));
-      apBorder.setAttribute('height', apH.toFixed(2));
-      apBorder.setAttribute('rx', apRx.toFixed(2));
-      apBorder.setAttribute('fill', 'none');
-      apBorder.setAttribute('stroke', '#1a2332');
-      apBorder.setAttribute('stroke-width', '1');
-      g.appendChild(apBorder);
-
-      frag.appendChild(g);
-    });
-
-    // 2. Brush Pass-Through Overlays (.brush-faceplate .brush-slot)
-    brushRects.forEach(rect => {
-      if (!rect || rect.width <= 0 || rect.height <= 0) return;
-
-      const p1 = toSvg(rect.left, rect.top);
-      const p2 = toSvg(rect.right, rect.bottom);
-      const x = p1.x;
-      const y = p1.y;
-      const w = p2.x - p1.x;
-      const h = p2.y - p1.y;
-      if (w <= 0 || h <= 0) return;
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('class', 'brush-svg-overlay');
-      g.setAttribute('style', 'pointer-events:none;');
-
-      // Top metal lip
-      const topLip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      topLip.setAttribute('x', x.toFixed(2));
-      topLip.setAttribute('y', y.toFixed(2));
-      topLip.setAttribute('width', w.toFixed(2));
-      topLip.setAttribute('height', (h * 0.28).toFixed(2));
-      topLip.setAttribute('class', 'brush-svg-lip');
-      topLip.setAttribute('rx', '1');
-      g.appendChild(topLip);
-
-      // Bottom metal lip
-      const botLip = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      botLip.setAttribute('x', x.toFixed(2));
-      botLip.setAttribute('y', (y + h * 0.72).toFixed(2));
-      botLip.setAttribute('width', w.toFixed(2));
-      botLip.setAttribute('height', (h * 0.28).toFixed(2));
-      botLip.setAttribute('class', 'brush-svg-lip');
-      botLip.setAttribute('rx', '1');
-      g.appendChild(botLip);
-
-      // Dense vertical nylon bristle strokes covering cables passing through the slit
-      const bristlePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      let bristleD = '';
-      const step = 4;
-      for (let bx = x + 4; bx < x + w - 4; bx += step) {
-        // Upper bristles going down
-        bristleD += `M ${bx.toFixed(2)} ${(y + h * 0.25).toFixed(2)} L ${bx.toFixed(2)} ${(y + h * 0.46).toFixed(2)} `;
-        // Lower bristles going up
-        bristleD += `M ${bx.toFixed(2)} ${(y + h * 0.75).toFixed(2)} L ${bx.toFixed(2)} ${(y + h * 0.54).toFixed(2)} `;
-      }
-      bristlePath.setAttribute('d', bristleD);
-      bristlePath.setAttribute('class', 'brush-svg-bristle');
-      g.appendChild(bristlePath);
-
-      // Top highlight
-      const hl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      hl.setAttribute('x1', (x + 2).toFixed(2));
-      hl.setAttribute('y1', (y + 0.6).toFixed(2));
-      hl.setAttribute('x2', (x + w - 2).toFixed(2));
-      hl.setAttribute('y2', (y + 0.6).toFixed(2));
-      hl.setAttribute('stroke', 'rgba(255, 255, 255, 0.2)');
-      hl.setAttribute('stroke-width', '0.75');
-      g.appendChild(hl);
-
-      frag.appendChild(g);
-    });
-
-    // 3. Finger Duct Overlays (.finger-duct-faceplate)
-    fingerData.forEach(item => {
-      // Individual slotted finger tines
-      item.tineRects.forEach(r => {
-        if (!r || r.width <= 0 || r.height <= 0) return;
-        const p1 = toSvg(r.left, r.top);
-        const p2 = toSvg(r.right, r.bottom);
-        const tw = p2.x - p1.x;
-        const th = p2.y - p1.y;
-        if (tw <= 0 || th <= 0) return;
-
-        const tineRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        tineRect.setAttribute('x', p1.x.toFixed(2));
-        tineRect.setAttribute('y', p1.y.toFixed(2));
-        tineRect.setAttribute('width', tw.toFixed(2));
-        tineRect.setAttribute('height', th.toFixed(2));
-        tineRect.setAttribute('rx', '1.5');
-        tineRect.setAttribute('class', 'finger-duct-svg-tine');
-        frag.appendChild(tineRect);
-      });
-
-      // Snap-on duct cover overlay
-      if (item.coverRect && item.coverRect.width > 0 && item.coverRect.height > 0) {
-        const cr = item.coverRect;
-        const cp1 = toSvg(cr.left, cr.top);
-        const cp2 = toSvg(cr.right, cr.bottom);
-        const cw = cp2.x - cp1.x;
-        const ch = cp2.y - cp1.y;
-        if (cw > 0 && ch > 0) {
-          const coverG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          coverG.setAttribute('class', 'finger-duct-svg-cover');
-
-          const bodyRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-          bodyRect.setAttribute('x', cp1.x.toFixed(2));
-          bodyRect.setAttribute('y', cp1.y.toFixed(2));
-          bodyRect.setAttribute('width', cw.toFixed(2));
-          bodyRect.setAttribute('height', ch.toFixed(2));
-          bodyRect.setAttribute('rx', '2');
-          bodyRect.setAttribute('class', 'finger-duct-svg-cover-body');
-          coverG.appendChild(bodyRect);
-
-          const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          highlight.setAttribute('x1', (cp1.x + 2).toFixed(2));
-          highlight.setAttribute('y1', (cp1.y + 0.8).toFixed(2));
-          highlight.setAttribute('x2', (cp2.x - 2).toFixed(2));
-          highlight.setAttribute('y2', (cp1.y + 0.8).toFixed(2));
-          highlight.setAttribute('stroke', 'rgba(255, 255, 255, 0.22)');
-          highlight.setAttribute('stroke-width', '0.75');
-          coverG.appendChild(highlight);
-
-          if (item.labelText) {
-            const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            textNode.setAttribute('x', ((cp1.x + cp2.x) / 2).toFixed(2));
-            textNode.setAttribute('y', (cp1.y + ch / 2 + 3).toFixed(2));
-            textNode.setAttribute('text-anchor', 'middle');
-            textNode.setAttribute('class', 'finger-duct-svg-cover-text');
-            textNode.textContent = item.labelText;
-            coverG.appendChild(textNode);
-          }
-
-          frag.appendChild(coverG);
-        }
-      }
-    });
-
-    overlayGroup.innerHTML = '';
-    overlayGroup.appendChild(frag);
+    if (overlayGroup) overlayGroup.replaceChildren();
   }
 
   const renderDRingOverlays = renderOrganizerOverlays;

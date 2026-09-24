@@ -121,7 +121,8 @@
           STATE.deviceLabelMode || 'name'
         ]);
         let devEl = existingDevices.get(dev.instanceId);
-        if (devEl && devEl.dataset.renderKey === renderKey) {
+        const needsPortMeasure = !!(cat.ports && cat.ports.length) && !RS.DeviceSceneRegistry?.hasTemplate?.(catKey);
+        if (devEl && devEl.dataset.renderKey === renderKey && !needsPortMeasure) {
           devEl.dataset.instanceId = dev.instanceId;
           devEl.dataset.catalogKey = catKey;
           devEl.dataset.category = cat.category || '';
@@ -141,14 +142,12 @@
         devEl.style.top = '0px';
         devEl.dataset.rackId = rack.id;
 
-        if (cat.category === 'organizer') {
-          devEl.innerHTML = renderOrganizerFaceplate(cat, dev);
-        } else if (cat.category === 'blank') {
-          devEl.innerHTML = renderBlankFaceplate(cat, dev);
-        } else if (cat.category === 'router') {
+        if (needsPortMeasure && cat.category === 'router') {
           devEl.innerHTML = renderRouterFaceplate(cat, dev);
-        } else {
+        } else if (needsPortMeasure) {
           devEl.innerHTML = renderSwitchOrPatchFaceplate(cat, dev);
+        } else {
+          devEl.innerHTML = '<div class="pixi-device-body" aria-hidden="true"></div>';
         }
 
         const leftEar = document.createElement('div');
@@ -180,7 +179,7 @@
     // Publish one normalized port template per catalog and lightweight world
     // records per mounted instance. Pixi cables consume this registry first,
     // which removes their per-cable dependency on live port DOM geometry.
-    if (STATE.cableRenderMode === 'pixi' && RS.DeviceSceneRegistry) {
+    if (RS.DeviceSceneRegistry) {
       const deviceSceneLayoutSignature = [
         STATE.viewMode || 'single',
         STATE.activeRackId || '',
@@ -201,13 +200,11 @@
         RS.DeviceSceneRegistry.captureFromDom('mounted-devices');
         lastDeviceSceneLayoutSignature = deviceSceneLayoutSignature;
       }
-      const changedOwners = RS.DeviceSceneRegistry.refreshDeviceOwners(existingDevices.values());
-      if (changedOwners.length && (RS.ZOOM_STATE?.scale || 1) >= 0.35 && document.documentElement.dataset.deviceRenderer === 'pixi') {
-        RS.DeviceSceneRegistry.suspendDomPortAreas(changedOwners);
-      }
+      RS.DeviceSceneRegistry.refreshDeviceOwners(existingDevices.values());
+      RS.DeviceSceneRegistry.stripLiveFaceplates();
     }
 
-    if (STATE.cableRenderMode === 'pixi' && typeof RS.syncPixiDeviceSceneLOD === 'function') {
+    if (typeof RS.syncPixiDeviceSceneLOD === 'function') {
       RS.syncPixiDeviceSceneLOD();
     }
 

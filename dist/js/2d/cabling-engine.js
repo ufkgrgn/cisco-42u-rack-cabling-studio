@@ -3,7 +3,8 @@
  * 
  * Modularized Architecture:
  * - js/2d/cable-routing.js      : Duct side resolution, D-ring loops, horizontal organizers, pathway math, metrology
- * - js/2d/cables-svg-renderer.js: Cable SVG rendering, bezier arcs, connector boots/pins, cable highlights
+ * - js/2d/cable-actions.js: Cable ids, hover, disconnect, and schedule selection
+ * - js/2d/cables-pixi-renderer.js: The only live cable painter
  * - js/2d/cable-hud.js          : Floating Quick HUD, cable right-click context menu, delete shortcuts
  * - js/2d/switch-autofill.js    : Automated sequential domino patching and switch bulk colorization
  */
@@ -12,20 +13,8 @@
 
   const RS = window.RackStudio = window.RackStudio || {};
 
-  // Preserve public API namespace references with dual-engine dispatch (PixiJS GPU / SVG)
-  const existingSvgRenderer = RS.renderAllCablesSVG || (typeof RS.renderAllCables === 'function' ? RS.renderAllCables : null);
-  if (existingSvgRenderer) RS.renderAllCablesSVG = existingSvgRenderer;
-
   RS.renderAllCables = function (...args) {
-    if (RS.STATE && RS.STATE.cableRenderMode === 'pixi' && typeof RS.renderAllCablesPixi === 'function') {
-      return RS.renderAllCablesPixi(...args);
-    }
-    if (typeof RS.renderAllCablesSVG === 'function') {
-      return RS.renderAllCablesSVG(...args);
-    }
-    if (typeof existingSvgRenderer === 'function') {
-      return existingSvgRenderer(...args);
-    }
+    if (typeof RS.renderAllCablesPixi === 'function') return RS.renderAllCablesPixi(...args);
   };
   RS.cancelPendingConnection = RS.cancelPendingConnection || function (...args) {
     return RS.cancelPendingConnection ? RS.cancelPendingConnection(...args) : undefined;

@@ -206,18 +206,20 @@ describe('Tier 3 — Cross-Feature Combinations (24 Pairwise Tests)', () => {
       api.refresh();
 
       const activeHeight = api.getActiveRack().heightU;
-      const svgPaths = document.querySelectorAll('#cables-svg path');
+      const displays = api.PixiContext?.cableDisplays;
+      let pathCount = 0;
+      displays?.forEach(display => { if (display.pathD) pathCount++; });
 
       return {
         activeHeight,
         cablesLength: api.STATE.cables.length,
-        hasSvgPaths: svgPaths.length > 0
+        hasPixiPaths: pathCount > 0
       };
     });
 
     assert.equal(result.activeHeight, 48, 'Rack height must update to 48U');
     assert.equal(result.cablesLength, 1, 'Cable must remain attached after resize');
-    assert.ok(result.hasSvgPaths, 'SVG cable path elements must re-render for new rack height');
+    assert.ok(result.hasPixiPaths, 'Pixi cable paths must re-render for the new rack height');
     assert.deepEqual(harness.getErrors(), []);
   });
 

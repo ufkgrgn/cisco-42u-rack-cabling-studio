@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-describe('PixiJS v8 Dual-Engine Cabling Layer', () => {
+describe('PixiJS v8 Cabling Layer', () => {
   let mockState: any;
   let mockRS: any;
 
   beforeEach(() => {
     mockState = {
-      cableRenderMode: 'svg',
+      cableRenderMode: 'pixi',
       cables: [
         { id: 'cable-1', from: { instanceId: 'dev-1', portId: 'p1' }, to: { instanceId: 'dev-2', portId: 'p2' }, color: '#38bdf8' },
         { id: 'cable-2', from: { instanceId: 'dev-2', portId: 'p3' }, to: { instanceId: 'dev-3', portId: 'p4' }, color: '#10b981' }
@@ -18,8 +18,8 @@ describe('PixiJS v8 Dual-Engine Cabling Layer', () => {
 
     mockRS = {
       STATE: mockState,
-      setCableRenderMode: (mode: string) => {
-        mockState.cableRenderMode = (mode === 'pixi' ? 'pixi' : 'svg');
+      setCableRenderMode: () => {
+        mockState.cableRenderMode = 'pixi';
       },
       renderAllCablesSVG: () => {
         svgCalls++;
@@ -30,39 +30,28 @@ describe('PixiJS v8 Dual-Engine Cabling Layer', () => {
         return 'pixi-rendered';
       },
       renderAllCables: function () {
-        if (mockRS.STATE.cableRenderMode === 'pixi') {
-          return mockRS.renderAllCablesPixi();
-        }
-        return mockRS.renderAllCablesSVG();
+        return mockRS.renderAllCablesPixi();
       },
       getSvgCalls: () => svgCalls,
       getPixiCalls: () => pixiCalls
     };
   });
 
-  it('defaults to SVG cable mode', () => {
-    expect(mockRS.STATE.cableRenderMode).toBe('svg');
+  it('renders cables with Pixi only', () => {
+    expect(mockRS.STATE.cableRenderMode).toBe('pixi');
     const res = mockRS.renderAllCables();
-    expect(res).toBe('svg-rendered');
-    expect(mockRS.getSvgCalls()).toBe(1);
-    expect(mockRS.getPixiCalls()).toBe(0);
+    expect(res).toBe('pixi-rendered');
+    expect(mockRS.getPixiCalls()).toBe(1);
+    expect(mockRS.getSvgCalls()).toBe(0);
   });
 
-  it('switches dynamically between SVG and Pixi engines', () => {
-    mockRS.setCableRenderMode('pixi');
+  it('ignores requests to leave the Pixi renderer', () => {
+    mockRS.setCableRenderMode('svg');
     expect(mockRS.STATE.cableRenderMode).toBe('pixi');
-
     const resPixi = mockRS.renderAllCables();
     expect(resPixi).toBe('pixi-rendered');
     expect(mockRS.getPixiCalls()).toBe(1);
     expect(mockRS.getSvgCalls()).toBe(0);
-
-    mockRS.setCableRenderMode('svg');
-    expect(mockRS.STATE.cableRenderMode).toBe('svg');
-
-    const resSvg = mockRS.renderAllCables();
-    expect(resSvg).toBe('svg-rendered');
-    expect(mockRS.getSvgCalls()).toBe(1);
   });
 
   it('correctly converts 3-char and 6-char hex colors to integers', () => {
@@ -141,19 +130,18 @@ describe('PixiJS v8 Dual-Engine Cabling Layer', () => {
     expect(mockRS.getPixiCalls()).toBe(1);
   });
 
-  it('appendSingleCable delegates to renderAllCables in svg mode respecting structured routing', () => {
+  it('appendSingleCable stays on Pixi when a legacy svg mode is requested', () => {
     function appendSingleCable(cable: any) {
       if (!cable) return;
-      if (mockRS.STATE.cableRenderMode === 'pixi') {
-        if (mockRS.appendSingleCablePixi) return mockRS.appendSingleCablePixi(cable);
-        if (mockRS.renderAllCablesPixi) return mockRS.renderAllCablesPixi();
-      }
-      return mockRS.renderAllCables();
+      if (mockRS.appendSingleCablePixi) return mockRS.appendSingleCablePixi(cable);
+      return mockRS.renderAllCablesPixi();
     }
 
-    mockRS.STATE.cableRenderMode = 'svg';
+    mockRS.setCableRenderMode('svg');
+    mockRS.appendSingleCablePixi = () => mockRS.renderAllCablesPixi();
     const res = appendSingleCable({ id: 'new-c2' });
-    expect(res).toBe('svg-rendered');
-    expect(mockRS.getSvgCalls()).toBe(1);
+    expect(res).toBe('pixi-rendered');
+    expect(mockRS.getPixiCalls()).toBe(1);
+    expect(mockRS.getSvgCalls()).toBe(0);
   });
 });

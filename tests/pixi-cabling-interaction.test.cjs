@@ -550,19 +550,9 @@ async function run() {
       // Configure port p1 with role: 'routed' (Red 'R')
       swDev.portsConfig['p1'] = { role: 'routed', color: '#b91c1c' };
       RS.renderMountedDevices();
-      RS.DeviceSceneRegistry.restoreDomPortAreas();
+      RS.syncPixiDeviceSceneLOD('detail');
+      const swPort1Before = RS.getPixiPortPresentation(swDev.instanceId, 'p1');
 
-      const swPort1 = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
-      const swPort1Before = {
-        hasSpecial: swPort1.classList.contains('port-special'),
-        hasRouted: swPort1.classList.contains('port-routed'),
-        hasConnected: swPort1.classList.contains('connected'),
-        borderColor: getComputedStyle(swPort1).borderColor,
-        beforeBg: getComputedStyle(swPort1, '::before').backgroundColor,
-        beforeContent: getComputedStyle(swPort1, '::before').content
-      };
-
-      // Connect cable to port p1 -> pt1
       RS.STATE.cables.push({
         id: 'cable-role-test',
         from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p1' },
@@ -572,19 +562,8 @@ async function run() {
       });
       RS.renderMountedDevices();
       RS.renderAllCables();
-      RS.DeviceSceneRegistry.restoreDomPortAreas();
+      const swPort1After = RS.getPixiPortPresentation(swDev.instanceId, 'p1');
 
-      const swPort1Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p1"]`);
-      const swPort1After = {
-        hasSpecial: swPort1Connected.classList.contains('port-special'),
-        hasRouted: swPort1Connected.classList.contains('port-routed'),
-        hasConnected: swPort1Connected.classList.contains('connected'),
-        borderColor: getComputedStyle(swPort1Connected).borderColor,
-        beforeBg: getComputedStyle(swPort1Connected, '::before').backgroundColor,
-        beforeContent: getComputedStyle(swPort1Connected, '::before').content
-      };
-
-      // Also check standard unconfigured port (port p2 -> pt2) when connected gets green link LED
       RS.STATE.cables.push({
         id: 'cable-std-test',
         from: { rackId: rack.id, instanceId: swDev.instanceId, portId: 'p2' },
@@ -593,32 +572,17 @@ async function run() {
       });
       RS.renderMountedDevices();
       RS.renderAllCables();
-      RS.DeviceSceneRegistry.restoreDomPortAreas();
-
-      const swPort2Connected = document.querySelector(`.port[data-instance-id="${swDev.instanceId}"][data-port-id="p2"]`);
-      const swPort2After = {
-        hasSpecial: swPort2Connected.classList.contains('port-special'),
-        hasConnected: swPort2Connected.classList.contains('connected'),
-        beforeBg: getComputedStyle(swPort2Connected, '::before').backgroundColor
-      };
+      const swPort2After = RS.getPixiPortPresentation(swDev.instanceId, 'p2');
 
       return { swPort1Before, swPort1After, swPort2After };
     });
 
-    // Routed port 1 must keep its red 'R' badge and red border when connected (NOT green)
-    assert.ok(portRoleState.swPort1Before.hasSpecial, 'routed port must have port-special class');
-    assert.equal(portRoleState.swPort1Before.beforeBg, 'rgb(185, 28, 28)', 'routed port ::before must be red before connect');
-    assert.ok(portRoleState.swPort1Before.beforeContent.includes('R'), 'routed port ::before content must be R before connect');
-
-    assert.ok(portRoleState.swPort1After.hasConnected, 'routed port must have connected class');
-    assert.equal(portRoleState.swPort1After.beforeBg, 'rgb(185, 28, 28)', 'routed port ::before must RETAIN red background when connected (not turn green)');
-    assert.ok(portRoleState.swPort1After.beforeContent.includes('R'), 'routed port ::before content must RETAIN R badge when connected');
-    assert.equal(portRoleState.swPort1After.borderColor, 'rgb(185, 28, 28)', 'routed port border must remain red');
-
-    // Standard unconfigured port 2 must show green link LED when connected
-    assert.equal(portRoleState.swPort2After.hasSpecial, false, 'unconfigured port must not have port-special class');
-    assert.equal(portRoleState.swPort2After.hasConnected, true, 'unconfigured port must have connected class');
-    assert.equal(portRoleState.swPort2After.beforeBg, 'rgb(34, 197, 94)', 'unconfigured port ::before must be green LED when connected');
+    assert.equal(portRoleState.swPort1Before.tint, 0xb91c1c, 'routed Pixi port must use the red role tint');
+    assert.equal(portRoleState.swPort1Before.occupied, false);
+    assert.equal(portRoleState.swPort1After.occupied, true, 'connected routed port must be occupied');
+    assert.equal(portRoleState.swPort1After.tint, 0xb91c1c, 'connected routed port must keep its red role tint');
+    assert.equal(portRoleState.swPort2After.occupied, true, 'unconfigured connected port must be occupied');
+    assert.equal(portRoleState.swPort2After.tint, 0x22c55e, 'unconfigured connected port must show the green link tint');
 
     // Test: Incremental Pixi dispatch via RS.appendSingleCable
     const incrementalPixiState = await page.evaluate(async () => {
@@ -839,7 +803,7 @@ async function run() {
       await new Promise(resolve => setTimeout(resolve, 40));
       const detailPortCount = document.querySelectorAll('.mounted-device .port').length;
       const totalPortCount = RS.DeviceSceneRegistry.getSnapshot().ports.length;
-      const faceplate = document.querySelector('.mounted-device:not([data-category="organizer"]):not([data-category="blank"]) .device-faceplate');
+      const detailFaceplates = document.querySelectorAll('.mounted-device .device-faceplate').length;
       RS.ZOOM_STATE.scale = 0.3;
       RS.updateStageTransform(false);
       RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-probe');
@@ -847,7 +811,7 @@ async function run() {
       const macro = {
         lod: RS.dom.rackStage.dataset.lod,
         renderer: document.documentElement.dataset.deviceRenderer,
-        faceplateConnected: faceplate.isConnected,
+        detailFaceplates,
         detailPortCount,
         totalPortCount,
         livePortCount: document.querySelectorAll('.mounted-device .port').length,
@@ -907,17 +871,19 @@ async function run() {
       await new Promise(resolve => setTimeout(resolve, 40));
       const detail = {
         lod: RS.dom.rackStage.dataset.lod,
-        faceplateDisplay: getComputedStyle(faceplate).display,
+        renderer: document.documentElement.dataset.deviceRenderer,
+        liveFaceplates: document.querySelectorAll('.mounted-device .device-faceplate').length,
         livePortCount: document.querySelectorAll('.mounted-device .port').length,
-        detachedPortAreas: RS.DeviceSceneRegistry.getStats().detachedPortAreas,
-        detachedFaceplates: RS.DeviceSceneRegistry.getStats().detachedFaceplates
+        chassisSprites: RS.getPixiPerformanceTelemetry().deviceChassisSpriteCount
       };
       RS.setCableRenderMode('svg');
       await new Promise(resolve => setTimeout(resolve, 40));
       const svgRestore = {
         mode: RS.STATE.cableRenderMode,
+        renderer: document.documentElement.dataset.deviceRenderer,
+        toggle: !!document.getElementById('btn-toggle-cable-engine'),
         livePortCount: document.querySelectorAll('.mounted-device .port').length,
-        detachedPortAreas: RS.DeviceSceneRegistry.getStats().detachedPortAreas
+        liveFaceplates: document.querySelectorAll('.mounted-device .device-faceplate').length
       };
       RS.setCableRenderMode('pixi');
       RS.syncPixiDeviceSceneLOD('detail');
@@ -926,10 +892,10 @@ async function run() {
     });
     assert.equal(deviceLod.macro.lod, 'macro');
     assert.equal(deviceLod.macro.renderer, 'pixi');
-    assert.equal(deviceLod.macro.faceplateConnected, false, 'macro Pixi LOD must detach repetitive faceplate trees from the live document');
+    assert.equal(deviceLod.macro.detailFaceplates, 0, 'detail LOD must not keep DOM faceplates');
     assert.ok(deviceLod.macro.totalPortCount > 0);
     assert.equal(deviceLod.macro.livePortCount, 0, 'macro Pixi LOD must remove repetitive port nodes from the live document');
-    assert.ok(deviceLod.macro.detachedFaceplates > 0);
+    assert.equal(deviceLod.macro.detailPortCount, 0, 'detail LOD must also keep port nodes off the DOM');
     assert.ok(deviceLod.macro.telemetry.deviceSceneRebuilds >= 1, 'macro LOD must build the retained Pixi device batches');
     assert.ok(deviceLod.macro.telemetry.deviceChassisAtlasBuilds >= 1, 'macro LOD must rasterize the chassis style atlas once');
     assert.ok(deviceLod.macro.telemetry.deviceChassisSpriteCount > 0, 'macro LOD must render chassis bodies from shared nine-slice textures');
@@ -955,15 +921,15 @@ async function run() {
     assert.equal(deviceLod.macro.portInteraction.click.pendingInstanceId, deviceLod.macro.portInteraction.expected.instanceId, 'macro Pixi port click must start the existing connection workflow');
     assert.equal(deviceLod.macro.portInteraction.click.pendingPortId, deviceLod.macro.portInteraction.expected.portId, 'macro Pixi hit testing must resolve the exact port id');
     assert.equal(deviceLod.detail.lod, 'detail');
-    assert.notEqual(deviceLod.detail.faceplateDisplay, 'none', 'detail LOD must restore the accessible DOM faceplate');
-    assert.ok(deviceLod.macro.detailPortCount < deviceLod.macro.totalPortCount, 'Pixi detail LOD must detach standard switch port DOM while preserving non-migrated panel DOM');
-    assert.equal(deviceLod.detail.livePortCount, deviceLod.macro.detailPortCount, 'returning from macro to detail must restore the same selective DOM/Pixi presentation');
-    assert.equal(deviceLod.macro.detachedPortAreas, 0, 'macro LOD detaches whole faceplates instead of only port areas');
-    assert.ok(deviceLod.detail.detachedPortAreas > 0, 'detail LOD must detach Pixi-managed port areas while keeping device faceplates');
-    assert.equal(deviceLod.detail.detachedFaceplates, 0);
-    assert.equal(deviceLod.svgRestore.mode, 'svg');
-    assert.equal(deviceLod.svgRestore.livePortCount, deviceLod.macro.totalPortCount, 'switching to SVG must restore all DOM port nodes');
-    assert.equal(deviceLod.svgRestore.detachedPortAreas, 0, 'switching to SVG must release detached port areas');
+    assert.equal(deviceLod.detail.renderer, 'pixi', 'detail LOD must stay on the Pixi device renderer');
+    assert.equal(deviceLod.detail.liveFaceplates, 0, 'detail LOD must not restore DOM faceplates');
+    assert.equal(deviceLod.detail.livePortCount, 0, 'detail LOD must not restore DOM port trees');
+    assert.ok(deviceLod.detail.chassisSprites > 0, 'detail LOD must keep Pixi chassis sprites');
+    assert.equal(deviceLod.svgRestore.mode, 'pixi', 'requesting svg mode must leave the studio on Pixi');
+    assert.equal(deviceLod.svgRestore.renderer, 'pixi');
+    assert.equal(deviceLod.svgRestore.toggle, false, 'the SVG/Pixi mode toggle must be gone');
+    assert.equal(deviceLod.svgRestore.livePortCount, 0, 'svg requests must not restore DOM port nodes');
+    assert.equal(deviceLod.svgRestore.liveFaceplates, 0);
 
     await page.waitForTimeout(1100);
     const idleStart = await page.evaluate(() => window.RackStudio.getPixiPerformanceTelemetry());
@@ -1014,10 +980,20 @@ async function run() {
         y: viewportRect.top + RS.ZOOM_STATE.panY + p3World.y * RS.ZOOM_STATE.scale
       };
 
-      const patchPort1El = document.querySelector(`.port[data-instance-id="${patch.instanceId}"][data-port-id="pt1"]`);
-      const patchPort2El = document.querySelector(`.port[data-instance-id="${patch.instanceId}"][data-port-id="pt2"]`);
-      const patchPort1Rect = patchPort1El.getBoundingClientRect();
-      const patchPort2Rect = patchPort2El.getBoundingClientRect();
+      const patchPort1World = RS.DeviceSceneRegistry.getPortPoint(patch.instanceId, 'pt1');
+      const patchPort2World = RS.DeviceSceneRegistry.getPortPoint(patch.instanceId, 'pt2');
+      const patchPort1Rect = {
+        left: viewportRect.left + RS.ZOOM_STATE.panX + patchPort1World.x * RS.ZOOM_STATE.scale,
+        top: viewportRect.top + RS.ZOOM_STATE.panY + patchPort1World.y * RS.ZOOM_STATE.scale,
+        width: patchPort1World.width * RS.ZOOM_STATE.scale,
+        height: patchPort1World.height * RS.ZOOM_STATE.scale
+      };
+      const patchPort2Rect = {
+        left: viewportRect.left + RS.ZOOM_STATE.panX + patchPort2World.x * RS.ZOOM_STATE.scale,
+        top: viewportRect.top + RS.ZOOM_STATE.panY + patchPort2World.y * RS.ZOOM_STATE.scale,
+        width: patchPort2World.width * RS.ZOOM_STATE.scale,
+        height: patchPort2World.height * RS.ZOOM_STATE.scale
+      };
 
       return {
         swId: sw.instanceId,
@@ -1049,9 +1025,13 @@ async function run() {
 
     // Test 1b: Patch panel port (DOM) -> Switch port (Pixi)
     const patchPort2Point = await page.evaluate(({ patchId }) => {
-      const el = document.querySelector(`.port[data-instance-id="${patchId}"][data-port-id="pt2"]`);
-      const rect = el.getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const RS = window.RackStudio;
+      const port = RS.DeviceSceneRegistry.getPortPoint(patchId, 'pt2');
+      const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
+      return {
+        x: viewportRect.left + RS.ZOOM_STATE.panX + port.x * RS.ZOOM_STATE.scale,
+        y: viewportRect.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale
+      };
     }, { patchId: setupCabling.patchId });
 
     await page.mouse.click(patchPort2Point.x, patchPort2Point.y);
@@ -1092,7 +1072,8 @@ async function run() {
 
     assert.ok(dblClickResult.role, 'double clicking switch port must assign a role');
     assert.equal(dblClickResult.deviceRenderer, 'pixi', 'double clicking switch port must NOT fallback to SVG/DOM renderer');
-    assert.ok(dblClickResult.detachedPortAreas > 0, 'switch port area must stay detached on Pixi');
+    assert.equal(dblClickResult.deviceRenderer, 'pixi');
+    assert.equal(await page.evaluate(() => document.querySelectorAll('.mounted-device .port').length), 0, 'port role cycling must not restore DOM port trees');
     assert.ok(dblClickResult.roleColor, 'port role color must be resolved for Pixi sprite rendering');
 
     // Test 3: Device removal and rack clear memory & hit detection lifecycle

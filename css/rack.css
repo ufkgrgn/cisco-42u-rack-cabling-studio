@@ -2068,17 +2068,47 @@
   display: none !important;
 }
 
-/* The macro LOD uses retained Pixi batches for repetitive faceplates. D-rings
-   and blanking panels remain DOM-rendered because their physical shapes are
-   part of cable routing and rack structure. While dragging a device, the DOM
-   faceplate remains visible so the user sees the real faceplate moving. */
-[data-device-renderer="pixi"] [data-lod="macro"] .mounted-device:not([data-category="organizer"]):not([data-category="blank"]):not(.studio-dragging) .device-faceplate {
+/* Pixi is the only live faceplate. DOM keeps rails, U-labels, slots, and ears. */
+[data-device-renderer="pixi"] .mounted-device {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  outline: none !important;
+}
+[data-device-renderer="pixi"] .mounted-device:hover,
+[data-device-renderer="pixi"] .mounted-device.studio-selected,
+[data-device-renderer="pixi"] .mounted-device.studio-multi-selected,
+[data-device-renderer="pixi"] .mounted-device.device-focused,
+[data-device-renderer="pixi"] .mounted-device.studio-lifted,
+[data-device-renderer="pixi"] .mounted-device.studio-dragging {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-device-renderer="pixi"] .device-faceplate,
+[data-device-renderer="pixi"] .organizer-faceplate,
+[data-device-renderer="pixi"] .blank-faceplate,
+[data-device-renderer="pixi"] .device-controls,
+[data-device-renderer="pixi"] .del-device-btn {
   display: none !important;
 }
-
-.mounted-device.studio-dragging .device-faceplate,
-.device-dragging-active .mounted-device.studio-dragging .device-faceplate {
-  display: flex !important;
+.pixi-device-body {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.canvas-unavailable-banner {
+  position: absolute;
+  inset: 72px 40px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 25, 0.94);
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
 }
 
 /* Disable hit testing once at the retained-scene root while dragging or zooming.

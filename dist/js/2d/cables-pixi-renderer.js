@@ -101,7 +101,7 @@
       if (PixiContext.ensurePixiApp) {
         PixiContext.ensurePixiApp(parentContainer, rendererW, rendererH).then(app => {
           if (app) renderAllCablesPixi();
-          else PixiContext.activateSvgFallback?.();
+          else PixiContext.showCanvasUnavailable?.();
         });
       }
       return;
@@ -362,28 +362,8 @@
     if (layoutChanged && organizerOverlayContainer) {
       const hoops = new window.PIXI.Graphics();
       hoops.eventMode = 'none';
-      document.querySelectorAll('.dring-loop').forEach(loop => {
-        const rect = loop.getBoundingClientRect();
-        if (renderStats) renderStats.domRectReads++;
-        if (rect.width <= 0 || rect.height <= 0) return;
-        const topLeft = RS.PixiCableGeometry?.clientToPixi(rect.left, rect.top, canvasRect, stageW, stageH) || { x: 0, y: 0 };
-        const bottomRight = RS.PixiCableGeometry?.clientToPixi(rect.right, rect.bottom, canvasRect, stageW, stageH) || { x: 0, y: 0 };
-        const x = topLeft.x;
-        const y = topLeft.y;
-        const w = bottomRight.x - topLeft.x;
-        const h = bottomRight.y - topLeft.y;
-        if (w <= 0 || h <= 0) return;
-        const padX = w * (6 / 38);
-        const padY = h * (5 / 22);
-        hoops.rect(x, y, w, padY).fill(0x141b26);
-        hoops.rect(x, y + h - padY, w, padY).fill(0x141b26);
-        hoops.rect(x, y + padY, padX, h - padY * 2).fill(0x141b26);
-        hoops.rect(x + w - padX, y + padY, padX, h - padY * 2).fill(0x141b26);
-        hoops.roundRect(x, y, w, h, Math.max(2, w * 0.1))
-          .stroke({ width: Math.max(1.2, w * 0.048), color: 0x56687e, alpha: 1 });
-        hoops.roundRect(x + padX, y + padY, w - padX * 2, h - padY * 2, Math.max(1, w * 0.05))
-          .stroke({ width: Math.max(0.8, w * 0.026), color: 0x1a2332, alpha: 1 });
-      });
+      const frames = RS.PixiDeviceScene?.listDeviceFrames?.() || PixiContext.listDeviceFrames?.() || [];
+      RS.FaceplateTextures?.paintOrganizerForeground?.(hoops, frames);
       organizerOverlayContainer.addChild(hoops);
       if (performanceTelemetry) performanceTelemetry.organizerOverlayRebuilds++;
     }
@@ -407,43 +387,18 @@
     }
   }
 
-  function setCableRenderMode(mode) {
-    if (mode !== 'pixi' && mode !== 'svg') mode = 'svg';
-    STATE.cableRenderMode = mode;
-    if (mode === 'svg') document.documentElement.setAttribute('data-device-renderer', 'dom');
-    try {
-      localStorage.setItem('rackstudio_cable_mode', mode);
-    } catch (_) {}
-
+  function setCableRenderMode() {
+    STATE.cableRenderMode = 'pixi';
+    try { localStorage.removeItem('rackstudio_cable_mode'); } catch (_) {}
+    document.documentElement.setAttribute('data-device-renderer', 'pixi');
     const svgEl = document.getElementById('cables-svg');
     const parentContainer = svgEl?.parentNode || document.getElementById('rack-container') || document.getElementById('rack-stage');
     const canvas = PixiContext.ensurePixiCanvas ? PixiContext.ensurePixiCanvas(svgEl, parentContainer) : null;
-
-    if (mode === 'pixi') {
-      if (canvas) canvas.style.display = 'block';
-      if (svgEl) svgEl.style.display = 'none';
-    } else {
-      RS.DeviceSceneRegistry?.restoreDomFaceplates();
-      RS.DeviceSceneRegistry?.restoreDomPortAreas();
-      if (canvas) {
-        canvas.style.display = 'none';
-        canvas.style.pointerEvents = 'none';
-      }
-      if (svgEl) svgEl.style.display = 'block';
-      RS.setPixiHover?.(null);
-      const devScene = PixiContext.deviceSceneContainer;
-      if (devScene) devScene.visible = false;
-    }
-
-    if (RS.renderAllCables) {
-      RS.renderAllCables();
-    }
-
-    const btnIndicator = document.getElementById('cable-engine-indicator') || document.getElementById('engine-indicator');
-    if (btnIndicator) {
-      btnIndicator.textContent = mode === 'pixi' ? '⚡ GPU (Pixi)' : '🎨 SVG';
-      btnIndicator.style.color = mode === 'pixi' ? '#00e5ff' : '#94a3b8';
-    }
+    if (canvas) canvas.style.display = 'block';
+    if (svgEl) svgEl.style.display = 'none';
+    const devScene = PixiContext.deviceSceneContainer;
+    if (devScene) devScene.visible = true;
+    RS.renderAllCables?.();
   }
 
   function appendSingleCablePixi(cable) {

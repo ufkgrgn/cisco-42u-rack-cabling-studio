@@ -12,32 +12,20 @@
   const STATE = RS.STATE;
   const getActiveRack = () => (RS.getActiveRack ? RS.getActiveRack() : RS.STATE?.racks?.[0]);
 
-  const DEVICE_CHASSIS_STYLES = Object.freeze({
-    router: Object.freeze({ key: 'router', fill: 0x0f172a, accent: 0x0284c7 }),
-    switch: Object.freeze({ key: 'switch', fill: 0x131a2a, accent: 0x38bdf8 }),
-    patch: Object.freeze({ key: 'patch', fill: 0x17191d, accent: 0xf97316 }),
-    fiber: Object.freeze({ key: 'fiber', fill: 0x111827, accent: 0xa855f7 }),
-    power: Object.freeze({ key: 'power', fill: 0x17251d, accent: 0x22c55e }),
-    default: Object.freeze({ key: 'default', fill: 0x111827, accent: 0x64748b })
-  });
-
   const DEVICE_PORT_HIT_CELL_SIZE = 32;
   const EMPTY_CABLE_LIST = Object.freeze([]);
   const hitTestPoint = { x: 0, y: 0 };
 
-  let deviceChassisAtlas = null;
-  let deviceChassisTextures = null;
   const deviceRackScenes = new Map();
   const deviceRackByInstance = new Map();
   const deviceContainers = new Map();
-  let devicePortAtlas = null;
-  let devicePortTextures = null;
   const devicePortSprites = new Map();
   const devicePortOccupancy = new Map();
   const devicePortVariantCounts = new Map();
   const devicePortHitGrid = new Map();
 
   let hoveredDevicePortKey = null;
+  let hoveredDeviceId = null;
   let activeDeviceSceneLod = 'macro';
   let lastDeviceSceneSignature = null;
   let lastDeviceGeometrySignature = null;
@@ -49,42 +37,6 @@
   let cachedOccupancyHashA = 0;
   let cachedOccupancyHashB = 0;
   let deviceOccupancyChanged = false;
-
-  function deviceSceneStyle(category) {
-    if (category === 'router') return DEVICE_CHASSIS_STYLES.router;
-    if (category === 'patch') return DEVICE_CHASSIS_STYLES.patch;
-    if (category === 'fiber') return DEVICE_CHASSIS_STYLES.fiber;
-    if (category === 'pdu' || category === 'power') return DEVICE_CHASSIS_STYLES.power;
-    if (category === 'switch' || category === 'fiber-switch' || category === 'compact') return DEVICE_CHASSIS_STYLES.switch;
-    return DEVICE_CHASSIS_STYLES.default;
-  }
-
-  function ensureDeviceChassisTextures() {
-    const pixiApp = PixiContext.pixiApp;
-    if (deviceChassisTextures || !pixiApp?.renderer || !window.PIXI?.Texture) return deviceChassisTextures;
-    const styles = Object.values(DEVICE_CHASSIS_STYLES);
-    const cell = 32;
-    const atlasGraphics = new window.PIXI.Graphics();
-    styles.forEach((style, index) => {
-      atlasGraphics.roundRect(index * cell + 0.5, 0.5, cell - 1, cell - 1, 4)
-        .fill(style.fill)
-        .stroke({ width: 1, color: 0x334155, alpha: 1 });
-    });
-    deviceChassisAtlas = pixiApp.renderer.generateTexture({ target: atlasGraphics, resolution: 2, antialias: true });
-    atlasGraphics.destroy();
-    const Texture = window.PIXI.Texture;
-    const Rectangle = window.PIXI.Rectangle;
-    deviceChassisTextures = Object.fromEntries(styles.map((style, index) => [
-      style.key,
-      new Texture({
-        source: deviceChassisAtlas.source,
-        frame: new Rectangle(index * cell, 0, cell, cell),
-        label: `rack-device-chassis-${style.key}`
-      })
-    ]));
-    if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisAtlasBuilds++;
-    return deviceChassisTextures;
-  }
 
   function destroyDeviceRackScenes() {
     PixiContext.deviceSceneContainer?.removeChildren?.().forEach(rackContainer => {
@@ -263,24 +215,138 @@
     return null;
   }
 
-  function restoreDevicePortTint(key) {
-    const sprite = devicePortSprites.get(key);
-    if (!sprite) return;
+  function applyPortTint(sprite, key, port, isOccupied) {
     const pending = STATE.pendingConnection;
     const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
     if (isSelected || key === hoveredDevicePortKey) {
       sprite.tint = 0x67e8f9;
-    } else {
-      const parts = key.split('::');
-      const roleColor = getDevicePortRoleColor(parts[0], parts[1]);
-      sprite.tint = roleColor !== null ? roleColor : 0xffffff;
+      return;
     }
+    const roleColor = port ? getDevicePortRoleColor(port.instanceId, port.portId) : null;
+    if (roleColor !== null) {
+      sprite.tint = roleColor;
+      return;
+    }
+    sprite.tint = isOccupied ? 0x22c55e : 0xffffff;
+  }
+
+  function restoreDevicePortTint(key) {
+    const sprite = devicePortSprites.get(key);
+    if (!sprite) return;
+    const parts = key.split('::');
+    const occupied = devicePortOccupancy.get(key) === true;
+    applyPortTint(sprite, key, { instanceId: parts[0], portId: parts[1] }, occupied);
     PixiContext.renderPixi?.('device-port-hover');
   }
 
-  function buildDeviceChassis(devices, lod = 'macro') {
-    const textures = ensureDeviceChassisTextures();
-    if (!textures) return;
+  function deviceCoverOpen(instanceId) {
+    const racks = STATE?.racks || [];
+    for (let i = 0; i < racks.length; i++) {
+      const dev = racks[i]?.devices?.find(item => item.instanceId === instanceId);
+      if (dev) return !!dev.coverOpen;
+    }
+    return false;
+  }
+
+  function paintDeviceChrome(entry) {
+    const graphics = entry?.chrome;
+    if (!graphics) return;
+    graphics.clear();
+    const id = String(entry.device.instanceId);
+    const el = document.getElementById(id);
+    const multi = !!el?.classList.contains('studio-multi-selected');
+    const selected = multi || !!el?.classList.contains('studio-selected');
+    const hovered = hoveredDeviceId === id && !selected;
+    if (!selected && !hovered) return;
+    const color = multi ? 0xa855f7 : 0x38bdf8;
+    const alpha = hovered ? 0.75 : 1;
+    const w = entry.width;
+    const h = entry.height;
+    const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
+    const t = Math.max(1.5, Math.min(2.4, h * 0.08));
+    const bars = [
+      [0, 0, arm, t], [0, 0, t, arm],
+      [w - arm, 0, arm, t], [w - t, 0, t, arm],
+      [0, h - t, arm, t], [0, h - arm, t, arm],
+      [w - arm, h - t, arm, t], [w - t, h - arm, t, arm]
+    ];
+    bars.forEach(([x, y, bw, bh]) => graphics.rect(x, y, bw, bh).fill({ color, alpha }));
+  }
+
+  function syncPixiDeviceSelection() {
+    deviceContainers.forEach(entry => paintDeviceChrome(entry));
+    PixiContext.renderPixi?.('device-selection');
+  }
+
+  function setPixiDeviceHover(instanceId) {
+    const next = instanceId ? String(instanceId) : null;
+    if (next === hoveredDeviceId) return false;
+    const previous = hoveredDeviceId;
+    hoveredDeviceId = next;
+    if (previous && deviceContainers.get(previous)) paintDeviceChrome(deviceContainers.get(previous));
+    if (next && deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
+    PixiContext.renderPixi?.('device-hover');
+    return true;
+  }
+
+  function hitDeviceBodyAt(clientX, clientY) {
+    if (!PixiContext.deviceSceneContainer?.visible) return null;
+    const rect = PixiContext.getPixiCanvasRect?.();
+    if (!rect?.width || !rect?.height || !PixiContext.clientToRenderer) return null;
+    const point = PixiContext.clientToRenderer(clientX, clientY, rect, hitTestPoint);
+    let best = null;
+    deviceContainers.forEach((dev, id) => {
+      const x = dev.container.x;
+      const y = dev.container.y;
+      if (point.x < x || point.y < y || point.x > x + dev.width || point.y > y + dev.height) return;
+      best = { instanceId: id, category: dev.device.category, catalogKey: dev.device.catalogKey };
+    });
+    return best;
+  }
+
+  function listDeviceFrames() {
+    const frames = [];
+    deviceContainers.forEach((dev, id) => {
+      frames.push({
+        instanceId: id,
+        category: dev.device.category,
+        catalogKey: dev.device.catalogKey,
+        x: dev.container.x,
+        y: dev.container.y,
+        width: dev.width,
+        height: dev.height,
+        coverOpen: deviceCoverOpen(id)
+      });
+    });
+    return frames;
+  }
+
+  function toggleOrganizerCover(instanceId) {
+    const racks = STATE?.racks || [];
+    for (let i = 0; i < racks.length; i++) {
+      const dev = racks[i]?.devices?.find(item => item.instanceId === instanceId);
+      if (!dev) continue;
+      dev.coverOpen = !dev.coverOpen;
+      invalidatePixiDeviceScene();
+      syncPixiDeviceSceneLOD();
+      RS.renderAllCables?.();
+      return true;
+    }
+    return false;
+  }
+
+  function faceplateSpec(device) {
+    return {
+      category: device.category || '',
+      catalogKey: device.catalogKey || '',
+      uHeight: Math.max(1, Math.round((device.height || 32) / 32)),
+      series: device.series || ''
+    };
+  }
+
+  function buildDeviceChassis(devices) {
+    const texturesApi = RS.FaceplateTextures;
+    if (!texturesApi || !window.PIXI) return;
     destroyDeviceRackScenes();
     let spriteCount = 0;
     devices.forEach(device => {
@@ -295,51 +361,65 @@
 
       const portsContainer = new window.PIXI.Container();
       portsContainer.label = `device-ports-${device.instanceId}`;
-      portsContainer.position.set(0, 0);
       portsContainer.eventMode = 'passive';
 
+      const spec = faceplateSpec(device);
+      const slice = texturesApi.chassisSlice(spec);
       let chassisSprite = null;
       let overlays = null;
-
-      if (device.category !== 'organizer' && device.category !== 'blank') {
-        const style = deviceSceneStyle(device.category);
-        chassisSprite = new window.PIXI.NineSliceSprite({
-          texture: textures[style.key],
-          leftWidth: 4,
-          rightWidth: 4,
-          topHeight: 4,
-          bottomHeight: 4,
-          width: device.width,
-          height: device.height
-        });
-        chassisSprite.position.set(0, 0);
-        chassisSprite.eventMode = 'none';
-        chassisSprite.visible = lod === 'macro';
-
+      if (slice.mode === 'graphics') {
         overlays = new window.PIXI.Graphics();
-        overlays.rect(0, 0, Math.min(4, device.width * 0.012), device.height).fill(style.accent);
-        overlays.rect(8, 3, Math.min(60, device.width * 0.14), Math.max(2, device.height - 6))
-          .fill({ color: 0x0b1726, alpha: 0.92 });
-        overlays.visible = lod === 'macro';
-
-        devContainer.addChild(chassisSprite, overlays);
+        overlays.eventMode = 'none';
+        texturesApi.paintChassisGraphics(overlays, spec, device.width, device.height, deviceCoverOpen(device.instanceId));
+        devContainer.addChild(overlays);
+        if (spec.category === 'blank' && window.PIXI.Text) {
+          const label = new window.PIXI.Text({
+            text: 'BLANK COVER PANEL',
+            style: { fontFamily: 'ui-monospace, monospace', fontSize: 9, fill: 0x475569, letterSpacing: 1 }
+          });
+          if (label.anchor?.set) label.anchor.set(0.5);
+          label.position.set(device.width / 2, device.height / 2);
+          label.eventMode = 'none';
+          devContainer.addChild(label);
+        }
         spriteCount++;
+      } else {
+        const texture = texturesApi.getChassisTexture(spec);
+        if (texture) {
+          chassisSprite = new window.PIXI.NineSliceSprite({
+            texture,
+            leftWidth: slice.leftWidth,
+            rightWidth: slice.rightWidth,
+            topHeight: slice.topHeight,
+            bottomHeight: slice.bottomHeight,
+            width: device.width,
+            height: device.height
+          });
+          chassisSprite.eventMode = 'none';
+          chassisSprite.visible = true;
+          devContainer.addChild(chassisSprite);
+          spriteCount++;
+        }
       }
 
-      devContainer.addChild(portsContainer);
+      const chrome = new window.PIXI.Graphics();
+      chrome.eventMode = 'none';
+      devContainer.addChild(portsContainer, chrome);
       scene.container.addChild(devContainer);
-
-      deviceContainers.set(String(device.instanceId), {
+      const entry = {
         container: devContainer,
         chassis: chassisSprite,
         overlays,
+        chrome,
         ports: portsContainer,
         device,
         originX: device.x,
         originY: device.y,
         width: device.width,
         height: device.height
-      });
+      };
+      deviceContainers.set(String(device.instanceId), entry);
+      paintDeviceChrome(entry);
     });
     deviceRackScenes.forEach(scene => PixiContext.deviceSceneContainer?.addChild(scene.container));
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisSpriteCount = spriteCount;
@@ -406,81 +486,16 @@
     return cachedDeviceOccupancy;
   }
 
-  function ensureDevicePortTextures() {
-    const pixiApp = PixiContext.pixiApp;
-    if (devicePortTextures || !pixiApp?.renderer || !window.PIXI?.Texture) return devicePortTextures;
-    const cell = 20;
-    const atlasGraphics = new window.PIXI.Graphics();
-    const styles = [
-      { key: 'copper', shape: 'copper', fill: 0x07111f, stroke: 0x64748b, detail: 0x334155 },
-      { key: 'optic', shape: 'optic', fill: 0x0b1324, stroke: 0x60a5fa, detail: 0x1d4ed8 },
-      { key: 'fiber-lc', shape: 'lc', fill: 0x100f26, stroke: 0xa78bfa, detail: 0x818cf8 },
-      { key: 'fiber-sc', shape: 'sc', fill: 0x100f26, stroke: 0xc084fc, detail: 0xa855f7 },
-      { key: 'power', shape: 'power', fill: 0x101b17, stroke: 0x4ade80, detail: 0x166534 },
-      { key: 'occupied', shape: 'copper', fill: 0x08212a, stroke: 0x22d3ee, detail: 0x67e8f9 },
-      { key: 'occupied-optic', shape: 'optic', fill: 0x08212a, stroke: 0x22d3ee, detail: 0x67e8f9 },
-      { key: 'occupied-fiber-lc', shape: 'lc', fill: 0x08212a, stroke: 0x22d3ee, detail: 0x67e8f9 },
-      { key: 'occupied-fiber-sc', shape: 'sc', fill: 0x08212a, stroke: 0x22d3ee, detail: 0x67e8f9 },
-      { key: 'occupied-power', shape: 'power', fill: 0x08212a, stroke: 0x22d3ee, detail: 0x67e8f9 }
-    ];
-    styles.forEach((style, index) => {
-      const x = index * cell;
-      atlasGraphics.roundRect(x + 1, 2, cell - 2, cell - 4, 3)
-        .fill(style.fill)
-        .stroke({ width: 1, color: style.stroke, alpha: 1 });
-      if (style.shape === 'copper') {
-        atlasGraphics.rect(x + 4, 6, 2, 3).fill(style.detail);
-        atlasGraphics.rect(x + 7, 6, 2, 3).fill(style.detail);
-        atlasGraphics.rect(x + 10, 6, 2, 3).fill(style.detail);
-        atlasGraphics.rect(x + 13, 6, 2, 3).fill(style.detail);
-        atlasGraphics.rect(x + 5, 12, 10, 2).fill(style.detail);
-      } else if (style.shape === 'optic') {
-        atlasGraphics.roundRect(x + 4, 5, 12, 10, 2).fill(style.detail);
-        atlasGraphics.rect(x + 6, 7, 8, 2).fill(style.stroke);
-        atlasGraphics.rect(x + 8, 12, 4, 2).fill(style.fill);
-      } else if (style.shape === 'lc') {
-        atlasGraphics.roundRect(x + 3, 5, 14, 10, 2).fill(style.detail);
-        atlasGraphics.rect(x + 9, 5, 1, 10).fill(style.stroke);
-        atlasGraphics.rect(x + 5, 8, 3, 4).fill(style.fill);
-        atlasGraphics.rect(x + 12, 8, 3, 4).fill(style.fill);
-      } else if (style.shape === 'sc') {
-        atlasGraphics.roundRect(x + 3, 5, 14, 10, 2).fill(style.detail);
-        atlasGraphics.roundRect(x + 5, 7, 4, 6, 1).fill(style.fill);
-        atlasGraphics.roundRect(x + 11, 7, 4, 6, 1).fill(style.fill);
-      } else if (style.shape === 'power') {
-        atlasGraphics.circle(x + 7, 10, 2.4).fill(style.detail);
-        atlasGraphics.circle(x + 13, 10, 2.4).fill(style.detail);
-        atlasGraphics.circle(x + 7, 10, 0.9).fill(style.fill);
-        atlasGraphics.circle(x + 13, 10, 0.9).fill(style.fill);
-      }
-    });
-    devicePortAtlas = pixiApp.renderer.generateTexture({ target: atlasGraphics, resolution: 2, antialias: true });
-    atlasGraphics.destroy();
-    if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.devicePortAtlasBuilds++;
-    const Texture = window.PIXI.Texture;
-    const Rectangle = window.PIXI.Rectangle;
-    devicePortTextures = Object.fromEntries(styles.map((style, index) => [
-      style.key,
-      new Texture({
-        source: devicePortAtlas.source,
-        frame: new Rectangle(index * cell, 0, cell, cell),
-        label: `rack-device-port-${style.key}`
-      })
-    ]));
-    return devicePortTextures;
+  function portTextures() {
+    return RS.FaceplateTextures?.getPortTexture ? true : null;
   }
 
-  function devicePortTextureKey(port, isOccupied) {
-    const type = String(port.type || '').toLowerCase();
-    let variant = 'copper';
-    if (type === 'lc') variant = 'fiber-lc';
-    else if (type === 'sc') variant = 'fiber-sc';
-    else if (type === 'power') variant = 'power';
-    else if (['sfp', 'sfp+', 'qsfp28'].includes(type)) variant = 'optic';
-    if (!isOccupied) return variant;
-    if (variant === 'copper') return 'occupied';
-    if (variant === 'optic') return 'occupied-optic';
-    return `occupied-${variant}`;
+  function portTextureFor(port, isOccupied) {
+    return RS.FaceplateTextures?.getPortTexture?.({ portType: port.type, occupied: !!isOccupied }) || null;
+  }
+
+  function portVariantKey(port, isOccupied) {
+    return RS.FaceplateTextures?.portTextureKey?.(port, !!isOccupied) || 'copper';
   }
 
   function adjustDevicePortVariantCount(key, delta) {
@@ -490,78 +505,55 @@
   }
 
   function buildDevicePortSprites(ports, occupied) {
-    const textures = ensureDevicePortTextures();
-    if (!textures) return;
+    if (!portTextures()) return;
     devicePortSprites.clear();
     devicePortOccupancy.clear();
     devicePortVariantCounts.clear();
     devicePortHitGrid.clear();
+    const density = activeDeviceSceneLod === 'macro' ? 0.48 : 0.82;
     ports.forEach(port => {
-      if (port.category === 'organizer' || port.category === 'blank') return;
-      if (activeDeviceSceneLod === 'detail' && (
-        !['switch', 'fiber-switch', 'compact', 'router'].includes(port.category)
-      )) return;
       const key = `${port.instanceId}::${port.portId}`;
       const devEntry = deviceContainers.get(String(port.instanceId));
       if (!devEntry) return;
       const isOccupied = occupied.has(key);
-      const textureKey = devicePortTextureKey(port, isOccupied);
-      const width = Math.max(3, port.width * 0.82);
-      const height = Math.max(3, port.height * 0.82);
-      const sprite = new window.PIXI.Sprite(textures[textureKey]);
+      const texture = portTextureFor(port, isOccupied);
+      if (!texture) return;
+      const textureKey = portVariantKey(port, isOccupied);
+      const sprite = new window.PIXI.Sprite(texture);
       sprite.anchor.set(0.5);
       const localX = (port.localX !== undefined) ? port.localX : (port.x - devEntry.originX);
       const localY = (port.localY !== undefined) ? port.localY : (port.y - devEntry.originY);
       sprite.position.set(localX, localY);
-      sprite.width = width;
-      sprite.height = height;
+      sprite.width = Math.max(3, port.width * density);
+      sprite.height = Math.max(3, port.height * density);
       sprite.eventMode = 'none';
-      const roleColor = getDevicePortRoleColor(port.instanceId, port.portId);
-      const pending = STATE.pendingConnection;
-      const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
-      if (isSelected || key === hoveredDevicePortKey) {
-        sprite.tint = 0x67e8f9;
-      } else if (roleColor !== null && !isOccupied) {
-        sprite.tint = roleColor;
-      }
+      applyPortTint(sprite, key, port, isOccupied);
       devEntry.ports.addChild(sprite);
       devicePortSprites.set(key, sprite);
       devicePortOccupancy.set(key, isOccupied);
-      const hitRecord = { ...port, localX, localY };
-      addDevicePortToHitGrid(hitRecord);
+      addDevicePortToHitGrid({ ...port, localX, localY });
       adjustDevicePortVariantCount(textureKey, 1);
     });
   }
 
   function updateDevicePortOccupancy(ports, occupied) {
-    const textures = ensureDevicePortTextures();
-    if (!textures) return 0;
+    if (!portTextures()) return 0;
     let changed = 0;
     ports.forEach(port => {
-      if (port.category === 'organizer' || port.category === 'blank') return;
       const key = `${port.instanceId}::${port.portId}`;
       const isOccupied = occupied.has(key);
       if (devicePortOccupancy.get(key) === isOccupied) return;
       const sprite = devicePortSprites.get(key);
-      if (sprite) {
-        const previousTextureKey = devicePortTextureKey(port, devicePortOccupancy.get(key));
-        const nextTextureKey = devicePortTextureKey(port, isOccupied);
-        sprite.texture = textures[nextTextureKey];
-        devicePortOccupancy.set(key, isOccupied);
-        const roleColor = getDevicePortRoleColor(port.instanceId, port.portId);
-        const pending = STATE.pendingConnection;
-        const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
-        if (isSelected || key === hoveredDevicePortKey) {
-          sprite.tint = 0x67e8f9;
-        } else if (roleColor !== null && !isOccupied) {
-          sprite.tint = roleColor;
-        } else {
-          sprite.tint = 0xffffff;
-        }
-        adjustDevicePortVariantCount(previousTextureKey, -1);
-        adjustDevicePortVariantCount(nextTextureKey, 1);
-        changed++;
-      }
+      if (!sprite) return;
+      const previousTextureKey = portVariantKey(port, devicePortOccupancy.get(key));
+      const nextTextureKey = portVariantKey(port, isOccupied);
+      const texture = portTextureFor(port, isOccupied);
+      if (texture) sprite.texture = texture;
+      devicePortOccupancy.set(key, isOccupied);
+      applyPortTint(sprite, key, port, isOccupied);
+      adjustDevicePortVariantCount(previousTextureKey, -1);
+      adjustDevicePortVariantCount(nextTextureKey, 1);
+      changed++;
     });
     return changed;
   }
@@ -587,34 +579,28 @@
     }
   }
 
+  function revealDeviceSprites() {
+    deviceContainers.forEach(dev => {
+      if (dev.chassis) dev.chassis.visible = true;
+      if (dev.overlays) dev.overlays.visible = true;
+      if (dev.ports) dev.ports.visible = true;
+    });
+  }
+
   function syncPixiDeviceSceneLOD(explicitLod) {
     const pixiApp = PixiContext.pixiApp;
     const deviceSceneContainer = PixiContext.deviceSceneContainer;
     if (!deviceSceneContainer || !pixiApp) return false;
     const lod = explicitLod || (RS.ZOOM_STATE?.scale < 0.35 ? 'macro' : 'detail');
-    const enabled = STATE.cableRenderMode === 'pixi';
-    const presentationKey = `${STATE.cableRenderMode}:${lod}`;
-    const presentationChanged = presentationKey !== lastDevicePresentationKey;
-    deviceSceneContainer.visible = enabled;
-    if (!enabled) {
-      RS.DeviceSceneRegistry?.restoreDomFaceplates();
-      RS.DeviceSceneRegistry?.restoreDomPortAreas();
-      lastDevicePresentationKey = presentationKey;
-      lastDeviceGeometrySignature = '';
-      document.documentElement.setAttribute('data-device-renderer', STATE.cableRenderMode === 'pixi' ? 'pixi' : 'dom');
-      lastDeviceSceneSignature = `hidden:${lod}`;
-      return false;
-    }
-
-    if (presentationChanged) {
-      RS.DeviceSceneRegistry?.restoreDomFaceplates();
-      RS.DeviceSceneRegistry?.restoreDomPortAreas();
-    }
+    const presentationKey = `pixi:${lod}`;
+    deviceSceneContainer.visible = true;
+    document.documentElement.setAttribute('data-device-renderer', 'pixi');
 
     let snapshot = RS.DeviceSceneRegistry?.getSnapshot();
     if ((!snapshot || !snapshot.devices.length) && RS.DeviceSceneRegistry?.captureFromDom('pixi-device-scene')) {
       snapshot = RS.DeviceSceneRegistry.getSnapshot();
     }
+    RS.DeviceSceneRegistry?.stripLiveFaceplates?.();
     if (!snapshot || !snapshot.devices.length) {
       destroyDeviceRackScenes();
       lastDeviceGeometrySignature = '';
@@ -623,35 +609,20 @@
       return false;
     }
     activeDeviceSceneLod = lod;
-    deviceContainers.forEach(dev => {
-      if (dev.chassis) dev.chassis.visible = lod === 'macro';
-      if (dev.overlays) dev.overlays.visible = lod === 'macro';
-      if (dev.ports) dev.ports.visible = true;
-    });
+    revealDeviceSprites();
     const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
     const occupied = collectDeviceOccupancy();
     const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;
     const occupancyChanged = deviceOccupancyChanged;
     if (!geometryChanged && !occupancyChanged) {
-      if (lod === 'macro') {
-        RS.DeviceSceneRegistry?.restoreDomPortAreas();
-        RS.DeviceSceneRegistry?.suspendDomFaceplates();
-      } else {
-        RS.DeviceSceneRegistry?.restoreDomFaceplates();
-        RS.DeviceSceneRegistry?.suspendDomPortAreas();
-      }
-      document.documentElement.setAttribute('data-device-renderer', 'pixi');
       lastDevicePresentationKey = presentationKey;
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceSceneSkippedRebuilds++;
       return false;
     }
 
     if (geometryChanged) {
-      buildDeviceChassis(snapshot.devices, lod);
+      buildDeviceChassis(snapshot.devices);
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisRebuilds++;
-    }
-
-    if (geometryChanged) {
       buildDevicePortSprites(snapshot.ports, occupied);
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.devicePortRebuilds++;
     } else if (occupancyChanged) {
@@ -661,19 +632,8 @@
         if (changedPorts) PixiContext.performanceTelemetry.deviceOccupancyOnlyUpdates++;
       }
     }
-    deviceContainers.forEach(dev => {
-      if (dev.chassis) dev.chassis.visible = lod === 'macro';
-      if (dev.overlays) dev.overlays.visible = lod === 'macro';
-      if (dev.ports) dev.ports.visible = true;
-    });
-    document.documentElement.setAttribute('data-device-renderer', 'pixi');
-    if (lod === 'macro') {
-      RS.DeviceSceneRegistry?.restoreDomPortAreas();
-      RS.DeviceSceneRegistry?.suspendDomFaceplates();
-    } else {
-      RS.DeviceSceneRegistry?.restoreDomFaceplates();
-      RS.DeviceSceneRegistry?.suspendDomPortAreas();
-    }
+    revealDeviceSprites();
+    syncPixiDeviceSelection();
     lastDeviceGeometrySignature = geometrySignature;
     lastDevicePresentationKey = presentationKey;
     lastDeviceSceneSignature = `${geometrySignature}|${cachedOccupancyCableCount}:${cachedOccupancyEndpointCount}:${cachedOccupancyHashA}:${cachedOccupancyHashB}`;
@@ -743,8 +703,20 @@
   RS.getDevicePortRoleColor = getDevicePortRoleColor;
   RS.restoreDevicePortTint = restoreDevicePortTint;
   RS.invalidatePixiDeviceScene = invalidatePixiDeviceScene;
+  function getPixiPortPresentation(instanceId, portId) {
+    const key = `${instanceId}::${portId}`;
+    const sprite = devicePortSprites.get(key);
+    if (!sprite) return null;
+    return { tint: sprite.tint, occupied: devicePortOccupancy.get(key) === true };
+  }
+
   RS.setHoveredDevicePortKey = (key) => { hoveredDevicePortKey = key; };
   RS.getHoveredDevicePortKey = () => hoveredDevicePortKey;
+  RS.syncPixiDeviceSelection = syncPixiDeviceSelection;
+  RS.setPixiDeviceHover = setPixiDeviceHover;
+  RS.hitDeviceBodyAt = hitDeviceBodyAt;
+  RS.toggleOrganizerCover = toggleOrganizerCover;
+  RS.getPixiPortPresentation = getPixiPortPresentation;
   RS.collectDeviceOccupancy = collectDeviceOccupancy;
   RS.getPixiDeviceContainer = getDeviceContainer;
   RS.getPixiDevicePosition = getDevicePosition;
@@ -760,6 +732,12 @@
     getOrCreateDeviceRackScene,
     applyDeviceViewportCulling,
     hitDevicePortAt,
+    hitDeviceBodyAt,
+    listDeviceFrames,
+    syncPixiDeviceSelection,
+    setPixiDeviceHover,
+    toggleOrganizerCover,
+    getPixiPortPresentation,
     getDevicePortClientRect,
     dispatchDevicePortInteraction,
     getDevicePortRoleColor,
@@ -779,6 +757,8 @@
   PixiContext.devicePortSprites = devicePortSprites;
   PixiContext.devicePortOccupancy = devicePortOccupancy;
   PixiContext.hitDevicePortAt = hitDevicePortAt;
+  PixiContext.hitDeviceBodyAt = hitDeviceBodyAt;
+  PixiContext.listDeviceFrames = listDeviceFrames;
   PixiContext.dispatchDevicePortInteraction = dispatchDevicePortInteraction;
   PixiContext.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
   PixiContext.destroyDeviceRackScenes = destroyDeviceRackScenes;

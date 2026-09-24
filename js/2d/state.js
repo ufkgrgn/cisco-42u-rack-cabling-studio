@@ -7,6 +7,15 @@
   const RS = window.RackStudio = window.RackStudio || {};
 
   // --- MULTI-RACK APPLICATION STATE ---
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('rackstudio_cable_mode')) {
+      localStorage.removeItem('rackstudio_cable_mode');
+    }
+  } catch (_) { /* ignore private-mode storage */ }
+  if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.setAttribute('data-device-renderer', 'pixi');
+  }
+
   const STATE = {
     customCatalog: {},
     racks: [
@@ -25,7 +34,7 @@
     selectedLibraryItem: null,
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
-    cableRenderMode: (typeof localStorage !== 'undefined' && localStorage.getItem('rackstudio_cable_mode') === 'svg') ? 'svg' : 'pixi',
+    cableRenderMode: 'pixi',
     // V2 keeps the GPU surface viewport-sized and mirrors the camera inside
     // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.
     pixiViewportRendererV2: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_pixi_viewport_v2') !== '0',

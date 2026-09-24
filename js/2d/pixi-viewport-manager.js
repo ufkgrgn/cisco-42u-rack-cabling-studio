@@ -176,7 +176,8 @@
   PixiContext.ensurePixiCanvas = (svgEl, parentContainer) => ensurePixiCanvas(svgEl, parentContainer);
   PixiContext.ensurePixiApp = (parentContainer, width, height) => ensurePixiApp(parentContainer, width, height);
   PixiContext.syncPixiViewportCamera = (camera, force, reason) => syncPixiViewportCamera(camera, force, reason);
-  PixiContext.activateSvgFallback = () => activateSvgFallback();
+  PixiContext.activateSvgFallback = () => showCanvasUnavailable();
+  PixiContext.showCanvasUnavailable = () => showCanvasUnavailable();
   PixiContext.resetCameraSignature = () => { lastCameraSignature = null; };
 
   // Long task observer
@@ -511,31 +512,38 @@
         observePixiViewport();
         return pixiApp;
       } catch (err) {
-        console.warn('RackStudio: Failed to initialize PixiJS v8 layer, falling back to SVG', err);
+        console.warn('RackStudio: PixiJS canvas is unavailable', err);
         isInitializing = false;
         initPromise = null;
         pixiApp = null;
+        showCanvasUnavailable();
         return null;
       }
     })();
     return initPromise;
   }
 
-  function activateSvgFallback() {
-    STATE.cableRenderMode = 'svg';
-    try { localStorage.setItem('rackstudio_cable_mode', 'svg'); } catch (_) {}
+  function showCanvasUnavailable() {
+    STATE.cableRenderMode = 'pixi';
+    try { localStorage.removeItem('rackstudio_cable_mode'); } catch (_) {}
+    document.documentElement.setAttribute('data-device-renderer', 'pixi');
+    document.documentElement.setAttribute('data-canvas-state', 'unavailable');
     if (pixiCanvas) {
       pixiCanvas.style.display = 'none';
       pixiCanvas.style.pointerEvents = 'none';
     }
     const svgEl = document.getElementById('cables-svg');
-    if (svgEl) svgEl.style.display = 'block';
-    const indicator = document.getElementById('cable-engine-indicator');
-    if (indicator) {
-      indicator.textContent = '🎨 SVG';
-      indicator.style.color = '#94a3b8';
+    if (svgEl) svgEl.style.display = 'none';
+    const host = document.getElementById('viewport-canvas') || document.body;
+    let banner = document.getElementById('canvas-unavailable');
+    if (!banner && host) {
+      banner = document.createElement('div');
+      banner.id = 'canvas-unavailable';
+      banner.className = 'canvas-unavailable-banner';
+      banner.textContent = 'Canvas unavailable';
+      host.appendChild(banner);
     }
-    RS.renderAllCablesSVG?.();
+    if (banner) banner.hidden = false;
   }
 
   // Exports
@@ -550,7 +558,8 @@
     ensurePixiApp,
     syncPixiViewportCamera,
     getPixiWorldViewportBounds,
-    activateSvgFallback,
+    showCanvasUnavailable,
+    activateSvgFallback: showCanvasUnavailable,
     recordTimedEvent,
     eventsPerSecond
   };
