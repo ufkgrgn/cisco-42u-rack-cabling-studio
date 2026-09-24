@@ -272,22 +272,21 @@
 
     const pending = STATE?.pendingConnection;
     if (pending && String(pending.instanceId) === id) {
-      const sprite = devicePortSprites.get(`${id}::${pending.portId}`);
-      if (sprite) {
-        graphics.roundRect(sprite.x - 4, sprite.y - 4, sprite.width + 8, sprite.height + 8, 4)
-          .fill({ color: 0x00e5ff, alpha: 0.35 }).stroke({ width: 2, color: 0x22d3ee, alpha: 0.95 });
-        graphics.roundRect(sprite.x - 1.5, sprite.y - 1.5, sprite.width + 3, sprite.height + 3, 2.5)
-          .stroke({ width: 1.5, color: 0xffffff, alpha: 0.95 });
+      const s = devicePortSprites.get(`${id}::${pending.portId}`);
+      if (s) {
+        const px = s.x - s.width / 2, py = s.y - s.height / 2, pw = s.width, ph = s.height;
+        graphics.roundRect(px - 1.5, py - 1.5, pw + 3, ph + 3, 2.5).fill({ color: 0x00e5ff, alpha: 0.22 }).stroke({ width: 1.5, color: 0x00e5ff, alpha: 0.95 });
+        graphics.roundRect(px - 0.5, py - 0.5, pw + 1, ph + 1, 1.5).stroke({ width: 1, color: 0xffffff, alpha: 0.95 });
       }
     }
 
     if (hoveredDevicePortKey) {
       const [hDevId, hPortId] = hoveredDevicePortKey.split('::');
       if (hDevId === id && (!pending || String(pending.portId) !== hPortId)) {
-        const sprite = devicePortSprites.get(hoveredDevicePortKey);
-        if (sprite) {
-          graphics.roundRect(sprite.x - 2, sprite.y - 2, sprite.width + 4, sprite.height + 4, 3)
-            .fill({ color: 0x38bdf8, alpha: 0.2 }).stroke({ width: 1.5, color: 0x38bdf8, alpha: 0.9 });
+        const s = devicePortSprites.get(hoveredDevicePortKey);
+        if (s) {
+          graphics.roundRect(s.x - s.width / 2 - 1, s.y - s.height / 2 - 1, s.width + 2, s.height + 2, 2)
+            .fill({ color: 0x38bdf8, alpha: 0.15 }).stroke({ width: 1, color: 0x38bdf8, alpha: 0.9 });
         }
       }
     }
