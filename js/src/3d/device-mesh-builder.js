@@ -33,7 +33,7 @@ export function registerDeviceMeshMethods(Studio3D) {
     return null;
   };
 
-  Studio3D.prototype.mountDevice = function(catalogId, targetU, targetRackId) {
+  Studio3D.prototype.mountDevice = function(catalogId, targetU, targetRackId, options = {}) {
     const cat3D = (window.CATALOG_3D || CATALOG).find(c => c.id === catalogId);
     const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catalogId];
     const item = cat3D || cat2D;
@@ -110,7 +110,9 @@ export function registerDeviceMeshMethods(Studio3D) {
     this.buildDevice3D(devData);
     this.state.pushSnapshot();
     this.state.autoSave();
-    sfx.insert();
+    if (!options?.silent) {
+      sfx.insert();
+    }
     if (typeof window.renderInstalledDevicesList === 'function') {
       window.renderInstalledDevicesList();
     }

@@ -37,14 +37,32 @@
     const numMatch = pIdStr.match(/\d+$/);
     const num = numMatch ? numMatch[0] : '';
     const aliases = new Set([pIdStr]);
-    if (num) {
+    if (!num) return Array.from(aliases);
+
+    if (/^up/i.test(pIdStr)) {
+      aliases.add('up' + num);
+      aliases.add('uplink' + num);
+      aliases.add('uplink-' + num);
+    } else if (/^sfp/i.test(pIdStr)) {
+      aliases.add('sfp' + num);
+      aliases.add('sfp-' + num);
+    } else if (/^pt/i.test(pIdStr)) {
+      aliases.add('pt' + num);
+      aliases.add('pt-' + num);
+    } else if (/^lc/i.test(pIdStr)) {
+      aliases.add('lc' + num);
+      aliases.add('lc-' + num);
+    } else if (/^sc/i.test(pIdStr)) {
+      aliases.add('sc' + num);
+      aliases.add('sc-' + num);
+    } else if (/^mgmt/i.test(pIdStr)) {
+      aliases.add('mgmt' + num);
+      aliases.add('mgmt-' + num);
+    } else {
       aliases.add(num);
       aliases.add('p' + num);
-      aliases.add('pt' + num);
       aliases.add('port' + num);
       aliases.add('port-' + num);
-      aliases.add('lc' + num);
-      aliases.add('sc' + num);
     }
     return Array.from(aliases);
   }

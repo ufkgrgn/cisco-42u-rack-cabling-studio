@@ -443,18 +443,28 @@
   function updatePortConfig(instanceId, portId, config) {
     let dev = null;
     for (const r of (STATE.racks || [])) {
-      const found = r.devices?.find(d => d.instanceId === instanceId);
+      const found = r.devices?.find(d => d.instanceId === instanceId || d.id === instanceId);
       if (found) { dev = found; break; }
     }
     if (!dev) return false;
     if (!dev.portsConfig) dev.portsConfig = {};
 
     const pIdStr = String(portId || '');
-    const pNumStr = pIdStr.replace(/\D+/g, '');
-    const isNumericPort = Boolean(pNumStr);
     const cat = (RS.resolveCatalogItem ? RS.resolveCatalogItem(dev.catalogKey) : HARDWARE_CATALOG[dev.catalogKey]);
-    const portObj = cat?.ports?.find(p => p.id === portId || p.name === portId || (isNumericPort && String(p.id).replace(/\D+/g, '') === pNumStr));
+    let portObj = null;
+    if (cat && Array.isArray(cat.ports)) {
+      portObj = cat.ports.find(p => p.id === portId || p.name === portId);
+      if (!portObj) {
+        const aliases = RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr];
+        portObj = cat.ports.find(p => aliases.includes(String(p.id)) || (p.name && aliases.includes(String(p.name))));
+      }
+      if (!portObj && typeof portId === 'number' && cat.ports[portId - 1]) {
+        portObj = cat.ports[portId - 1];
+      }
+    }
+    const canonicalPortId = portObj ? String(portObj.id) : pIdStr;
     const portName = portObj?.name;
+    const aliases = (RS.getPortAliases ? RS.getPortAliases(canonicalPortId) : [canonicalPortId]);
 
     const isReset = !config || (
       config.role === 'access' &&
@@ -466,16 +476,16 @@
     );
 
     if (isReset) {
-      const aliases = (RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr]);
       aliases.forEach(a => {
         delete dev.portsConfig[a];
       });
-      delete dev.portsConfig['p' + pIdStr];
+      delete dev.portsConfig[canonicalPortId];
+      delete dev.portsConfig[pIdStr];
       if (portName) delete dev.portsConfig[portName];
 
       const connectedCable = STATE.cables.find(c =>
-        (c.from.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
-        (c.to.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
+        (c.from.instanceId === instanceId && (aliases.includes(String(c.from.portId)) || c.from.portId === canonicalPortId)) ||
+        (c.to.instanceId === instanceId && (aliases.includes(String(c.to.portId)) || c.to.portId === canonicalPortId))
       );
 
       if (connectedCable) {
@@ -487,24 +497,25 @@
         const otherEndpoint = (connectedCable.from.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
         let otherDev = null;
         for (const r of (STATE.racks || [])) {
-          const found = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId);
+          const found = r.devices?.find(d => d.instanceId === otherEndpoint.instanceId || d.id === otherEndpoint.instanceId);
           if (found) { otherDev = found; break; }
         }
         if (otherDev && otherDev.portsConfig) {
-          const oCat = HARDWARE_CATALOG[otherDev.catalogKey];
-          const oNumStr = String(otherEndpoint.portId || '').replace(/\D+/g, '');
-          const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || p.name === otherEndpoint.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
+          const oCat = RS.resolveCatalogItem ? RS.resolveCatalogItem(otherDev.catalogKey) : HARDWARE_CATALOG[otherDev.catalogKey];
           const oAliases = (RS.getPortAliases ? RS.getPortAliases(otherEndpoint.portId) : [String(otherEndpoint.portId || '')]);
+          const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint.portId || oAliases.includes(String(p.id)) || p.name === otherEndpoint.portId);
+          const oCanonicalId = oPortObj ? String(oPortObj.id) : String(otherEndpoint.portId || '');
           oAliases.forEach(a => {
             delete otherDev.portsConfig[a];
           });
-          delete otherDev.portsConfig['p' + otherEndpoint.portId];
+          delete otherDev.portsConfig[oCanonicalId];
+          delete otherDev.portsConfig[String(otherEndpoint.portId)];
           if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
         }
 
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            const pIdxA = parseInt(pNumStr, 10) || 1;
+            const pIdxA = portObj ? (cat.ports.indexOf(portObj) + 1) : (parseInt(String(canonicalPortId).replace(/\D+/g, ''), 10) || 1);
             const pIdxB = parseInt(String(otherEndpoint.portId).replace(/\D+/g, ''), 10) || 1;
             window.__STUDIO3D__.updatePortConfig(dev.id || dev.instanceId, pIdxA, null);
             if (otherDev) window.__STUDIO3D__.updatePortConfig(otherDev.id || otherDev.instanceId, pIdxB, null);
@@ -537,27 +548,24 @@
         poeState: config.poeState || 'auto'
       };
 
-      const aliases = (RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr]);
       aliases.forEach(a => {
         delete dev.portsConfig[a];
       });
-      delete dev.portsConfig['p' + pIdStr];
+      delete dev.portsConfig[canonicalPortId];
+      delete dev.portsConfig[pIdStr];
       if (portName) delete dev.portsConfig[portName];
 
-      dev.portsConfig[pIdStr] = cleanCfg;
-      if (pNumStr) {
-        dev.portsConfig[pNumStr] = cleanCfg;
-        dev.portsConfig['p' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('pt')) dev.portsConfig['pt' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('lc')) dev.portsConfig['lc' + pNumStr] = cleanCfg;
-        if (pIdStr.startsWith('sc')) dev.portsConfig['sc' + pNumStr] = cleanCfg;
-      }
+      dev.portsConfig[canonicalPortId] = cleanCfg;
+      if (pIdStr !== canonicalPortId) dev.portsConfig[pIdStr] = cleanCfg;
+      aliases.forEach(a => {
+        dev.portsConfig[a] = cleanCfg;
+      });
       if (portName) dev.portsConfig[portName] = cleanCfg;
 
       if (config.autoCableColor !== false) {
         const connectedCable = STATE.cables.find(c =>
-          (c.from?.instanceId === instanceId && (c.from.portId === portId || (pNumStr && String(c.from.portId).replace(/\D+/g, '') === pNumStr))) ||
-          (c.to?.instanceId === instanceId && (c.to.portId === portId || (pNumStr && String(c.to.portId).replace(/\D+/g, '') === pNumStr)))
+          (c.from?.instanceId === instanceId && (aliases.includes(String(c.from.portId)) || c.from.portId === canonicalPortId)) ||
+          (c.to?.instanceId === instanceId && (aliases.includes(String(c.to.portId)) || c.to.portId === canonicalPortId))
         );
         if (connectedCable) {
           connectedCable.color = resolvedColor;
@@ -570,27 +578,25 @@
           const otherEndpoint = (connectedCable.from?.instanceId === instanceId) ? connectedCable.to : connectedCable.from;
           let otherDev = null;
           for (const r of (STATE.racks || [])) {
-            const found = r.devices?.find(d => d.instanceId === otherEndpoint?.instanceId);
+            const found = r.devices?.find(d => d.instanceId === otherEndpoint?.instanceId || d.id === otherEndpoint?.instanceId);
             if (found) { otherDev = found; break; }
           }
           if (otherDev) {
             if (!otherDev.portsConfig) otherDev.portsConfig = {};
             const oIdStr = String(otherEndpoint?.portId || '');
-            const oNumStr = oIdStr.replace(/\D+/g, '');
             const oCat = (RS.resolveCatalogItem ? RS.resolveCatalogItem(otherDev.catalogKey) : HARDWARE_CATALOG[otherDev.catalogKey]);
-            const oPortObj = oCat?.ports?.find(p => p.id === otherEndpoint?.portId || p.name === otherEndpoint?.portId || (oNumStr && String(p.id).replace(/\D+/g, '') === oNumStr));
+            const oAliases = RS.getPortAliases ? RS.getPortAliases(oIdStr) : [oIdStr];
+            const oPortObj = oCat?.ports?.find(p => p.id === oIdStr || oAliases.includes(String(p.id)) || p.name === oIdStr);
+            const oCanonicalId = oPortObj ? String(oPortObj.id) : oIdStr;
 
-            delete otherDev.portsConfig['p' + oIdStr];
+            oAliases.forEach(a => delete otherDev.portsConfig[a]);
+            delete otherDev.portsConfig[oCanonicalId];
+            delete otherDev.portsConfig[oIdStr];
             if (oPortObj?.name) delete otherDev.portsConfig[oPortObj.name];
 
-            otherDev.portsConfig[oIdStr] = cleanCfg;
-            if (oNumStr) {
-              otherDev.portsConfig[oNumStr] = cleanCfg;
-              otherDev.portsConfig['p' + oNumStr] = cleanCfg;
-              if (oIdStr.startsWith('pt')) otherDev.portsConfig['pt' + oNumStr] = cleanCfg;
-              if (oIdStr.startsWith('lc')) otherDev.portsConfig['lc' + oNumStr] = cleanCfg;
-              if (oIdStr.startsWith('sc')) otherDev.portsConfig['sc' + oNumStr] = cleanCfg;
-            }
+            otherDev.portsConfig[oCanonicalId] = cleanCfg;
+            if (oIdStr !== oCanonicalId) otherDev.portsConfig[oIdStr] = cleanCfg;
+            oAliases.forEach(a => { otherDev.portsConfig[a] = cleanCfg; });
             if (oPortObj?.name) otherDev.portsConfig[oPortObj.name] = cleanCfg;
           }
         }
@@ -603,6 +609,7 @@
 
     if (RS.invalidatePixiDeviceScene) RS.invalidatePixiDeviceScene();
     if (typeof RS.syncPixiDeviceSceneLOD === 'function') RS.syncPixiDeviceSceneLOD();
+    if (typeof RS.updateDevicePortTints === 'function') RS.updateDevicePortTints(instanceId);
     if (window.PixiContext?.renderPixi) window.PixiContext.renderPixi('port-config-update');
 
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));

@@ -78,12 +78,12 @@
   };
   RS.resolveCatalogItem = resolveCatalogItem;
 
-  function mountDeviceAt(arg1, arg2, arg3) {
+  function mountDeviceAt(arg1, arg2, arg3, silent = false) {
     let catalogKey = arg1;
     let topU = Number(arg2);
     let targetRackId = arg3;
 
-    // Support swapped signature: mountDeviceAt(rackId, topU, catalogKey)
+    // Support swapped signature: mountDeviceAt(rackId, topU, catalogKey, silent)
     if (typeof arg1 === 'string' && STATE.racks?.some(r => r.id === arg1)) {
       if (typeof arg3 === 'string' && !STATE.racks?.some(r => r.id === arg3)) {
         targetRackId = arg1;
@@ -111,7 +111,9 @@
     };
     targetRack.devices.push(devObj);
     if (STATE.deviceById) STATE.deviceById.set(instanceId, devObj);
-    if (window.SoundFX) window.SoundFX.playDeviceMount();
+    if (window.SoundFX && !silent && !STATE.isBatchLoading && !window.SoundFX.isBatchMuted) {
+      window.SoundFX.playDeviceMount();
+    }
     return devObj;
   }
 

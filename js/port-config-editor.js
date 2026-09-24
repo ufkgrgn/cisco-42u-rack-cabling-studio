@@ -50,9 +50,9 @@
         }
       } else if (window.RackStudio && window.RackStudio.STATE) {
         const racks = window.RackStudio.STATE.racks || [];
-        const rack = racks.find(item => item.devices && item.devices.some(d => d.instanceId === devId));
+        const rack = racks.find(item => item.devices && item.devices.some(d => d.instanceId === devId || d.id === devId));
         if (rack) {
-          dev = rack.devices.find(d => d.instanceId === devId);
+          dev = rack.devices.find(d => d.instanceId === devId || d.id === devId);
         }
         if (!dev && window.RackStudio.getDeviceById) {
           dev = window.RackStudio.getDeviceById(devId);
@@ -64,25 +64,40 @@
           window.HARDWARE_CATALOG?.[dev.catalogKey] ||
           (window.CATALOG_3D || []).find(c => c.id === dev.catalogKey)
         );
-        const pObj = (cat && cat.ports) ? cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId || (portIdxOrId && String(p.id).replace(/\D+/g, '') === String(portIdxOrId).replace(/\D+/g, ''))) : null;
+
+        let pObj = null;
+        if (cat && Array.isArray(cat.ports)) {
+          pObj = cat.ports.find(p => p.id === portIdxOrId || p.name === portIdxOrId);
+          if (!pObj && portIdxOrId) {
+            const aliases = RS?.getPortAliases ? RS.getPortAliases(portIdxOrId) : [String(portIdxOrId)];
+            pObj = cat.ports.find(p => aliases.includes(String(p.id)) || (p.name && aliases.includes(String(p.name))));
+          }
+          if (!pObj && typeof portIdxOrId === 'number' && cat.ports[portIdxOrId - 1]) {
+            pObj = cat.ports[portIdxOrId - 1];
+          }
+        }
+
         portIdx = pObj ? (cat.ports.indexOf(pObj) + 1) : (parseInt(portIdxOrId, 10) || 1);
         this.activePortIdx = portIdx;
         this.activePortId = (pObj && pObj.id) || (typeof portIdxOrId === 'string' ? portIdxOrId : 'p' + portIdx);
         if (dev) {
-          const pIdStr = String(this.activePortId || '');
-          const pNumStr = pIdStr.replace(/^p/i, '');
-          portCfg = (dev.portsConfig && (
-            dev.portsConfig[this.activePortId] ||
-            dev.portsConfig[pNumStr] ||
-            dev.portsConfig[portIdx] ||
-            dev.portsConfig['p' + portIdx] ||
-            (pObj && dev.portsConfig[pObj.name])
-          )) || null;
+          const portAliases = RS?.getPortAliases ? RS.getPortAliases(this.activePortId) : [String(this.activePortId)];
+          if (dev.portsConfig) {
+            for (const a of portAliases) {
+              if (dev.portsConfig[a] !== undefined) {
+                portCfg = dev.portsConfig[a];
+                break;
+              }
+            }
+            if (!portCfg && pObj?.name && dev.portsConfig[pObj.name] !== undefined) {
+              portCfg = dev.portsConfig[pObj.name];
+            }
+          }
 
           if (!portCfg && window.RackStudio && window.RackStudio.STATE) {
             const connectedCable = (window.RackStudio.STATE.cables || []).find(c =>
-              (c.from?.instanceId === devId && (c.from?.portId === this.activePortId || String(c.from?.portId).replace(/^p/i, '') === pNumStr)) ||
-              (c.to?.instanceId === devId && (c.to?.portId === this.activePortId || String(c.to?.portId).replace(/^p/i, '') === pNumStr))
+              (c.from?.instanceId === devId && (portAliases.includes(String(c.from?.portId)) || c.from?.portId === this.activePortId)) ||
+              (c.to?.instanceId === devId && (portAliases.includes(String(c.to?.portId)) || c.to?.portId === this.activePortId))
             );
             if (connectedCable && connectedCable.role) {
               portCfg = {
@@ -141,6 +156,7 @@
 
       modal.dataset.deviceId = devId;
       modal.dataset.portIdx = String(portIdx);
+      modal.dataset.portId = String(this.activePortId || ('p' + portIdx));
       modal.dataset.source = source;
       modal.style.display = 'flex';
     },
@@ -159,6 +175,7 @@
         return;
       }
       this.activeDevId = devId;
+      const targetPortId = this.activePortId || modal?.dataset?.portId || this.activePortIdx;
       try {
         const role = document.getElementById('port-edit-role')?.value || 'access';
         const poeState = document.getElementById('port-edit-poe')?.value || 'auto';
@@ -183,16 +200,24 @@
 
         // 2D Engine update first
         if (window.RackStudio && window.RackStudio.updatePortConfig) {
-          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, config);
+          window.RackStudio.updatePortConfig(devId, targetPortId, config);
         }
 
         // 3D Engine update (guarded)
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, config);
+            window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, config);
           } catch (e) {
             console.warn('[PortConfigEditor] 3D port config update skipped:', e);
           }
+        }
+
+        // Instant Pixi port tint and canvas refresh
+        if (window.RackStudio?.updateDevicePortTints) {
+          window.RackStudio.updateDevicePortTints(devId);
+        }
+        if (window.PixiContext?.renderPixi) {
+          window.PixiContext.renderPixi('port-modal-saved');
         }
 
         // Dispatch global change events to persist state and update undo stack
@@ -220,14 +245,22 @@
         return;
       }
       this.activeDevId = devId;
+      const targetPortId = this.activePortId || modal?.dataset?.portId || this.activePortIdx;
       try {
         if (window.RackStudio && window.RackStudio.updatePortConfig) {
-          window.RackStudio.updatePortConfig(this.activeDevId, this.activePortId || this.activePortIdx, null);
+          window.RackStudio.updatePortConfig(devId, targetPortId, null);
         }
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            window.__STUDIO3D__.updatePortConfig(this.activeDevId, this.activePortIdx, null);
+            window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, null);
           } catch (e) {}
+        }
+
+        if (window.RackStudio?.updateDevicePortTints) {
+          window.RackStudio.updateDevicePortTints(devId);
+        }
+        if (window.PixiContext?.renderPixi) {
+          window.PixiContext.renderPixi('port-modal-reset');
         }
 
         document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));

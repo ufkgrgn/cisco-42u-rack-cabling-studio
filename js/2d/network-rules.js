@@ -59,7 +59,11 @@
    * Detects if the connection between two ports qualifies as an Uplink / Trunk connection.
    * Returns metadata for auto-configuring role, color, and labels.
    */
-  function detectUplinkConnection(sourceDev, sourcePort, targetDev, targetPort) {
+  function detectUplinkConnection(sourceDev, sourcePort, targetDev, targetPort, isStrict = null) {
+    let strictMode = RS.STATE ? (RS.STATE.strictCompliance !== false) : true;
+    if (typeof isStrict === 'boolean') strictMode = isStrict;
+    if (!strictMode) return null;
+
     const catSrc = sourceDev && RS.HARDWARE_CATALOG ? RS.HARDWARE_CATALOG[sourceDev.catalogKey] : null;
     const catTgt = targetDev && RS.HARDWARE_CATALOG ? RS.HARDWARE_CATALOG[targetDev.catalogKey] : null;
 
@@ -317,6 +321,8 @@
     if (source.instanceId === target.instanceId) {
       if (isPatchA) {
         loopWarning = '⚠️ Patch Panel Çapraz Aktarma: Aynı panel üzerinde port köprüleme (cross-connect / loopback) yapıldı.';
+      } else if (!strictMode) {
+        loopWarning = '⚠️ Fiziksel Döngü (Serbest Mod): Aynı aktif cihazın iki portu birbirine bağlandı (Kural denetimi kapalı olduğu için izin verildi).';
       } else {
         return {
           allowed: false,
@@ -378,9 +384,9 @@
       passThroughWarning = "Patch Panel Ara Bağlantı (Cross-Connect): İki pasif panel arası köprü bağlantısı yapılıyor.";
     }
 
-    // 5. AUTOMATIC UPLINK & FIBER RECOGNITION
-    const fiberConfig = detectFiberConnection(devA, portA, devB, portB);
-    const uplinkConfig = detectUplinkConnection(devA, portA, devB, portB);
+    // 5. AUTOMATIC UPLINK & FIBER RECOGNITION (Only in Strict Compliance Mode)
+    const fiberConfig = strictMode ? detectFiberConnection(devA, portA, devB, portB) : null;
+    const uplinkConfig = strictMode ? detectUplinkConnection(devA, portA, devB, portB, strictMode) : null;
 
     return {
       allowed: true,

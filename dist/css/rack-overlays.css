@@ -717,4 +717,101 @@
   }
 }
 
+/* ==========================================================================
+   Light Theme Rack Canopy & Telemetry Overlays
+   ========================================================================== */
+[data-theme="light"] .rack-header-plate {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  border-color: #cbd5e1;
+  border-bottom: 2px solid #0284c7;
+  box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .rack-header-bottom-tier {
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+[data-theme="light"] .rack-header-title {
+  color: #0369a1;
+}
+
+[data-theme="light"] .rack-header-name-editable {
+  color: #0f172a;
+}
+
+[data-theme="light"] .rack-header-name-editable:hover {
+  background: rgba(2, 132, 199, 0.12);
+}
+
+[data-theme="light"] .rack-header-standard-badge {
+  color: #0369a1;
+  background: rgba(2, 132, 199, 0.1);
+  border-color: rgba(2, 132, 199, 0.25);
+}
+
+[data-theme="light"] .rack-header-meta {
+  color: #475569;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .rack-telemetry-badge {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+[data-theme="light"] .rack-telemetry-badge.power {
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+  background: #fef3c7;
+}
+
+[data-theme="light"] .rack-telemetry-badge.heat {
+  color: #c2410c;
+  border-color: rgba(234, 88, 12, 0.35);
+  background: #ffedd5;
+}
+
+[data-theme="light"] .rack-telemetry-badge.pdu {
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: #d1fae5;
+}
+
+[data-theme="light"] .rack-telemetry-badge.weight {
+  color: #4338ca;
+  border-color: rgba(99, 102, 241, 0.35);
+  background: #e0e7ff;
+}
+
+[data-theme="light"] .active-rack-target {
+  box-shadow: 0 0 0 3px #0284c7, 0 16px 40px rgba(15, 23, 42, 0.2) !important;
+}
+
+[data-theme="light"] [data-device-renderer="pixi"] .device-controls,
+[data-theme="light"] .device-controls-floating {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(2, 132, 199, 0.4);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15), 0 0 8px rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="light"] [data-device-renderer="pixi"] .dev-btn,
+[data-theme="light"] .device-controls-floating .dev-btn {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #334155;
+}
+
+[data-theme="light"] [data-device-renderer="pixi"] .dev-btn:hover,
+[data-theme="light"] .device-controls-floating .dev-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] [data-device-renderer="pixi"] .mounted-device {
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.22), 0 1px 3px rgba(15, 23, 42, 0.12) !important;
+  border-radius: 2px;
+}
+
 

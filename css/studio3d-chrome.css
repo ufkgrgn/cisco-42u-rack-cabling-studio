@@ -29,17 +29,17 @@
   width: calc(100% - 24px);
   max-width: 1720px;
   height: 48px;
-  background: rgba(11, 17, 30, 0.88);
+  background: var(--glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  border: 1px solid var(--glass-border);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   z-index: 9999;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: var(--glass-shadow);
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -51,8 +51,8 @@
 }
 
 .unified-header:hover {
-  border-color: rgba(0, 229, 255, 0.45);
-  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 229, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
 }
 
 .hud-brand {
@@ -103,8 +103,9 @@
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-inset);
+  color: var(--text-main);
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -146,16 +147,16 @@
 .view-switch-segmented {
   display: inline-flex;
   align-items: center;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 2px;
   gap: 2px;
 }
 
-.device-label-control { display:inline-flex; align-items:center; gap:5px; color:#94a3b8; font-size:10.5px; font-weight:700; white-space:nowrap; }
-.device-label-control select { height:28px; border:1px solid rgba(56,189,248,.35); border-radius:6px; background:#0f172a; color:#e2e8f0; padding:0 24px 0 7px; font:700 10.5px system-ui,sans-serif; }
-.device-metadata-badge { position:absolute; left:12px; top:3px; z-index:5; max-width:42%; padding:2px 6px; overflow:hidden; color:#0f172a; background:#f8fafc; border:1px solid #38bdf8; border-radius:2px; font:700 9px Consolas,monospace; line-height:1.2; white-space:pre-line; text-overflow:ellipsis; pointer-events:none; }
+.device-label-control { display:inline-flex; align-items:center; gap:5px; color:var(--text-muted); font-size:10.5px; font-weight:700; white-space:nowrap; }
+.device-label-control select { height:28px; border:1px solid var(--border); border-radius:6px; background:var(--bg-inset); color:var(--text-main); padding:0 24px 0 7px; font:700 10.5px system-ui,sans-serif; }
+.device-metadata-badge { position:absolute; left:12px; top:3px; z-index:5; max-width:42%; padding:2px 6px; overflow:hidden; color:var(--text-main); background:var(--bg-elevated); border:1px solid var(--accent-blue); border-radius:2px; font:700 9px Consolas,monospace; line-height:1.2; white-space:pre-line; text-overflow:ellipsis; pointer-events:none; }
 
 @media (max-width: 1700px) {
   .telemetry-group { display: none; }
@@ -168,7 +169,7 @@
 .segmented-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 4px 11px;
   border-radius: 4px;
   font-size: 11px;
@@ -182,7 +183,8 @@
 }
 
 .segmented-btn:hover {
-  color: #f8fafc;
+  color: var(--text-main);
+}
   background: rgba(255, 255, 255, 0.06);
 }
 

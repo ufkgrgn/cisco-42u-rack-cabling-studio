@@ -166,19 +166,26 @@
     const rect = anchorEl.getBoundingClientRect();
     popup.style.display = "block";
     popup.style.opacity = "1";
+    popup.style.zIndex = "20000";
 
     const popupW = popup.offsetWidth || 480;
     const popupH = popup.offsetHeight || 280;
-    const spaceBelow = window.innerHeight - rect.bottom;
 
-    if (spaceBelow < popupH && rect.top > popupH) {
-      popup.style.top = Math.max(8, rect.top - popupH - 8) + "px";
+    const toolsPanel = anchorEl.closest('#hud-tools-panel');
+    if (toolsPanel) {
+      const tpRect = toolsPanel.getBoundingClientRect();
+      popup.style.top = Math.max(10, Math.min(window.innerHeight - popupH - 12, tpRect.top)) + "px";
+      popup.style.left = Math.max(12, tpRect.left - popupW - 12) + "px";
     } else {
-      popup.style.top = (rect.bottom + 8) + "px";
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < popupH && rect.top > popupH) {
+        popup.style.top = Math.max(8, rect.top - popupH - 8) + "px";
+      } else {
+        popup.style.top = (rect.bottom + 8) + "px";
+      }
+      const left = Math.max(12, Math.min(window.innerWidth - popupW - 16, rect.left));
+      popup.style.left = left + "px";
     }
-
-    const left = Math.max(12, Math.min(window.innerWidth - popupW - 16, rect.left));
-    popup.style.left = left + "px";
 
     popup.querySelectorAll(".preset-preview-load-btn").forEach(btn => {
       btn.addEventListener("click", () => {

@@ -194,18 +194,20 @@
 
   function getDevicePortRoleColor(instanceIdOrDev, portId) {
     const instanceId = (instanceIdOrDev && typeof instanceIdOrDev === 'object') ? instanceIdOrDev.instanceId : instanceIdOrDev;
-    const rack = (STATE.racks && STATE.racks.find(r => r.devices && r.devices.some(d => d.instanceId === instanceId))) || getActiveRack();
-    const dev = (instanceIdOrDev && typeof instanceIdOrDev === 'object') ? instanceIdOrDev : rack?.devices?.find(d => d.instanceId === instanceId);
+    const rack = (STATE.racks && STATE.racks.find(r => r.devices && r.devices.some(d => d.instanceId === instanceId || d.id === instanceId))) || getActiveRack();
+    const dev = (instanceIdOrDev && typeof instanceIdOrDev === 'object') ? instanceIdOrDev : rack?.devices?.find(d => d.instanceId === instanceId || d.id === instanceId);
     if (!dev?.portsConfig) return null;
     const pIdStr = String(portId || '');
-    const pNumStr = pIdStr.replace(/\D+/g, '');
-    const cfg = dev.portsConfig[pIdStr] ||
-      (pNumStr && dev.portsConfig[pNumStr]) ||
-      (pNumStr && dev.portsConfig['p' + pNumStr]) ||
-      (pNumStr && dev.portsConfig['pt' + pNumStr]) ||
-      (pNumStr && dev.portsConfig['lc' + pNumStr]) ||
-      (pNumStr && dev.portsConfig['sc' + pNumStr]) ||
-      null;
+    let cfg = dev.portsConfig[pIdStr];
+    if (cfg === undefined) {
+      const aliases = RS.getPortAliases ? RS.getPortAliases(portId) : [pIdStr];
+      for (let i = 0; i < aliases.length; i++) {
+        if (dev.portsConfig[aliases[i]] !== undefined) {
+          cfg = dev.portsConfig[aliases[i]];
+          break;
+        }
+      }
+    }
     if (!cfg) return null;
     if (cfg.color) return parseHexColor(cfg.color);
     if (cfg.role) {
@@ -228,6 +230,17 @@
       return;
     }
     sprite.tint = isOccupied ? 0x22c55e : 0xffffff;
+  }
+
+  function updateDevicePortTints(targetInstanceId) {
+    const target = targetInstanceId ? String(targetInstanceId) : null;
+    devicePortSprites.forEach((sprite, key) => {
+      const parts = key.split('::');
+      if (target && parts[0] !== target) return;
+      const occupied = devicePortOccupancy.get(key) === true;
+      applyPortTint(sprite, key, { instanceId: parts[0], portId: parts[1] }, occupied);
+    });
+    PixiContext.renderPixi?.('port-tints-updated');
   }
 
   function restoreDevicePortTint(key) {
@@ -257,10 +270,20 @@
     const multi = !!el?.classList.contains('studio-multi-selected');
     const selected = multi || !!el?.classList.contains('studio-selected');
     const hovered = hoveredDeviceId === id && !selected;
+    const w = entry.width, h = entry.height;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+    // In light theme, draw a crisp metallic chassis chamfer edge & shadow outline
+    if (isLight) {
+      graphics.rect(0, 0, w, 1).fill({ color: 0xffffff, alpha: 0.35 });
+      graphics.rect(0, h - 1, w, 1).fill({ color: 0x0f172a, alpha: 0.65 });
+      graphics.rect(0, 0, 1, h).fill({ color: 0x475569, alpha: 0.65 });
+      graphics.rect(w - 1, 0, 1, h).fill({ color: 0x475569, alpha: 0.65 });
+    }
+
     if (selected || hovered) {
-      const color = multi ? 0xa855f7 : 0x38bdf8;
+      const color = multi ? 0xa855f7 : (isLight ? 0x0284c7 : 0x38bdf8);
       const alpha = hovered ? 0.75 : 1;
-      const w = entry.width, h = entry.height;
       const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
       const t = Math.max(1.5, Math.min(2.4, h * 0.08));
       const bars = [
@@ -268,6 +291,26 @@
         [0, h - t, arm, t], [0, h - arm, t, arm], [w - arm, h - t, arm, t], [w - t, h - arm, t, arm]
       ];
       bars.forEach(([x, y, bw, bh]) => graphics.rect(x, y, bw, bh).fill({ color, alpha }));
+    }
+
+    // Paint crisp safety-orange separators between patch panel port groups
+    const isPatch = entry.device.category === 'patch' || /patch/i.test(entry.device.catalogKey || '');
+    if (isPatch) {
+      const cat = RS.resolveCatalogItem ? RS.resolveCatalogItem(entry.device.catalogKey) : null;
+      if (cat?.ports && cat.ports.length > 1) {
+        for (let i = 0; i < cat.ports.length - 1; i++) {
+          const p1 = cat.ports[i];
+          const p2 = cat.ports[i + 1];
+          if (p1.group !== undefined && p2.group !== undefined && p1.group !== p2.group) {
+            const s1 = devicePortSprites.get(`${id}::${p1.id}`);
+            const s2 = devicePortSprites.get(`${id}::${p2.id}`);
+            if (s1 && s2) {
+              const sepX = (s1.x + s2.x) / 2;
+              graphics.rect(sepX - 0.75, 6, 1.5, 20).fill({ color: 0xea580c, alpha: 0.95 });
+            }
+          }
+        }
+      }
     }
 
     const pending = STATE?.pendingConnection;
@@ -458,7 +501,8 @@
   }
 
   function buildDeviceGeometrySignature(snapshot, lod) {
-    return `${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+    return `${theme}|${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
   }
 
   function hashOccupancyValue(value, hash, prime) {
@@ -693,7 +737,11 @@
   const moveDeviceByOffset = (id, dx, dy) => { const dev = deviceContainers.get(String(id)); if (!dev) return false; dev.container.position.set(dev.originX + dx, dev.originY + dy); return true; };
   const resetDevicePosition = (id) => { const dev = deviceContainers.get(String(id)); if (!dev) return false; dev.container.position.set(dev.originX, dev.originY); return true; };
   const resetAllDevicePositions = () => { deviceContainers.forEach(dev => dev.container.position.set(dev.originX, dev.originY)); };
-  const refreshPixiPortHighlights = () => { deviceContainers.forEach(entry => paintDeviceChrome(entry)); PixiContext.renderPixi?.('port-highlights'); };
+  const refreshPixiPortHighlights = () => {
+    deviceContainers.forEach(entry => paintDeviceChrome(entry));
+    updateDevicePortTints();
+    PixiContext.renderPixi?.('port-highlights');
+  };
 
   // Export to RackStudio namespace
   RS.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
@@ -704,6 +752,7 @@
   RS.getDevicePortClientRect = getDevicePortClientRect;
   RS.dispatchDevicePortInteraction = dispatchDevicePortInteraction;
   RS.getDevicePortRoleColor = getDevicePortRoleColor;
+  RS.updateDevicePortTints = updateDevicePortTints;
   RS.restoreDevicePortTint = restoreDevicePortTint;
   RS.invalidatePixiDeviceScene = invalidatePixiDeviceScene;
   function getPixiPortPresentation(instanceId, portId) {
@@ -729,9 +778,11 @@
   RS.hitDeviceChassisAt = hitDeviceBodyAt;
   RS.updatePixiDeviceSelection = syncPixiDeviceSelection;
   RS.refreshPixiPortHighlights = refreshPixiPortHighlights;
+  RS.syncPixiDeviceScenes = syncPixiDeviceSceneLOD;
 
   RS.PixiDeviceScene = {
     syncPixiDeviceSceneLOD,
+    syncPixiDeviceScenes: syncPixiDeviceSceneLOD,
     destroyDeviceRackScenes,
     destroyDeviceRackScene,
     prunePixiDevice,
@@ -747,6 +798,7 @@
     getDevicePortClientRect,
     dispatchDevicePortInteraction,
     getDevicePortRoleColor,
+    updateDevicePortTints,
     restoreDevicePortTint,
     invalidatePixiDeviceScene,
     collectDeviceOccupancy,
@@ -763,6 +815,10 @@
   PixiContext.devicePortSprites = devicePortSprites;
   PixiContext.devicePortOccupancy = devicePortOccupancy;
   PixiContext.hitDevicePortAt = hitDevicePortAt;
+  PixiContext.syncPixiDeviceScenes = syncPixiDeviceSceneLOD;
+  PixiContext.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
+  PixiContext.destroyDeviceRackScenes = destroyDeviceRackScenes;
+  PixiContext.invalidatePixiDeviceScene = invalidatePixiDeviceScene;
   PixiContext.hitDeviceBodyAt = hitDeviceBodyAt;
   PixiContext.listDeviceFrames = listDeviceFrames;
   PixiContext.dispatchDevicePortInteraction = dispatchDevicePortInteraction;

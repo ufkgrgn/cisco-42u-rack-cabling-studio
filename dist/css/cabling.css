@@ -641,6 +641,53 @@
   background: #0369a1;
 }
 
+/* ==========================================================================
+   Light Theme Cabling & SVG Organizers Styling
+   ========================================================================== */
+[data-theme="light"] .brush-svg-lip {
+  fill: #e2e8f0;
+  stroke: #cbd5e1;
+}
+
+[data-theme="light"] .brush-svg-bristle {
+  stroke: #64748b;
+  opacity: 0.65;
+}
+
+[data-theme="light"] .finger-duct-svg-tine {
+  fill: #e2e8f0;
+  stroke: #94a3b8;
+}
+
+[data-theme="light"] .finger-duct-svg-cover {
+  fill: #f8fafc;
+  stroke: #94a3b8;
+}
+
+[data-theme="light"] .cable-label-bg {
+  fill: #ffffff;
+  fill-opacity: 0.95;
+  stroke: #cbd5e1;
+}
+
+[data-theme="light"] .cable-label-text {
+  fill: #0f172a;
+}
+
+[data-theme="light"] .cable-quick-hud {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(2, 132, 199, 0.5);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15), 0 0 14px rgba(2, 132, 199, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .switch-bulk-color-popover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(2, 132, 199, 0.4);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15), 0 0 15px rgba(2, 132, 199, 0.1);
+  color: #0f172a;
+}
+
 
 
 

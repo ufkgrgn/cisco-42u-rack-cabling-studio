@@ -125,9 +125,9 @@
     </div>
 
     <div class="hud-right-cluster">
-      <div class="hud-u-selector" title="Kabin Yüksekliği (U)">
+      <div class="hud-u-selector" title="Kabin Yüksekliği (12U - 60U Boyutu) / Rack Unit Height">
         <span class="u-tag">U:</span>
-        <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2">
+        <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2" title="Kabin Yüksekliğini Ayarla (12U - 60U)">
         <span id="rack-u-val">42U</span>
       </div>
 
@@ -183,7 +183,6 @@
         </div>
       </div>
 
-      <div id="preset-preview-popup" class="preset-preview-popup" style="display:none;"></div>
       <span class="hud-badge fps" id="fps-counter" style="display:none;">60 FPS</span>
     </div>
   </header>
@@ -1656,6 +1655,7 @@
 
   <!-- Tooltip Floating Element -->
   <div class="tooltip" id="tooltip"></div>
+  <div id="preset-preview-popup" class="preset-preview-popup" style="display:none;"></div>
   </div>
 
   <!-- Standalone Application Entry Point (Supports both file:/// and web servers) -->

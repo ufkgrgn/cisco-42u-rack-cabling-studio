@@ -16,23 +16,25 @@
   const addDirectCable = (...args) => RS.addDirectCable && RS.addDirectCable(...args);
 
   function loadMdfPreset() {
-    STATE.racks = [
-      {
-        id: 'rack-1',
-        name: 'MDF - Ana Dağıtım & WAN Omurga Kabini',
-        heightU: 42,
-        units: Array(43).fill(null),
-        devices: []
-      }
-    ];
-    STATE.activeRackId = 'rack-1';
-    STATE.cables = [];
-    STATE.cableCounter = 0;
-    STATE.highlightedCableId = null;
-    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
-    renderRackRailsAndSlots();
+    STATE.isBatchLoading = true;
+    try {
+      STATE.racks = [
+        {
+          id: 'rack-1',
+          name: 'MDF - Ana Dağıtım & WAN Omurga Kabini',
+          heightU: 42,
+          units: Array(43).fill(null),
+          devices: []
+        }
+      ];
+      STATE.activeRackId = 'rack-1';
+      STATE.cables = [];
+      STATE.cableCounter = 0;
+      STATE.highlightedCableId = null;
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+      renderRackRailsAndSlots();
 
-    const r = STATE.racks[0];
+      const r = STATE.racks[0];
 
     const dODF = mountDeviceAt('fiber-odf-24', 42, r.id);
     mountDeviceAt('organizer-1u', 41, r.id);
@@ -83,26 +85,31 @@
     setTimeout(renderAllCables, 50);
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    } finally {
+      STATE.isBatchLoading = false;
+    }
   }
 
   function loadIdfPreset() {
-    STATE.racks = [
-      {
-        id: 'rack-1',
-        name: 'IDF-1 - Kat 1 Kenar Erişim Kabini',
-        heightU: 42,
-        units: Array(43).fill(null),
-        devices: []
-      }
-    ];
-    STATE.activeRackId = 'rack-1';
-    STATE.cables = [];
-    STATE.cableCounter = 0;
-    STATE.highlightedCableId = null;
-    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
-    renderRackRailsAndSlots();
+    STATE.isBatchLoading = true;
+    try {
+      STATE.racks = [
+        {
+          id: 'rack-1',
+          name: 'IDF-1 - Kat 1 Kenar Erişim Kabini',
+          heightU: 42,
+          units: Array(43).fill(null),
+          devices: []
+        }
+      ];
+      STATE.activeRackId = 'rack-1';
+      STATE.cables = [];
+      STATE.cableCounter = 0;
+      STATE.highlightedCableId = null;
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+      renderRackRailsAndSlots();
 
-    const r = STATE.racks[0];
+      const r = STATE.racks[0];
 
     const dODF = mountDeviceAt('fiber-odf-24', 42, r.id);
     mountDeviceAt('organizer-1u', 41, r.id);
@@ -147,27 +154,32 @@
     setTimeout(renderAllCables, 50);
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    } finally {
+      STATE.isBatchLoading = false;
+    }
   }
 
   function loadFullSitePreset() {
-    STATE.racks = [
-      { id: 'rack-1', name: 'MDF - Ana Dağıtım & Omurga', heightU: 42,
-        units: Array(43).fill(null), devices: [] },
-      { id: 'rack-2', name: 'IDF-1 - Kat 1 Kenar Kabini', heightU: 42,
-        units: Array(43).fill(null), devices: [] },
-      { id: 'rack-3', name: 'IDF-2 - Kat 2 Kenar Kabini', heightU: 42,
-        units: Array(43).fill(null), devices: [] }
-    ];
-    STATE.activeRackId = 'rack-1';
-    STATE.cables = [];
-    STATE.cableCounter = 0;
-    STATE.rackCounter = 3;
-    if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
-    renderRackRailsAndSlots();
+    STATE.isBatchLoading = true;
+    try {
+      STATE.racks = [
+        { id: 'rack-1', name: 'MDF - Ana Dağıtım & Omurga', heightU: 42,
+          units: Array(43).fill(null), devices: [] },
+        { id: 'rack-2', name: 'IDF-1 - Kat 1 Kenar Kabini', heightU: 42,
+          units: Array(43).fill(null), devices: [] },
+        { id: 'rack-3', name: 'IDF-2 - Kat 2 Kenar Kabini', heightU: 42,
+          units: Array(43).fill(null), devices: [] }
+      ];
+      STATE.activeRackId = 'rack-1';
+      STATE.cables = [];
+      STATE.cableCounter = 0;
+      STATE.rackCounter = 3;
+      if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
+      renderRackRailsAndSlots();
 
-    const r1 = STATE.racks[0];
-    const r2 = STATE.racks[1];
-    const r3 = STATE.racks[2];
+      const r1 = STATE.racks[0];
+      const r2 = STATE.racks[1];
+      const r3 = STATE.racks[2];
 
     // --- POPULATE MDF (Rack 1) ---
     const mdfODF = mountDeviceAt('fiber-odf-24', 42, r1.id);
@@ -228,6 +240,9 @@
     setTimeout(renderAllCables, 50);
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+    } finally {
+      STATE.isBatchLoading = false;
+    }
   }
 
   RS.loadMdfPreset = loadMdfPreset;

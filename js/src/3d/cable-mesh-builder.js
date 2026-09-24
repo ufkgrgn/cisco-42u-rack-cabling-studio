@@ -7,7 +7,7 @@ import {
 } from './catalog3d.js';
 
 export function registerCableMeshMethods(Studio3D) {
-  Studio3D.prototype.connectPorts = function(from, to, colorHex, customName, customNote) {
+  Studio3D.prototype.connectPorts = function(from, to, colorHex, customName, customNote, options = {}) {
     if (from.devId === to.devId && from.portIdx === to.portIdx) return false;
 
     const existing = this.state.cables.find(
@@ -109,7 +109,9 @@ export function registerCableMeshMethods(Studio3D) {
     this.state.cables.push(cableData);
     this.buildCable3D(cableData);
     this.state.pushSnapshot();
-    sfx.plug();
+    if (!options?.silent) {
+      sfx.plug();
+    }
     return cableData;
   };
 

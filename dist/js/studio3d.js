@@ -3,48 +3,49 @@
   // js/src/3d/audio.js
   var SoundFX = class {
     constructor() {
-      this.ctx = null;
       this.enabled = true;
     }
-    init() {
-      if (!this.ctx && typeof AudioContext !== "undefined") {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    get isMuted() {
+      if (typeof window !== "undefined") {
+        if (window.SoundFX && typeof window.SoundFX.isMuted === "boolean") {
+          return window.SoundFX.isMuted;
+        }
+        try {
+          return localStorage.getItem("rack-studio-audio-muted") === "true";
+        } catch (_) {
+        }
       }
-    }
-    playTone(freq, duration, type = "sine", gainVal = 0.08) {
-      if (!this.enabled) return;
-      try {
-        this.init();
-        if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-        gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(1e-4, this.ctx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + duration);
-      } catch (e) {
-      }
+      return !this.enabled;
     }
     click() {
-      this.playTone(800, 0.04, "square", 0.03);
+      if (this.isMuted) return;
+      if (typeof window !== "undefined" && window.SoundFX?.playPortClick) {
+        window.SoundFX.playPortClick("copper");
+      }
     }
     insert() {
-      this.playTone(180, 0.12, "sawtooth", 0.07);
-      setTimeout(() => this.playTone(320, 0.08, "sine", 0.05), 80);
+      if (this.isMuted) return;
+      if (typeof window !== "undefined" && window.SoundFX?.playDeviceMount) {
+        window.SoundFX.playDeviceMount();
+      }
     }
     plug() {
-      this.playTone(520, 0.06, "triangle", 0.06);
-      setTimeout(() => this.playTone(880, 0.09, "sine", 0.05), 50);
+      if (this.isMuted) return;
+      if (typeof window !== "undefined" && window.SoundFX?.playPortClick) {
+        window.SoundFX.playPortClick("sfp");
+      }
     }
     delete() {
-      this.playTone(220, 0.15, "sawtooth", 0.08);
+      if (this.isMuted) return;
+      if (typeof window !== "undefined" && window.SoundFX?.playCableCut) {
+        window.SoundFX.playCableCut();
+      }
     }
     toggle() {
-      this.playTone(600, 0.05, "sine", 0.04);
+      if (this.isMuted) return;
+      if (typeof window !== "undefined" && window.SoundFX?.playPortClick) {
+        window.SoundFX.playPortClick("copper");
+      }
     }
   };
   var sfx = new SoundFX();
@@ -1510,7 +1511,7 @@
       }
       return null;
     };
-    Studio3D2.prototype.mountDevice = function(catalogId, targetU, targetRackId) {
+    Studio3D2.prototype.mountDevice = function(catalogId, targetU, targetRackId, options = {}) {
       const cat3D = (window.CATALOG_3D || CATALOG).find((c) => c.id === catalogId);
       const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catalogId];
       const item = cat3D || cat2D;
@@ -1578,7 +1579,9 @@
       this.buildDevice3D(devData);
       this.state.pushSnapshot();
       this.state.autoSave();
-      sfx.insert();
+      if (!options?.silent) {
+        sfx.insert();
+      }
       if (typeof window.renderInstalledDevicesList === "function") {
         window.renderInstalledDevicesList();
       }
@@ -2093,7 +2096,7 @@
 
   // js/src/3d/cable-mesh-builder.js
   function registerCableMeshMethods(Studio3D2) {
-    Studio3D2.prototype.connectPorts = function(from, to, colorHex, customName, customNote) {
+    Studio3D2.prototype.connectPorts = function(from, to, colorHex, customName, customNote, options = {}) {
       if (from.devId === to.devId && from.portIdx === to.portIdx) return false;
       const existing = this.state.cables.find(
         (c) => c.from.devId === from.devId && c.from.portIdx === from.portIdx || c.to.devId === from.devId && c.to.portIdx === from.portIdx || c.from.devId === to.devId && c.from.portIdx === to.portIdx || c.to.devId === to.devId && c.to.portIdx === to.portIdx
@@ -2178,7 +2181,9 @@
       this.state.cables.push(cableData);
       this.buildCable3D(cableData);
       this.state.pushSnapshot();
-      sfx.plug();
+      if (!options?.silent) {
+        sfx.plug();
+      }
       return cableData;
     };
     Studio3D2.prototype.updatePortConfig = function(devId, portIdx, config) {
@@ -2906,17 +2911,18 @@
     loadPresetMDF() {
       this.state.devices = [];
       this.state.cables = [];
-      this.mountDevice("patch-cat6a-24p", 40);
-      this.mountDevice("cisco-c9300-48p", 38);
-      this.mountDevice("cable-manager-1u", 37);
-      this.mountDevice("patch-cat6a-24p", 35);
-      this.mountDevice("cisco-c9500-32qc", 33);
-      this.mountDevice("cable-manager-1u", 32);
-      this.mountDevice("cisco-isr4451", 28);
-      this.mountDevice("dell-r750", 20);
-      this.mountDevice("hpe-dl380-g10", 16);
-      this.mountDevice("blank-panel-1u", 12);
-      this.mountDevice("pdu-1u-8c13", 2);
+      const silentOpt = { silent: true };
+      this.mountDevice("patch-cat6a-24p", 40, null, silentOpt);
+      this.mountDevice("cisco-c9300-48p", 38, null, silentOpt);
+      this.mountDevice("cable-manager-1u", 37, null, silentOpt);
+      this.mountDevice("patch-cat6a-24p", 35, null, silentOpt);
+      this.mountDevice("cisco-c9500-32qc", 33, null, silentOpt);
+      this.mountDevice("cable-manager-1u", 32, null, silentOpt);
+      this.mountDevice("cisco-isr4451", 28, null, silentOpt);
+      this.mountDevice("dell-r750", 20, null, silentOpt);
+      this.mountDevice("hpe-dl380-g10", 16, null, silentOpt);
+      this.mountDevice("blank-panel-1u", 12, null, silentOpt);
+      this.mountDevice("pdu-1u-8c13", 2, null, silentOpt);
       const dPatch = this.state.devices.find((d) => d.catalogId === "patch-cat6a-24p");
       const dSwitch = this.state.devices.find((d) => d.catalogId === "cisco-c9300-48p");
       const dRouter = this.state.devices.find((d) => d.catalogId === "cisco-isr4451");
@@ -2927,7 +2933,9 @@
             { devId: dPatch.id, portIdx: i },
             { devId: dSwitch.id, portIdx: i },
             CABLE_COLORS[(i - 1) % CABLE_COLORS.length].hex,
-            `Patch-P${i} \u2794 Switch-P${i}`
+            `Patch-P${i} \u2794 Switch-P${i}`,
+            "",
+            silentOpt
           );
         }
       }
@@ -2936,7 +2944,9 @@
           { devId: dSwitch.id, portIdx: 48 },
           { devId: dRouter.id, portIdx: 1 },
           15680580,
-          "Uplink-Core-to-WAN"
+          "Uplink-Core-to-WAN",
+          "",
+          silentOpt
         );
       }
       if (dSwitch && dSpine) {
@@ -2944,7 +2954,9 @@
           { devId: dSwitch.id, portIdx: 47 },
           { devId: dSpine.id, portIdx: 1 },
           16347926,
-          "100G-Spine-Trunk"
+          "100G-Spine-Trunk",
+          "",
+          silentOpt
         );
       }
       this.state.pushSnapshot();

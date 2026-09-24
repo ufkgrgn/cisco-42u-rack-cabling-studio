@@ -27,6 +27,40 @@
       localStorage.setItem(STORAGE_KEY, next);
     } catch (_) { /* storage may be blocked */ }
     syncToggleUi(next);
+
+    // Invalidate and sync Pixi cabin scene stripes and trigger render
+    const cabinScene = window.RackStudio?.PixiCabinScene || window.PixiContext?.PixiCabinScene;
+    if (cabinScene?.invalidatePixiCabinScenes) {
+      cabinScene.invalidatePixiCabinScenes();
+      cabinScene.syncPixiCabinScenes?.();
+    }
+
+    // Clear procedural faceplate chassis textures and destroy/rebuild device scene
+    window.RackStudio?.FaceplateTextures?.clearChassisCache?.();
+    const devScene = window.RackStudio?.PixiDeviceScene || window.PixiContext;
+    if (window.RackStudio?.destroyDeviceRackScenes) {
+      window.RackStudio.destroyDeviceRackScenes();
+    } else if (devScene?.destroyDeviceRackScenes) {
+      devScene.destroyDeviceRackScenes();
+    }
+    if (window.RackStudio?.invalidatePixiDeviceScene) {
+      window.RackStudio.invalidatePixiDeviceScene();
+    } else if (devScene?.invalidatePixiDeviceScene) {
+      devScene.invalidatePixiDeviceScene();
+    }
+    if (window.RackStudio?.syncPixiDeviceScenes) {
+      window.RackStudio.syncPixiDeviceScenes();
+    } else if (window.RackStudio?.syncPixiDeviceSceneLOD) {
+      window.RackStudio.syncPixiDeviceSceneLOD();
+    } else if (devScene?.syncPixiDeviceSceneLOD) {
+      devScene.syncPixiDeviceSceneLOD();
+    }
+
+    if (window.PixiContext?.renderPixi) {
+      window.PixiContext.renderPixi('theme-change');
+    }
+    window.dispatchEvent(new CustomEvent('rackstudio:themechange', { detail: { theme: next } }));
+
     return next;
   }
 

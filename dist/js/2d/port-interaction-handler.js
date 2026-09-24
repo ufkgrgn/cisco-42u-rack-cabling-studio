@@ -31,7 +31,7 @@
   // Port role cycling logic is extracted to js/2d/port-role-cycling.js
   const PORT_ROLE_CYCLES = RS.PORT_ROLE_CYCLES || { copper: [null, 'access', 'trunk', 'uplink', 'routed', 'poe', 'management', 'console'], fiber: [null, 'fiber'] };
   const PORT_ROLE_META = RS.PORT_ROLE_META || {};
-  const getPortAliases = (portId) => RS.getPortAliases ? RS.getPortAliases(portId) : [String(portId || '')];
+  const getPortAliases = (portId) => (RS.getPortAliases && RS.getPortAliases !== getPortAliases ? RS.getPortAliases(portId) : [String(portId || '')]);
   const cyclePortRole = (...args) => RS.cyclePortRole && RS.cyclePortRole(...args);
   const showPortRoleCycleToast = (...args) => RS.showPortRoleCycleToast && RS.showPortRoleCycleToast(...args);
   // --- END PORT ROLE CYCLE ---
@@ -204,14 +204,16 @@
       </span>`;
     }
 
-    const pIdStr = String(portId || '');
-    const pNumStr = pIdStr.replace(/^p/i, '');
-    const portCfg = dev.portsConfig && (
-      dev.portsConfig[portId] ||
-      dev.portsConfig[pNumStr] ||
-      dev.portsConfig['p' + pNumStr] ||
-      dev.portsConfig[portName]
-    );
+    const aliases = getPortAliases(portId);
+    let portCfg = null;
+    if (dev.portsConfig) {
+      for (const a of aliases) {
+        if (dev.portsConfig[a]) { portCfg = dev.portsConfig[a]; break; }
+      }
+      if (!portCfg && portName && dev.portsConfig[portName]) {
+        portCfg = dev.portsConfig[portName];
+      }
+    }
 
     const isTrunk = Boolean(portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk));
     const trunkColor = (portCfg && portCfg.color) || '#7c3aed';
@@ -257,7 +259,7 @@
             <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; padding-bottom:3px; margin-bottom:4px;">
               ⚠️ Kaynak Port Seçildi
             </div>
-            <div style="color:#cbd5e1; font-size:0.68rem;">Bağlantıyı iptal etmek için bu porta tekrar tıklayın.</div>
+            <div style="color:var(--text-muted); font-size:0.68rem;">Bağlantıyı iptal etmek için bu porta tekrar tıklayın.</div>
           `;
           return;
         }
@@ -272,7 +274,7 @@
             <div style="font-weight:800; font-size:0.75rem; color:#ef4444; padding-bottom:3px; margin-bottom:4px;">
               ⛔ Port Dolu
             </div>
-            <div style="color:#cbd5e1; font-size:0.68rem;">Bu porta zaten başka bir kablo bağlı.</div>
+            <div style="color:var(--text-muted); font-size:0.68rem;">Bu porta zaten başka bir kablo bağlı.</div>
           `;
           return;
         }
@@ -298,52 +300,52 @@
           if (isPatchPassThrough) {
             // Panel-to-panel cross-connect: show blue info card (allowed, just informational)
             dom.tooltip.innerHTML = `
-              <div style="font-weight:800; font-size:0.75rem; color:#38bdf8; border-bottom:1px solid #0369a1; padding-bottom:3px; margin-bottom:4px;">
+              <div style="font-weight:800; font-size:0.75rem; color:var(--accent-blue); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
                 ℹ️ Panel Çapraz Aktarma
               </div>
-              <div style="color:#bae6fd; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
-              <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-              <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+              <div style="color:var(--accent-blue); font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
             `;
           } else {
             // Other warnings (e.g. same-panel loopback)
             dom.tooltip.innerHTML = `
-              <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid #78350f; padding-bottom:3px; margin-bottom:4px;">
+              <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
                 ⚠️ Bağlantı Uyarısı
               </div>
-              <div style="color:#fde68a; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
-              <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-              <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+              <div style="color:#d97706; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
             `;
           }
           return;
         }
 
         dom.tooltip.innerHTML = `
-          <div style="font-weight:800; font-size:0.75rem; color:#22c55e; border-bottom:1px solid #14532d; padding-bottom:3px; margin-bottom:4px;">
+          <div style="font-weight:800; font-size:0.75rem; color:#22c55e; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
             🔗 Bağlantıyı Tamamla
           </div>
-          <div style="color:#cbd5e1; font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-          <div style="color:#86efac; font-size:0.65rem; margin-top:2px;">Bağlamak için tıklayın.</div>
+          <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+          <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
         `;
         return;
       }
 
       const trunkBadge = isTrunk ? `<span style="background:${trunkColor}; color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:2px; margin-left:6px;">802.1Q TRUNK</span>` : '';
-      const vlanInfo = portCfg?.vlan ? `<div style="color:#38bdf8; font-size:0.68rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
-      const connInfo = connectedCable ? `<div style="color:#22c55e; font-size:0.68rem; margin-top:3px;">🔗 ${connectionInfo}</div>` : `<div style="color:#64748b; font-size:0.68rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
+      const vlanInfo = portCfg?.vlan ? `<div style="color:var(--accent-blue); font-size:0.68rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
+      const connInfo = connectedCable ? `<div style="color:#16a34a; font-size:0.68rem; margin-top:3px; font-weight:600;">🔗 ${connectionInfo}</div>` : `<div style="color:var(--text-muted); font-size:0.68rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
       
       dom.tooltip.innerHTML = `
-        <div style="font-weight:800; font-size:0.75rem; color:#f8fafc; border-bottom:1px solid #334155; padding-bottom:3px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:0.75rem; color:var(--text-main); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
           <span>${escapeHtml(cat.modelTag || cat.name)}</span>
-          <span style="color:#38bdf8; font-family:monospace; font-size:0.75rem;">${escapeHtml(portName)}</span>
+          <span style="color:var(--accent-blue); font-family:monospace; font-size:0.75rem; font-weight:700;">${escapeHtml(portName)}</span>
           ${trunkBadge}
         </div>
-        <div style="color:#cbd5e1; font-size:0.68rem;">⚡ <b>Hız:</b> ${escapeHtml(portSpeed)}</div>
-        <div style="color:#94a3b8; font-size:0.66rem;">🔌 <b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
+        <div style="color:var(--text-main); font-size:0.68rem;">⚡ <b>Hız:</b> ${escapeHtml(portSpeed)}</div>
+        <div style="color:var(--text-muted); font-size:0.66rem;">🔌 <b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
         ${vlanInfo}
         ${connInfo}
-        <div style="color:#0ea5e9; font-size:0.63rem; margin-top:4px; border-top:1px dashed #1e293b; padding-top:2px;">⚙️ Sağ Tık / Shift+Tık: <i>Port Yapılandırması</i></div>
+        <div style="color:var(--accent-blue); font-size:0.63rem; margin-top:4px; border-top:1px dashed var(--border); padding-top:2px;">⚙️ Sağ Tık / Shift+Tık: <i>Port Yapılandırması</i></div>
       `;
     }
   }
@@ -423,7 +425,8 @@
 
       // Validate connection against network engineering rules (Loop prevention, Media compatibility)
       if (RS.NetworkRules && typeof RS.NetworkRules.validateConnection === 'function') {
-        const validation = RS.NetworkRules.validateConnection(source, { rackId: devRack.id, instanceId, portId });
+        const strict = STATE.strictCompliance !== false;
+        const validation = RS.NetworkRules.validateConnection(source, { rackId: devRack.id, instanceId, portId }, STATE, HARDWARE_CATALOG, strict);
         if (!validation.allowed) {
           if (window.SoundFX && typeof window.SoundFX.playError === 'function') {
             window.SoundFX.playError();
@@ -478,16 +481,17 @@
       const isSourceConfigured = Boolean(sourcePortCfg && (sourcePortCfg.color || sourcePortCfg.role || sourcePortCfg.isTrunk || sourcePortCfg.vlan || sourcePortCfg.description));
       const isTargetConfigured = Boolean(targetPortCfg && (targetPortCfg.color || targetPortCfg.role || targetPortCfg.isTrunk || targetPortCfg.vlan || targetPortCfg.description));
 
-      // Intelligent Auto-Uplink & Fiber Detection
+      // Intelligent Auto-Uplink & Fiber Detection (Only in Strict Compliance Mode)
+      const strictMode = STATE.strictCompliance !== false;
       let detectedUplink = null;
-      if (RS.NetworkRules && typeof RS.NetworkRules.detectUplinkConnection === 'function') {
-        detectedUplink = RS.NetworkRules.detectUplinkConnection(sourceDev, srcPort, targetDev, tgtPort);
+      if (strictMode && RS.NetworkRules && typeof RS.NetworkRules.detectUplinkConnection === 'function') {
+        detectedUplink = RS.NetworkRules.detectUplinkConnection(sourceDev, srcPort, targetDev, tgtPort, strictMode);
       }
 
       let detectedFiber = null;
-      if (RS.NetworkRules && typeof RS.NetworkRules.detectFiberConnection === 'function') {
+      if (strictMode && RS.NetworkRules && typeof RS.NetworkRules.detectFiberConnection === 'function') {
         detectedFiber = RS.NetworkRules.detectFiberConnection(sourceDev, srcPort, targetDev, tgtPort);
-      } else {
+      } else if (strictMode) {
         const isOptic = (srcPort?.type === 'lc' || srcPort?.type === 'sc' || srcPort?.type === 'fiber') &&
                         (tgtPort?.type === 'lc' || tgtPort?.type === 'sc' || tgtPort?.type === 'fiber') &&
                         srcPort?.type !== 'rj45' && tgtPort?.type !== 'rj45';
@@ -720,7 +724,7 @@
 
   RS.PORT_ROLE_CYCLES = PORT_ROLE_CYCLES;
   RS.PORT_ROLE_META = PORT_ROLE_META;
-  RS.getPortAliases = getPortAliases;
+  if (!RS.getPortAliases) RS.getPortAliases = getPortAliases;
   if (!RS.cyclePortRole) RS.cyclePortRole = cyclePortRole;
   if (!RS.showPortRoleCycleToast) RS.showPortRoleCycleToast = showPortRoleCycleToast;
   RS.bindPortInteractions = bindPortInteractions;

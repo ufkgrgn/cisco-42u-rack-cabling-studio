@@ -653,3 +653,164 @@
   }
 }
 
+/* ==========================================================================
+   Light Theme Rack Organizers Styling
+   ========================================================================== */
+[data-theme="light"] .brush-faceplate {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
+  border-top: 1px solid #ffffff !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  border-left: 4px solid #64748b !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 5px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .brush-tag {
+  color: #475569;
+}
+
+[data-theme="light"] .brush-slot {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .brush-bristles-top,
+[data-theme="light"] .brush-bristles-bottom {
+  background: repeating-linear-gradient(
+    90deg,
+    #64748b 0px,
+    #64748b 1.5px,
+    #94a3b8 1.5px,
+    #cbd5e1 2px,
+    #94a3b8 2.5px,
+    #64748b 3px
+  );
+  opacity: 0.85;
+}
+
+[data-theme="light"] .brush-bristles-top {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .brush-bristles-bottom {
+  border-top: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .brush-slit {
+  background: #475569;
+  box-shadow: 0 0 2px rgba(15, 23, 42, 0.2);
+}
+
+[data-theme="light"] .finger-duct-faceplate {
+  background: #f8fafc !important;
+  border-top: 1px solid #ffffff !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+  border-left: 4px solid #0284c7 !important;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05), 0 2px 6px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .finger-tine {
+  background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+  border: 1px solid #94a3b8;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .finger-duct-cover {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 60%, #e2e8f0 100%);
+  border: 1.5px solid #94a3b8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .finger-duct-cover.open {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.05), 0 0 8px rgba(2, 132, 199, 0.2);
+}
+
+[data-theme="light"] .finger-cover-tag {
+  color: #475569;
+}
+
+[data-theme="light"] .finger-cover-grip span {
+  background: #94a3b8;
+}
+
+[data-theme="light"] .finger-toggle-btn {
+  background: #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .finger-toggle-btn:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.3);
+}
+
+[data-theme="light"] .dring-faceplate {
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f8fafc 40%,
+    #f1f5f9 60%,
+    #e2e8f0 100%
+  ) !important;
+  border-top: 1px solid #ffffff !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+  border-left: 4px solid #64748b !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 6px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .dring-faceplate::before {
+  background: repeating-linear-gradient(
+    90deg,
+    #cbd5e1 0px,
+    #cbd5e1 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  opacity: 0.7;
+}
+
+[data-theme="light"] .dring-loop {
+  background: #ffffff !important;
+  border: 1.8px solid #94a3b8 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 4px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .dring-loop::before {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+[data-theme="light"] .switch-autofill-popover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(2, 132, 199, 0.4);
+  box-shadow: 0 12px 30px -5px rgba(15, 23, 42, 0.15), 0 0 20px rgba(2, 132, 199, 0.1);
+  color: #0f172a;
+}
+
+[data-theme="light"] .autofill-pop-header {
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .autofill-pop-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .autofill-pop-subtitle {
+  color: #64748b;
+}
+
+[data-theme="light"] .autofill-toast {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(2, 132, 199, 0.5);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 0 16px rgba(2, 132, 199, 0.1);
+  color: #0f172a;
+}
+
+[data-theme="light"] .autofill-toast-msg {
+  color: #334155;
+}
+

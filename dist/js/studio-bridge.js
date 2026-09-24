@@ -354,13 +354,26 @@
       window.is3DMode = false;
       applyMode();
       sync3Dto2D();
+      if (window.RackStudioTheme) {
+        window.RackStudioTheme.apply(window.RackStudioTheme.get());
+      }
       requestAnimationFrame(() => {
         setTimeout(() => {
           if (window.RackStudio && typeof window.RackStudio.refresh === 'function') {
             window.RackStudio.refresh();
           }
+          const uSlider = document.getElementById('rack-u-slider');
+          const uDisplay = document.getElementById('rack-u-val');
+          const activeRack = window.RackStudio?.getActiveRack ? window.RackStudio.getActiveRack() : window.RackStudio?.STATE?.racks?.[0];
+          if (uSlider && activeRack) {
+            uSlider.value = activeRack.heightU || 42;
+            if (uDisplay) uDisplay.textContent = (activeRack.heightU || 42) + 'U';
+          }
         }, 60);
       });
+    }
+    if (window.RackStudioTheme) {
+      window.RackStudioTheme.apply(window.RackStudioTheme.get());
     }
     if (typeof window.updateTelemetry === 'function') window.updateTelemetry();
   }

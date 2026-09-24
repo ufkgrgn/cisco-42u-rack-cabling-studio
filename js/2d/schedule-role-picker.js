@@ -76,20 +76,16 @@
 
     if (devA) {
       if (!devA.portsConfig) devA.portsConfig = {};
-      const pIdA = cable.from.portId;
-      const pNumA = String(pIdA).replace(/\D+/g, '');
+      const pIdA = String(cable.from.portId || '');
+      const aAliases = RS.getPortAliases ? RS.getPortAliases(pIdA) : [pIdA];
       if (isStandard) {
+        aAliases.forEach(a => delete devA.portsConfig[a]);
         delete devA.portsConfig[pIdA];
-        if (pNumA) {
-          delete devA.portsConfig[pNumA];
-          delete devA.portsConfig['p' + pNumA];
-          delete devA.portsConfig['pt' + pNumA];
-          delete devA.portsConfig['lc' + pNumA];
-          delete devA.portsConfig['sc' + pNumA];
-        }
-        delete devA.portsConfig['p' + pIdA];
       } else {
-        const existingA = devA.portsConfig[pIdA] || (pNumA && devA.portsConfig[pNumA]) || {};
+        let existingA = devA.portsConfig[pIdA] || {};
+        for (const a of aAliases) {
+          if (devA.portsConfig[a]) { existingA = devA.portsConfig[a]; break; }
+        }
         const cfg = {
           ...existingA,
           role: roleKey,
@@ -97,34 +93,23 @@
           color: resolvedColor,
           autoCableColor: true
         };
-        delete devA.portsConfig['p' + pIdA];
         devA.portsConfig[pIdA] = cfg;
-        if (pNumA) {
-          devA.portsConfig[pNumA] = cfg;
-          devA.portsConfig['p' + pNumA] = cfg;
-          if (String(pIdA).startsWith('pt')) devA.portsConfig['pt' + pNumA] = cfg;
-          if (String(pIdA).startsWith('lc')) devA.portsConfig['lc' + pNumA] = cfg;
-          if (String(pIdA).startsWith('sc')) devA.portsConfig['sc' + pNumA] = cfg;
-        }
+        aAliases.forEach(a => { devA.portsConfig[a] = cfg; });
       }
     }
 
     if (devB) {
       if (!devB.portsConfig) devB.portsConfig = {};
-      const pIdB = cable.to.portId;
-      const pNumB = String(pIdB).replace(/\D+/g, '');
+      const pIdB = String(cable.to.portId || '');
+      const bAliases = RS.getPortAliases ? RS.getPortAliases(pIdB) : [pIdB];
       if (isStandard) {
+        bAliases.forEach(a => delete devB.portsConfig[a]);
         delete devB.portsConfig[pIdB];
-        if (pNumB) {
-          delete devB.portsConfig[pNumB];
-          delete devB.portsConfig['p' + pNumB];
-          delete devB.portsConfig['pt' + pNumB];
-          delete devB.portsConfig['lc' + pNumB];
-          delete devB.portsConfig['sc' + pNumB];
-        }
-        delete devB.portsConfig['p' + pIdB];
       } else {
-        const existingB = devB.portsConfig[pIdB] || (pNumB && devB.portsConfig[pNumB]) || {};
+        let existingB = devB.portsConfig[pIdB] || {};
+        for (const a of bAliases) {
+          if (devB.portsConfig[a]) { existingB = devB.portsConfig[a]; break; }
+        }
         const cfg = {
           ...existingB,
           role: roleKey,
@@ -132,15 +117,8 @@
           color: resolvedColor,
           autoCableColor: true
         };
-        delete devB.portsConfig['p' + pIdB];
         devB.portsConfig[pIdB] = cfg;
-        if (pNumB) {
-          devB.portsConfig[pNumB] = cfg;
-          devB.portsConfig['p' + pNumB] = cfg;
-          if (String(pIdB).startsWith('pt')) devB.portsConfig['pt' + pNumB] = cfg;
-          if (String(pIdB).startsWith('lc')) devB.portsConfig['lc' + pNumB] = cfg;
-          if (String(pIdB).startsWith('sc')) devB.portsConfig['sc' + pNumB] = cfg;
-        }
+        bAliases.forEach(a => { devB.portsConfig[a] = cfg; });
       }
     }
 
@@ -164,6 +142,15 @@
     renderMountedDevices();
     renderScheduleTable();
     renderAllCables();
+
+    if (RS.updateDevicePortTints) {
+      if (devA) RS.updateDevicePortTints(devA.instanceId);
+      if (devB) RS.updateDevicePortTints(devB.instanceId);
+    }
+    if (window.PixiContext?.renderPixi) {
+      window.PixiContext.renderPixi('schedule-role-picked');
+    }
+
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
     document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));

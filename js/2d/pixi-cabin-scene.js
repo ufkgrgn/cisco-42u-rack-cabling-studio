@@ -80,25 +80,33 @@
 
     const totalHeight = heightU * 32;
     const slotWidth = 530;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
     for (let u = heightU; u >= 1; u--) {
       const slotY = (heightU - u) * 32;
       const isEven = (u % 2 === 0);
-      const fillColor = isEven ? 0x0a0e17 : 0x0e1422;
+      const fillColor = isLight
+        ? (isEven ? 0xe6ecf2 : 0xdfe5ee)
+        : (isEven ? 0x0a0e17 : 0x0e1422);
 
       // 32px slot stripe
       g.rect(0, slotY, slotWidth, 32).fill(fillColor);
 
       // Subtle horizontal divider line (bottom of each U slot)
-      g.rect(0, slotY + 31, slotWidth, 1).fill({ color: 0x1e293b, alpha: 0.75 });
+      const dividerColor = isLight ? 0xc0cbd9 : 0x1e293b;
+      const dividerAlpha = isLight ? 0.9 : 0.75;
+      g.rect(0, slotY + 31, slotWidth, 1).fill({ color: dividerColor, alpha: dividerAlpha });
 
       // Subtle center reference line
-      g.rect(14, slotY + 16, slotWidth - 28, 1).fill({ color: 0x151f30, alpha: 0.35 });
+      const centerColor = isLight ? 0x94a3b8 : 0x151f30;
+      const centerAlpha = isLight ? 0.35 : 0.35;
+      g.rect(14, slotY + 16, slotWidth - 28, 1).fill({ color: centerColor, alpha: centerAlpha });
     }
 
     // Rail boundary guide lines
-    g.rect(0, 0, 1, totalHeight).fill({ color: 0x334155, alpha: 0.85 });
-    g.rect(slotWidth - 1, 0, 1, totalHeight).fill({ color: 0x334155, alpha: 0.85 });
+    const railLineColor = isLight ? 0x94a3b8 : 0x334155;
+    g.rect(0, 0, 1, totalHeight).fill({ color: railLineColor, alpha: 0.95 });
+    g.rect(slotWidth - 1, 0, 1, totalHeight).fill({ color: railLineColor, alpha: 0.95 });
   }
 
   function syncPixiCabinScenes(explicitLod) {
@@ -117,7 +125,8 @@
     const racks = isMulti ? STATE.racks : [getActiveRack()].filter(Boolean);
 
     const transform = getViewportTransform();
-    const signature = `${lod}|${isMulti ? 'multi' : 'single'}|${racks.map(r => `${r.id}:${r.heightU || 42}`).join(';')}`;
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const signature = `${currentTheme}|${lod}|${isMulti ? 'multi' : 'single'}|${racks.map(r => `${r.id}:${r.heightU || 42}`).join(';')}`;
 
     const currentKeys = new Set(racks.map(r => String(r.id)));
     for (const [key, scene] of cabinScenes) {
@@ -260,6 +269,7 @@
 
   PixiContext.PixiCabinScene = RS.PixiCabinScene;
   PixiContext.syncPixiCabinScenes = syncPixiCabinScenes;
+  RS.syncPixiCabinScenes = syncPixiCabinScenes;
   PixiContext.updateDropHighlight = updateDropHighlight;
   PixiContext.clearDropHighlight = clearDropHighlight;
   PixiContext.applyCabinViewportCulling = applyCabinViewportCulling;

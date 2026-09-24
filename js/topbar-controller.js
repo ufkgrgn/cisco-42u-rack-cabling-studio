@@ -203,9 +203,10 @@
         btnCompliance.classList.toggle('active', active);
         btnCompliance.classList.toggle('compliance-on', active);
         btnCompliance.classList.toggle('compliance-off', !active);
+        btnCompliance.textContent = active ? '🛡️ Kurallar: AÇIK' : '🛡️ Kurallar: KAPALI';
         btnCompliance.title = active 
-          ? 'Ağ Standartları & Döngü Koruması: AKTİF (Kural denetimi devrede)' 
-          : 'Ağ Standartları & Döngü Koruması: PASİF (Serbest bağlantı modu)';
+          ? 'Ağ Standartları & Döngü Koruması: AKTİF (Trunk zorunluluğu, STP döngü engelleme, medya denetimi devrede)' 
+          : 'Ağ Standartları: KAPALI (Serbest Mod - Switch trunk/uplink dayatması ve döngü engeli yok, serbest kablolama)';
       };
 
       if (window.RackStudio?.STATE) {
@@ -214,21 +215,62 @@
       }
       updateComplianceBtn();
 
-      btnCompliance.addEventListener('click', () => {
+      btnCompliance.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (!window.RackStudio?.STATE) return;
         const current = window.RackStudio.STATE.strictCompliance !== false;
-        window.RackStudio.STATE.strictCompliance = !current;
-        localStorage.setItem('rack-studio-strict-compliance', String(!current));
+        const nextState = !current;
+        window.RackStudio.STATE.strictCompliance = nextState;
+        try {
+          localStorage.setItem('rack-studio-strict-compliance', String(nextState));
+        } catch (_) {}
         updateComplianceBtn();
-        if (window.RackStudio.showTemporaryTooltip) {
-          const rect = btnCompliance.getBoundingClientRect();
-          window.RackStudio.showTemporaryTooltip(
-            rect.left, 
-            rect.bottom + 10, 
-            !current ? 'Ağ Kural Denetimi: AÇIK' : 'Ağ Kural Denetimi: KAPALI (Serbest Mod)'
-          );
+
+        const toast = document.getElementById('studio-toast');
+        if (toast) {
+          toast.textContent = nextState 
+            ? '🛡️ Ağ Kuralları ve Standartları AÇILDI (Trunk & Döngü Koruması devrede)' 
+            : '🛡️ Ağ Kuralları KAPATILDI (Serbest Mod: Standart dayatması yok)';
+          toast.className = 'show';
+          setTimeout(() => { toast.className = ''; }, 3000);
         }
       });
+    }
+
+    // Rack U Height Slider & Display (12U - 60U)
+    const uSlider = document.getElementById('rack-u-slider');
+    const uDisplay = document.getElementById('rack-u-val');
+    if (uSlider) {
+      const syncUSliderFromRack = () => {
+        const activeRack = window.RackStudio?.getActiveRack ? window.RackStudio.getActiveRack() : window.RackStudio?.STATE?.racks?.[0];
+        const h = (window.is3DMode && window.__STUDIO3D__?.state?.rackHeightU) 
+          ? window.__STUDIO3D__.state.rackHeightU 
+          : (activeRack?.heightU || 42);
+        uSlider.value = h;
+        if (uDisplay) uDisplay.textContent = h + 'U';
+      };
+
+      uSlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (Number.isNaN(val)) return;
+        if (uDisplay) uDisplay.textContent = val + 'U';
+        if (window.is3DMode && window.__STUDIO3D__) {
+          window.__STUDIO3D__.setRackHeight(val);
+        } else if (window.RackStudio?.resizeRackHeight) {
+          const activeRack = window.RackStudio.getActiveRack ? window.RackStudio.getActiveRack() : window.RackStudio.STATE?.racks?.[0];
+          if (activeRack) {
+            const ok = window.RackStudio.resizeRackHeight(activeRack.id, val);
+            if (!ok) {
+              uSlider.value = activeRack.heightU || 42;
+              if (uDisplay) uDisplay.textContent = (activeRack.heightU || 42) + 'U';
+            }
+          }
+        }
+      });
+
+      document.addEventListener('rackstudio:change', syncUSliderFromRack);
+      document.addEventListener('rackstudio:rackswitched', syncUSliderFromRack);
+      syncUSliderFromRack();
     }
 
     // Tools overflow menu

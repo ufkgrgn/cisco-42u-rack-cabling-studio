@@ -134,15 +134,17 @@ body {
 
 .tooltip {
   position: fixed;
-  background: var(--bg-inset);
-  border: 1px solid var(--accent-blue);
-  padding: 6px 10px;
-  border-radius: 4px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  padding: 8px 12px;
+  border-radius: 6px;
   font-size: 0.72rem;
   color: var(--text-main);
   pointer-events: none;
-  z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  z-index: 999999;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 1px rgba(0, 0, 0, 0.2);
   display: none;
 }
 
@@ -386,8 +388,13 @@ body {
   font-weight: 700;
 }
 
-.hud-btn.compliance-off {
+.hud-btn.compliance-off,
+.hud-btn.muted {
   color: var(--text-muted);
+  opacity: 0.75;
+  border-color: var(--border);
+  background: transparent;
+  box-shadow: none;
 }
 
 .hud-btn-group .hud-btn.preset-btn {

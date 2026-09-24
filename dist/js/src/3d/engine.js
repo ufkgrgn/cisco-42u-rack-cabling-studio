@@ -548,17 +548,18 @@ class Studio3D {
     this.state.devices = [];
     this.state.cables = [];
 
-    this.mountDevice('patch-cat6a-24p', 40);
-    this.mountDevice('cisco-c9300-48p', 38);
-    this.mountDevice('cable-manager-1u', 37);
-    this.mountDevice('patch-cat6a-24p', 35);
-    this.mountDevice('cisco-c9500-32qc', 33);
-    this.mountDevice('cable-manager-1u', 32);
-    this.mountDevice('cisco-isr4451', 28);
-    this.mountDevice('dell-r750', 20);
-    this.mountDevice('hpe-dl380-g10', 16);
-    this.mountDevice('blank-panel-1u', 12);
-    this.mountDevice('pdu-1u-8c13', 2);
+    const silentOpt = { silent: true };
+    this.mountDevice('patch-cat6a-24p', 40, null, silentOpt);
+    this.mountDevice('cisco-c9300-48p', 38, null, silentOpt);
+    this.mountDevice('cable-manager-1u', 37, null, silentOpt);
+    this.mountDevice('patch-cat6a-24p', 35, null, silentOpt);
+    this.mountDevice('cisco-c9500-32qc', 33, null, silentOpt);
+    this.mountDevice('cable-manager-1u', 32, null, silentOpt);
+    this.mountDevice('cisco-isr4451', 28, null, silentOpt);
+    this.mountDevice('dell-r750', 20, null, silentOpt);
+    this.mountDevice('hpe-dl380-g10', 16, null, silentOpt);
+    this.mountDevice('blank-panel-1u', 12, null, silentOpt);
+    this.mountDevice('pdu-1u-8c13', 2, null, silentOpt);
 
     const dPatch = this.state.devices.find(d => d.catalogId === 'patch-cat6a-24p');
     const dSwitch = this.state.devices.find(d => d.catalogId === 'cisco-c9300-48p');
@@ -571,7 +572,9 @@ class Studio3D {
           { devId: dPatch.id, portIdx: i },
           { devId: dSwitch.id, portIdx: i },
           CABLE_COLORS[(i - 1) % CABLE_COLORS.length].hex,
-          `Patch-P${i} ➔ Switch-P${i}`
+          `Patch-P${i} ➔ Switch-P${i}`,
+          '',
+          silentOpt
         );
       }
     }
@@ -581,7 +584,9 @@ class Studio3D {
         { devId: dSwitch.id, portIdx: 48 },
         { devId: dRouter.id, portIdx: 1 },
         0xef4444,
-        'Uplink-Core-to-WAN'
+        'Uplink-Core-to-WAN',
+        '',
+        silentOpt
       );
     }
 
@@ -590,7 +595,9 @@ class Studio3D {
         { devId: dSwitch.id, portIdx: 47 },
         { devId: dSpine.id, portIdx: 1 },
         0xf97316,
-        '100G-Spine-Trunk'
+        '100G-Spine-Trunk',
+        '',
+        silentOpt
       );
     }
 
