@@ -414,3 +414,82 @@
 .sidebar-left [hidden] { display: none !important; }
 .sidebar-left :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
 
+/* Light Theme Adaptations */
+[data-theme="light"] .catalog-tools {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="light"] .catalog-search-bar input[type="search"] {
+  background-color: #ffffff;
+  border-color: var(--border);
+  color: #0f172a;
+}
+
+[data-theme="light"] .catalog-search-bar input[type="search"]:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+[data-theme="light"] .quick-filter-chip {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .quick-filter-chip:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .quick-filter-chip.active {
+  background: rgba(2, 132, 199, 0.15);
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+[data-theme="light"] .sidebar-left .device-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .sidebar-left .device-card:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .sidebar-left .device-card.active {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="light"] .hw-card-header .device-name {
+  color: #64748b;
+}
+
+[data-theme="light"] .sidebar-left .device-card .device-u-badge {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0284c7;
+}
+
+[data-theme="light"] .btn-card-quick-mount {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border-color: rgba(2, 132, 199, 0.35);
+  color: #0284c7;
+}
+
+[data-theme="light"] .btn-card-quick-mount:hover {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.3) 0%, rgba(14, 165, 233, 0.15) 100%);
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+[data-theme="light"] .catalog-custom details[open] {
+  background: #ffffff;
+  border: 1px solid #0284c7;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+

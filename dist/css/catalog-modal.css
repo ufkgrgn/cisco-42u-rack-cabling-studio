@@ -521,3 +521,82 @@
   color: #38bdf8;
 }
 
+/* Light Theme Adaptations for Cisco Catalog Modal */
+[data-theme="light"] .cisco-modal-container {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25), 0 0 40px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .cisco-modal-header {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .cisco-brand-titles h3 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cisco-brand-titles p {
+  color: #64748b;
+}
+
+[data-theme="light"] .cisco-modal-toolbar {
+  background: #f1f5f9;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .cisco-search-input {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .cisco-cat-chip {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .cisco-cat-chip:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .cisco-cat-chip.active {
+  background: rgba(2, 132, 199, 0.15);
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+[data-theme="light"] .cisco-grid-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .cisco-grid-card:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .cisco-card-name {
+  color: #0f172a;
+}
+
+[data-theme="light"] .cisco-card-desc {
+  color: #64748b;
+}
+
+[data-theme="light"] .cisco-card-u-badge {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0284c7;
+}
+
+[data-theme="light"] .cisco-modal-footer {
+  background: #f8fafc;
+  border-top-color: #e2e8f0;
+}
+

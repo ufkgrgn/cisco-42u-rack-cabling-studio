@@ -6,42 +6,209 @@
 
   const RS = window.RackStudio = window.RackStudio || {};
 
-  function renderRackTabs() {
-    if (!RS.dom?.rackTabsList) return;
-    RS.dom.rackTabsList.innerHTML = '';
+  function getRackClusters() {
+    const racks = RS.STATE.racks || [];
+    const cables = RS.STATE.cables || [];
+    if (racks.length <= 1 || cables.length === 0) return [];
 
-    RS.STATE.racks.forEach((rack, idx) => {
-      const tab = document.createElement('button');
-      tab.type = 'button';
-      tab.className = `rack-tab ${rack.id === RS.STATE.activeRackId ? 'active' : ''}`;
-      tab.dataset.rackId = rack.id;
-      tab.setAttribute('aria-pressed', rack.id === RS.STATE.activeRackId ? 'true' : 'false');
+    const adj = new Map();
+    const cableCounts = new Map();
+    racks.forEach(r => adj.set(r.id, new Set()));
 
-      const deviceCount = rack.devices.length;
-      const canDelete = RS.STATE.racks.length > 1;
-      const indexLabel = String(idx + 1).padStart(2, '0');
-
-      tab.innerHTML = `
-        <span class="rack-tab-index">${indexLabel}</span>
-        <span class="rack-tab-body">
-          <span class="rack-tab-name">${RS.escapeHtml(rack.name)}</span>
-          <span class="rack-tab-meta">${deviceCount} cihaz</span>
-        </span>
-        ${canDelete ? `<span class="rack-tab-close" data-rack-id="${rack.id}" title="Kabini Sil" role="button" tabindex="0">✕</span>` : ''}
-      `;
-
-      tab.addEventListener('click', (e) => {
-        const closeBtn = e.target.closest('.rack-tab-close');
-        if (closeBtn) {
-          e.stopPropagation();
-          deleteRack(rack.id);
-          return;
-        }
-        switchActiveRack(rack.id);
-      });
-
-      RS.dom.rackTabsList.appendChild(tab);
+    cables.forEach(c => {
+      const fromRack = c.from?.rackId;
+      const toRack = c.to?.rackId;
+      if (fromRack && toRack && fromRack !== toRack && adj.has(fromRack) && adj.has(toRack)) {
+        adj.get(fromRack).add(toRack);
+        adj.get(toRack).add(fromRack);
+        const pairKey = [fromRack, toRack].sort().join('--');
+        cableCounts.set(pairKey, (cableCounts.get(pairKey) || 0) + 1);
+      }
     });
+
+    const visited = new Set();
+    const clusters = [];
+
+    racks.forEach(r => {
+      if (!visited.has(r.id)) {
+        const clusterRacks = [];
+        const queue = [r.id];
+        visited.add(r.id);
+
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          const rackObj = racks.find(x => x.id === curr);
+          if (rackObj) clusterRacks.push(rackObj);
+          const neighbors = adj.get(curr) || [];
+          neighbors.forEach(nbr => {
+            if (!visited.has(nbr)) {
+              visited.add(nbr);
+              queue.push(nbr);
+            }
+          });
+        }
+
+        if (clusterRacks.length > 1) {
+          let totalCables = 0;
+          for (let i = 0; i < clusterRacks.length; i++) {
+            for (let j = i + 1; j < clusterRacks.length; j++) {
+              const pairKey = [clusterRacks[i].id, clusterRacks[j].id].sort().join('--');
+              totalCables += (cableCounts.get(pairKey) || 0);
+            }
+          }
+          clusters.push({
+            id: clusterRacks.map(x => x.id).join('+'),
+            name: clusterRacks.map(x => x.name).join(' + '),
+            rackIds: clusterRacks.map(x => x.id),
+            racks: clusterRacks,
+            cableCount: totalCables
+          });
+        }
+      }
+    });
+
+    return clusters;
+  }
+
+  function toggleRackDropdown() {
+    const dropdown = RS.dom?.rackSelectorDropdown || document.getElementById('rack-selector-dropdown');
+    const trigger = RS.dom?.btnRackSelector || document.getElementById('btn-rack-selector');
+    if (!dropdown) return;
+    const isHidden = dropdown.style.display === 'none' || !dropdown.style.display;
+    if (isHidden) {
+      dropdown.style.display = 'flex';
+      trigger?.setAttribute('aria-expanded', 'true');
+    } else {
+      dropdown.style.display = 'none';
+      trigger?.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function closeRackDropdown() {
+    const dropdown = RS.dom?.rackSelectorDropdown || document.getElementById('rack-selector-dropdown');
+    const trigger = RS.dom?.btnRackSelector || document.getElementById('btn-rack-selector');
+    if (dropdown) dropdown.style.display = 'none';
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('rack-selector-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      closeRackDropdown();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeRackDropdown();
+  });
+
+  function renderRackTabs() {
+    const activeRack = RS.getActiveRack ? RS.getActiveRack() : (RS.STATE.racks[0] || null);
+
+    // Update Header Selector Trigger Label & Badge
+    if (RS.dom?.rackSelectorName && activeRack) {
+      RS.dom.rackSelectorName.textContent = activeRack.name;
+    }
+    if (RS.dom?.rackSelectorBadge && activeRack) {
+      const devCount = activeRack.devices ? activeRack.devices.length : 0;
+      RS.dom.rackSelectorBadge.textContent = `${activeRack.heightU || 42}U • ${devCount} cihaz`;
+    }
+
+    // Populate dropdown contents
+    const dropdownContent = document.getElementById('rack-selector-dropdown-content');
+    if (dropdownContent) {
+      dropdownContent.innerHTML = '';
+
+      const clusters = getRackClusters();
+      if (clusters.length > 0) {
+        const clusterSection = document.createElement('div');
+        clusterSection.className = 'rack-dropdown-section';
+        clusterSection.innerHTML = `<div class="rack-dropdown-group-title">🔗 BAĞLANTILI KÜMELER</div>`;
+        
+        clusters.forEach(cluster => {
+          const item = document.createElement('div');
+          item.className = 'rack-dropdown-cluster-item';
+          item.innerHTML = `
+            <span class="cluster-icon">🔗</span>
+            <div class="cluster-body">
+              <span class="cluster-name">${RS.escapeHtml(cluster.name)}</span>
+              <span class="cluster-meta">${cluster.racks.length} kabin • ${cluster.cableCount} bağlantı</span>
+            </div>
+            <button type="button" class="cluster-btn-open" title="Kümeyi yan yana aç">Aç</button>
+          `;
+          item.addEventListener('click', () => {
+            if (RS.setViewMode) RS.setViewMode('multi');
+            else RS.STATE.viewMode = 'multi';
+            switchActiveRack(cluster.rackIds[0]);
+            closeRackDropdown();
+            requestAnimationFrame(() => {
+              if (RS.fitRackToScreen) RS.fitRackToScreen(true);
+            });
+          });
+          clusterSection.appendChild(item);
+        });
+        dropdownContent.appendChild(clusterSection);
+      }
+
+      // Individual Cabinets Section
+      const racksSection = document.createElement('div');
+      racksSection.className = 'rack-dropdown-section';
+      racksSection.innerHTML = `<div class="rack-dropdown-group-title">🗄️ KABİNLER</div>`;
+
+      RS.STATE.racks.forEach((rack, idx) => {
+        const item = document.createElement('div');
+        const isActive = rack.id === RS.STATE.activeRackId;
+        item.className = `rack-dropdown-item rack-tab ${isActive ? 'active' : ''}`;
+        item.dataset.rackId = rack.id;
+
+        const extCables = (RS.STATE.cables || []).filter(c => 
+          (c.from.rackId === rack.id && c.to.rackId !== rack.id) ||
+          (c.to.rackId === rack.id && c.from.rackId !== rack.id)
+        ).length;
+
+        const devCount = rack.devices ? rack.devices.length : 0;
+        const indexLabel = String(idx + 1).padStart(2, '0');
+        const canDelete = RS.STATE.racks.length > 1;
+
+        item.innerHTML = `
+          <span class="rack-item-index">${indexLabel}</span>
+          <div class="rack-item-body">
+            <span class="rack-item-name">${RS.escapeHtml(rack.name)}</span>
+            <span class="rack-item-meta">${rack.heightU || 42}U • ${devCount} cihaz${extCables > 0 ? ` • 🔗 ${extCables} dış bağlantı` : ''}</span>
+          </div>
+          ${canDelete ? `<button type="button" class="rack-item-del-btn" data-rack-id="${rack.id}" title="Kabini Sil">✕</button>` : ''}
+        `;
+
+        item.addEventListener('click', (e) => {
+          const delBtn = e.target.closest('.rack-item-del-btn');
+          if (delBtn) {
+            e.stopPropagation();
+            deleteRack(rack.id);
+            return;
+          }
+          switchActiveRack(rack.id);
+          closeRackDropdown();
+        });
+
+        racksSection.appendChild(item);
+      });
+      dropdownContent.appendChild(racksSection);
+    }
+
+    // Keep #rack-tabs-list populated for test queries
+    if (RS.dom?.rackTabsList) {
+      RS.dom.rackTabsList.innerHTML = '';
+      RS.STATE.racks.forEach((rack, idx) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = `rack-tab ${rack.id === RS.STATE.activeRackId ? 'active' : ''}`;
+        tab.dataset.rackId = rack.id;
+        tab.setAttribute('aria-pressed', rack.id === RS.STATE.activeRackId ? 'true' : 'false');
+        tab.innerHTML = `<span class="rack-tab-name">${RS.escapeHtml(rack.name)}</span>`;
+        tab.addEventListener('click', () => switchActiveRack(rack.id));
+        RS.dom.rackTabsList.appendChild(tab);
+      });
+    }
 
     const isMulti = RS.STATE.viewMode === 'multi';
     RS.dom.btnViewModeSingle?.classList.toggle('active', !isMulti);
@@ -50,7 +217,7 @@
     RS.dom.btnViewModeMulti?.setAttribute('aria-pressed', isMulti ? 'true' : 'false');
   }
 
-  function switchActiveRack(rackId) {
+  function switchActiveRack(rackId, options = {}) {
     if (RS.STATE.activeRackId === rackId) return;
     RS.STATE.activeRackId = rackId;
 
@@ -64,7 +231,9 @@
       renderRackTabs();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
       if (RS.renderAllCables) RS.renderAllCables();
-      if (RS.focusOnRack) RS.focusOnRack(rackId);
+      if (options.smoothFocus !== false && RS.focusOnRack) {
+        RS.focusOnRack(rackId);
+      }
     } else {
       if (RS.renderRackRailsAndSlots) RS.renderRackRailsAndSlots();
       renderRackTabs();
@@ -301,4 +470,7 @@
   RS.resizeRackHeight = resizeRackHeight;
   RS.moveRackOrder = moveRackOrder;
   RS.duplicateRack = duplicateRack;
+  RS.toggleRackDropdown = toggleRackDropdown;
+  RS.closeRackDropdown = closeRackDropdown;
+  RS.getRackClusters = getRackClusters;
 })();

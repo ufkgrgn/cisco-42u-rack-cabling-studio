@@ -196,7 +196,11 @@
     btnAddRack: null,
     btnRenameRack: null,
     btnViewModeSingle: null,
-    btnViewModeMulti: null
+    btnViewModeMulti: null,
+    btnRackSelector: null,
+    rackSelectorDropdown: null,
+    rackSelectorName: null,
+    rackSelectorBadge: null
   };
 
   function initDomReferences() {
@@ -241,6 +245,10 @@
     dom.btnRenameRack = document.getElementById('btn-rename-rack');
     dom.btnViewModeSingle = document.getElementById('btn-view-mode-single');
     dom.btnViewModeMulti = document.getElementById('btn-view-mode-multi');
+    dom.btnRackSelector = document.getElementById('btn-rack-selector');
+    dom.rackSelectorDropdown = document.getElementById('rack-selector-dropdown');
+    dom.rackSelectorName = document.getElementById('rack-selector-name');
+    dom.rackSelectorBadge = document.getElementById('rack-selector-badge');
   }
 
   RS.STATE = STATE;

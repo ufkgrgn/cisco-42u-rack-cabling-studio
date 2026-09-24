@@ -685,9 +685,10 @@
         }
 
         cont.addEventListener('click', (e) => {
-          if (e.target.closest('.port') || e.target.closest('.dev-btn') || e.target.closest('.rack-header-plate')) return;
+          if (RS.isDraggingDevice || RS.ZOOM_STATE?.hasMoved || RS.isSpacePressed) return;
+          if (e.target.closest('.port, button, input, select, textarea, .dev-btn, .rack-action-btn, .rack-header-name-editable, .color-swatch, .quick-hud-container, .popover-menu')) return;
           if (STATE.activeRackId !== rack.id) {
-            switchActiveRack(rack.id);
+            switchActiveRack(rack.id, { smoothFocus: false });
           }
         });
 

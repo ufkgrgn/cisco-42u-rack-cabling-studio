@@ -651,3 +651,45 @@
   }
 }
 
+/* Light Theme Adaptations for Viewport & Docks */
+[data-theme="light"] .viewport-zoom-dock,
+[data-theme="light"] .viewport-controls-bar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(8, 145, 178, 0.35);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme="light"] .zoom-toolbar {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .zoom-btn {
+  color: #475569;
+}
+
+[data-theme="light"] .zoom-btn:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+
+[data-theme="light"] .nav-jump-pill {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .nav-jump-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .routing-btn {
+  color: #475569;
+}
+
+[data-theme="light"] .routing-btn:hover {
+  color: #0f172a;
+  background: #e2e8f0;
+}
+

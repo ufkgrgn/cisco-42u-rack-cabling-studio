@@ -86,8 +86,39 @@
       </div>
 
       <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
+        <div class="rack-selector-wrapper" id="rack-selector-wrapper">
+          <button type="button" class="hud-btn rack-selector-btn" id="btn-rack-selector" aria-haspopup="listbox" aria-expanded="false" title="Kabin ve Bağlantılı Kümeleri Seç">
+            <span class="rack-selector-icon">🗄️</span>
+            <span class="rack-selector-name" id="rack-selector-name">MDF</span>
+            <span class="rack-selector-badge" id="rack-selector-badge">42U</span>
+            <span class="rack-selector-caret">▾</span>
+          </button>
+          <div class="rack-selector-dropdown" id="rack-selector-dropdown" style="display: none;">
+            <div class="rack-selector-dropdown-content" id="rack-selector-dropdown-content">
+              <!-- Rendered dynamically by rack-manager.js -->
+            </div>
+            <div class="rack-tabs-list" id="rack-tabs-list" style="display:none;"></div>
+            <div class="rack-dropdown-footer">
+              <button type="button" class="rack-dropdown-footer-btn" id="btn-add-rack" title="Yeni Kabin Ekle">+ Yeni Kabin</button>
+              <button type="button" class="rack-dropdown-footer-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">✎ Adı Değiştir</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-view-mode-switch" id="rack-view-mode-switch" role="group" aria-label="Kabin görünüm modu">
+          <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek Kabin Odak Modu">
+            <span class="rack-view-mode-icon" aria-hidden="true">▣</span>
+            <span class="rack-view-mode-text">Tek</span>
+          </button>
+          <button type="button" class="rack-view-mode-btn active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster">
+            <span class="rack-view-mode-icon" aria-hidden="true">▥</span>
+            <span class="rack-view-mode-text">Yan Yana</span>
+          </button>
+        </div>
+
         <div class="hud-btn-group">
           <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin Ön/Arka Yüzü Değiştir">Ön / Arka</button>
+          <button class="hud-btn" id="btn-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">Visio</button>
         </div>
         <button class="hud-btn btn-danger-subtle" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Sıfırla</button>
       </div>
@@ -136,7 +167,7 @@
             <button class="hud-btn" id="btn-snapshot-modal" title="Kabin Snapshot Al & Karşılaştır">Snapshot</button>
             <button class="hud-btn" id="btn-3d-schedule-modal" title="Metraj & Kablo Çizelgesi">Metraj</button>
             <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret" style="display:none;">Donanım</button>
-            <button class="hud-btn" id="btn-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">Visio</button>
+            <button class="hud-btn" id="btn-export-visio-tools" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">Visio</button>
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Proje</span>
@@ -1468,38 +1499,6 @@
 
     <!-- 2. CENTER AREA: 42U Rack Viewport (Scroll-Free Zoom & Pan Studio) -->
     <main class="viewport" id="rack-viewport">
-
-      <!-- Multi-Rack Tabs & Cabinet Switcher Bar (Floating Deck) -->
-      <div class="rack-floating-topdeck" id="rack-floating-topdeck">
-        <div class="rack-topdeck-zone rack-topdeck-racks">
-          <span class="rack-topdeck-label">Kabinler</span>
-          <div class="rack-tabs-scroller">
-            <div class="rack-tabs-list" id="rack-tabs-list">
-              <!-- Dynamically generated rack tabs -->
-            </div>
-          </div>
-          <button class="btn-rack-action icon-btn rack-add-btn" id="btn-add-rack" title="Yeni Kabin Ekle" aria-label="Yeni Kabin Ekle">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
-          </button>
-        </div>
-
-        <div class="rack-topdeck-zone rack-topdeck-view" role="group" aria-label="Kabin görünüm modu">
-          <div class="rack-view-mode-switch" id="rack-view-mode-switch">
-            <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek Kabin Odak Modu">
-              <span class="rack-view-mode-icon" aria-hidden="true">▣</span>
-              <span class="rack-view-mode-text">Tek Kabin</span>
-            </button>
-            <button type="button" class="rack-view-mode-btn active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster">
-              <span class="rack-view-mode-icon" aria-hidden="true">▥</span>
-              <span class="rack-view-mode-text">Yan Yana</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="rack-topdeck-zone rack-topdeck-actions">
-          <button class="btn-rack-action icon-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir" aria-label="Kabini yeniden adlandır">✎</button>
-        </div>
-      </div>
       
       <!-- Cable color & routing dock (center-bottom) -->
       <div class="viewport-controls-bar" id="viewport-cable-dock" aria-label="Kablo kontrolleri">

@@ -260,8 +260,16 @@
   }
 
   function bindHeaderActionEvents() {
+    if (dom.btnRackSelector) {
+      dom.btnRackSelector.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (RS.toggleRackDropdown) RS.toggleRackDropdown();
+      });
+    }
+
     if (dom.btnAddRack) {
       dom.btnAddRack.addEventListener('click', () => {
+        if (RS.closeRackDropdown) RS.closeRackDropdown();
         const name = prompt("Yeni Kabin Adı (Örn: IDF-2 Kat 2):");
         if (name && name.trim()) {
           addNewRack(name.trim());
@@ -270,7 +278,10 @@
     }
 
     if (dom.btnRenameRack) {
-      dom.btnRenameRack.addEventListener('click', () => renameActiveRack());
+      dom.btnRenameRack.addEventListener('click', () => {
+        if (RS.closeRackDropdown) RS.closeRackDropdown();
+        renameActiveRack();
+      });
     }
 
     if (dom.btnViewModeSingle) {

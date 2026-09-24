@@ -220,22 +220,15 @@
     const heightU = activeRack?.heightU || 42;
     const rackH = heightU * 32 + 16;
     const ch = canvas.clientHeight;
-
-    const targetPanX = Math.round((canvas.clientWidth - 634) / 2);
+    const cw = canvas.clientWidth;
+    const idx = RS.STATE?.viewMode === 'multi' && RS.STATE?.racks && activeRack ? RS.STATE.racks.findIndex(r => r.id === activeRack.id) : 0;
+    const worldX = Math.max(0, idx) * (634 + 64);
+    const targetPanX = Math.round((cw / 2) - (worldX + 317));
     let targetPanY = 76;
-    if (section === 'top') {
-      targetPanY = 76;
-    } else if (section === 'mid') {
-      targetPanY = Math.round((ch - rackH) / 2);
-    } else if (section === 'bot') {
-      targetPanY = Math.round(ch - rackH - 24);
-    }
+    if (section === 'mid') targetPanY = Math.round((ch - rackH) / 2);
+    else if (section === 'bot') targetPanY = Math.round(ch - rackH - 24);
 
-    animateCameraTo(1.0, targetPanX, targetPanY, {
-      duration: 240,
-      easing: 'easeInOutCubic',
-      isFit: false
-    });
+    animateCameraTo(1.0, targetPanX, targetPanY, { duration: 240, easing: 'easeInOutCubic', isFit: false });
   }
 
   // --- CINEMATIC CAMERA FOCUS & EASING ENGINE ---
@@ -638,10 +631,29 @@
       RS.dom.btnZoomOut.addEventListener('click', () => setZoom(RS.ZOOM_STATE.scale / 1.25, undefined, undefined, true));
     }
     if (RS.dom?.btnZoomFit) {
-      RS.dom.btnZoomFit.addEventListener('click', () => fitRackToScreen(true));
+      RS.dom.btnZoomFit.addEventListener('click', () => {
+        if (RS.STATE?.viewMode === 'multi' && typeof focusOnRack === 'function') {
+          focusOnRack(RS.STATE?.activeRackId);
+        } else {
+          fitRackToScreen(true);
+        }
+      });
     }
     if (RS.dom?.btnZoomActual) {
-      RS.dom.btnZoomActual.addEventListener('click', () => setZoom(1.0, undefined, undefined, true));
+      RS.dom.btnZoomActual.addEventListener('click', () => {
+        if (RS.STATE?.viewMode === 'multi') {
+          const canvas = RS.dom?.viewportCanvas;
+          const activeRack = RS.getActiveRack ? RS.getActiveRack() : null;
+          const rackH = ((activeRack?.heightU || 42) * 32) + 84;
+          const idx = RS.STATE?.racks && activeRack ? RS.STATE.racks.findIndex(r => r.id === activeRack.id) : 0;
+          const worldX = Math.max(0, idx) * (634 + 64);
+          const targetPanX = Math.round((canvas.clientWidth / 2) - (worldX + 317));
+          const targetPanY = Math.round((canvas.clientHeight / 2) - (rackH / 2) + 20);
+          animateCameraTo(1.0, targetPanX, targetPanY, { duration: 220, easing: 'easeInOutCubic', isFit: false });
+        } else {
+          setZoom(1.0, undefined, undefined, true);
+        }
+      });
     }
     if (RS.dom?.zoomBadge) {
       RS.dom.zoomBadge.addEventListener('click', () => {
