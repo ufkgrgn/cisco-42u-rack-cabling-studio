@@ -464,30 +464,12 @@
       const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
       const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : (isPdu ? 'pdu-port-bay' : 'cisco-port-bay'));
 
-      const hasFaceplateStencil = isSwitch && Boolean(cat.faceplate?.stencil);
-      let bayHeader = '';
-      if (!hasFaceplateStencil) {
-        if (isPatchPanel && groupPorts.length > 0) {
-          const firstPortName = (groupPorts[0]?.name || '1').replace(/^Port\s*/i, '');
-          const lastPortName = (groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length)).replace(/^Port\s*/i, '');
-          bayHeader = `<div class="patch-id-strip"><span class="patch-id-range">[ ${escapeHtml(firstPortName)} - ${escapeHtml(lastPortName)} ]</span></div>`;
-        } else if (isUplinkGroup) {
-          const uplinkTag = groupPorts.some(p => p.type === 'qsfp28') ? '100G QSFP28' : '10G SFP+';
-          bayHeader = `<div class="cisco-uplink-strip"><span class="uplink-badge">${uplinkTag}</span></div>`;
-        } else if (isSwitch && isTwoRows && groupPorts.length >= 6) {
-          const firstNum = (groupPorts[0]?.name || '').split('/').pop() || '1';
-          const lastNum = (groupPorts[groupPorts.length - 1]?.name || '').split('/').pop() || String(groupPorts.length);
-          bayHeader = `<div class="switch-block-strip"><span class="port-block-range">${escapeHtml(firstNum)} - ${escapeHtml(lastNum)}</span></div>`;
-        }
-      }
-
       if (isTwoRows) {
         const row0 = groupPorts.filter(p => p.row === 0);
         const row1 = groupPorts.filter(p => p.row === 1);
 
         portsHtml += `
           <div class="port-group ${bayClass}">
-            ${bayHeader}
             <div class="port-row">
               ${row0.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>
@@ -499,7 +481,6 @@
       } else {
         portsHtml += `
           <div class="port-group ${bayClass}">
-            ${bayHeader}
             <div class="port-row">
               ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
             </div>

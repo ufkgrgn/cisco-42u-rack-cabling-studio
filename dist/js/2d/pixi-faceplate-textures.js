@@ -148,6 +148,7 @@
       const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'C1000');
       ctx.fillStyle = '#1e293b';
       ctx.font = '700 9.5px ui-monospace, monospace';
+      ctx.fillText(String(model).slice(0, 9), 8, 24);
       // Clean top and bottom metallic bevels for the chassis body
       ctx.fillStyle = '#e2e8f0';
       ctx.fillRect(79, 1, w - 80, 1.5);
@@ -162,6 +163,13 @@
       ctx.beginPath();
       ctx.arc(68, 10, 2, 0, Math.PI * 2);
       ctx.fill();
+      // Recessed dark chassis bay for ports on white chassis
+      ctx.fillStyle = '#0f172a';
+      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       return;
     }
 
@@ -192,6 +200,13 @@
       ctx.strokeStyle = '#64748b';
       ctx.stroke();
       paintLeds(ctx, 48, 22);
+      // Recessed modular port bay backing
+      ctx.fillStyle = '#0f141f';
+      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.fill();
+      ctx.strokeStyle = '#2d3b4e';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       return;
     }
 
@@ -218,6 +233,13 @@
         ctx.arc(58 + i * 6, 22, 1.9, 0, Math.PI * 2);
         ctx.fill();
       });
+      // Recessed obsidian port bay
+      ctx.fillStyle = '#06080d';
+      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.fill();
+      ctx.strokeStyle = '#18202d';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       return;
     }
 
@@ -241,6 +263,13 @@
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
       paintLeds(ctx, 56, 22);
+      // Recessed router bay
+      ctx.fillStyle = '#121722';
+      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.fill();
+      ctx.strokeStyle = '#2b3648';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       return;
     }
 
@@ -268,6 +297,13 @@
     paintLeds(ctx, 54, 22);
     ctx.strokeStyle = '#64748b';
     ctx.strokeRect(44.5, 6, 5, 5);
+    // Recessed port bays
+    ctx.fillStyle = '#0d111a';
+    roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+    ctx.fill();
+    ctx.strokeStyle = '#222b3d';
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 
   function drawPatch(ctx, w, h, spec, cat) {
@@ -330,18 +366,26 @@
 
     // Top Designation / Label Strip (The signature write-on identification bar)
     ctx.fillStyle = '#fff7ed';
-    ctx.fillRect(80, 2, w - 82, 3.5);
+    ctx.fillRect(80, 1.5, w - 84, 3.5);
     ctx.fillStyle = '#ea580c';
-    ctx.fillRect(80, 2, w - 82, 1);
-    ctx.fillRect(80, 5, w - 82, 0.5);
+    ctx.fillRect(80, 1.5, w - 84, 0.8);
+    ctx.fillRect(80, 4.2, w - 84, 0.8);
 
-    // Recessed dark Keystone socket tray behind ports
+    // Recessed dark Keystone socket tray behind ports (centered at y=16 in 32px 1U)
     ctx.fillStyle = '#0c0f16';
-    roundRect(ctx, 80, 6.5, w - 82, h - 8.5, 2);
+    roundRect(ctx, 80, 6, w - 84, 20, 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.45)';
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    // Divider ribs for 4 Keystone blocks (each 6 ports)
+    const blockW = (w - 84) / 4;
+    for (let b = 1; b < 4; b++) {
+      const bx = 80 + b * blockW;
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(bx - 0.75, 6, 1.5, 20);
+    }
   }
 
   function drawPdu(ctx, w, h) {
