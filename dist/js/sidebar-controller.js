@@ -217,6 +217,17 @@
         if (toggleBtn) toggleBtn.click();
       }
     });
+
+    // Dismissible viewport hint
+    const hintEl = document.getElementById('viewport-bottom-hint');
+    const HINT_KEY = 'rack_studio_viewport_hint_dismissed';
+    try {
+      if (localStorage.getItem(HINT_KEY) === '1') hintEl?.classList.add('is-dismissed');
+    } catch (_) {}
+    document.getElementById('btn-dismiss-viewport-hint')?.addEventListener('click', () => {
+      hintEl?.classList.add('is-dismissed');
+      try { localStorage.setItem(HINT_KEY, '1'); } catch (_) {}
+    });
   }
 
   if (document.readyState === 'loading') {

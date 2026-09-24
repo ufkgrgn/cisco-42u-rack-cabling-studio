@@ -1,0 +1,404 @@
+/* ============================================================================
+   PASSIVE PATCH PANEL STYLING (Distinct Industrial Orange & Compact 74px Bezel)
+   ============================================================================ */
+
+.faceplate-patch-panel {
+  background: linear-gradient(90deg, #17110c 0%, #12151d 74px, #0f1219 100%);
+  border-left: 4px solid #f97316;
+  border-top: 1.5px solid rgba(249, 115, 22, 0.45);
+  border-bottom: 1.5px solid #05070a;
+  box-shadow: none;
+}
+
+/* Compact Integrated Patch Panel Front Bezel (78px width, perfectly aligned with Cisco switches) */
+.patch-integrated-bezel {
+  flex: 0 0 78px;
+  width: 78px;
+  max-width: 78px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.5px;
+  padding: 2px 5px;
+  background: #14100c;
+  border: 1px solid rgba(249, 115, 22, 0.38);
+  border-left: 2.5px solid #f97316;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.patch-bezel-top,
+.patch-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: 100%;
+  line-height: 1;
+}
+
+.patch-brand-logo {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.54rem;
+  font-weight: 800;
+  color: #f97316;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+
+.patch-kind-badge {
+  background: #ea580c;
+  color: #ffffff;
+  font: 800 0.38rem/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.patch-spec-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.15);
+  border-radius: 1.5px;
+  padding: 0.5px 3px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.patch-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: #fed7aa;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+}
+
+.patch-type-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.12);
+  border-radius: 1.5px;
+  padding: 0.5px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* Patch Panel Port Group (Matte IDC punch-down block with top orange bank header) */
+.faceplate-patch-panel .port-group {
+  background: #11151e;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-top: 2px solid #f97316;
+  border-radius: 2px;
+  padding: 1.5px 2px 2px 2px;
+  gap: 1.5px;
+  box-shadow: inset 0 1px 0 rgba(249, 115, 22, 0.2);
+}
+
+/* The signature white write-on identification label strip with orange accent tab */
+.patch-id-strip {
+  display: none !important;
+}
+
+.patch-id-strip span {
+  display: none !important;
+}
+
+/* Patch Panel RJ45 Keystones (Orange Accent Bezel) */
+.faceplate-patch-panel .port-rj45 {
+  background: #090c13;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.faceplate-patch-panel .port-rj45:hover {
+  border-color: #f97316;
+  box-shadow: 0 0 4px rgba(249, 115, 22, 0.5);
+}
+
+.faceplate-patch-panel .port-rj45:not(.port-special):not(.port-trunk).connected {
+  border-color: #fb923c;
+  background: #130c06;
+  box-shadow: 0 0 3px rgba(249, 115, 22, 0.4);
+}
+
+.faceplate-patch-panel .port-rj45:not(.port-special):not(.port-trunk).connected::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2.5px;
+  height: 2.5px;
+  border-radius: 50%;
+  background: #fb923c;
+  box-shadow: 0 0 3px rgba(251, 146, 60, 0.7);
+  z-index: 3;
+}
+
+.faceplate-patch-panel .port-group::before {
+  display: none;
+}
+
+/* Fiber Patch Panel (ODF / LC Duplex) - Harmonized Warm Amber/Orange Theme */
+.faceplate-fiber-panel {
+  background: linear-gradient(90deg, #181309 0%, #101622 74px, #0a111a 100%);
+  border-left: 4px solid #f59e0b;
+  border-top: 1.5px solid rgba(245, 158, 11, 0.45);
+  border-bottom: 1.5px solid #04080e;
+  box-shadow: none;
+}
+
+.faceplate-fiber-panel .patch-integrated-bezel {
+  border-color: rgba(245, 158, 11, 0.38);
+  border-left-color: #f59e0b;
+  background: #141108;
+}
+
+.faceplate-fiber-panel .patch-brand-logo {
+  color: #f59e0b;
+}
+
+.faceplate-fiber-panel .patch-kind-badge {
+  background: #d97706;
+}
+
+.faceplate-fiber-panel .patch-spec-badge {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.faceplate-fiber-panel .patch-type-mini {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.faceplate-fiber-panel .ports-area {
+  gap: 2px;
+}
+
+.faceplate-fiber-panel .port-group {
+  background: #10141d;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-top: 2px solid #f59e0b;
+  box-shadow: inset 0 1px 0 rgba(245, 158, 11, 0.2);
+  padding: 1px 2px;
+  gap: 1px;
+}
+
+.faceplate-fiber-panel .port-row {
+  gap: 1px;
+}
+
+.faceplate-fiber-panel .patch-id-strip {
+  border-color: rgba(245, 158, 11, 0.45);
+  border-left-color: #d97706;
+}
+
+/* Power Distribution Unit (PDU) Faceplate */
+.faceplate-pdu {
+  background: linear-gradient(90deg, #09130d 0%, #101a14 74px, #0a110d 100%);
+  border-left: 4px solid #22c55e;
+  border-top: 1.5px solid rgba(34, 197, 94, 0.45);
+  border-bottom: 1.5px solid #04080e;
+  box-shadow: none;
+}
+
+.faceplate-pdu .patch-integrated-bezel {
+  border-color: rgba(34, 197, 94, 0.38);
+  border-left-color: #22c55e;
+  background: #08140c;
+}
+
+.faceplate-pdu .patch-brand-logo {
+  color: #22c55e;
+}
+
+.faceplate-pdu .patch-kind-badge {
+  background: #15803d;
+}
+
+.faceplate-pdu .patch-type-mini {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.faceplate-pdu .port-group {
+  background: #0c150f;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-top: 2px solid #22c55e;
+  box-shadow: inset 0 1px 0 rgba(34, 197, 94, 0.2);
+}
+
+.device-status-leds {
+  display: flex;
+  gap: 2.5px;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.status-led {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.ports-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  height: 100%;
+  overflow: hidden !important;
+  padding: 0 4px;
+  box-sizing: border-box;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.faceplate-switch .ports-area {
+  justify-content: flex-start;
+  gap: 6px;
+  padding-left: 4px;
+}
+
+.faceplate-switch .cisco-uplink-bay {
+  margin-left: 12px;
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.35);
+  border-top: 2px solid #00d2ff;
+}
+
+.faceplate-patch-panel .ports-area {
+  justify-content: flex-start;
+  gap: 5px;
+  padding-left: 4px;
+}
+
+.ports-area::-webkit-scrollbar,
+.device-faceplate::-webkit-scrollbar,
+.mounted-device::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.port-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1px 2px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.port-row {
+  display: flex;
+  gap: 1.5px;
+  align-items: center;
+}
+
+/* Hybrid Cisco faceplate: authentic stencil below, live DOM ports above it.
+   Per-model normalized rectangles keep hit targets aligned while the rack scales. */
+.device-faceplate.stencil-faceplate {
+  padding: 0;
+  gap: 0;
+  background: #080b10;
+  isolation: isolate;
+}
+
+.rack-faceplate-stencil {
+  position: absolute;
+  inset: 1px 5px;
+  width: calc(100% - 10px);
+  height: calc(100% - 2px);
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  filter: saturate(1.06) contrast(1.04) brightness(.96);
+}
+
+.stencil-faceplate .cisco-integrated-bezel {
+  display: none;
+}
+
+.stencil-faceplate .ports-area {
+  position: absolute;
+  left: var(--fp-ports-left);
+  top: var(--fp-ports-top);
+  width: var(--fp-ports-width);
+  height: var(--fp-ports-height);
+  padding: 0;
+  gap: 2px;
+  z-index: 2;
+  overflow: visible !important;
+  justify-content: flex-start;
+}
+
+.stencil-faceplate .port-group {
+  gap: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.stencil-faceplate .switch-block-strip,
+.stencil-faceplate .cisco-uplink-strip,
+.stencil-faceplate .patch-id-strip {
+  display: none !important;
+}
+
+.stencil-faceplate .port-row { gap: 1px; }
+.stencil-faceplate .port {
+  opacity: .18;
+  outline: 1px solid rgba(125, 211, 252, .22);
+  background-color: rgba(2, 6, 23, .12);
+  transition: opacity .12s ease, outline-color .12s ease, filter .12s ease;
+}
+.stencil-faceplate .port:hover,
+.stencil-faceplate .port:focus-visible,
+.stencil-faceplate .port.connected,
+.stencil-faceplate .port.port-special {
+  opacity: 1;
+  outline-color: rgba(103, 232, 249, .9);
+  filter: drop-shadow(0 0 3px rgba(34, 211, 238, .75));
+}
+
+.stencil-faceplate .device-controls {
+  z-index: 5;
+}
+

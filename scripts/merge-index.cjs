@@ -23,18 +23,30 @@ const fullHtml = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- 3D Studio & HUD Styles -->
-  <link rel="stylesheet" href="css/studio3d.css">
+  <!-- Theme tokens + Modular Stylesheets -->
+  <link rel="stylesheet" href="css/theme-tokens.css">
+  <link rel="stylesheet" href="css/studio3d-chrome.css">
+  <link rel="stylesheet" href="css/studio3d-overlays.css">
   
   <!-- Legacy Modular Stylesheets (Preserved for full compatibility) -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/viewport.css">
-  <link rel="stylesheet" href="css/rack.css">
+  <link rel="stylesheet" href="css/rack-structure.css">
+  <link rel="stylesheet" href="css/rack-devices-cisco.css">
+  <link rel="stylesheet" href="css/rack-devices-panels.css">
+  <link rel="stylesheet" href="css/rack-ports.css">
+  <link rel="stylesheet" href="css/rack-organizers.css">
+  <link rel="stylesheet" href="css/rack-overlays.css">
+  <link rel="stylesheet" href="css/rack-interactions.css">
   <link rel="stylesheet" href="css/cabling.css">
-  <link rel="stylesheet" href="css/schedule.css">
+  <link rel="stylesheet" href="css/schedule-shell.css">
+  <link rel="stylesheet" href="css/schedule-cards.css">
+  <link rel="stylesheet" href="css/schedule-role-picker.css">
   <link rel="stylesheet" href="css/editor.css">
-  <link rel="stylesheet" href="css/catalog-ui.css">
+  <link rel="stylesheet" href="css/catalog-sidebar.css">
+  <link rel="stylesheet" href="css/catalog-modal.css">
+  <link rel="stylesheet" href="css/catalog-inspector.css">
 </head>
 <body>
 

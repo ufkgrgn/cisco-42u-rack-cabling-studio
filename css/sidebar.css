@@ -28,12 +28,12 @@
   min-width: 44px;
   max-width: 44px;
   height: 100%;
-  background: #080c14;
-  border-right: 1px solid #1a2333;
+  background: var(--bg-app);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 56px 0 12px 0;
+  padding: var(--chrome-offset, 56px) 0 12px 0;
   gap: 4px;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -47,7 +47,7 @@
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  color: #64748b;
+  color: var(--text-muted);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -60,16 +60,16 @@
 }
 
 .rail-btn:hover {
-  color: #f1f5f9;
-  background: #111827;
-  border-color: #1e293b;
+  color: var(--text-main);
+  background: var(--bg-elevated);
+  border-color: var(--border);
 }
 
 .rail-btn.active {
-  color: #00d2ff;
-  background: rgba(0, 210, 255, 0.12);
-  border-color: rgba(0, 210, 255, 0.35);
-  box-shadow: inset 0 0 6px rgba(0, 210, 255, 0.15);
+  color: var(--neon-cyan);
+  background: color-mix(in srgb, var(--neon-cyan) 12%, transparent);
+  border-color: color-mix(in srgb, var(--neon-cyan) 35%, transparent);
+  box-shadow: inset 0 0 6px var(--glow-cyan);
 }
 
 .rail-btn.active::before {
@@ -79,7 +79,7 @@
   top: 6px;
   bottom: 6px;
   width: 2.5px;
-  background: #00d2ff;
+  background: var(--neon-cyan);
   border-radius: 0 2px 2px 0;
 }
 
@@ -103,7 +103,7 @@
 .rail-divider {
   width: 24px;
   height: 1px;
-  background: #1e293b;
+  background: var(--border);
   margin: 4px 0;
   flex-shrink: 0;
 }
@@ -117,11 +117,11 @@
 }
 
 .rail-add-btn {
-  color: #38bdf8;
+  color: var(--accent-blue);
 }
 .rail-add-btn:hover {
   background: rgba(56, 189, 248, 0.15);
-  border-color: #38bdf8;
+  border-color: var(--accent-blue);
   color: #fff;
 }
 
@@ -143,9 +143,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  padding-top: 56px;
-  background: rgba(11, 15, 25, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: var(--chrome-offset, 56px);
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--border-subtle);
   min-height: 40px;
   flex-shrink: 0;
 }
@@ -161,7 +161,7 @@
 .dock-category-title {
   font-size: 0.74rem;
   font-weight: 800;
-  color: #f1f5f9;
+  color: var(--text-main);
   letter-spacing: 0.6px;
   text-transform: uppercase;
 }
@@ -169,9 +169,9 @@
 .dock-category-count {
   font-size: 0.62rem;
   font-weight: 800;
-  color: #00d2ff;
-  background: rgba(0, 210, 255, 0.15);
-  border: 1px solid rgba(0, 210, 255, 0.35);
+  color: var(--neon-cyan);
+  background: color-mix(in srgb, var(--neon-cyan) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--neon-cyan) 35%, transparent);
   padding: 1px 6px;
   border-radius: 9999px;
   font-family: ui-monospace, monospace;
@@ -190,7 +190,7 @@
 }
 
 .drawer-hint b {
-  color: #38bdf8;
+  color: var(--accent-blue);
 }
 
 .sidebar-device-stream {
@@ -226,7 +226,7 @@
 
 .sidebar-left.collapsed .sidebar-dock-header {
   padding: 8px;
-  padding-top: 62px;
+  padding-top: var(--chrome-offset, 62px);
   justify-content: center;
 }
 
@@ -253,7 +253,7 @@
   gap: 6px;
   padding: 8px 14px;
   background: rgba(11, 15, 25, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .sidebar-tool-btn {
@@ -277,7 +277,7 @@
 
 .panel-section {
   padding: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 details.panel-section.collapsible-section {
@@ -376,7 +376,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 
 .device-card:hover {
   background: rgba(30, 41, 59, 0.85);
-  border-color: #38bdf8;
+  border-color: var(--accent-blue);
   transform: translateX(2px);
 }
 
@@ -416,7 +416,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 
 .hw-mini-bezel.bezel-fiber {
   background: linear-gradient(180deg, #162436 0%, #091522 100%);
-  border-color: #00d2ff;
+  border-color: var(--neon-cyan);
 }
 
 .hw-mini-bezel.bezel-switch {
@@ -427,7 +427,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 
 .hw-mini-bezel.bezel-core-2u {
   background: linear-gradient(180deg, #243e66 0%, #122540 100%);
-  border-color: #38bdf8;
+  border-color: var(--accent-blue);
   box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.4), 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
@@ -504,7 +504,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 .mini-cisco-text {
   font-size: 5px;
   font-weight: 900;
-  color: #38bdf8;
+  color: var(--accent-blue);
   letter-spacing: 0.5px;
   font-family: ui-sans-serif, system-ui, sans-serif;
   line-height: 1;
@@ -624,7 +624,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 .device-card .device-name {
   font-size: 0.76rem;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
