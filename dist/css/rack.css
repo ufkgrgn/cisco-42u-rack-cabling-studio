@@ -3419,6 +3419,18 @@ body.space-pan-active.panning-active [data-drag-handle="true"] {
   cursor: grabbing !important;
 }
 
+/* Disable all pointer interactions and hovering on DOM elements during Space Pan */
+body.space-pan-active #viewport-canvas * {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+body.space-pan-active #viewport-canvas,
+body.space-pan-active #viewport-canvas canvas {
+  pointer-events: auto !important;
+}
+
 #studio-pan-overlay-pill {
   position: fixed;
   bottom: 24px;

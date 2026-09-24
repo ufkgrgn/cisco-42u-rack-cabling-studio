@@ -373,6 +373,7 @@
       });
 
       card.addEventListener('keydown', event => {
+        if (window.RackStudio?.isSpacePressed) return;
         if (event.target === card && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
           selectCustom(key);
@@ -380,6 +381,7 @@
       });
 
       card.addEventListener('click', (e) => {
+        if (window.RackStudio?.isSpacePressed) return;
         if (e.target.closest('.catalog-star') || e.target.closest('.btn-card-quick-mount')) return;
         selectCustom(key);
       });

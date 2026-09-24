@@ -470,8 +470,11 @@
       }
     }
 
-    canvas.addEventListener('mousedown', (e) => {
+    window.addEventListener('mousedown', (e) => {
       if (isSpacePressed) {
+        if (e.target.closest('input, textarea, select, .studio-modal, .modal-backdrop, .modal-card')) {
+          return;
+        }
         wasSpacePanning = true;
         panOriginClientX = e.clientX;
         panOriginClientY = e.clientY;
@@ -480,8 +483,11 @@
         RS.ZOOM_STATE.hasMoved = false;
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         return;
       }
+
+      if (!canvas.contains(e.target)) return;
 
       if (RS.isDraggingDevice || RS.dom?.rackStage?.classList.contains('device-dragging-active') || e.target.closest('.mounted-device') || e.target.closest('[data-drag-handle="true"]')) {
         if (RS.ZOOM_STATE.isPanning) endPan();
@@ -494,6 +500,24 @@
         beginPan(e.clientX, e.clientY);
         RS.ZOOM_STATE.hasMoved = false;
         e.preventDefault();
+      }
+    }, { capture: true });
+
+    window.addEventListener('pointerdown', (e) => {
+      if (isSpacePressed) {
+        if (!e.target.closest('input, textarea, select, .studio-modal, .modal-backdrop, .modal-card')) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+      }
+    }, { capture: true });
+
+    window.addEventListener('dragstart', (e) => {
+      if (isSpacePressed) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
     }, { capture: true });
 
@@ -663,6 +687,11 @@
         if (!isSpacePressed) {
           isSpacePressed = true;
           RS.isSpacePressed = true;
+          RS.isDraggingDevice = false;
+          RS.dom?.rackStage?.classList.remove('device-dragging-active');
+          if (document.activeElement && document.activeElement.tagName === 'BUTTON') {
+            document.activeElement.blur();
+          }
           document.body.classList.add('space-pan-active');
           showPanOverlay();
         }

@@ -103,7 +103,7 @@
     };
 
     handleEl.addEventListener('pointerdown', e => {
-      if (e.button !== 0) return;
+      if (RS.isSpacePressed || e.button !== 0) return;
       e.stopPropagation();
       e.preventDefault();
       isDragging = true;
@@ -225,7 +225,7 @@
 
       const slot = e.target.closest('.rack-slot');
       if (slot && !e.target.closest('.mounted-device')) {
-        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
+        if (RS.isSpacePressed || ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
         if (STATE.selectedLibraryItem) {
           const u = Number(slot.dataset.u);
           const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
@@ -248,8 +248,8 @@
     stage.addEventListener('dblclick', e => {
       const slot = e.target.closest('.rack-slot');
       if (slot && !e.target.closest('.mounted-device')) {
+        if (RS.isSpacePressed || ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
         e.stopPropagation();
-        if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
         const u = Number(slot.dataset.u);
         const rackId = slot.dataset.rackId || (getActiveRack() ? getActiveRack().id : undefined);
         if (typeof window.handleSlotDoubleClick === 'function') {
@@ -262,6 +262,7 @@
 
     // Dragover on rack stage / slots
     stage.addEventListener('dragover', e => {
+      if (RS.isSpacePressed) return;
       const target = resolveDropSlot(e);
       if (target && Number.isInteger(target.u)) {
         e.preventDefault();

@@ -571,6 +571,7 @@
     });
     let drag = null, frame = 0, longPressTimer = null, pendingTouch = null;
     document.addEventListener('mousedown', e => {
+      if (window.RackStudio?.isSpacePressed) return;
       const dev = e.target.closest('.mounted-device');
       const isHandle = !!e.target.closest('[data-drag-handle="true"]');
       if (isHandle || (dev && state.multiSelectedDevices?.has(dev.id)) || api.isDraggingDevice) {
@@ -578,6 +579,7 @@
       }
     }, true);
     document.addEventListener('pointerdown', e => {
+      if (window.RackStudio?.isSpacePressed) return;
       const el = e.target.closest('.mounted-device');
       if (e.button !== 0 || !el || e.target.closest('button,.port-icon,.port,[data-port-id]')) return;
       const isDragHandle = !!e.target.closest('[data-drag-handle="true"]');

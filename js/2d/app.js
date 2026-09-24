@@ -162,6 +162,7 @@
         highlightDropSlots(null, null, false);
       });
       card.addEventListener('click', () => {
+        if (RS.isSpacePressed) return;
         // catalog-ui owns selection and its single reusable detail inspector once
         // a legacy card has been upgraded. Avoid toggling the same selection twice.
         if (card.dataset.catalogEnhanced === 'true') return;
