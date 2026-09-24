@@ -189,6 +189,7 @@
       document.querySelectorAll('.mounted-device').forEach(el => {
         el.classList.toggle('studio-multi-selected', (state.multiSelectedDevices?.has(el.id) && (count > 1 || state.multiSelectMode)) || false);
       });
+      api.updatePixiDeviceSelection?.();
     }
 
     function toggleMultiSelect(instanceId) {
@@ -477,51 +478,52 @@
       } catch (error) { status(error.message, true); }
     }
     bar.addEventListener('click', e => { const button = e.target.closest('[data-command]'); if (button) command(button.dataset.command); });
-    let justDragged = false;
+    let justDragged = null;
     document.addEventListener('click', e => {
-      if (justDragged) {
-        justDragged = false;
-        return;
+      if (!state.multiSelectMode && !e.shiftKey) {
+        if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
+      } else {
+        if (e.target.closest('button,input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
       }
-      if (e.target.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
 
       const device = e.target.closest('.mounted-device');
-      if (device) {
-        if (state.multiSelectMode || e.shiftKey) {
-          toggleMultiSelect(device.id);
-        } else if (selected === device.id) {
-          selected = null;
-          if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
-          sync();
-        } else {
-          selected = device.id;
-          state.multiSelectedDevices = new Set([device.id]);
-          field('target').value = api.getActiveRack().id;
-          sync();
-        }
-        return;
-      }
-
-      // Check if clicked through canvas onto a port, button or device
       const hasCoords = (e.clientX != null && e.clientY != null && (e.clientX !== 0 || e.clientY !== 0));
-      const elUnder = (hasCoords && typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+      const elUnder = (!device && hasCoords && typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
         ? document.elementFromPoint(e.clientX, e.clientY)
         : null;
-      if (elUnder?.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
-      if (hasCoords && (window.RackStudio?.hitDevicePortAt?.(e.clientX, e.clientY) || (window.RackStudio?.lastHandledPixiPortTime && Date.now() - window.RackStudio.lastHandledPixiPortTime < 350))) return;
+      if (!state.multiSelectMode && !e.shiftKey) {
+        if (elUnder?.closest('button,.port-icon,.port,[data-port-id],input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
+        if (hasCoords && (window.RackStudio?.hitDevicePortAt?.(e.clientX, e.clientY) || (window.RackStudio?.lastHandledPixiPortTime && Date.now() - window.RackStudio.lastHandledPixiPortTime < 350))) return;
+      } else {
+        if (elUnder?.closest('button,input,select,textarea,#studio-multiselect-pill,#rack-u-action-menu,.modal,.modal-card')) return;
+      }
 
       const deviceUnder = elUnder?.closest('.mounted-device');
-      if (deviceUnder) {
+      const pixiHitDevice = (!device && !deviceUnder && hasCoords && window.RackStudio?.hitDeviceChassisAt)
+        ? window.RackStudio.hitDeviceChassisAt(e.clientX, e.clientY)
+        : null;
+
+      const resolvedDeviceEl = device || deviceUnder;
+      const targetInstanceId = resolvedDeviceEl?.id || pixiHitDevice?.instanceId;
+
+      if (justDragged && justDragged === targetInstanceId) {
+        justDragged = null;
+        return;
+      }
+      justDragged = null;
+
+      if (targetInstanceId) {
         if (state.multiSelectMode || e.shiftKey) {
-          toggleMultiSelect(deviceUnder.id);
-        } else if (selected === deviceUnder.id) {
+          toggleMultiSelect(targetInstanceId);
+        } else if (selected === targetInstanceId) {
           selected = null;
           if (state.multiSelectedDevices) state.multiSelectedDevices.clear();
           sync();
         } else {
-          selected = deviceUnder.id;
-          state.multiSelectedDevices = new Set([deviceUnder.id]);
-          field('target').value = api.getActiveRack().id;
+          selected = targetInstanceId;
+          state.multiSelectedDevices = new Set([targetInstanceId]);
+          const targetRackId = pixiHitDevice?.rackId || api.getActiveRack().id;
+          field('target').value = targetRackId;
           sync();
         }
         return;
@@ -597,9 +599,8 @@
         return;
       }
 
-      // If in multiSelectMode or Shift key: toggle selection on faceplate
+      // If in multiSelectMode or Shift key: prevent initiating device drag, let click handle the toggle cleanly
       if (state.multiSelectMode || e.shiftKey) {
-        toggleMultiSelect(el.id);
         e.stopPropagation();
         return;
       }
@@ -650,6 +651,9 @@
       drag.delta = e.clientY - drag.y;
       if (Math.abs(drag.delta) > 4) {
         if (!drag.active) {
+          if (state.pendingConnection && api.cancelPendingConnection) {
+            api.cancelPendingConnection();
+          }
           selected = drag.el.id;
           if (!state.multiSelectedDevices?.has(drag.el.id)) {
             state.multiSelectedDevices = new Set([drag.el.id]);
@@ -657,6 +661,7 @@
           sync();
         }
         drag.active = true;
+        drag.el.classList.add('studio-dragging');
         api.isDraggingDevice = true;
         api.dom?.rackStage?.classList.add('device-dragging-active');
         if (api.ZOOM_STATE) api.ZOOM_STATE.isPanning = false;
@@ -705,6 +710,7 @@
       if (typeof api.resetPixiDevicePositions === 'function') {
         api.resetPixiDevicePositions();
       }
+      api.PixiCabinScene?.clearDropHighlight?.();
       if (state.multiSelectedDevices?.size > 1) {
         state.multiSelectedDevices.forEach(id => {
           const other = document.getElementById(id);
@@ -715,8 +721,8 @@
         });
       }
       if (finished.active) {
-        justDragged = true;
-        setTimeout(() => { justDragged = false; }, 80);
+        justDragged = finished.el?.id || true;
+        queueMicrotask(() => { justDragged = null; });
       }
       let moved = false;
       if (finished.active && e.type !== 'pointercancel') {

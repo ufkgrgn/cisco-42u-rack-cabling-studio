@@ -139,7 +139,15 @@
     };
 
     if (action === 'hover') handlePortHover({ currentTarget: target, target });
-    else if (action === 'click') handlePortClick({ currentTarget: target, target, stopPropagation() {} });
+    else if (action === 'click') {
+      if (STATE.multiSelectMode) {
+        if (target.dataset.instanceId && RS.toggleMultiSelect) {
+          RS.toggleMultiSelect(target.dataset.instanceId);
+          return true;
+        }
+      }
+      handlePortClick({ currentTarget: target, target, stopPropagation() {} });
+    }
     else if (action === 'dblclick') {
       const instanceId = target.dataset.instanceId;
       const portId = target.dataset.portId;

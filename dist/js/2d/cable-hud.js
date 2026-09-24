@@ -293,7 +293,10 @@
     document.querySelectorAll('.rack-slot.drag-valid, .rack-slot.drag-invalid').forEach(el => {
       el.classList.remove('drag-valid', 'drag-invalid');
     });
-    if (!isOver || !targetU) return;
+    if (!isOver || !targetU) {
+      RS.PixiCabinScene?.clearDropHighlight?.();
+      return;
+    }
     const targetRack = (targetRackId && RS.getRackById ? RS.getRackById(targetRackId) : null) ||
                        (targetRackId && STATE.racks ? STATE.racks.find(r => r && r.id === targetRackId) : null) ||
                        getActiveRack();
@@ -320,6 +323,7 @@
       if (!el) el = document.getElementById(`rack-slot-u${u}`);
       if (el) el.classList.add(cls);
     }
+    RS.PixiCabinScene?.updateDropHighlight?.(targetU, reqU, !isBlocked, targetRack?.id);
   }
 
   // Global keydown and click listeners for keyboard shortcuts & auto-dismiss

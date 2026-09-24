@@ -390,17 +390,20 @@
         if (pointerOnDomChrome(e)) return;
         const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
         if (!port) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        if (STATE.multiSelectMode || e.shiftKey) return;
         RS.lastHandledPixiPortTime = Date.now();
         RS.dispatchDevicePortInteraction?.('click', port);
-      }, { capture: true });
+      });
 
       window.addEventListener('click', (e) => {
         if (STATE?.cableRenderMode !== 'pixi') return;
         if (pointerOnDomChrome(e)) return;
+        if (RS.isDraggingDevice) return;
+        if (STATE.multiSelectMode || e.shiftKey) return;
         const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-        if (port) e.stopPropagation();
+        if (port) {
+          e.stopPropagation();
+        }
       }, { capture: true });
 
       window.addEventListener('contextmenu', (e) => {
@@ -431,14 +434,6 @@
 
     pixiCanvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
-      const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
-      if (port) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        RS.lastHandledPixiPortTime = Date.now();
-        RS.dispatchDevicePortInteraction?.('click', port);
-        return;
-      }
       pixiCanvas.style.pointerEvents = 'none';
       isPointerOverCable = false;
       const elUnder = document.elementFromPoint(e.clientX, e.clientY);
@@ -458,9 +453,14 @@
     });
 
     pixiCanvas.addEventListener('click', (e) => {
+      if (RS.isDraggingDevice) return;
+      if (STATE.multiSelectMode || e.shiftKey) return;
       const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
       if (port) {
+        e.preventDefault();
         e.stopPropagation();
+        RS.lastHandledPixiPortTime = Date.now();
+        RS.dispatchDevicePortInteraction?.('click', port);
         return;
       }
       pixiCanvas.style.pointerEvents = 'none';

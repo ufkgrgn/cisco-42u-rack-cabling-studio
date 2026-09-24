@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- Modular Stylesheets (2D Workspace) -->
-  <link rel="stylesheet" crossorigin href="/assets/main-C-Oef3BY.css">
+  <!-- Modern CAD & Stencil Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Modular Stylesheets (2D Workspace) -->
+  <link rel="stylesheet" crossorigin href="/assets/main-C6hxFEYh.css">
 </head>
 <body>
 
@@ -1642,13 +1647,16 @@
   <script src="js/2d/state.js" ></script>
   <script src="js/2d/render-scheduler.js" ></script>
   <script src="js/2d/zoom-manager.js" ></script>
+  <script src="js/2d/zoom-camera-focus.js" ></script>
   <script src="js/2d/rack-manager.js" ></script>
   <script src="js/2d/network-rules.js" ></script>
   <script src="js/2d/rack-u-actions.js" ></script>
   <script src="js/2d/rack-structure-renderer.js" ></script>
   <script src="js/2d/device-actions.js" ></script>
   <script src="js/2d/device-scene-registry.js" ></script>
+  <script src="js/2d/faceplate-port-renderer.js" ></script>
   <script src="js/2d/faceplate-renderer.js" ></script>
+  <script src="js/2d/port-role-cycling.js" ></script>
   <script src="js/2d/port-interaction-handler.js" ></script>
   <script src="js/2d/rack-renderer.js" ></script>
   <script src="js/2d/cable-routing.js" ></script>
@@ -1657,6 +1665,7 @@
   <script src="js/2d/pixi-viewport-manager.js" ></script>
   <script src="js/2d/pixi-cable-geometry.js" ></script>
   <script src="js/2d/pixi-faceplate-textures.js" ></script>
+  <script src="js/2d/pixi-cabin-scene.js" ></script>
   <script src="js/2d/pixi-device-scene.js" ></script>
   <script src="js/2d/pixi-spatial-index.js" ></script>
   <script src="js/2d/pixi-cable-batch.js" ></script>
@@ -1664,6 +1673,7 @@
   <script src="js/2d/cable-hud.js" ></script>
   <script src="js/2d/switch-autofill.js" ></script>
   <script src="js/2d/cabling-engine.js" ></script>
+  <script src="js/2d/schedule-role-picker.js" ></script>
   <script src="js/2d/schedule-table.js" ></script>
   <script src="js/2d/topology-io.js" ></script>
   <script src="js/2d/presets.js" ></script>
@@ -1672,6 +1682,8 @@
   <script src="js/2d/app.js" ></script>
   <script src="js/editor.js" ></script>
   <script src="js/stencil-manifest.js" ></script>
+  <script src="js/catalog-stencil-resolver.js" ></script>
+  <script src="js/catalog-cisco-modal.js" ></script>
   <script src="js/catalog-ui.js" ></script>
 
   <!-- Extracted UI, Editor and Bridge Controllers -->

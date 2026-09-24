@@ -239,6 +239,54 @@ test('Tablet gestures, ear handles, smart ripple push, multi-select and U-space 
     assert.equal(duringDragFaceplate.liveFaceplate, false, 'Drag MUST NOT restore a DOM faceplate');
     assert.equal(duringDragFaceplate.renderer, 'pixi');
 
+    // 15. Shift-Click Multi-Selection and Multi-Select Mode Physical Clicks
+    await page.evaluate(() => {
+      window.RackStudio.clearMultiSelect();
+    });
+
+    const devices = page.locator('.mounted-device');
+    const dev0 = devices.nth(0);
+    const dev1 = devices.nth(1);
+
+    // Physical Shift + click on two devices
+    await dev0.click({ modifiers: ['Shift'] });
+    await dev1.click({ modifiers: ['Shift'] });
+
+    const shiftSelectCount = await page.evaluate(() => window.RackStudio.STATE.multiSelectedDevices?.size || 0);
+    assert.equal(shiftSelectCount, 2, 'Shift-clicking two devices must select both devices without double-toggle cancellation');
+
+    const pillVisibleAfterShift = await page.locator('#studio-multiselect-pill:not(.hidden)').isVisible();
+    assert.equal(pillVisibleAfterShift, true, 'Multi-select pill must be visible after physical Shift-clicks');
+
+    // Deselect one via Shift-click
+    await dev0.click({ modifiers: ['Shift'] });
+
+    const countAfterDeselect = await page.evaluate(() => window.RackStudio.STATE.multiSelectedDevices?.size || 0);
+    assert.equal(countAfterDeselect, 1, 'Shift-clicking an already selected device must deselect it');
+
+    // Clear multi-select
+    await page.keyboard.press('Escape');
+
+    // Now test Multi-Select Mode (e.g. tablet mode / U-menu action)
+    await page.evaluate(() => window.RackStudio.setMultiSelectMode(true));
+    assert.equal(await page.locator('#studio-multiselect-pill:not(.hidden)').isVisible(), true, 'Pill visible in multi-select mode');
+
+    // Click without Shift in multiSelectMode
+    await dev0.click();
+    await dev1.click();
+
+    const modeSelectCount = await page.evaluate(() => window.RackStudio.STATE.multiSelectedDevices?.size || 0);
+    assert.equal(modeSelectCount, 2, 'In multi-select mode, clicking devices without Shift must accumulate multi-selection');
+
+    // Deselect via pill action
+    await page.locator('#studio-multiselect-pill [data-multi-action="clear"]').click();
+    const finalModeActive = await page.evaluate(() => ({
+      mode: window.RackStudio.STATE.multiSelectMode,
+      count: window.RackStudio.STATE.multiSelectedDevices?.size || 0
+    }));
+    assert.equal(finalModeActive.mode, false, 'Clear button must exit multiSelectMode');
+    assert.equal(finalModeActive.count, 0, 'Clear button must empty multiSelectedDevices');
+
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

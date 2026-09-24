@@ -67,6 +67,17 @@
     return `${fiberTag}${endpoints}`;
   }
 
+  function getRackChannelUsage(ctx, rackId) {
+    if (!ctx.channelUsageByRack) ctx.channelUsageByRack = new Map();
+    const key = String(rackId || '__default__');
+    let usage = ctx.channelUsageByRack.get(key);
+    if (!usage) {
+      usage = { left: 0, right: 0 };
+      ctx.channelUsageByRack.set(key, usage);
+    }
+    return usage;
+  }
+
   function generateSvgCablePathway(cable, ctx) {
     const { activeRack, isMulti, clientToSvg, getPortRect, getRackRailBounds, getCachedOrgY } = ctx;
 
@@ -181,12 +192,14 @@
       const useRightA = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x1 >= rackACenter - 40) : (x1 >= rackACenter + 40)));
       const useRightB = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x2 >= rackBCenter + 40) : (x2 >= rackBCenter - 40)));
 
-      const bundleIdxA = useRightA ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
+      const usageA = getRackChannelUsage(ctx, rackA?.id);
+      const bundleIdxA = useRightA ? usageA.right++ : usageA.left++;
       const railLaneA = (bundleIdxA % 9) - 4;
       const railOffsetA = railLaneA * 3.2;
       const channelXA = (useRightA ? rackARight : rackALeft) + railOffsetA;
 
-      const bundleIdxB = useRightB ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
+      const usageB = getRackChannelUsage(ctx, rackB?.id);
+      const bundleIdxB = useRightB ? usageB.right++ : usageB.left++;
       const railLaneB = (bundleIdxB % 9) - 4;
       const railOffsetB = railLaneB * 3.2;
       const channelXB = (useRightB ? rackBRight : rackBLeft) + railOffsetB;
@@ -272,9 +285,10 @@
         const rackRightEdge = boundsA.right;
 
         const rackCenterLine = (rackLeftEdge + rackRightEdge) / 2;
-        const useRightChannel = resolveCableDuctSide(cable, x1, x2, rackCenterLine, ctx.leftChannelUsage, ctx.rightChannelUsage);
+        const rackUsage = getRackChannelUsage(ctx, rackA?.id);
+        const useRightChannel = resolveCableDuctSide(cable, x1, x2, rackCenterLine, rackUsage.left, rackUsage.right);
         const channelBase = useRightChannel ? rackRightEdge : rackLeftEdge;
-        const bundleIdx = useRightChannel ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
+        const bundleIdx = useRightChannel ? rackUsage.right++ : rackUsage.left++;
 
         const railLane = (bundleIdx % 9) - 4;
         const railTier = Math.floor(bundleIdx / 9) % 2;

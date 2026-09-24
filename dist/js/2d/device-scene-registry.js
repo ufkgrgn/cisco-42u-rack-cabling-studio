@@ -296,6 +296,13 @@
     return snapshotCache;
   }
 
+  function isAnyFaceplateChild(child) {
+    if (!child || !child.classList) return false;
+    return child.classList.contains('device-faceplate') ||
+           child.classList.contains('organizer-faceplate') ||
+           child.classList.contains('blank-faceplate');
+  }
+
   function suspendDomFaceplates() {
     if (suspendedGeneration === generation) {
       stats.faceplateSuspendSkips++;
@@ -305,7 +312,7 @@
 
     detachedFaceplates.forEach((entry, instanceId) => {
       if (!entry.owner.isConnected || deviceElements.get(instanceId) !== entry.owner) {
-        if (entry.owner.isConnected && !entry.owner.querySelector('.device-faceplate')) {
+        if (entry.owner.isConnected && !Array.from(entry.owner.children).some(isAnyFaceplateChild)) {
           entry.owner.appendChild(entry.element);
         }
         detachedFaceplates.delete(instanceId);
@@ -315,10 +322,8 @@
     deviceRecords.forEach((record, instanceId) => {
       const deviceEl = deviceElements.get(instanceId);
       if (!deviceEl) return;
-      const category = record.category || '';
-      if (category === 'organizer' || category === 'blank') return;
       if (detachedFaceplates.has(instanceId)) return;
-      const faceplate = Array.from(deviceEl.children).find(child => child.classList?.contains('device-faceplate'));
+      const faceplate = Array.from(deviceEl.children).find(isAnyFaceplateChild);
       if (!faceplate) return;
       detachedFaceplates.set(instanceId, { owner: deviceEl, element: faceplate });
       faceplate.remove();
@@ -330,7 +335,7 @@
   function restoreDomFaceplates() {
     let restored = 0;
     detachedFaceplates.forEach((entry, instanceId) => {
-      if (entry.owner.isConnected && !entry.owner.querySelector('.device-faceplate')) {
+      if (entry.owner.isConnected && !Array.from(entry.owner.children).some(isAnyFaceplateChild)) {
         entry.owner.appendChild(entry.element);
         restored++;
       }

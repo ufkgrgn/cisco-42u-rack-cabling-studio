@@ -150,17 +150,20 @@
           devEl.innerHTML = '<div class="pixi-device-body" aria-hidden="true"></div>';
         }
 
+        const earScrewsCount = Math.max(2, (dev.uHeight || 1) * 2);
+        const earScrewsHtml = Array.from({ length: earScrewsCount }, () => '<span class="ear-screw"></span>').join('');
+
         const leftEar = document.createElement('div');
         leftEar.className = 'device-ear-handle device-ear-left';
         leftEar.dataset.dragHandle = 'true';
-        leftEar.title = 'Taşımak için tutun (Grip to move)';
-        leftEar.innerHTML = '<span class="ear-grip">⋮⋮</span>';
+        leftEar.title = 'Taşımak için tutun (19" EIA Rack Mount Ear)';
+        leftEar.innerHTML = earScrewsHtml;
 
         const rightEar = document.createElement('div');
         rightEar.className = 'device-ear-handle device-ear-right';
         rightEar.dataset.dragHandle = 'true';
-        rightEar.title = 'Taşımak için tutun (Grip to move)';
-        rightEar.innerHTML = '<span class="ear-grip">⋮⋮</span>';
+        rightEar.title = 'Taşımak için tutun (19" EIA Rack Mount Ear)';
+        rightEar.innerHTML = earScrewsHtml;
 
         devEl.prepend(leftEar);
         devEl.appendChild(rightEar);
@@ -224,7 +227,7 @@
     Object.keys(groups).forEach(gId => {
       const groupPorts = groups[gId];
       portsHtml += `
-        <div class="port-group" style="background:rgba(15,23,42,0.85); border-color:#0284c7;">
+        <div class="port-group" style="background:#161c26; border: 1px solid #334155; border-radius: 2px;">
           <div class="port-row">
             ${groupPorts.map(p => renderPortIcon(dev.instanceId, p)).join('')}
           </div>
@@ -237,29 +240,44 @@
     const connectablePortsCount = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
     const hasFreePorts = connectablePortsCount > occupiedCount;
     return `
-      <div class="device-faceplate" style="background:linear-gradient(90deg, #131b2c 0%, #1e293b 100%);">
+      <div class="device-faceplate faceplate-router" style="background:linear-gradient(90deg, #242934 0%, #2f3645 100%); border-top: 1px solid #475569;">
         <div class="device-controls">
           ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>` : ''}
           ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
           ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını temizle / sök">✂️</button>` : ''}
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
-        <div class="bezel-badge">
-          <span class="bezel-logo" style="color:#38bdf8;">CISCO</span>
-          <span class="bezel-model">${escapeHtml(cat.modelTag)}</span>
+        <div class="bezel-badge" style="border-right: 1px solid #3b4455; padding-right: 6px;">
+          <div class="bezel-primary-row">
+            <span class="bezel-logo" style="color:#f8fafc; font-family:var(--font-mono); font-weight:800; letter-spacing:0.8px;">CISCO</span>
+            <span class="device-kind-badge" style="background:#ea580c; color:#fff; font-size:0.42rem;">ROUTER</span>
+          </div>
+          <div class="bezel-secondary-row">
+            <span class="bezel-model" style="font-family:var(--font-mono); color:#cbd5e1; font-size:0.52rem;">${escapeHtml(cat.modelTag)}</span>
+          </div>
         </div>
         <div class="device-status-leds">
-          <div class="status-led" title="PWR1: Active" style="background:#22c55e;"></div>
-          <div class="status-led" title="PWR2: Standby" style="background:#38bdf8;"></div>
-          <div class="status-led" title="WAN: Up" style="background:#22c55e;"></div>
+          <div class="status-led" title="PWR1: Active" style="background:#10b981;"></div>
+          <div class="status-led" title="PWR2: Standby" style="background:#0284c7;"></div>
+          <div class="status-led" title="WAN: Up" style="background:#10b981;"></div>
+        </div>
+        <!-- Characteristic Cisco Console & AUX Ports -->
+        <div style="display:flex; align-items:center; gap:3px; margin:0 4px; padding:1px 3px; background:#161c26; border:1px solid #334155; border-radius:2px;">
+          <span style="font-size:0.42rem; font-family:var(--font-mono); color:#00bceb; font-weight:800;">CONSOLE</span>
+          <div style="width:10px; height:8px; background:#00bceb; border-radius:1px; display:flex; align-items:center; justify-content:center;" title="RJ45 Cisco Console Port">
+            <div style="width:6px; height:5px; background:#0f172a; border-radius:0.5px;"></div>
+          </div>
         </div>
         <div class="ports-area">
           ${portsHtml}
-          <!-- NIM Modules visual simulation -->
-          <div style="display:flex; gap:3px; margin-left:auto; opacity:0.85;">
-            <div style="font-size:0.5rem; font-family:monospace; color:#64748b; border:1px dashed #334155; padding:2px 4px; border-radius:2px;">NIM-1</div>
-            <div style="font-size:0.5rem; font-family:monospace; color:#64748b; border:1px dashed #334155; padding:2px 4px; border-radius:2px;">NIM-2</div>
-            <div style="font-size:0.5rem; font-family:monospace; color:#475569; border:1px solid #1e293b; padding:2px 4px; border-radius:2px;">SM-X</div>
+          <!-- NIM Modules visual simulation with captive screws -->
+          <div style="display:flex; gap:3px; margin-left:auto; opacity:0.95;">
+            <div style="font-size:0.46rem; font-family:var(--font-mono); color:#94a3b8; background:#1a202c; border:1px solid #475569; padding:2px 5px; border-radius:2px; display:flex; align-items:center; gap:2px;">
+              <span class="ear-screw" style="width:4px; height:4px;"></span> NIM-1 <span class="ear-screw" style="width:4px; height:4px;"></span>
+            </div>
+            <div style="font-size:0.46rem; font-family:var(--font-mono); color:#94a3b8; background:#1a202c; border:1px solid #475569; padding:2px 5px; border-radius:2px; display:flex; align-items:center; gap:2px;">
+              <span class="ear-screw" style="width:4px; height:4px;"></span> NIM-2 <span class="ear-screw" style="width:4px; height:4px;"></span>
+            </div>
           </div>
         </div>
       </div>
@@ -411,11 +429,21 @@
       const isUplinkGroup = isSwitch && groupPorts.every(p => p.type === 'sfp' || p.type === 'sfp+' || p.type === 'qsfp28');
       const bayClass = isUplinkGroup ? 'cisco-uplink-bay' : (isPatchPanel ? 'patch-port-bay' : (isPdu ? 'pdu-port-bay' : 'cisco-port-bay'));
 
+      const hasFaceplateStencil = isSwitch && Boolean(cat.faceplate?.stencil);
       let bayHeader = '';
-      if (isPatchPanel && groupPorts.length > 0) {
-        const firstPortName = groupPorts[0]?.name || '1';
-        const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
-        bayHeader = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+      if (!hasFaceplateStencil) {
+        if (isPatchPanel && groupPorts.length > 0) {
+          const firstPortName = groupPorts[0]?.name || '1';
+          const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
+          bayHeader = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+        } else if (isUplinkGroup) {
+          const uplinkTag = groupPorts.some(p => p.type === 'qsfp28') ? '100G QSFP28' : '10G SFP+';
+          bayHeader = `<div class="cisco-uplink-strip"><span class="uplink-badge">${uplinkTag}</span></div>`;
+        } else if (isSwitch && isTwoRows && groupPorts.length >= 6) {
+          const firstNum = (groupPorts[0]?.name || '').split('/').pop() || '1';
+          const lastNum = (groupPorts[groupPorts.length - 1]?.name || '').split('/').pop() || String(groupPorts.length);
+          bayHeader = `<div class="switch-block-strip"><span class="port-block-range">${escapeHtml(firstNum)} - ${escapeHtml(lastNum)}</span></div>`;
+        }
       }
 
       if (isTwoRows) {

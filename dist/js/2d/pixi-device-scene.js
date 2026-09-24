@@ -723,6 +723,8 @@
   RS.setPixiDevicePosition = setDevicePosition;
   RS.movePixiDeviceByOffset = moveDeviceByOffset;
   RS.resetPixiDevicePositions = resetAllDevicePositions;
+  RS.hitDeviceChassisAt = hitDeviceBodyAt;
+  RS.updatePixiDeviceSelection = syncPixiDeviceSelection;
 
   RS.PixiDeviceScene = {
     syncPixiDeviceSceneLOD,

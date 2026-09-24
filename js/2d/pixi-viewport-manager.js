@@ -13,6 +13,7 @@
 
   let pixiApp = null;
   let pixiCanvas = null;
+  let cabinSceneContainer = null;
   let deviceSceneContainer = null;
   let cablesContainer = null;
   let connectorsContainer = null;
@@ -150,6 +151,7 @@
   // Wire getters/setters on PixiContext
   Object.defineProperty(PixiContext, 'pixiApp', { get: () => pixiApp, set: v => { pixiApp = v; }, configurable: true });
   Object.defineProperty(PixiContext, 'pixiCanvas', { get: () => pixiCanvas, set: v => { pixiCanvas = v; }, configurable: true });
+  Object.defineProperty(PixiContext, 'cabinSceneContainer', { get: () => cabinSceneContainer, set: v => { cabinSceneContainer = v; }, configurable: true });
   Object.defineProperty(PixiContext, 'deviceSceneContainer', { get: () => deviceSceneContainer, set: v => { deviceSceneContainer = v; }, configurable: true });
   Object.defineProperty(PixiContext, 'cablesContainer', { get: () => cablesContainer, set: v => { cablesContainer = v; }, configurable: true });
   Object.defineProperty(PixiContext, 'connectorsContainer', { get: () => connectorsContainer, set: v => { connectorsContainer = v; }, configurable: true });
@@ -165,6 +167,7 @@
   PixiContext.getCablesContainer = () => cablesContainer;
   PixiContext.getConnectorsContainer = () => connectorsContainer;
   PixiContext.getFocusContainer = () => focusContainer;
+  PixiContext.getCabinSceneContainer = () => cabinSceneContainer;
   PixiContext.getDeviceSceneContainer = () => deviceSceneContainer;
   PixiContext.getPixiApp = () => pixiApp;
   PixiContext.getPixiCanvas = () => pixiCanvas;
@@ -394,6 +397,7 @@
     const viewportBounds = getPixiWorldViewportBounds(camera);
     const { minX, minY, maxX, maxY } = viewportBounds;
     RS.applyDeviceViewportCulling?.(minX, minY, maxX, maxY);
+    RS.PixiCabinScene?.applyCabinViewportCulling?.(minX, minY, maxX, maxY);
 
     let visibleBatches = 0;
     let culledBatches = 0;
@@ -480,6 +484,10 @@
         lastWidth = width;
         lastHeight = height;
 
+        cabinSceneContainer = new window.PIXI.Container();
+        cabinSceneContainer.label = 'cabin-scenes';
+        cabinSceneContainer.eventMode = 'none';
+
         deviceSceneContainer = new window.PIXI.Container();
         deviceSceneContainer.label = 'device-scenes';
         deviceSceneContainer.eventMode = 'none';
@@ -501,6 +509,7 @@
         organizerOverlayContainer.eventMode = 'none';
 
         app.stage.eventMode = 'none';
+        app.stage.addChild(cabinSceneContainer);
         app.stage.addChild(deviceSceneContainer);
         app.stage.addChild(cablesContainer);
         app.stage.addChild(connectorsContainer);

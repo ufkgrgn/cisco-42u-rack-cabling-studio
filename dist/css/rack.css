@@ -155,26 +155,64 @@
   cursor: grabbing;
 }
 
-/* Mounted Device */
+/* Mounted Device Chassis (Cisco Stencil Material & Finishes) */
 .mounted-device {
   position: absolute;
   left: 0;
   width: 100%;
-  background: #141b27;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid #06090e;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: var(--chassis-catalyst, #2d3340);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid #141720;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
   z-index: 2;
-  transition: outline 0.15s;
+  transition: outline 0.15s, box-shadow 0.15s;
   overflow: visible;
   box-sizing: border-box;
 }
 
+.mounted-device[data-category="switch"],
+.mounted-device[data-category="fiber-switch"],
+.mounted-device[data-category="compact"] {
+  background: linear-gradient(180deg, #323947 0%, #262c37 100%);
+  border-top: 1px solid #4a5568;
+  border-bottom: 1px solid #161b22;
+}
+
+.mounted-device[data-category="router"] {
+  background: linear-gradient(180deg, #2e3543 0%, #242934 100%);
+  border-top: 1px solid #475569;
+  border-bottom: 1px solid #141820;
+}
+
+.mounted-device[data-category="patch"] {
+  background: linear-gradient(180deg, #1f242e 0%, #171b22 100%);
+  border-top: 1px solid #3b4454;
+  border-bottom: 1px solid #0f1217;
+}
+
+.mounted-device[data-category="fiber"] {
+  background: linear-gradient(180deg, #1b202a 0%, #131720 100%);
+  border-top: 1px solid #334155;
+  border-bottom: 1px solid #0d1017;
+}
+
+.mounted-device[data-category="pdu"] {
+  background: linear-gradient(180deg, #151921 0%, #0e1117 100%);
+  border-top: 1px solid #283344;
+  border-bottom: 1px solid #090b0e;
+}
+
+.mounted-device[data-category="organizer"] {
+  background: #141720;
+  border-top: 1px solid #232a36;
+  border-bottom: 1px solid #0a0d12;
+}
+
 .mounted-device:hover {
-  outline: 1.5px solid #38bdf8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  outline: 1.5px solid var(--cisco-blue, #0284c7);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
 }
 
 .device-faceplate {
@@ -182,7 +220,7 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 8px 0 8px;
+  padding: 0 16px 0 16px;
   gap: 5px;
   position: relative;
   overflow: hidden;
@@ -308,7 +346,7 @@
   color: #ffffff;
 }
 
-/* Cisco Catalyst Integrated Compact Front Bezel (Option A) */
+/* Cisco Catalyst Integrated Compact Front Bezel (Option A & Stencil Standard) */
 .cisco-integrated-bezel {
   flex: 0 0 74px;
   width: 74px;
@@ -318,14 +356,15 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 2px 4px;
-  background: #091322;
-  border: 1px solid #1e3654;
-  border-left: 2.5px solid #00d2ff;
+  background: linear-gradient(135deg, #252b37 0%, #2f3645 100%);
+  border: 1px solid #475569;
+  border-left: 2.5px solid #0284c7;
   border-radius: 2px;
   box-sizing: border-box;
   user-select: none;
   overflow: hidden;
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .cisco-bezel-top,
@@ -338,11 +377,11 @@
 }
 
 .cisco-brand-logo {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.58rem;
-  font-weight: 900;
-  color: #00bceb;
-  letter-spacing: 0.6px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.8px;
   line-height: 1;
 }
 
@@ -354,13 +393,13 @@
 }
 
 .cisco-beacon-led {
-  width: 3px;
-  height: 3px;
-  min-width: 3px;
-  min-height: 3px;
+  width: 3.5px;
+  height: 3.5px;
+  min-width: 3.5px;
+  min-height: 3.5px;
   border-radius: 50%;
-  background: #00e5ff;
-  box-shadow: 0 0 2px #00e5ff, 0 0 4px rgba(0, 229, 255, 0.7);
+  background: #00bceb;
+  box-shadow: 0 0 2px #00bceb;
   display: inline-block;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -373,7 +412,7 @@
   min-height: 3px;
   border-radius: 50%;
   background: #1e293b;
-  border: 0.5px solid #64748b;
+  border: 0.5px solid #94a3b8;
   display: inline-block;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -385,8 +424,8 @@
   min-width: 3px;
   min-height: 3px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 2px rgba(34, 197, 94, 0.8);
+  background: #10b981;
+  box-shadow: 0 0 2px rgba(16, 185, 129, 0.8);
   display: inline-block;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -397,10 +436,10 @@
 }
 
 .cisco-model-code {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.52rem;
-  font-weight: 800;
-  color: #e2e8f0;
+  font-weight: 700;
+  color: #cbd5e1;
   letter-spacing: 0.2px;
   white-space: nowrap;
   overflow: hidden;
@@ -410,12 +449,12 @@
 }
 
 .cisco-console-mini {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 4px;
   font-weight: 800;
   color: #00bceb;
   border: 0.5px solid rgba(0, 188, 235, 0.5);
-  background: rgba(0, 188, 235, 0.1);
+  background: rgba(0, 188, 235, 0.12);
   border-radius: 1px;
   padding: 0 1.5px;
   line-height: 1;
@@ -423,35 +462,36 @@
   flex-shrink: 0;
 }
 
-/* Cisco Series Specific Front Bezels */
+/* Cisco Series Specific Front Bezels (Authentic Stencil Finishes) */
 .cisco-integrated-bezel.bezel-cat9k {
-  background: linear-gradient(135deg, #09121f 0%, #0d1a2d 100%);
-  border-color: #1e3a5f;
-  border-left: 2.5px solid #00d2ff;
-  box-shadow: inset 0 1px 0 rgba(0, 210, 255, 0.15);
+  background: linear-gradient(135deg, #2b3240 0%, #343c4c 100%);
+  border-color: #4a5568;
+  border-left: 2.5px solid #0284c7;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cisco-integrated-bezel.bezel-cat2960x {
-  background: linear-gradient(135deg, #0a141a 0%, #0e1e24 100%);
-  border-color: #1a3338;
+  background: linear-gradient(135deg, #242c38 0%, #2c3543 100%);
+  border-color: #3f4c5e;
   border-left: 2.5px solid #10b981;
 }
 
 .cisco-integrated-bezel.bezel-cat2960 {
-  background: linear-gradient(135deg, #08111a 0%, #0b1926 100%);
-  border-color: #162c42;
+  background: linear-gradient(135deg, #232934 0%, #2b3341 100%);
+  border-color: #3b4555;
   border-left: 2.5px solid #0284c7;
 }
 
 .cisco-integrated-bezel.bezel-nexus {
-  background: linear-gradient(135deg, #0c0f17 0%, #151824 100%);
-  border-color: #2b354d;
+  background: linear-gradient(135deg, #141720 0%, #1a1e28 100%);
+  border-color: #2b3345;
   border-left: 2.5px solid #a855f7;
+  box-shadow: inset 0 1px 0 rgba(168, 85, 247, 0.2);
 }
 
 .cisco-integrated-bezel.bezel-isr {
-  background: linear-gradient(135deg, #13141c 0%, #1d1c24 100%);
-  border-color: #3b3a4a;
+  background: linear-gradient(135deg, #282e3b 0%, #323948 100%);
+  border-color: #475569;
   border-left: 2.5px solid #f97316;
 }
 
@@ -529,18 +569,56 @@
 
 /* Cisco RJ45 Bay (Modular 12-port blocks) */
 .faceplate-switch .port-group {
-  background: #090e16;
-  border: 1px solid #1e2a3c;
+  background: #141822;
+  border: 1px solid #334155;
   border-radius: 2px;
   padding: 1.5px 3px;
   gap: 1.5px;
 }
 
+.switch-block-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 5px;
+  line-height: 5px;
+  margin-bottom: 1px;
+}
+
+.port-block-range {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 5px;
+  font-weight: 700;
+  color: var(--silkscreen-dim, #94a3b8);
+  letter-spacing: 0.3px;
+  opacity: 0.9;
+}
+
 /* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
 .faceplate-switch .port-group.cisco-uplink-bay {
-  background: #0f1826;
-  border: 1px solid rgba(0, 188, 235, 0.45);
+  background: #1a2230;
+  border: 1px solid #475569;
+  border-radius: 2px;
   position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cisco-uplink-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 5px;
+  line-height: 5px;
+  margin-bottom: 1px;
+}
+
+.uplink-badge {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 5px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 /* Cisco RJ45 Port Enhancement: Link Status LED & Realistic Pin Dot */
@@ -968,6 +1046,12 @@
   padding: 0;
   border-color: transparent;
   background: transparent;
+}
+
+.stencil-faceplate .switch-block-strip,
+.stencil-faceplate .cisco-uplink-strip,
+.stencil-faceplate .patch-id-strip {
+  display: none !important;
 }
 
 .stencil-faceplate .port-row { gap: 1px; }
@@ -2068,17 +2152,47 @@
   display: none !important;
 }
 
-/* The macro LOD uses retained Pixi batches for repetitive faceplates. D-rings
-   and blanking panels remain DOM-rendered because their physical shapes are
-   part of cable routing and rack structure. While dragging a device, the DOM
-   faceplate remains visible so the user sees the real faceplate moving. */
-[data-device-renderer="pixi"] [data-lod="macro"] .mounted-device:not([data-category="organizer"]):not([data-category="blank"]):not(.studio-dragging) .device-faceplate {
+/* Pixi is the only live faceplate. DOM keeps rails, U-labels, slots, and ears. */
+[data-device-renderer="pixi"] .mounted-device {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  outline: none !important;
+}
+[data-device-renderer="pixi"] .mounted-device:hover,
+[data-device-renderer="pixi"] .mounted-device.studio-selected,
+[data-device-renderer="pixi"] .mounted-device.studio-multi-selected,
+[data-device-renderer="pixi"] .mounted-device.device-focused,
+[data-device-renderer="pixi"] .mounted-device.studio-lifted,
+[data-device-renderer="pixi"] .mounted-device.studio-dragging {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-device-renderer="pixi"] .device-faceplate,
+[data-device-renderer="pixi"] .organizer-faceplate,
+[data-device-renderer="pixi"] .blank-faceplate,
+[data-device-renderer="pixi"] .device-controls,
+[data-device-renderer="pixi"] .del-device-btn {
   display: none !important;
 }
-
-.mounted-device.studio-dragging .device-faceplate,
-.device-dragging-active .mounted-device.studio-dragging .device-faceplate {
-  display: flex !important;
+.pixi-device-body {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.canvas-unavailable-banner {
+  position: absolute;
+  inset: 72px 40px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 25, 0.94);
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
 }
 
 /* Disable hit testing once at the retained-scene root while dragging or zooming.
@@ -2931,27 +3045,30 @@
   min-width: 44px;
 }
 
-/* Device Mounting Ear Handles (Drag Handles) */
+/* Device Mounting Ear Handles (19" EIA Rack Ears / Drag Handles) */
 .device-ear-handle {
   position: absolute;
   top: 0;
-  width: 14px;
+  width: 12px;
   height: 100%;
   z-index: 15;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-around;
+  padding: 3px 0;
   cursor: grab;
   touch-action: none;
-  background: rgba(30, 41, 59, 0.45);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(90deg, #333d4d 0%, #475569 50%, #2e3746 100%);
+  border: 1px solid #1e2634;
   user-select: none;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.15), inset -1px 0 0 rgba(0, 0, 0, 0.3);
 }
 .device-ear-handle:hover {
-  background: rgba(56, 189, 248, 0.3);
-  border-color: #38bdf8;
+  background: linear-gradient(90deg, #3d4a5d 0%, #5a6b85 50%, #384456 100%);
+  border-color: #0284c7;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
 }
 .device-ear-handle:active {
   cursor: grabbing;
@@ -2967,12 +3084,29 @@
   border-bottom-right-radius: 2px;
 }
 .ear-grip {
-  font-size: 8px;
-  line-height: 8px;
-  color: #94a3b8;
-  letter-spacing: -1px;
-  user-select: none;
+  display: none;
+}
+.ear-screw {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f1f5f9 0%, #94a3b8 60%, #475569 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.5);
+  position: relative;
   pointer-events: none;
+  flex-shrink: 0;
+}
+.ear-screw::after {
+  content: "+";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 6px;
+  font-family: ui-monospace, monospace;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1;
 }
 
 /* Long-press / Active lifted state */

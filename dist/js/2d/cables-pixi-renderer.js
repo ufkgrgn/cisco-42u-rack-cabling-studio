@@ -62,6 +62,7 @@
 
   function invalidateLayoutGeometryCache() {
     RS.PixiCableGeometry?.invalidateLayoutGeometryCache?.();
+    RS.PixiCabinScene?.invalidatePixiCabinScenes?.();
     lastLayoutSignature = null;
     lastSceneSignature = null;
     lastVisibleCableOrder = [];
@@ -110,6 +111,7 @@
     if (svgEl) svgEl.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
     RS.PixiDeviceScene?.syncPixiDeviceSceneLOD();
+    RS.PixiCabinScene?.syncPixiCabinScenes?.();
 
     let rendererResized = false;
     if (PixiContext.lastWidth !== rendererW || PixiContext.lastHeight !== rendererH) {
@@ -264,12 +266,14 @@
     let leftChannelUsage = appendOnlyGeometry ? lastChannelUsage.left : 0;
     let rightChannelUsage = appendOnlyGeometry ? lastChannelUsage.right : 0;
 
+    const channelUsageByRack = new Map();
     const routeCtx = {
       activeRack,
       canvasRect,
       stageW,
       stageH,
       seenCableIds,
+      channelUsageByRack,
       leftChannelUsage,
       rightChannelUsage
     };

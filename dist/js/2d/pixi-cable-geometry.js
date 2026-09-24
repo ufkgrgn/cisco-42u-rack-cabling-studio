@@ -27,6 +27,18 @@
     organizerWorldYCache.clear();
   }
 
+  function getRackChannelUsage(ctx, rackId) {
+    if (!ctx) return { left: 0, right: 0 };
+    if (!ctx.channelUsageByRack) ctx.channelUsageByRack = new Map();
+    const key = String(rackId || '__default__');
+    let usage = ctx.channelUsageByRack.get(key);
+    if (!usage) {
+      usage = { left: 0, right: 0 };
+      ctx.channelUsageByRack.set(key, usage);
+    }
+    return usage;
+  }
+
   function hexColorToNumber(hex) {
     if (!hex) return 0x2563eb;
     const clean = String(hex).replace('#', '').trim();
@@ -201,8 +213,9 @@
       if (!pLocal) return null;
 
       ctx.seenCableIds.add(cable.id);
-      const boundsLocal = getRackRailBounds(activeRack?.id, canvasRect, stageW, stageH);
-      const activeIdx = (STATE.racks || []).findIndex(r => r && r.id === activeRack?.id);
+      const hostRackId = isFromMounted ? (cable.from?.rackId || activeRack?.id) : (cable.to?.rackId || activeRack?.id);
+      const boundsLocal = getRackRailBounds(hostRackId, canvasRect, stageW, stageH);
+      const activeIdx = (STATE.racks || []).findIndex(r => r && r.id === hostRackId);
       const remoteIdx = (STATE.racks || []).findIndex(r => r && r.id === remoteEndpoint.rackId);
       isRightExit = remoteIdx >= activeIdx;
 
@@ -237,10 +250,10 @@
       const overheadY = Math.min(y1, y2) - 80 - (ctx.leftChannelUsage++ % 6) * 8;
       pathD = `M ${x1} ${y1} C ${x1} ${overheadY}, ${x2} ${overheadY}, ${x2} ${y2}`;
     } else if (isInterRack && STATE.cableRoutingMode === 'structured') {
-      const devA = RS.getDeviceById ? RS.getDeviceById(instA) : STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instA);
-      const devB = RS.getDeviceById ? RS.getDeviceById(instB) : STATE.racks.flatMap(r => r.devices).find(d => d.instanceId === instB);
-      const rackA = RS.getRackById ? RS.getRackById(cable.from.rackId) : STATE.racks.find(r => r.id === cable.from.rackId);
-      const rackB = RS.getRackById ? RS.getRackById(cable.to.rackId) : STATE.racks.find(r => r.id === cable.to.rackId);
+      const rackA = (RS.getRackById ? RS.getRackById(cable.from?.rackId) : null) || (STATE.rackById?.get(cable.from?.rackId)) || STATE.racks?.find(r => r.id === cable.from?.rackId) || activeRack;
+      const rackB = (RS.getRackById ? RS.getRackById(cable.to?.rackId) : null) || (STATE.rackById?.get(cable.to?.rackId)) || STATE.racks?.find(r => r.id === cable.to?.rackId) || activeRack;
+      const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instA));
+      const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackB?.devices?.find(d => d.instanceId === instB) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instB));
 
       const orgA = findDeviceOrganizer(rackA, devA);
       const orgB = findDeviceOrganizer(rackB, devB);
@@ -257,13 +270,16 @@
       const rackBCenter = (boundsB.left + boundsB.right) / 2;
       const goingRight = rackBCenter >= rackACenter;
 
+      const usageA = getRackChannelUsage(ctx, rackA?.id);
+      const usageB = getRackChannelUsage(ctx, rackB?.id);
+
       const useRightA = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x1 >= rackACenter - 40) : (x1 >= rackACenter + 40)));
       const useRightB = cable.ductSide === 'right' ? true : (cable.ductSide === 'left' ? false : (goingRight ? (x2 >= rackBCenter + 40) : (x2 >= rackBCenter - 40)));
 
-      const bundleIdxA = useRightA ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
+      const bundleIdxA = useRightA ? usageA.right++ : usageA.left++;
       const channelXA = (useRightA ? boundsA.right : boundsA.left) + svgRailOffset(bundleIdxA, false);
 
-      const bundleIdxB = useRightB ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
+      const bundleIdxB = useRightB ? usageB.right++ : usageB.left++;
       const channelXB = (useRightB ? boundsB.right : boundsB.left) + svgRailOffset(bundleIdxB, false);
 
       const actualTrayYA = trayYA + svgTrayOffset(bundleIdxA, false);
@@ -321,16 +337,20 @@
         cable.lengthMeters = computeCableLength('direct', { x1, y1, x2, y2 });
       }
     } else {
-      const devA = RS.getDeviceById ? RS.getDeviceById(instA) : activeRack?.devices?.find(d => d.instanceId === instA);
-      const devB = RS.getDeviceById ? RS.getDeviceById(instB) : activeRack?.devices?.find(d => d.instanceId === instB);
-      const orgA = findDeviceOrganizer(activeRack, devA);
-      const orgB = findDeviceOrganizer(activeRack, devB);
+      const hostRackId = cable.from?.rackId || cable.to?.rackId || activeRack?.id;
+      const rackA = (RS.getRackById ? RS.getRackById(hostRackId) : null) || (STATE.rackById?.get(hostRackId)) || STATE.racks?.find(r => r.id === hostRackId) || activeRack;
+      const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || activeRack?.devices?.find(d => d.instanceId === instA));
+      const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackA?.devices?.find(d => d.instanceId === instB) || activeRack?.devices?.find(d => d.instanceId === instB));
+      const orgA = findDeviceOrganizer(rackA, devA);
+      const orgB = findDeviceOrganizer(rackA, devB);
 
-      const ductSide = resolveCableDuctSide(cable, activeRack);
-      const isRight = ductSide === 'right';
+      const bounds = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
+      const rackCenterLine = (bounds.left + bounds.right) / 2;
+      const usageA = getRackChannelUsage(ctx, rackA?.id);
 
-      const bundleIdx = isRight ? ctx.rightChannelUsage++ : ctx.leftChannelUsage++;
-      const bounds = getRackRailBounds(activeRack?.id, canvasRect, stageW, stageH);
+      const isRight = resolveCableDuctSide(cable, x1, x2, rackCenterLine, usageA.left, usageA.right);
+
+      const bundleIdx = isRight ? usageA.right++ : usageA.left++;
       const channelX = (isRight ? bounds.right : bounds.left) + svgRailOffset(bundleIdx, true);
 
       let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
