@@ -211,27 +211,33 @@ test('Tablet gestures, ear handles, smart ripple push, multi-select and U-space 
     }));
     assert.equal(afterOutsideClickState.hasSelectedClass, false, 'Clicking outside MUST deselect device');
 
-    // 14. Faceplate visual persistence during drag
+    // 14. Ears and Pixi body stay mounted while the chassis is dragged
     const devToDrag = page.locator('.mounted-device').first();
     const devBox = await devToDrag.boundingBox();
-    await page.mouse.move(devBox.x + devBox.width / 2, devBox.y + devBox.height / 2);
+    await page.mouse.move(devBox.x + 4, devBox.y + devBox.height / 2);
     await page.mouse.down();
-    await page.mouse.move(devBox.x + devBox.width / 2, devBox.y + devBox.height / 2 + slotStep * 2, { steps: 5 });
+    await page.mouse.move(devBox.x + 4, devBox.y + devBox.height / 2 + slotStep * 2, { steps: 5 });
     const duringDragFaceplate = await page.evaluate(() => {
       const draggingEl = document.querySelector('.mounted-device.studio-dragging');
       if (!draggingEl) return null;
-      const faceplate = draggingEl.querySelector('.device-faceplate');
-      const style = faceplate ? window.getComputedStyle(faceplate) : null;
+      const ear = draggingEl.querySelector('.device-ear-handle');
+      const body = draggingEl.querySelector('.pixi-device-body');
+      const earStyle = ear ? window.getComputedStyle(ear) : null;
       return {
-        hasFaceplate: !!faceplate,
-        display: style?.display,
-        visibility: style?.visibility
+        hasEar: !!ear,
+        hasBody: !!body,
+        earDisplay: earStyle?.display,
+        liveFaceplate: !!draggingEl.querySelector('.device-faceplate'),
+        renderer: document.documentElement.dataset.deviceRenderer
       };
     });
     await page.mouse.up();
     assert.ok(duringDragFaceplate, 'Must detect dragging device');
-    assert.equal(duringDragFaceplate.hasFaceplate, true, 'Device faceplate MUST remain attached during drag');
-    assert.notEqual(duringDragFaceplate.display, 'none', 'Device faceplate MUST NOT be display:none during drag');
+    assert.equal(duringDragFaceplate.hasEar, true, 'EIA ear handles MUST remain attached during drag');
+    assert.equal(duringDragFaceplate.hasBody, true, 'Pixi hit body MUST remain attached during drag');
+    assert.notEqual(duringDragFaceplate.earDisplay, 'none', 'Ear handles MUST stay visible during drag');
+    assert.equal(duringDragFaceplate.liveFaceplate, false, 'Drag MUST NOT restore a DOM faceplate');
+    assert.equal(duringDragFaceplate.renderer, 'pixi');
 
     assert.deepEqual(errors, []);
   } finally {

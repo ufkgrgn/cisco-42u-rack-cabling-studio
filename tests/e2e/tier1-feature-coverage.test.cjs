@@ -1155,14 +1155,11 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
     });
 
     it('F4.2.3: Structured routing generates path points with side channel entry', async () => {
-      const hasPaths = await page.evaluate(() => {
-        const svg = document.querySelector('#cables-svg');
-        return Boolean(svg);
-      });
-      assert.ok(hasPaths, 'Cables SVG container should be present for routing');
+      const hasPaths = await page.evaluate(() => Boolean(window.RackStudio.PixiContext));
+      assert.ok(hasPaths, 'Pixi cable context should be present for routing');
     });
 
-    it('F4.2.4: Rendered cables SVG contains path elements for active cables', async () => {
+    it('F4.2.4: Rendered cables contain path data for active cables', async () => {
       const pathCount = await page.evaluate(() => {
         const api = window.RackStudio;
         const key = Object.keys(api.catalog).find(k => api.catalog[k].u === 1 && api.catalog[k].ports.length >= 2);
@@ -1176,9 +1173,13 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
           color: '#2563eb'
         }];
         api.refresh();
-        return document.querySelectorAll('#cables-svg path').length;
+        const displays = api.PixiContext?.cableDisplays;
+        if (!displays) return 0;
+        let count = 0;
+        displays.forEach(display => { if (display.pathD) count++; });
+        return count;
       });
-      assert.ok(pathCount >= 1, 'Should render at least 1 SVG path element');
+      assert.ok(pathCount >= 1, 'Should render at least 1 Pixi cable path');
     });
 
     it('F4.2.5: Zero rendering errors during structured cable drawing', async () => {
@@ -1215,10 +1216,11 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
           color: '#2563eb'
         }];
         api.refresh();
-        const paths = [...document.querySelectorAll('#cables-svg path')];
-        return paths.length > 0 && paths.every(p => p.getAttribute('d')?.length > 0);
+        const displays = api.PixiContext?.cableDisplays;
+        if (!displays || displays.size === 0) return false;
+        return [...displays.values()].every(display => typeof display.pathD === 'string' && display.pathD.length > 0);
       });
-      assert.ok(pathsOk, 'Direct cables should render non-empty SVG path data');
+      assert.ok(pathsOk, 'Direct cables should render non-empty Pixi path data');
     });
 
     it('F4.3.4: Catenary droop formula calculates positive sag factor', async () => {
@@ -1230,7 +1232,11 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
       assert.ok(sag > 0, 'Catenary sag value should be positive');
     });
 
-    it('F4.3.5: Switching between direct and structured updates SVG paths', async () => {
+    it('F4.3.5: Switching between direct and structured updates Pixi paths', async () => {
+      const readPath = () => page.evaluate(() => {
+        const display = window.RackStudio.PixiContext?.cableDisplays?.get('cable-t1-switch');
+        return display?.pathD || '';
+      });
       await page.evaluate(() => {
         const api = window.RackStudio;
         const key = Object.keys(api.catalog).find(k => api.catalog[k].u === 1 && api.catalog[k].ports.length >= 2);
@@ -1246,9 +1252,10 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
         api.refresh();
       });
       await page.locator('#btn-route-structured').click();
-      const d1 = await page.locator('#cables-svg path').first().getAttribute('d');
+      const d1 = await readPath();
       await page.locator('#btn-route-direct').click();
-      const d2 = await page.locator('#cables-svg path').first().getAttribute('d');
+      const d2 = await readPath();
+      assert.ok(d1 && d2, 'Pixi path data should exist for both routing modes');
       assert.notEqual(d1, d2, 'Path data should update when routing mode changes');
     });
   });
@@ -1394,13 +1401,18 @@ describe('Tier 1 — Feature Coverage (F1.1 to F5.4)', () => {
       assert.equal(categories.sfp, 'dac');
     });
 
-    it('F4.5.5: Cable stroke styling applies active color to SVG path', async () => {
+    it('F4.5.5: Cable stroke styling applies active color to Pixi path', async () => {
       const strokeOk = await page.evaluate(() => {
         window.RackStudio.refresh();
-        const path = document.querySelector('#cables-svg path');
-        return path ? Boolean(path.getAttribute('stroke')) : true;
+        const displays = window.RackStudio.PixiContext?.cableDisplays;
+        if (!displays || !displays.size) return true;
+        for (const [cableId, display] of displays) {
+          const cable = window.RackStudio.STATE.cables.find(item => item.id === cableId);
+          if (cable && display.colorNum == null) return false;
+        }
+        return true;
       });
-      assert.ok(strokeOk, 'Rendered cable paths should have stroke color applied');
+      assert.ok(strokeOk, 'Rendered Pixi cables should keep a stroke color');
     });
   });
 

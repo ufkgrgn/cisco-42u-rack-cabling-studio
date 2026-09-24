@@ -59,10 +59,31 @@ const { pathToFileURL } = require('node:url');
       window.RackStudio.mountDeviceAt('cisco-m-c9200l-24p-4x', 40, 'rack-1');
       window.RackStudio.refresh();
     });
-    await page.waitForSelector('.mounted-device .stencil-faceplate');
-    assert.equal(await page.locator('.mounted-device .stencil-faceplate').count(), 1, 'pilot model uses a hybrid stencil faceplate');
-    assert.ok(await page.locator('.stencil-faceplate .rack-faceplate-stencil').getAttribute('src').then(src => src.includes('C9200L-24P-4X_Front.svg')));
-    assert.equal(await page.locator('.stencil-faceplate .port').count(), 28, 'hybrid faceplate keeps every live port');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('.mounted-device');
+      const ports = window.RackStudio?.DeviceSceneRegistry?.getSnapshot?.().ports || [];
+      return el && ports.some(port => port.instanceId === el.id);
+    });
+    const mountedStencil = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const el = document.querySelector('.mounted-device');
+      const ports = RS.DeviceSceneRegistry.getSnapshot().ports.filter(port => port.instanceId === el.id);
+      const cat = RS.catalog['cisco-m-c9200l-24p-4x'];
+      return {
+        liveStencil: document.querySelectorAll('.mounted-device .stencil-faceplate').length,
+        livePorts: document.querySelectorAll('.mounted-device .port').length,
+        portCount: ports.length,
+        chassis: RS.getPixiPerformanceTelemetry().deviceChassisSpriteCount,
+        renderer: document.documentElement.dataset.deviceRenderer,
+        stencil: cat?.faceplate?.stencil || ''
+      };
+    });
+    assert.equal(mountedStencil.liveStencil, 0, 'live rack uses a Pixi faceplate, not a DOM stencil');
+    assert.equal(mountedStencil.livePorts, 0, 'hybrid port nodes are measured once and removed from the live DOM');
+    assert.equal(mountedStencil.portCount, 28, 'Pixi registry keeps every port from the hybrid faceplate');
+    assert.ok(mountedStencil.chassis >= 1, 'mounted pilot model draws a Pixi chassis');
+    assert.equal(mountedStencil.renderer, 'pixi');
+    assert.ok(mountedStencil.stencil.includes('C9200L-24P-4X_Front.svg'), 'catalog still references the Cisco front stencil');
     const missingCategories = await page.evaluate(() => {
       const available = new Set([...document.querySelector('[aria-label="Donanım kategorisi"]').options].map(option => option.value));
       return [...new Set(Object.values(window.RackStudio.catalog).map(item => item.category))].filter(category => !available.has(category));

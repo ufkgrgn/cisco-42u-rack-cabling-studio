@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-device-renderer="pixi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
   
-  <!-- Modular Stylesheets (2D Workspace) -->
+  <!-- Modular Stylesheets (2D Workspace) -->
   <link rel="stylesheet" crossorigin href="/assets/main-C-Oef3BY.css">
 </head>
 <body>
@@ -1497,9 +1497,6 @@
           <button class="btn" id="btn-tidy-cables" style="font-size:0.7rem; padding:3px 8px;" title="Tüm kabloları sıkılaştır ve kanallara hizala">
             Sıkılaştır
           </button>
-          <button class="btn" id="btn-toggle-cable-engine" style="font-size:0.7rem; padding:3px 8px;" title="Kablo Çizim Motorunu Değiştir (SVG / PixiJS GPU)">
-            <span id="cable-engine-indicator">🎨 SVG</span>
-          </button>
         </div>
 
         <!-- Right: Zoom & Pan Navigation Controls -->
@@ -1656,9 +1653,10 @@
   <script src="js/2d/rack-renderer.js" ></script>
   <script src="js/2d/cable-routing.js" ></script>
   <script src="js/2d/cables-svg-pathway.js" ></script>
-  <script src="js/2d/cables-svg-renderer.js" ></script>
+  <script src="js/2d/cable-actions.js" ></script>
   <script src="js/2d/pixi-viewport-manager.js" ></script>
   <script src="js/2d/pixi-cable-geometry.js" ></script>
+  <script src="js/2d/pixi-faceplate-textures.js" ></script>
   <script src="js/2d/pixi-device-scene.js" ></script>
   <script src="js/2d/pixi-spatial-index.js" ></script>
   <script src="js/2d/pixi-cable-batch.js" ></script>

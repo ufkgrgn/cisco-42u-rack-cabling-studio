@@ -21,11 +21,12 @@ All 2D Rack & Cabling Studio features are organized into modular, single-respons
 - `js/2d/network-rules.js`: Enterprise port compatibility validation
 - `js/2d/rack-structure-renderer.js`: Rail slots (1–60U), canvas buttons, telemetry badges, multi-rack visibility
 - `js/2d/device-actions.js`: Mount, remove, clear cables/devices, delete modals, uplink confirmation, toasts
-- `js/2d/faceplate-renderer.js`: Device DOM lifecycle, router/switch/patch/PDU/blank faceplates, port SVGs
+- `js/2d/faceplate-renderer.js`: Device DOM lifecycle (EIA ears and a transparent body); one-shot port measure, then Pixi faceplates
 - `js/2d/port-interaction-handler.js`: Port event delegation, port role cycling, interactive cable completion
 - `js/2d/rack-renderer.js`: Barrel aggregator preserving `window.RackStudio` render APIs
 - `js/2d/cable-routing.js`: Duct side resolution, D-ring loops, horizontal brush & finger ducts, length metrology
-- `js/2d/cables-svg-renderer.js`: SVG cable rendering, bezier arcs, connector boots/pins, cable tooltips
+- `js/2d/cable-actions.js`: Cable connect, disconnect, hover, and tooltip actions (no live SVG painter)
+- `js/2d/pixi-faceplate-textures.js`: Procedural Pixi chassis and port textures
 - `js/2d/cable-hud.js`: Quick HUD, right-click context menu, slot drag highlight, Delete/Backspace shortcuts
 - `js/2d/switch-autofill.js`: Smart Auto-Fill popover, sequential domino patching animation, bulk colorization
 - `js/2d/cabling-engine.js`: Barrel aggregator preserving `window.RackStudio` cable APIs

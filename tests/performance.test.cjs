@@ -324,7 +324,7 @@ const assert = require('node:assert/strict');
         maxLongTaskDurationMs:styleAfter.performance.maxLongTaskDurationMs,
         heapBytes:performance.memory?.usedJSHeapSize ?? null,
         userAgent:navigator.userAgent,renderedDevices:document.querySelectorAll('.mounted-device').length,
-        renderedCables:document.querySelectorAll('.cable-path').length};
+        renderedCables:pixiState.displayCount};
     }, { rackLimit: targetRackCount, renderAllRacks });
     assert.equal(results.renderedDevices,renderAllRacks ? targetRackCount * 30 : 30);
     assert.equal(results.renderedCables,renderAllRacks ? targetRackCount * 200 : 200);

@@ -89,35 +89,18 @@
     svgContent += `  </g>\n`;
 
     svgContent += `  <!-- LAYER 3: CABLING RUN SCHEDULE & CONNECTIONS -->\n  <g v:groupContext="layer" v:layerMember="Patch_Cables" transform="translate(40, 20)">\n`;
-    const svgLayer = document.getElementById('cables-svg');
-    const paths = svgLayer ? Array.from(svgLayer.querySelectorAll('.cable-path')) : [];
-    if (paths.length > 0) {
-      paths.forEach((p, idx) => {
-        const d = p.getAttribute('d');
-        const stroke = p.getAttribute('stroke');
-        const cable = STATE.cables.find(c => 'svg-cable-' + c.id === p.id) || { id: 'CBL' };
+    const displays = RS.PixiContext?.cableDisplays;
+    if (displays && displays.size > 0) {
+      for (const [cableId, display] of displays) {
+        const cable = STATE.cables.find(c => c.id === cableId);
+        if (!cable || !display.pathD) continue;
+        if (activeRack && cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== activeRack.id && cable.to.rackId !== activeRack.id) continue;
+        const stroke = cable.color || '#2563eb';
         svgContent += `
-          <path d="${d}" stroke="${stroke}" stroke-width="2.8" class="v-cable" v:groupContext="shape">
+          <path d="${display.pathD}" stroke="${stroke}" stroke-width="2.8" class="v-cable" v:groupContext="shape">
             <title>${cable.id} (${cable.lengthMeters}m)</title>
           </path>
         `;
-      });
-    } else {
-      const PixiContext = RS.PixiContext;
-      const displays = PixiContext?.cableDisplays;
-      if (displays && displays.size > 0) {
-        for (const [cableId, display] of displays) {
-          const cable = STATE.cables.find(c => c.id === cableId);
-          if (!cable) continue;
-          if (activeRack && cable.from?.rackId !== activeRack.id && cable.to?.rackId !== activeRack.id) continue;
-          const stroke = cable.color || '#2563eb';
-          const d = display.pathD || '';
-          svgContent += `
-            <path d="${d}" stroke="${stroke}" stroke-width="2.8" class="v-cable" v:groupContext="shape">
-              <title>${cable.id} (${cable.lengthMeters}m)</title>
-            </path>
-          `;
-        }
       }
     }
     svgContent += `  </g>\n</svg>`;

@@ -176,14 +176,14 @@ async function runSample(browser, { mode, renderAllRacks, lod }) {
     const scenarios = [];
     for (const layout of [false, true]) {
       for (const lod of ['detail', 'macro']) {
-        for (const mode of ['svg', 'pixi']) {
+        for (const mode of ['pixi']) {
           scenarios.push(await runSample(browser, { mode, renderAllRacks: layout, lod }));
         }
       }
     }
     const report = {
       timestamp: new Date().toISOString(),
-      methodology: 'Same local app, synthetic topology, headless Microsoft Edge, file URL, fixed 1600x1000 viewport, 120 mouse-pan frames, 30 repeated full cable-render requests, SVG/Pixi paired for active-rack and multi-rack layouts at detail/macro LOD. Diagnostic only: browser compositor/GPU utilization and real hardware 60 FPS are not certified.',
+      methodology: 'Same local app, synthetic topology, headless Microsoft Edge, file URL, fixed 1600x1000 viewport, 120 mouse-pan frames, 30 repeated full cable-render requests, Pixi-only for active-rack and multi-rack layouts at detail/macro LOD. Diagnostic only: browser compositor/GPU utilization and real hardware 60 FPS are not certified.',
       machine: {
         platform: process.platform,
         arch: process.arch,

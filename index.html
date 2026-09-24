@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-device-renderer="pixi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1504,9 +1504,6 @@
           <button class="btn" id="btn-tidy-cables" style="font-size:0.7rem; padding:3px 8px;" title="Tüm kabloları sıkılaştır ve kanallara hizala">
             Sıkılaştır
           </button>
-          <button class="btn" id="btn-toggle-cable-engine" style="font-size:0.7rem; padding:3px 8px;" title="Kablo Çizim Motorunu Değiştir (SVG / PixiJS GPU)">
-            <span id="cable-engine-indicator" style="color:#38bdf8;">⚡ GPU (Pixi)</span>
-          </button>
         </div>
 
         <!-- Right: Zoom & Pan Navigation Controls -->
@@ -1666,9 +1663,10 @@
   <script src="js/2d/rack-renderer.js" vite-ignore></script>
   <script src="js/2d/cable-routing.js" vite-ignore></script>
   <script src="js/2d/cables-svg-pathway.js" vite-ignore></script>
-  <script src="js/2d/cables-svg-renderer.js" vite-ignore></script>
+  <script src="js/2d/cable-actions.js" vite-ignore></script>
   <script src="js/2d/pixi-viewport-manager.js" vite-ignore></script>
   <script src="js/2d/pixi-cable-geometry.js" vite-ignore></script>
+  <script src="js/2d/pixi-faceplate-textures.js" vite-ignore></script>
   <script src="js/2d/pixi-device-scene.js" vite-ignore></script>
   <script src="js/2d/pixi-spatial-index.js" vite-ignore></script>
   <script src="js/2d/pixi-cable-batch.js" vite-ignore></script>

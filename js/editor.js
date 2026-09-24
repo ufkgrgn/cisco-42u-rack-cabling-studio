@@ -68,6 +68,7 @@
       bar.querySelector('[data-command="undo"]').disabled = !undo.length;
       bar.querySelector('[data-command="redo"]').disabled = !redo.length;
       document.querySelectorAll('.mounted-device').forEach(el => el.classList.toggle('studio-selected', el.id === selected));
+      window.RackStudio?.syncPixiDeviceSelection?.();
       if (typeof renderMultiSelectPill === 'function') renderMultiSelectPill();
     }
     async function save() {
