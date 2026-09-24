@@ -1,0 +1,157 @@
+/* Canonical theme tokens — dark (default) + light cyberpunk neon */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-app: #0b0f19;
+  --bg-panel: #151d2f;
+  --bg-elevated: #1a2438;
+  --bg-panel-light: #243048;
+  --bg-inset: #0f172a;
+  --border: #334155;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-strong: #64748b;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-inverse: #0b0f19;
+
+  --accent-blue: #38bdf8;
+  --accent-cyan: #00e5ff;
+  --accent-green: #22c55e;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-orange: #f97316;
+
+  --neon-cyan: #00e5ff;
+  --neon-green: #10b981;
+  --glow-cyan: rgba(0, 229, 255, 0.2);
+  --glow-cyan-strong: rgba(0, 229, 255, 0.45);
+  --panel-border: rgba(0, 229, 255, 0.25);
+
+  --glass-bg: rgba(11, 17, 30, 0.88);
+  --glass-bg-strong: rgba(11, 17, 30, 0.92);
+  --glass-border: rgba(56, 189, 248, 0.28);
+  --glass-border-hover: rgba(0, 229, 255, 0.45);
+  --glass-inset: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --glass-shadow-hover: 0 12px 38px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 229, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  --viewport-bg: radial-gradient(circle at 50% 30%, #0d1424 0%, #050811 100%);
+  --chrome-offset: 62px;
+  --scrollbar-track: rgba(11, 15, 25, 0.45);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.32);
+
+  --rack-body: #11141c;
+  --rack-post: #1c2230;
+
+
+  /* Typography (from master) */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Cisco stencil hardware */
+  --chassis-catalyst: #2d3340;
+  --chassis-nexus: #141720;
+  --chassis-router: #2a303d;
+  --chassis-patch: #1a1e27;
+  --cisco-blue: #0284c7;
+  --cisco-beacon: #00bceb;
+  --silkscreen-text: #f1f5f9;
+  --silkscreen-dim: #94a3b8;
+
+  /* Canvas / dock aliases used by newer chrome */
+  --canvas-bg: #0b0f19;
+  --canvas-dot: #1e293b;
+  --dock-bg: var(--glass-bg);
+  --dock-border: var(--glass-border);
+  --dock-shadow: var(--glass-shadow);
+  --dock-pill-bg: var(--bg-inset);
+  --dock-pill-border: var(--border-subtle);
+  --dock-btn-text: var(--text-muted);
+  --dock-btn-hover-text: var(--text-main);
+  --dock-btn-hover-bg: var(--bg-elevated);
+  --dock-divider: var(--border);
+
+  /* Legacy aliases */
+  --bg-dark: var(--bg-app);
+  --border-color: var(--border);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-app: #e8eef6;
+  --bg-panel: #f4f7fb;
+  --bg-elevated: #ffffff;
+  --bg-panel-light: #e2e8f0;
+  --bg-inset: #dbe4f0;
+  --border: #cbd5e1;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: #94a3b8;
+
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-inverse: #f8fafc;
+
+  --accent-blue: #0284c7;
+  --accent-cyan: #0891b2;
+  --accent-green: #16a34a;
+  --accent-amber: #d97706;
+  --accent-red: #dc2626;
+  --accent-orange: #ea580c;
+
+  --neon-cyan: #0891b2;
+  --neon-green: #059669;
+  --glow-cyan: rgba(8, 145, 178, 0.14);
+  --glow-cyan-strong: rgba(8, 145, 178, 0.28);
+  --panel-border: rgba(8, 145, 178, 0.28);
+
+  --glass-bg: rgba(244, 247, 251, 0.92);
+  --glass-bg-strong: rgba(255, 255, 255, 0.94);
+  --glass-border: rgba(8, 145, 178, 0.32);
+  --glass-border-hover: rgba(8, 145, 178, 0.55);
+  --glass-inset: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 0 14px rgba(8, 145, 178, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.16), 0 0 18px rgba(8, 145, 178, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  --viewport-bg: radial-gradient(circle at 50% 30%, #dce6f4 0%, #c5d0e0 100%);
+  --chrome-offset: 62px;
+  --scrollbar-track: rgba(148, 163, 184, 0.25);
+  --scrollbar-thumb: rgba(100, 116, 139, 0.4);
+
+  --rack-body: #11141c;
+  --rack-post: #1c2230;
+
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --chassis-catalyst: #2d3340;
+  --chassis-nexus: #141720;
+  --chassis-router: #2a303d;
+  --chassis-patch: #1a1e27;
+  --cisco-blue: #0284c7;
+  --cisco-beacon: #0891b2;
+  --silkscreen-text: #f1f5f9;
+  --silkscreen-dim: #94a3b8;
+
+  --canvas-bg: #e8eef6;
+  --canvas-dot: #cbd5e1;
+  --dock-bg: var(--glass-bg);
+  --dock-border: var(--glass-border);
+  --dock-shadow: var(--glass-shadow);
+  --dock-pill-bg: var(--bg-inset);
+  --dock-pill-border: var(--border-subtle);
+  --dock-btn-text: var(--text-muted);
+  --dock-btn-hover-text: var(--text-main);
+  --dock-btn-hover-bg: var(--bg-elevated);
+  --dock-divider: var(--border);
+
+  --bg-dark: var(--bg-app);
+  --border-color: var(--border);
+}
+
+html {
+  background-color: var(--bg-app);
+}

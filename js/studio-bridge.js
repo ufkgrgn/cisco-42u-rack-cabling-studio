@@ -67,8 +67,9 @@
     }
 
     try {
-      // 1. Inject 3D stylesheet
-      await loadStylesheet('css/studio3d.css');
+      // 1. Inject 3D stylesheet modules
+      await loadStylesheet('css/studio3d-chrome.css');
+      await loadStylesheet('css/studio3d-overlays.css');
 
       // 2. Clone & Mount 3D DOM template into document
       if (!document.getElementById('studio3d-wrapper')) {

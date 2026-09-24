@@ -1,0 +1,414 @@
+/* Port Visuals (Clean Enterprise) */
+.port {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* RJ45 Port (Copper / Gigabit / FastEthernet) */
+.port-rj45 {
+  width: 10px;
+  height: 9.5px;
+  background: #080c14;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.port-rj45::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.port-rj45:not(.port-special):not(.port-trunk).connected::before {
+  background: #22c55e;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+.port-rj45::after {
+  display: none;
+}
+
+/* SFP / SFP+ Optical Cage Port */
+.port-sfp {
+  width: 11px;
+  height: 10px;
+  background: #0d131f;
+  border: 1px solid #475569;
+  border-radius: 1.5px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.port-sfp::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.port-sfp:not(.port-special).connected::before {
+  background: #00d2ff !important;
+  box-shadow: 0 0 3px #00d2ff, 0 0 6px rgba(0, 210, 255, 0.6) !important;
+}
+
+.port-sfp::after {
+  display: none;
+}
+
+/* Fiber LC Duplex Port */
+.port-lc {
+  width: 12px;
+  height: 11px;
+  background: #0284c7;
+  border: 1px solid #38bdf8;
+  border-radius: 1.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.port-lc-inner {
+  width: 4px;
+  height: 7px;
+  background: #082f49;
+  border: 0.5px solid #0369a1;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.lc-ferrule,
+.port-lc-inner:empty::after {
+  content: '';
+  display: block;
+  width: 1.5px;
+  height: 1.5px;
+  min-width: 1.5px;
+  min-height: 1.5px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 1px #ffffff;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* Fiber SC Duplex Port */
+.port-sc {
+  width: 14px;
+  height: 11px;
+  background: #0369a1;
+  border: 1px solid #38bdf8;
+  border-radius: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.port-sc-inner {
+  width: 5px;
+  height: 7px;
+  background: #082f49;
+  border: 0.5px solid #0284c7;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.sc-ferrule,
+.port-sc-inner:empty::after {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 2px;
+  min-width: 2px;
+  min-height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 1px #ffffff;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.port-lc.connected .lc-ferrule,
+.port-sc.connected .sc-ferrule {
+  background: #facc15 !important;
+  box-shadow: 0 0 3px #facc15, 0 0 6px rgba(250, 204, 21, 0.85) !important;
+}
+
+/* 1U PDU Power Socket (Schuko / Round Earth Socket) */
+.port-power {
+  width: 13px;
+  height: 13px;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 50%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 2px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+.port-power:hover {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6) !important;
+}
+
+.port-power-pin {
+  width: 2px;
+  height: 2px;
+  background: #020617;
+  border-radius: 50%;
+  box-shadow: inset 0 0 1px #000;
+}
+
+.port:hover {
+  filter: brightness(1.7);
+  outline: 1.5px solid #facc15;
+}
+
+.port.port-cable-hover {
+  filter: brightness(1.75) !important;
+  outline: 2px solid #38bdf8 !important;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.75), inset 0 0 3px rgba(56, 189, 248, 0.6) !important;
+  z-index: 6 !important;
+}
+
+.port.selected {
+  outline: 2px solid #00e5ff !important;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 8px #00e5ff, inset 0 0 3px #00e5ff !important;
+  animation: pulse-border 1.2s infinite alternate !important;
+  z-index: 10 !important;
+}
+
+.port.connected {
+  position: relative;
+}
+
+/* Generic connected indicator is suppressed - per device type rules handle it */
+.port.connected::before {
+  display: none;
+}
+
+@keyframes pulse-border {
+  from {
+    outline-color: #00e5ff;
+    box-shadow: 0 0 6px #00e5ff, inset 0 0 2px #00e5ff;
+  }
+  to {
+    outline-color: #ffffff;
+    box-shadow: 0 0 12px #00e5ff, 0 0 4px #ffffff, inset 0 0 4px #00e5ff;
+  }
+}
+
+/* 802.1Q TRUNK & SPECIAL PORT STYLES */
+.port.port-special,
+.port.port-trunk {
+  border-color: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  box-shadow: 0 0 5px var(--port-role-color, var(--trunk-color, #a855f7)), inset 0 0 2px var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  z-index: 4;
+}
+
+.port.port-special.connected,
+.port.port-trunk.connected,
+.faceplate-switch .port.port-special.connected,
+.faceplate-switch .port.port-trunk.connected,
+.faceplate-patch-panel .port.port-special.connected,
+.faceplate-patch-panel .port.port-trunk.connected {
+  border-color: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  background: #080c14 !important;
+}
+
+.port.port-special::before,
+.port.port-trunk::before {
+  content: var(--port-badge-text, "T") !important;
+  position: absolute !important;
+  inset: 1px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  font-size: 5.5px !important;
+  font-weight: 900 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  line-height: 1 !important;
+  color: var(--port-badge-color, #ffffff) !important;
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  border-radius: 1px !important;
+  padding: 0 0 0.5px 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: unset !important;
+  text-align: center !important;
+  transform: none !important;
+  z-index: 6 !important;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 0.5px 1.5px rgba(0, 0, 0, 0.4) !important;
+  pointer-events: none !important;
+}
+
+.port.port-special.connected::before,
+.port.port-trunk.connected::before,
+.faceplate-switch .port.port-special.connected::before,
+.faceplate-switch .port.port-trunk.connected::before,
+.faceplate-patch-panel .port.port-special.connected::before,
+.faceplate-patch-panel .port.port-trunk.connected::before {
+  content: var(--port-badge-text, "T") !important;
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+  color: var(--port-badge-color, #ffffff) !important;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 0.5px 1.5px rgba(0, 0, 0, 0.4) !important;
+}
+
+.port.port-trunk {
+  --port-role-color: var(--custom-color, var(--trunk-color, #7c3aed));
+  --port-badge-text: "T";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-uplink {
+  --port-role-color: var(--custom-color, #00d2ff);
+  --port-badge-text: "▲";
+  --port-badge-color: var(--custom-badge-color, #020617);
+}
+
+.port.port-poe {
+  --port-role-color: var(--custom-color, #f59e0b);
+  --port-badge-text: "⚡";
+  --port-badge-color: var(--custom-badge-color, #020617);
+}
+
+.port.port-mgmt {
+  --port-role-color: var(--custom-color, #059669);
+  --port-badge-text: "M";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-vlan {
+  --port-role-color: var(--custom-color, #3b82f6);
+  --port-badge-text: var(--vlan-badge, "V");
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-vlan::before {
+  font-size: 4.2px !important;
+  letter-spacing: -0.3px !important;
+  padding: 0 0 0.3px 0 !important;
+}
+
+.port.port-trunk-ap {
+  --port-role-color: var(--custom-color, #ec4899);
+  --port-badge-text: "W";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-routed {
+  --port-role-color: var(--custom-color, #b91c1c);
+  --port-badge-text: "R";
+  --port-badge-color: var(--custom-badge-color, #ffffff);
+}
+
+.port.port-fiber {
+  --port-role-color: var(--custom-color, #facc15);
+  --port-badge-text: "F";
+  --port-badge-color: var(--custom-badge-color, #000000);
+}
+
+.port.port-fiber::before {
+  color: var(--port-badge-color, #000000) !important;
+}
+
+.port.port-console {
+  --port-role-color: var(--custom-color, #00bceb);
+  --port-badge-text: "C";
+  --port-badge-color: var(--custom-badge-color, #020617);
+}
+
+.port.port-poe-disabled {
+  position: relative;
+}
+
+.port.port-poe-disabled::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 1px !important;
+  right: 1px !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: #ef4444 !important;
+  box-shadow: 0 0 3px #ef4444 !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+}
+
+.port.port-special.connected::after,
+.port.port-trunk.connected::after {
+  background: var(--port-role-color, var(--trunk-color, #a855f7)) !important;
+}
+
+/* 3D Skeuomorphic Cable Management Panel (Panduit Finger Duct System) */
+.organizer-faceplate {
+  background: linear-gradient(180deg, #101319 0%, #06080c 100%) !important;
+  border-top: 1px solid #1e2430 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #334155 !important;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
+}
+

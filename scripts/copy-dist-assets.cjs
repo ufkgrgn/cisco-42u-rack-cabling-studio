@@ -29,3 +29,20 @@ if (fs.existsSync(srcAssets)) {
   fs.cpSync(srcAssets, distAssets, { recursive: true });
   console.log(`[build:dist] Successfully copied assets/ to dist/assets/`);
 }
+
+// Keep dist/index.html aligned with root modular index
+const srcIndex = path.join(rootDir, 'index.html');
+const distIndex = path.join(distDir, 'index.html');
+if (fs.existsSync(srcIndex)) {
+  fs.copyFileSync(srcIndex, distIndex);
+  console.log('[build:dist] Synced index.html → dist/index.html');
+}
+
+// Remove retired monolith CSS if present from older builds
+for (const stale of ['rack.css', 'schedule.css', 'catalog-ui.css', 'studio3d.css']) {
+  const stalePath = path.join(distCss, stale);
+  if (fs.existsSync(stalePath)) {
+    fs.unlinkSync(stalePath);
+    console.log(`[build:dist] Removed stale css/${stale}`);
+  }
+}

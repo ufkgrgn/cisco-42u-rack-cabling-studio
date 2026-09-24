@@ -1,0 +1,273 @@
+/* Right Sidebar: Run Schedule & Details (Collapsible & Resizable) */
+.sidebar-right {
+  width: 520px;
+  min-width: 420px;
+  max-width: 800px;
+  flex-shrink: 0;
+  background-color: var(--bg-panel);
+  border-left: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 10;
+}
+
+/* Draggable left edge resizer for sidebar-right */
+.sidebar-right-resizer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 30;
+  transition: background 0.15s;
+}
+.sidebar-right-resizer:hover,
+.sidebar-right-resizer.resizing {
+  background: var(--accent-blue);
+  box-shadow: 0 0 8px var(--accent-blue);
+}
+
+.sidebar-right.collapsed {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  overflow: hidden !important;
+}
+
+.sidebar-right.collapsed .sidebar-right-resizer {
+  display: none !important;
+}
+
+.sidebar-right.collapsed .schedule-table-wrapper,
+.sidebar-right.collapsed .panel-section,
+.sidebar-right.collapsed #btn-clear-cables,
+.sidebar-right.collapsed .schedule-header-content {
+  display: none !important;
+}
+
+.sidebar-right.collapsed .schedule-header {
+  padding: var(--chrome-offset, 56px) 0 10px 0 !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 44px !important;
+}
+
+.schedule-header {
+  padding: 10px 12px;
+  padding-top: var(--chrome-offset, 62px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.schedule-inspector-footer {
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-app) 70%, transparent);
+}
+
+.schedule-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-right.collapsed .schedule-header {
+  padding: 8px;
+  padding-top: var(--chrome-offset, 62px);
+  justify-content: center;
+}
+
+.schedule-table-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Modern slim scrollbars */
+.schedule-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.schedule-table-wrapper::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+.schedule-table-wrapper::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent-blue) 30%, transparent);
+  border-radius: 4px;
+}
+.schedule-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+
+.schedule-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.74rem;
+  text-align: left;
+  display: block;
+  padding: 6px 8px;
+}
+
+.schedule-table thead {
+  display: none !important;
+}
+
+.schedule-table tbody {
+  display: block;
+  width: 100%;
+}
+
+.schedule-table tr.schedule-cable-card {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  box-sizing: border-box;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid var(--row-accent, #38bdf8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.schedule-table tr.schedule-cable-card:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.schedule-table tr.schedule-cable-card.hovered-row {
+  outline: 2px solid #00e5ff !important;
+  animation: cableCardHoverPulse 1.2s infinite ease-in-out !important;
+  transform: translateY(-2px) scale(1.015) !important;
+  filter: brightness(1.3) !important;
+  z-index: 10 !important;
+  position: relative;
+}
+
+@keyframes cableCardHoverPulse {
+  0% {
+    box-shadow: 0 0 0 2px #00e5ff, 0 0 14px rgba(0, 229, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 3px #ffffff, 0 0 24px rgba(0, 229, 255, 0.95);
+  }
+  100% {
+    box-shadow: 0 0 0 2px #00e5ff, 0 0 14px rgba(0, 229, 255, 0.7);
+  }
+}
+
+.schedule-table tr.schedule-cable-card.active {
+  box-shadow: 0 0 0 2px var(--neon-cyan), 0 6px 20px rgba(0, 229, 255, 0.45) !important;
+}
+
+/* Rol Seçildiğinde Tüm List Item (Card) Tamamı O Renge Boyanır */
+.schedule-table tr.schedule-cable-card.role-trunk {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.42) 0%, rgba(76, 29, 149, 0.28) 100%) !important;
+  border-color: rgba(168, 85, 247, 0.55) !important;
+  border-left-color: #a855f7 !important;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-trunk:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.55) 0%, rgba(76, 29, 149, 0.38) 100%) !important;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-uplink {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.35) 0%, rgba(2, 132, 199, 0.25) 100%) !important;
+  border-color: rgba(0, 210, 255, 0.55) !important;
+  border-left-color: #00d2ff !important;
+  box-shadow: 0 2px 10px rgba(0, 210, 255, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-uplink:hover {
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.48) 0%, rgba(2, 132, 199, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 210, 255, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-trunk-ap {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.35) 0%, rgba(157, 23, 77, 0.25) 100%) !important;
+  border-color: rgba(236, 72, 153, 0.55) !important;
+  border-left-color: #ec4899 !important;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-trunk-ap:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.48) 0%, rgba(157, 23, 77, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-poe {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32) 0%, rgba(146, 64, 14, 0.22) 100%) !important;
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  border-left-color: #f59e0b !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-poe:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.45) 0%, rgba(146, 64, 14, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-mgmt,
+.schedule-table tr.schedule-cable-card.role-management {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.32) 0%, rgba(6, 95, 70, 0.22) 100%) !important;
+  border-color: rgba(16, 185, 129, 0.55) !important;
+  border-left-color: #10b981 !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-mgmt:hover,
+.schedule-table tr.schedule-cable-card.role-management:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.45) 0%, rgba(6, 95, 70, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-routed {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.35) 0%, rgba(153, 27, 27, 0.25) 100%) !important;
+  border-color: rgba(239, 68, 68, 0.55) !important;
+  border-left-color: #ef4444 !important;
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-routed:hover {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.48) 0%, rgba(153, 27, 27, 0.35) 100%) !important;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-fiber {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.32) 0%, rgba(161, 98, 7, 0.22) 100%) !important;
+  border-color: rgba(250, 204, 21, 0.6) !important;
+  border-left-color: #facc15 !important;
+  box-shadow: 0 2px 10px rgba(250, 204, 21, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-fiber:hover {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.45) 0%, rgba(161, 98, 7, 0.32) 100%) !important;
+  box-shadow: 0 4px 16px rgba(250, 204, 21, 0.45) !important;
+}
+
+.schedule-table tr.schedule-cable-card.role-console {
+  background: linear-gradient(135deg, rgba(0, 188, 235, 0.28) 0%, rgba(15, 23, 42, 0.9) 100%) !important;
+  border-color: rgba(0, 188, 235, 0.55) !important;
+  border-left-color: #00bceb !important;
+  box-shadow: 0 2px 10px rgba(0, 188, 235, 0.28) !important;
+}
+.schedule-table tr.schedule-cable-card.role-console:hover {
+  background: linear-gradient(135deg, rgba(0, 188, 235, 0.42) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  box-shadow: 0 4px 16px rgba(0, 188, 235, 0.45) !important;
+}
+
+.schedule-table td.schedule-card-cell {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  border-bottom: none;
+  transition: padding 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+

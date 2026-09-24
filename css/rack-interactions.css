@@ -1,0 +1,623 @@
+/* =====================================================
+   Inline Rack Controls (Canvas-based rack management)
+   ===================================================== */
+
+/* Multi-rack header actions area */
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.rack-header-name-editable {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 3px;
+  transition: background 0.15s;
+}
+.rack-header-name-editable:hover {
+  background: rgba(56, 189, 248, 0.12);
+  outline: 1px dashed #38bdf8;
+}
+.rack-header-name-editable[contenteditable="true"] {
+  background: rgba(56, 189, 248, 0.18);
+  outline: 1px solid #38bdf8;
+  cursor: text;
+  color: #f0f9ff;
+  min-width: 80px;
+}
+
+/* Small action buttons in rack header (multi-rack mode) */
+.rack-hdr-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.rack-hdr-delete {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.25);
+}
+.rack-hdr-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+/* Single-rack inline controls bar */
+.rack-inline-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  box-sizing: border-box;
+}
+
+.rack-inline-name-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.rack-inline-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 8px;
+  transition: background 0.15s;
+}
+.rack-inline-name:hover {
+  background: rgba(56, 189, 248, 0.1);
+  outline: 1px dashed #38bdf8;
+}
+.rack-inline-name[contenteditable="true"] {
+  background: rgba(56, 189, 248, 0.18);
+  outline: 1px solid #38bdf8;
+  cursor: text;
+  color: #f0f9ff;
+  min-width: 120px;
+}
+
+.rack-inline-meta {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Add/Delete buttons in single-rack controls bar */
+.rack-ctrl-btn {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  color: #94a3b8;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.rack-ctrl-btn:hover {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+.rack-delete-btn {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.rack-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+
+/* =====================================================
+   Preset Template Hover Wireframe Preview Popup
+   ===================================================== */
+.preset-preview-popup {
+  position: fixed;
+  z-index: 9999;
+  background: #0f172a;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(56,189,248,0.12);
+  max-width: 560px;
+  pointer-events: auto;
+  animation: presetPopupIn 0.15s ease-out;
+}
+@keyframes presetPopupIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+.preset-btn-wrap {
+  position: relative;
+}
+
+/* Floating add rack buttons on viewport canvas */
+.rack-float-add-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+.rack-float-add-btn:hover {
+  opacity: 1;
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #7dd3fc;
+  scale: 1.15;
+}
+.rack-float-add-left {
+  left: 20px;
+}
+.rack-float-add-right {
+  right: 20px;
+}
+
+/* =====================================================
+   F2: Rack Bottom Resize Handle
+   ===================================================== */
+.rack-resize-handle {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 14px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  z-index: 20;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  user-select: none;
+}
+.rack-resize-handle:hover,
+.rack-resize-handle.active {
+  background: #0284c7;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+}
+.rack-resize-grip {
+  width: 24px;
+  height: 2px;
+  background: #64748b;
+  border-radius: 1px;
+}
+.rack-resize-handle:hover .rack-resize-grip,
+.rack-resize-handle.active .rack-resize-grip {
+  background: #ffffff;
+}
+
+/* =====================================================
+   U4: Rack Hover Action Bar (Taşı & Çoğalt)
+   ===================================================== */
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+.rack-action-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.rack-action-btn.rack-hdr-move-left,
+.rack-action-btn.rack-hdr-move-right {
+  padding: 2px 4px;
+  font-size: 10px;
+}
+.rack-action-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+}
+.rack-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+/* Six rack actions cannot fit beside the title/standard badge at 634px.
+   Multi-rack headers keep every action available as a compact icon button. */
+.multi-rack-stage .rack-header-standard-badge {
+  display: none;
+}
+.multi-rack-stage .rack-header-name-editable {
+  max-width: 210px;
+}
+.multi-rack-stage .rack-action-label {
+  display: none;
+}
+.multi-rack-stage .rack-action-btn {
+  width: 25px;
+  min-width: 25px;
+  height: 21px;
+  padding: 1px 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.multi-rack-stage .rack-action-icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Flash highlight ring for focused device */
+.device-focused {
+  outline: 2px solid #00e5ff !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.8) !important;
+  transition: box-shadow 0.3s ease, outline 0.3s ease;
+}
+
+/* Sidebar drawer width adjustment for full SKU visibility */
+.sidebar-left {
+  width: 360px;
+  min-width: 360px;
+}
+.sidebar-left.collapsed {
+  width: 44px;
+  min-width: 44px;
+}
+
+/* Device Mounting Ear Handles (19" EIA Rack Ears / Drag Handles) */
+.device-ear-handle {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 3px 0;
+  cursor: grab;
+  touch-action: none;
+  background: linear-gradient(90deg, #333d4d 0%, #475569 50%, #2e3746 100%);
+  border: 1px solid #1e2634;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.15), inset -1px 0 0 rgba(0, 0, 0, 0.3);
+}
+.device-ear-handle:hover {
+  background: linear-gradient(90deg, #3d4a5d 0%, #5a6b85 50%, #384456 100%);
+  border-color: #0284c7;
+  box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
+}
+.device-ear-handle:active {
+  cursor: grabbing;
+}
+.device-ear-left {
+  left: 0;
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+.device-ear-right {
+  right: 0;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+.ear-grip {
+  display: none;
+}
+.ear-screw {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f1f5f9 0%, #94a3b8 60%, #475569 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.5);
+  position: relative;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.ear-screw::after {
+  content: "+";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 6px;
+  font-family: ui-monospace, monospace;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1;
+}
+
+/* Long-press / Active lifted state */
+.mounted-device.studio-lifted {
+  transform: scale(1.015);
+  z-index: 25 !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.6) !important;
+  outline: 2px solid #38bdf8 !important;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+/* Multi-select styling */
+.mounted-device.studio-multi-selected {
+  outline: 2px solid #a855f7 !important;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.6) !important;
+  z-index: 45 !important;
+}
+.mounted-device.studio-multi-selected .device-ear-handle {
+  background: rgba(168, 85, 247, 0.5);
+  border-color: #c084fc;
+}
+
+/* Multi-select active state: Dim cables and disable their pointer events completely */
+body.multi-select-active #cables-svg,
+body.multi-select-active #cables-pixi-canvas,
+#rack-stage.multi-select-active #cables-svg,
+#rack-stage.multi-select-active #cables-pixi-canvas,
+#rack-stage.multi-select-active .cables-svg-layer,
+#rack-stage.multi-select-active .cables-pixi-layer {
+  opacity: 0.12 !important;
+  pointer-events: none !important;
+  transition: opacity 0.25s ease;
+}
+
+/* Multi-select active state: Bring mounted devices above cables */
+#rack-stage.multi-select-active .rack-space,
+#rack-stage.multi-select-active .rack-main-space,
+#rack-stage.multi-select-active .mounted-device {
+  z-index: 35 !important;
+}
+
+#rack-stage.multi-select-active .mounted-device:not(.studio-multi-selected) {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+/* Fix device controls overlap with 14px ear handle */
+.device-controls {
+  right: 18px !important;
+}
+
+/* Hide device action controls during dragging and in multi-select mode to prevent accidental clicks */
+.studio-dragging .device-controls,
+.mounted-device.studio-lifted .device-controls,
+#rack-stage.multi-select-active .device-controls,
+.mounted-device.studio-multi-selected .device-controls,
+.device-dragging-active .device-controls {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Floating Multi-Select Action Pill */
+#studio-multiselect-pill {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  backdrop-filter: blur(14px);
+  padding: 8px 18px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 24px rgba(168, 85, 247, 0.35);
+  z-index: 99999;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 500;
+  transition: opacity 0.2s, transform 0.2s;
+}
+#studio-multiselect-pill.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(16px);
+}
+#studio-multiselect-pill .pill-badge {
+  font-weight: 700;
+  font-size: 12px;
+  color: #c084fc;
+}
+#studio-multiselect-pill .pill-count {
+  margin-right: 4px;
+}
+#studio-multiselect-pill .pill-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+#studio-multiselect-pill .pill-btn:hover {
+  background: rgba(168, 85, 247, 0.35);
+  border-color: #a855f7;
+  transform: translateY(-1px);
+}
+#studio-multiselect-pill .pill-btn:active {
+  transform: translateY(0);
+}
+#studio-multiselect-pill .pill-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.4) !important;
+  border-color: #ef4444 !important;
+}
+#studio-multiselect-pill .pill-btn-close {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  margin-left: 4px;
+}
+#studio-multiselect-pill .pill-btn-close:hover {
+  background: rgba(239, 68, 68, 0.5) !important;
+  border-color: #ef4444 !important;
+  color: #fff;
+}
+
+/* U-Rail Action Menu Popover */
+#rack-u-action-menu {
+  position: fixed;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 170px;
+  font-size: 12px;
+}
+#rack-u-action-menu button {
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  padding: 6px 10px;
+  text-align: left;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#rack-u-action-menu button:hover {
+  background: #1e293b;
+  color: #38bdf8;
+}
+
+/* ============================================================================
+   GLOBAL SPACEBAR PAN OVERLAY PILL & CURSOR STATES
+   ============================================================================ */
+body.space-pan-active,
+body.space-pan-active #viewport-canvas,
+body.space-pan-active #rack-stage,
+body.space-pan-active .mounted-device,
+body.space-pan-active .port,
+body.space-pan-active [data-drag-handle="true"] {
+  cursor: grab !important;
+}
+
+body.space-pan-active.panning-active,
+body.space-pan-active.panning-active #viewport-canvas,
+body.space-pan-active.panning-active #rack-stage,
+body.space-pan-active.panning-active .mounted-device,
+body.space-pan-active.panning-active .port,
+body.space-pan-active.panning-active [data-drag-handle="true"] {
+  cursor: grabbing !important;
+}
+
+/* Disable all pointer interactions and hovering on DOM elements during Space Pan */
+body.space-pan-active #viewport-canvas * {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+body.space-pan-active #viewport-canvas,
+body.space-pan-active #viewport-canvas canvas {
+  pointer-events: auto !important;
+}
+
+#studio-pan-overlay-pill {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.35);
+  z-index: 99999;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#studio-pan-overlay-pill.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+#studio-pan-overlay-pill.fade-out {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+#studio-pan-overlay-pill .pan-pill-icon {
+  font-size: 16px;
+}
+
+#studio-pan-overlay-pill .pan-pill-text {
+  color: #38bdf8;
+}
+
+#studio-pan-overlay-pill .pan-pill-sub {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+

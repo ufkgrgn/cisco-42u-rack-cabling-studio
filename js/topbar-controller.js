@@ -201,7 +201,8 @@
       const updateComplianceBtn = () => {
         const active = window.RackStudio?.STATE ? (window.RackStudio.STATE.strictCompliance !== false) : true;
         btnCompliance.classList.toggle('active', active);
-        btnCompliance.style.color = active ? '#38bdf8' : '#64748b';
+        btnCompliance.classList.toggle('compliance-on', active);
+        btnCompliance.classList.toggle('compliance-off', !active);
         btnCompliance.title = active 
           ? 'Ağ Standartları & Döngü Koruması: AKTİF (Kural denetimi devrede)' 
           : 'Ağ Standartları & Döngü Koruması: PASİF (Serbest bağlantı modu)';
@@ -229,6 +230,36 @@
         }
       });
     }
+
+    // Tools overflow menu
+    const toolsMenu = document.getElementById('hud-tools-menu');
+    const toolsToggle = document.getElementById('btn-tools-menu-toggle');
+    const toolsPanel = document.getElementById('hud-tools-panel');
+    function setToolsOpen(open) {
+      if (!toolsMenu || !toolsToggle || !toolsPanel) return;
+      toolsMenu.classList.toggle('is-open', open);
+      toolsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toolsPanel.hidden = !open;
+    }
+    toolsToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setToolsOpen(toolsPanel?.hidden !== false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!toolsMenu?.contains(e.target)) setToolsOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setToolsOpen(false);
+    });
+    toolsPanel?.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn && btn.id !== 'btn-tools-menu-toggle') {
+        // Keep menu open for file import; close for other actions shortly after
+        if (btn.id !== 'btn-import-json-3d') {
+          setTimeout(() => setToolsOpen(false), 80);
+        }
+      }
+    });
 
     try {
       if (typeof localStorage !== 'undefined') localStorage.removeItem('rackstudio_cable_mode');
