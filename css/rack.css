@@ -463,11 +463,38 @@
 }
 
 /* Cisco Series Specific Front Bezels (Authentic Stencil Finishes) */
+.cisco-integrated-bezel.bezel-cat1k,
+.cisco-integrated-bezel.bezel-compact,
+.cisco-integrated-bezel.bezel-cbs {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-color: #cbd5e1;
+  border-left: 2.5px solid #0284c7;
+  color: #0f172a;
+}
+
+.cisco-integrated-bezel.bezel-cat1k .cisco-brand-text,
+.cisco-integrated-bezel.bezel-compact .cisco-brand-text,
+.cisco-integrated-bezel.bezel-cbs .cisco-brand-text {
+  color: #005073;
+}
+
+.cisco-integrated-bezel.bezel-cat1k .cisco-model-text,
+.cisco-integrated-bezel.bezel-compact .cisco-model-text,
+.cisco-integrated-bezel.bezel-cbs .cisco-model-text {
+  color: #334155;
+}
+
 .cisco-integrated-bezel.bezel-cat9k {
   background: linear-gradient(135deg, #2b3240 0%, #343c4c 100%);
   border-color: #4a5568;
   border-left: 2.5px solid #0284c7;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.cisco-integrated-bezel.bezel-cat3k {
+  background: linear-gradient(135deg, #183b42 0%, #204b54 100%);
+  border-color: #0d9488;
+  border-left: 2.5px solid #14b8a6;
 }
 
 .cisco-integrated-bezel.bezel-cat2960x {

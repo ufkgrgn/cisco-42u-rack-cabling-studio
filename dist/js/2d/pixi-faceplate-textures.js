@@ -17,11 +17,13 @@
 
   const PORT_STYLES = Object.freeze([
     { key: 'copper', shape: 'copper' },
+    { key: 'keystone', shape: 'copper', keystone: true },
     { key: 'optic', shape: 'optic' },
     { key: 'fiber-lc', shape: 'lc' },
     { key: 'fiber-sc', shape: 'sc' },
     { key: 'power', shape: 'power' },
     { key: 'occupied', shape: 'copper', occupied: true },
+    { key: 'occupied-keystone', shape: 'copper', keystone: true, occupied: true },
     { key: 'occupied-optic', shape: 'optic', occupied: true },
     { key: 'occupied-fiber-lc', shape: 'lc', occupied: true },
     { key: 'occupied-fiber-sc', shape: 'sc', occupied: true },
@@ -54,10 +56,14 @@
     const explicit = spec?.series || cat?.series || '';
     if (explicit) return String(explicit);
     const tag = `${cat?.modelTag || ''} ${cat?.name || ''} ${spec?.catalogKey || ''}`;
+    if (/1000|c1000|cat1k/i.test(tag)) return 'cat1k';
+    if (/compact|3560-cx|2960-cx|c9200cx/i.test(tag)) return 'compact';
+    if (/cbs|business/i.test(tag)) return 'cbs';
     if (/9300|9200|9500|cat9k/i.test(tag)) return 'cat9k';
     if (/3850|3750|3560/i.test(tag)) return 'cat3k';
+    if (/2960-x|2960x|2960-xr/i.test(tag)) return 'cat2960x';
     if (/2960/i.test(tag)) return 'cat2960';
-    if (/nexus|n9k/i.test(tag)) return 'nexus';
+    if (/nexus|n9k|n5k|n3k/i.test(tag)) return 'nexus';
     if (/isr|asr/i.test(tag)) return 'isr';
     return '';
   }
@@ -117,45 +123,225 @@
 
   function drawCisco(ctx, w, h, spec, cat) {
     const series = seriesKey(spec, cat);
-    const accent = series === 'nexus' ? '#34d399' : series === 'isr' ? '#0284c7' : '#38bdf8';
-    paintMetal(ctx, w, h, '#131a2a', accent);
-    ctx.fillStyle = '#0b1220';
+    const isWhite = series === 'cat1k' || series === 'compact' || series === 'cbs';
+    const isTeal = series === 'cat2960' || series === 'cat2960x' || series === 'cat3k';
+    const isNexus = series === 'nexus';
+    const isRouter = series === 'isr';
+
+    if (isWhite) {
+      // 1. Cisco Catalyst 1000 & Compact Series (Clean White / Platinum Stencil Faceplate)
+      paintMetal(ctx, w, h, '#f1f5f9', '#0284c7');
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillRect(0, 0, w, 1);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(0, h - 1, w, 1);
+      // Left Bezel (Platinum Grey with Navy Cisco Logo)
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(78, 2, 1, h - 4);
+      // Cisco Logo
+      ctx.fillStyle = '#005073';
+      ctx.font = '800 8.5px Segoe UI, sans-serif';
+      ctx.fillText('CISCO', 8, 12);
+      // Model Name
+      const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'C1000');
+      ctx.fillStyle = '#1e293b';
+      ctx.font = '700 9.5px ui-monospace, monospace';
+      ctx.fillText(String(model).slice(0, 9), 8, 24);
+      // Recessed dark port well background on white chassis
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, 81, 3, w - 85, h - 6, 2);
+      ctx.fill();
+      // Status LEDs on bezel
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.arc(60, 10, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0284c7';
+      ctx.beginPath();
+      ctx.arc(68, 10, 2, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+
+    if (isTeal) {
+      // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil)
+      paintMetal(ctx, w, h, '#1e2533', '#14b8a6');
+      const grad = ctx.createLinearGradient(0, 0, 78, 0);
+      grad.addColorStop(0, '#1a4b56');
+      grad.addColorStop(1, '#236173');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#0f2930';
+      ctx.fillRect(78, 0, 1.5, h);
+      // Crisp White Cisco Logo
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 8.5px Segoe UI, sans-serif';
+      ctx.fillText('CISCO', 8, 12);
+      // Model Name
+      const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || '2960');
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '700 9.5px ui-monospace, monospace';
+      ctx.fillText(String(model).slice(0, 9), 8, 24);
+      // Mode button & LED cluster
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.arc(52, 10, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.stroke();
+      paintLeds(ctx, 48, 22);
+      return;
+    }
+
+    if (isNexus) {
+      // 3. Cisco Nexus Series (Obsidian Black & Emerald Green Stencil)
+      paintMetal(ctx, w, h, '#0c0f14', '#10b981');
+      ctx.fillStyle = '#06080b';
+      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#1c2432';
+      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '800 8px Segoe UI, sans-serif';
+      ctx.fillText('CISCO', 8, 12);
+      ctx.fillStyle = '#10b981';
+      ctx.font = '800 8px Segoe UI, sans-serif';
+      ctx.fillText('NEXUS', 42, 12);
+      const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'N3K');
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '700 9px ui-monospace, monospace';
+      ctx.fillText(String(model).slice(0, 9), 8, 24);
+      ['#10b981', '#34d399', '#f59e0b'].forEach((color, i) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(58 + i * 6, 22, 1.9, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      return;
+    }
+
+    if (isRouter) {
+      // 4. Cisco ISR Routers (Two-Tone Slate & Router Orange)
+      paintMetal(ctx, w, h, '#1e2430', '#f97316');
+      ctx.fillStyle = '#11151f';
+      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '800 8px Segoe UI, sans-serif';
+      ctx.fillText('CISCO', 8, 12);
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(42, 4.5, 30, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 6px Segoe UI, sans-serif';
+      ctx.fillText('ROUTER', 44, 11);
+      const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'ISR');
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '700 9px ui-monospace, monospace';
+      ctx.fillText(String(model).slice(0, 9), 8, 24);
+      paintLeds(ctx, 56, 22);
+      return;
+    }
+
+    // 5. Cisco Catalyst 9000 Series (Modern Dark Graphite & Blue Beacon)
+    paintMetal(ctx, w, h, '#151b26', '#0284c7');
+    ctx.fillStyle = '#0d121c';
     ctx.fillRect(0, 0, 78, h);
     ctx.fillStyle = '#1e293b';
     ctx.fillRect(78, 2, 1, h - 4);
-    ctx.fillStyle = accent;
-    ctx.font = '700 8px Segoe UI, sans-serif';
+    ctx.fillStyle = '#00bceb';
+    ctx.font = '800 8.5px Segoe UI, sans-serif';
     ctx.fillText('CISCO', 8, 12);
-    const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'SW');
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '10px ui-monospace, monospace';
-    ctx.fillText(String(model).slice(0, 8), 8, 24);
-    if (series === 'cat9k') {
-      ctx.fillStyle = '#2563eb';
-      ctx.beginPath();
-      ctx.arc(62, 9, 2.4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    paintLeds(ctx, 58, 22);
+    const model = RS.getShortModelName ? RS.getShortModelName(cat?.modelTag, cat?.name) : (cat?.modelTag || 'C9300');
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '700 9.5px ui-monospace, monospace';
+    ctx.fillText(String(model).slice(0, 9), 8, 24);
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.arc(62, 9, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.35)';
+    ctx.beginPath();
+    ctx.arc(62, 9, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    paintLeds(ctx, 54, 22);
     ctx.strokeStyle = '#64748b';
-    ctx.strokeRect(46.5, 5.5, 6, 6);
+    ctx.strokeRect(44.5, 6, 5, 5);
   }
 
   function drawPatch(ctx, w, h, spec, cat) {
     const fiber = spec.category === 'fiber' || cat?.category === 'fiber';
     const name = `${cat?.name || ''} ${cat?.modelTag || ''} ${spec.catalogKey || ''}`;
-    const accent = fiber ? '#a855f7' : (/cat6a/i.test(name) || /patch-cat6/i.test(spec.catalogKey || '') ? '#f97316' : '#fb923c');
-    paintMetal(ctx, w, h, fiber ? '#111827' : '#17191d', accent);
-    ctx.fillStyle = '#0c1016';
-    ctx.fillRect(0, 0, 78, h);
-    ctx.fillStyle = '#e2e8f0';
-    ctx.font = '700 8px Segoe UI, sans-serif';
-    const title = fiber ? 'ODF' : (/cat6a/i.test(name) || /patch-cat6/i.test(spec.catalogKey || '') ? 'Cat6A' : 'CAT6');
-    ctx.fillText(title, 8, 13);
-    ctx.fillStyle = accent;
-    ctx.font = '9px ui-monospace, monospace';
-    const badge = fiber ? (/sc/i.test(name) ? 'SC' : 'LC') : `${cat?.ports?.length || 24}P`;
-    ctx.fillText(badge, 8, 24);
+
+    if (fiber) {
+      // Fiber ODF Panel (Violet / Purple Accent)
+      paintMetal(ctx, w, h, '#111420', '#a855f7');
+      ctx.fillStyle = '#0c0f18';
+      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#261b3d';
+      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillStyle = '#c084fc';
+      ctx.font = '800 8.5px Segoe UI, sans-serif';
+      ctx.fillText('FIBER ODF', 8, 12);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '700 9px ui-monospace, monospace';
+      const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
+      ctx.fillText(badge, 8, 24);
+      ctx.fillStyle = '#3b1c61';
+      ctx.fillRect(80, 2, w - 82, 3.5);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(80, 2, w - 82, 1);
+      return;
+    }
+
+    // Copper Patch Panel (Prominent Safety Orange Theme & Keystone Identity)
+    const isCat6A = /cat6a/i.test(name) || /patch-cat6-24/i.test(spec.catalogKey || '');
+    const portsCount = cat?.ports?.length || 24;
+
+    paintMetal(ctx, w, h, '#141720', '#f97316');
+    // 4px bold safety orange left edge
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(0, 0, 4, h);
+
+    // Left Bezel: Distinctive Orange Identity
+    ctx.fillStyle = '#1c1712';
+    ctx.fillRect(4, 0, 74, h);
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(77, 2, 1, h - 4);
+
+    // Patch Panel Title
+    ctx.fillStyle = '#f97316';
+    ctx.font = '800 8.5px Segoe UI, sans-serif';
+    ctx.fillText(isCat6A ? 'CAT6A UTP' : 'CAT6 PANEL', 8, 12);
+
+    // Badge pill: Orange background with white text
+    ctx.fillStyle = '#ea580c';
+    roundRect(ctx, 8, 16, 38, 11, 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 7px Segoe UI, sans-serif';
+    ctx.fillText('PATCH', 11, 24);
+
+    // Port count tag
+    ctx.fillStyle = '#fb923c';
+    ctx.font = '700 9px ui-monospace, monospace';
+    ctx.fillText(`${portsCount}P`, 50, 24);
+
+    // Top Designation / Label Strip (The signature write-on identification bar)
+    ctx.fillStyle = '#fff7ed';
+    ctx.fillRect(80, 2, w - 82, 3.5);
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(80, 2, w - 82, 1);
+    ctx.fillRect(80, 5, w - 82, 0.5);
+
+    // Recessed dark Keystone socket tray behind ports
+    ctx.fillStyle = '#0c0f16';
+    roundRect(ctx, 80, 6.5, w - 82, h - 8.5, 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
   }
 
   function drawPdu(ctx, w, h) {
@@ -302,12 +488,19 @@
 
   function drawPort(ctx, style, x) {
     const occupied = !!style.occupied;
-    const fill = occupied ? '#08212a' : (style.shape === 'power' ? '#101b17' : style.shape === 'optic' ? '#0b1324' : '#100f26');
-    const stroke = occupied ? '#22d3ee' : (style.shape === 'copper' ? '#64748b' : style.shape === 'optic' ? '#60a5fa' : style.shape === 'power' ? '#4ade80' : style.shape === 'sc' ? '#c084fc' : '#a78bfa');
-    const detail = occupied ? '#67e8f9' : (style.shape === 'copper' ? '#334155' : style.shape === 'power' ? '#166534' : '#818cf8');
+    const isKeystone = !!style.keystone;
+    const fill = occupied
+      ? (isKeystone ? '#201408' : '#08212a')
+      : (isKeystone ? '#18120d' : style.shape === 'power' ? '#101b17' : style.shape === 'optic' ? '#0b1324' : '#100f26');
+    const stroke = occupied
+      ? (isKeystone ? '#fb923c' : '#22d3ee')
+      : (isKeystone ? '#ea580c' : style.shape === 'copper' ? '#64748b' : style.shape === 'optic' ? '#60a5fa' : style.shape === 'power' ? '#4ade80' : style.shape === 'sc' ? '#c084fc' : '#a78bfa');
+    const detail = occupied
+      ? (isKeystone ? '#fdba74' : '#67e8f9')
+      : (isKeystone ? '#c2410c' : style.shape === 'copper' ? '#334155' : style.shape === 'power' ? '#166534' : '#818cf8');
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = isKeystone ? 1.4 : 1;
     roundRect(ctx, x + 1, 2, PORT_CELL - 2, PORT_CELL - 4, 3);
     ctx.fill();
     ctx.stroke();
@@ -315,6 +508,10 @@
     if (style.shape === 'copper') {
       [4, 7, 10, 13].forEach(pin => ctx.fillRect(x + pin, 6, 2, 3));
       ctx.fillRect(x + 5, 12, 10, 2);
+      if (isKeystone) {
+        ctx.fillStyle = stroke;
+        ctx.fillRect(x + 3, 3, PORT_CELL - 6, 1.2);
+      }
     } else if (style.shape === 'optic') {
       roundRect(ctx, x + 4, 5, 12, 10, 2);
       ctx.fill();
@@ -366,13 +563,17 @@
 
   function portTextureKey(port, occupied) {
     const type = String((port && port.type) || port || '').toLowerCase();
+    const category = String((port && port.category) || '').toLowerCase();
+    const isPatch = category === 'patch' || (port && /patch/i.test(port.catalogKey || ''));
     let variant = 'copper';
-    if (type === 'lc') variant = 'fiber-lc';
+    if (isPatch && (type === 'copper' || type === 'rj45' || !type || type === 'keystone')) variant = 'keystone';
+    else if (type === 'lc') variant = 'fiber-lc';
     else if (type === 'sc') variant = 'fiber-sc';
     else if (type === 'power' || type === 'c13' || type === 'c14') variant = 'power';
     else if (type === 'sfp' || type === 'sfp+' || type === 'qsfp28') variant = 'optic';
     if (!occupied) return variant;
     if (variant === 'copper') return 'occupied';
+    if (variant === 'keystone') return 'occupied-keystone';
     if (variant === 'optic') return 'occupied-optic';
     return `occupied-${variant}`;
   }

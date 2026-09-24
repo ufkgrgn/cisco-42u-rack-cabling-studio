@@ -468,9 +468,9 @@
       let bayHeader = '';
       if (!hasFaceplateStencil) {
         if (isPatchPanel && groupPorts.length > 0) {
-          const firstPortName = groupPorts[0]?.name || '1';
-          const lastPortName = groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length);
-          bayHeader = `<div class="patch-id-strip"><span>${escapeHtml(firstPortName)}</span><span>-</span><span>${escapeHtml(lastPortName)}</span></div>`;
+          const firstPortName = (groupPorts[0]?.name || '1').replace(/^Port\s*/i, '');
+          const lastPortName = (groupPorts[groupPorts.length - 1]?.name || String(groupPorts.length)).replace(/^Port\s*/i, '');
+          bayHeader = `<div class="patch-id-strip"><span class="patch-id-range">[ ${escapeHtml(firstPortName)} - ${escapeHtml(lastPortName)} ]</span></div>`;
         } else if (isUplinkGroup) {
           const uplinkTag = groupPorts.some(p => p.type === 'qsfp28') ? '100G QSFP28' : '10G SFP+';
           bayHeader = `<div class="cisco-uplink-strip"><span class="uplink-badge">${uplinkTag}</span></div>`;
@@ -515,6 +515,8 @@
         cat.modelTag?.includes('9300') || cat.modelTag?.includes('9200') || cat.modelTag?.includes('9500') ? 'cat9k' :
         cat.modelTag?.includes('2960-X') || cat.modelTag?.includes('2960X') ? 'cat2960x' :
         cat.modelTag?.includes('2960') ? 'cat2960' :
+        cat.modelTag?.includes('1000') || cat.modelTag?.includes('C1000') ? 'cat1k' :
+        cat.category === 'compact' || cat.series === 'compact' ? 'compact' :
         cat.modelTag?.includes('N9K') || cat.modelTag?.includes('Nexus') ? 'nexus' :
         cat.modelTag?.includes('ISR') ? 'isr' : ''
       );
