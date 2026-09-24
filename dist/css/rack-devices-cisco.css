@@ -1,0 +1,290 @@
+/* Cisco Managed Switch Chassis */
+.faceplate-switch {
+  background: linear-gradient(180deg, #1b2f4a 0%, #15253b 50%, #0e1a2b 100%);
+  border-left: 3.5px solid #00d2ff;
+  border-top: 1px solid #335985;
+  border-bottom: 1.5px solid #08101a;
+  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.faceplate-switch .bezel-logo {
+  color: #00d2ff;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.faceplate-switch .device-kind-badge {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* Cisco Catalyst Integrated Compact Front Bezel (Option A) */
+.cisco-integrated-bezel {
+  flex: 0 0 74px;
+  width: 74px;
+  max-width: 74px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 4px;
+  background: #091322;
+  border: 1px solid #1e3654;
+  border-left: 2.5px solid #00d2ff;
+  border-radius: 2px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cisco-bezel-top,
+.cisco-bezel-bot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  line-height: 1;
+}
+
+.cisco-brand-logo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, sans-serif;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: #00bceb;
+  letter-spacing: 0.6px;
+  line-height: 1;
+}
+
+.cisco-bezel-leds {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 10px;
+}
+
+.cisco-beacon-led {
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 2px #00e5ff, 0 0 4px rgba(0, 229, 255, 0.7);
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.cisco-mini-mode {
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 0.5px solid #64748b;
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.cisco-mini-led {
+  width: 3px;
+  height: 3px;
+  min-width: 3px;
+  min-height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 2px rgba(34, 197, 94, 0.8);
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.cisco-mini-led i {
+  display: none;
+}
+
+.cisco-model-code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.52rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1;
+}
+
+.cisco-console-mini {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 4px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 0.5px solid rgba(0, 188, 235, 0.5);
+  background: rgba(0, 188, 235, 0.1);
+  border-radius: 1px;
+  padding: 0 1.5px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+/* Cisco Series Specific Front Bezels */
+.cisco-integrated-bezel.bezel-cat9k {
+  background: linear-gradient(135deg, #09121f 0%, #0d1a2d 100%);
+  border-color: #1e3a5f;
+  border-left: 2.5px solid #00d2ff;
+  box-shadow: inset 0 1px 0 rgba(0, 210, 255, 0.15);
+}
+
+.cisco-integrated-bezel.bezel-cat2960x {
+  background: linear-gradient(135deg, #0a141a 0%, #0e1e24 100%);
+  border-color: #1a3338;
+  border-left: 2.5px solid #10b981;
+}
+
+.cisco-integrated-bezel.bezel-cat2960 {
+  background: linear-gradient(135deg, #08111a 0%, #0b1926 100%);
+  border-color: #162c42;
+  border-left: 2.5px solid #0284c7;
+}
+
+.cisco-integrated-bezel.bezel-nexus {
+  background: linear-gradient(135deg, #0c0f17 0%, #151824 100%);
+  border-color: #2b354d;
+  border-left: 2.5px solid #a855f7;
+}
+
+.cisco-integrated-bezel.bezel-isr {
+  background: linear-gradient(135deg, #13141c 0%, #1d1c24 100%);
+  border-color: #3b3a4a;
+  border-left: 2.5px solid #f97316;
+}
+
+
+
+/* Cisco Status Cluster: Mode Button, Micro LEDs, Console Port (Fallback) */
+.cisco-status-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  background: #0b111a;
+  border: 1px solid #1e2a3c;
+  border-radius: 2px;
+  height: 22px;
+}
+
+.cisco-mode-btn {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #334155;
+  border: 1px solid #64748b;
+  flex-shrink: 0;
+}
+
+.cisco-led-bank {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.cisco-led-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cisco-micro-led {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1;
+}
+
+.cisco-micro-led i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.cisco-micro-led.led-amber i {
+  background: #f59e0b;
+}
+
+.cisco-console-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 5px;
+  font-weight: 800;
+  color: #00bceb;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  background: rgba(0, 188, 235, 0.08);
+  border-radius: 1.5px;
+  padding: 1px 2px;
+  line-height: 1;
+  letter-spacing: 0.3px;
+}
+
+/* Cisco RJ45 Bay (Modular 12-port blocks) */
+.faceplate-switch .port-group {
+  background: #090e16;
+  border: 1px solid #1e2a3c;
+  border-radius: 2px;
+  padding: 1.5px 3px;
+  gap: 1.5px;
+}
+
+/* Cisco Uplink Bay (SFP / SFP+ / QSFP) */
+.faceplate-switch .port-group.cisco-uplink-bay {
+  background: #0f1826;
+  border: 1px solid rgba(0, 188, 235, 0.45);
+  position: relative;
+}
+
+/* Cisco RJ45 Port Enhancement: Link Status LED & Realistic Pin Dot */
+.faceplate-switch .port-rj45 {
+  background: #080c14;
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  position: relative;
+}
+
+.faceplate-switch .port-rj45::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #334155;
+  box-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Link LED: green indicator inside port body, with glow (only for standard ports without special role badge) */
+.faceplate-switch .port-rj45:not(.port-special):not(.port-trunk).connected {
+  border-color: #166534;
+  background: #071410;
+}
+
+.faceplate-switch .port-rj45:not(.port-special):not(.port-trunk).connected::before {
+  background: #22c55e;
+  box-shadow: 0 0 3px #22c55e, 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* ============================================================================

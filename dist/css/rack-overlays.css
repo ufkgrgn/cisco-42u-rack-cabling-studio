@@ -1,0 +1,675 @@
+/* Auto-Fill Success / Undo Toast */
+.autofill-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100000;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.2);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f8fafc;
+  animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.autofill-toast-icon {
+  font-size: 18px;
+  color: #38bdf8;
+}
+
+.autofill-toast-body {
+  min-width: 0;
+}
+
+.autofill-toast-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.4px;
+}
+
+.autofill-toast-msg {
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.autofill-toast-undo {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #0284c7;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.autofill-toast-undo:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.autofill-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+
+.autofill-toast-close:hover {
+  color: #ef4444;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   2D LOD (LEVEL OF DETAIL) SYSTEM FOR MULTI-RACK SCALE & PERFORMANCE
+   ========================================================================== */
+/* At macro zoom (< 40%), only hide tiny floating interactive controls to prevent misclicks.
+   All ports, labels, screws, LEDs, and cables remain 100% visible and crisp at high resolution. */
+[data-lod="macro"] .device-controls {
+  display: none !important;
+}
+
+/* Pixi is the only live faceplate. DOM keeps rails, U-labels, slots, and ears. */
+[data-device-renderer="pixi"] .mounted-device {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  outline: none !important;
+}
+[data-device-renderer="pixi"] .mounted-device:hover,
+[data-device-renderer="pixi"] .mounted-device.studio-selected,
+[data-device-renderer="pixi"] .mounted-device.studio-multi-selected,
+[data-device-renderer="pixi"] .mounted-device.device-focused,
+[data-device-renderer="pixi"] .mounted-device.studio-lifted,
+[data-device-renderer="pixi"] .mounted-device.studio-dragging {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-device-renderer="pixi"] .device-faceplate,
+[data-device-renderer="pixi"] .organizer-faceplate,
+[data-device-renderer="pixi"] .blank-faceplate,
+[data-device-renderer="pixi"] .device-controls,
+[data-device-renderer="pixi"] .del-device-btn {
+  display: none !important;
+}
+.pixi-device-body {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.canvas-unavailable-banner {
+  position: absolute;
+  inset: 72px 40px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 25, 0.94);
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+/* Disable hit testing once at the retained-scene root while dragging or zooming.
+   Preserves all layer rasterization in GPU VRAM with ZERO tile invalidations. */
+.rack-stage.panning-active,
+.rack-stage.zooming-active {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* ==========================================================================
+   SIDE-BY-SIDE MULTI-RACK ROW LAYOUT & HEADER BADGES
+   ========================================================================== */
+.multi-rack-stage {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 64px !important;
+  padding: 76px 60px 80px 60px;
+  width: max-content !important;
+  box-sizing: content-box;
+}
+
+.multi-rack-stage .rack-container {
+  flex-shrink: 0 !important;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Keep rack DOM mounted for stable port geometry while allowing the browser
+     to skip style/layout/paint work for cabinets outside the viewport. */
+  contain: layout paint style;
+  /* The header extends 66px above the chassis. Preserve that overflow while
+     retaining cabinet-local paint containment. */
+  overflow-clip-margin: 76px;
+  content-visibility: auto;
+  contain-intrinsic-size: 634px var(--rack-intrinsic-height, 1428px);
+}
+
+
+.multi-rack-stage .rack-container.active-rack-target {
+  box-shadow: 0 0 0 3px #38bdf8, 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Cabinet Header Aluminum Plate (Extended Canopy with EIA-310-D & Per-Rack Telemetry) */
+.rack-header-plate {
+  position: absolute;
+  top: -66px;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-bottom: 2px solid #0284c7;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  user-select: none;
+  z-index: 10;
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.rack-header-top-tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 25px;
+  gap: 6px;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.rack-header-bottom-tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 2px;
+  white-space: nowrap !important;
+}
+
+.rack-header-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  color: #38bdf8;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap !important;
+  overflow: hidden;
+}
+
+.rack-header-name-editable {
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.rack-header-name-editable:hover {
+  background: rgba(56, 189, 248, 0.15);
+  text-decoration: underline;
+}
+
+.rack-header-rename-hint {
+  font-size: 10px;
+  opacity: 0.5;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.rack-header-rename-hint:hover {
+  opacity: 1;
+}
+
+.rack-header-standard-badge {
+  font-size: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #38bdf8;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+}
+
+.rack-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.rack-header-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rack-header-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rack-header-telemetry-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rack-telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+.rack-telemetry-badge.power {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.3);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.rack-telemetry-badge.heat {
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.3);
+  background: rgba(251, 146, 60, 0.08);
+}
+
+.rack-telemetry-badge.pdu {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.rack-telemetry-badge.overload {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #fca5a5 !important;
+  animation: pulse-overload 1s infinite alternate;
+}
+
+/* Global SVG Cabling Layer when in Multi-Rack Mode */
+.rack-stage.multi-rack-stage > #cables-svg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+.rack-stage.multi-rack-stage > #cables-svg .cable-path {
+  pointer-events: stroke !important;
+  cursor: pointer;
+}
+
+/* Visual Uplink / Trunk Confirmation Dialog */
+.uplink-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uplink-modal-card {
+  background: #090d16;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 210, 255, 0.18);
+  border-radius: 12px;
+  width: 500px;
+  max-width: 95vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.uplink-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.uplink-modal-header .header-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.5px;
+}
+
+.uplink-modal-header .close-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+
+.uplink-modal-header .close-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.uplink-modal-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uplink-connection-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.uplink-connection-strip .arrow {
+  color: #00d2ff;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.uplink-modal-desc {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.uplink-choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.uplink-choice-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: none;
+}
+
+.uplink-choice-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 210, 255, 0.18);
+}
+
+.uplink-choice-card.recommended {
+  border-color: rgba(0, 210, 255, 0.55);
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.09) 0%, rgba(15, 23, 42, 0.85) 100%);
+}
+
+.uplink-choice-card .choice-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.uplink-choice-card .choice-tag.cyan {
+  background: rgba(0, 210, 255, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 210, 255, 0.45);
+}
+
+.uplink-choice-card .choice-tag.gray {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.uplink-choice-card .choice-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+
+.uplink-choice-card .choice-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.uplink-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.uplink-modal-footer .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.uplink-modal-footer .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.uplink-modal-footer .btn-primary {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.uplink-modal-footer .btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 2px 14px rgba(56, 189, 248, 0.5);
+}
+
+/* Inline Delete Popover (Anchored right at X button) */
+.inline-delete-popover {
+  position: fixed;
+  width: 230px;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 16px rgba(239, 68, 68, 0.25);
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInModal 0.15s ease-out;
+  box-sizing: border-box;
+}
+
+.inline-delete-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ef4444;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.inline-delete-msg {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.inline-delete-msg strong {
+  color: #f87171;
+}
+
+.inline-delete-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.inline-del-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.inline-del-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.inline-del-btn-confirm {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid #f87171;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.inline-del-btn-confirm:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+

@@ -1,0 +1,502 @@
+/* ==========================================================================
+   CATALOG SERIES TREE VIEW (SWITCH TREE AESTHETIC)
+   ========================================================================== */
+.catalog-view-segmented {
+  display: flex;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(11, 15, 25, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  box-sizing: border-box;
+}
+
+.catalog-mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4.5px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.catalog-mode-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.catalog-mode-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.catalog-tree-container {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-tree-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 6px;
+  margin: 0 8px 6px 8px;
+  transition: all 0.2s ease;
+  user-select: none;
+  overflow: hidden;
+}
+
+.catalog-tree-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.catalog-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  gap: 6px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.6);
+  transition: background 0.15s ease;
+}
+
+.catalog-tree-header:hover {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.catalog-tree-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.catalog-tree-icon {
+  font-size: 9px;
+  color: #94a3b8;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.catalog-tree-card.collapsed .catalog-tree-icon {
+  transform: rotate(-90deg);
+}
+
+.catalog-tree-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #00e5ff;
+  background: #0b1320;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  padding: 1px 4px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+  flex-shrink: 0;
+}
+
+.catalog-tree-title {
+  font-weight: 700;
+  font-size: 11px;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-tree-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.catalog-tree-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 8px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(11, 17, 30, 0.7);
+}
+
+.catalog-tree-card.collapsed .catalog-tree-body {
+  display: none;
+}
+
+/* Compact browser + one selected-device inspector. Detailed content is rendered once,
+   instead of being repeated in every catalog row. */
+.sidebar-left .catalog-tree-body {
+  gap: 3px;
+  padding: 4px 6px 6px;
+}
+
+.sidebar-left .device-card {
+  display: grid !important;
+  grid-template-columns: 82px minmax(0, 1fr) 28px;
+  grid-template-rows: 52px;
+  align-items: center;
+  min-height: 58px !important;
+  padding: 3px 4px !important;
+  gap: 6px !important;
+  border-radius: 5px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 58px;
+}
+
+.sidebar-left .device-card:hover {
+  transform: translateX(1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .32);
+}
+
+.sidebar-left .hw-visual-container {
+  grid-column: 1;
+  grid-row: 1;
+  width: 82px;
+  height: 34px;
+  padding: 2px 4px;
+}
+
+.sidebar-left .hw-card-header {
+  grid-column: 2;
+  grid-row: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.sidebar-left .hw-sku-tag {
+  font-size: .7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-left .hw-card-header .device-name {
+  font-size: .62rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-left .hw-card-top-badges {
+  position: absolute;
+  right: 5px;
+  top: 3px;
+}
+
+.sidebar-left .hw-spec-chips,
+.sidebar-left .device-card .device-desc {
+  display: none !important;
+}
+
+.sidebar-left .hw-card-footer {
+  grid-column: 3;
+  grid-row: 1;
+  width: 28px;
+  margin: 0;
+  align-self: end;
+}
+
+.sidebar-left .btn-card-quick-mount {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.catalog-selection-detail {
+  position: relative;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(8, 47, 73, .96), rgba(15, 23, 42, .98));
+  border-bottom: 1px solid rgba(56, 189, 248, .42);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .28);
+  flex-shrink: 0;
+  z-index: 4;
+}
+
+.catalog-selection-detail[hidden] { display: none !important; }
+.catalog-detail-visual { height: 38px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.catalog-detail-visual img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.catalog-detail-copy { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.catalog-detail-model { color: #67e8f9; font: 700 .7rem ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-detail-name, .catalog-detail-spec { color: #cbd5e1; font-size: .61rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-detail-spec { color: #7dd3fc; }
+.catalog-detail-mount { border: 1px solid rgba(56,189,248,.55); background: rgba(2,132,199,.25); color: #e0f2fe; border-radius: 6px; padding: 6px 8px; font-size: .65rem; cursor: pointer; }
+.catalog-detail-close { position: absolute; right: 4px; top: 2px; border: 0; background: transparent; color: #94a3b8; cursor: pointer; font-size: 16px; }
+
+body.catalog-placement-mode .rack-slot:not(:has(.mounted-device)) { cursor: copy; }
+
+@media (max-width: 1199px) {
+  .sidebar-left {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(360px, 88vw);
+    min-width: 0;
+    z-index: 1200;
+    box-shadow: 16px 0 44px rgba(0, 0, 0, .58);
+    transform: translateX(0);
+    transition: transform .22s cubic-bezier(.16, 1, .3, 1);
+  }
+  .sidebar-left.collapsed {
+    width: min(360px, 88vw);
+    min-width: 0;
+    transform: translateX(calc(-100% + 44px));
+  }
+  .sidebar-left.collapsed .sidebar-drawer { display: flex !important; }
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1190;
+    border: 0;
+    background: rgba(2, 6, 23, .58);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease;
+  }
+  body.left-sidebar-open .sidebar-scrim { opacity: 1; pointer-events: auto; }
+}
+
+@media (min-width: 1200px) {
+  .sidebar-scrim { display: none; }
+  .sidebar-left { width: 316px; min-width: 316px; }
+}
+
+@media (max-width: 767px) {
+  .sidebar-left { width: min(100vw, 420px); }
+  .sidebar-left.collapsed { width: min(100vw, 420px); }
+  .sidebar-activity-rail { width: 42px; min-width: 42px; max-width: 42px; }
+  .catalog-selection-detail { grid-template-columns: 74px minmax(0, 1fr); }
+  .catalog-detail-mount { grid-column: 1 / -1; width: 100%; }
+  .catalog-view-segmented { display: none; }
+}
+
+/* Clarity pass: remove stacked navigation bands and give the actual hardware
+   preview enough width to remain identifiable. */
+.sidebar-drawer { position: relative; }
+.cisco-catalog-launcher-bar,
+.catalog-view-segmented { display: none !important; }
+.catalog-tools { padding-bottom: 5px; }
+.catalog-quick-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 5px 8px 3px;
+}
+.catalog-quick-chips::-webkit-scrollbar { display: none; }
+.quick-filter-chip { flex: 0 0 auto; }
+
+.catalog-tree-container { padding-top: 4px; }
+.catalog-tree-card {
+  margin: 0 6px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(56, 189, 248, .18);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none !important;
+}
+.catalog-tree-header { padding: 7px 5px 5px; background: transparent; }
+.catalog-tree-body { border-top: 0; background: transparent; }
+
+.sidebar-left .device-card {
+  grid-template-columns: 118px minmax(0, 1fr) 28px;
+  grid-template-rows: 58px;
+  min-height: 64px !important;
+  border-color: transparent;
+  background: rgba(15, 23, 42, .52);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+.sidebar-left .hw-visual-container {
+  width: 118px;
+  height: 40px;
+  border-color: rgba(148, 163, 184, .2);
+  background: #05080d;
+}
+.sidebar-left .hw-sku-tag { font-size: .72rem; }
+.sidebar-left .hw-card-header .device-name { font-size: .63rem; }
+.sidebar-left .btn-card-quick-mount { opacity: 0; pointer-events: none; }
+.sidebar-left .device-card:hover .btn-card-quick-mount,
+.sidebar-left .device-card.active .btn-card-quick-mount,
+.sidebar-left .device-card:focus-within .btn-card-quick-mount { opacity: 1; pointer-events: auto; }
+
+.catalog-selection-detail {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 8px;
+  border: 1px solid rgba(56, 189, 248, .55);
+  border-radius: 8px;
+  z-index: 12;
+  pointer-events: none;
+}
+.catalog-selection-detail button { pointer-events: auto; }
+.catalog-detail-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; pointer-events: auto; }
+.catalog-detail-actions button { min-height: 30px; font-size: .62rem; }
+.catalog-detail-stencil { white-space: nowrap; }
+
+@media (min-width: 1200px) {
+  .sidebar-left { width: 360px; min-width: 360px; }
+}
+
+/* Two-row hardware card: stencil first, compact facts second. */
+.catalog-tree-card,
+.catalog-tree-body { overflow: visible; }
+
+.sidebar-left .device-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 52px auto !important;
+  min-height: 94px !important;
+  padding: 5px 6px 6px !important;
+  gap: 4px !important;
+  overflow: visible;
+  contain-intrinsic-size: auto 94px;
+}
+
+.sidebar-left .hw-visual-container {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  height: 52px;
+  padding: 2px 5px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  z-index: 2;
+}
+
+.sidebar-left .hw-stencil-preview {
+  max-width: 100%;
+  max-height: 44px;
+  transform: scale(1);
+  transform-origin: center center;
+  transition: filter .22s cubic-bezier(.16, 1, .3, 1);
+}
+
+.sidebar-left .hw-visual-container:hover,
+.sidebar-left .hw-visual-container:focus-within { z-index: 30; }
+.sidebar-left .hw-visual-container:hover .hw-stencil-preview,
+.sidebar-left .hw-visual-container:focus-within .hw-stencil-preview {
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .58));
+}
+
+/* The expanded stencil lives under <body>, so sidebar scrolling/containment can
+   never crop it. Fixed positioning also avoids reflowing the catalog cards. */
+.catalog-stencil-hover-preview {
+  position: fixed;
+  width: var(--preview-width, 360px);
+  height: var(--preview-height, 112px);
+  z-index: 2600;
+  display: grid;
+  place-items: center;
+  padding: 7px 12px;
+  border: 1px solid rgba(56, 189, 248, .52);
+  border-radius: 10px;
+  background: rgba(4, 10, 20, .9);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .58), 0 0 24px rgba(14, 165, 233, .13);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px) scale(.88);
+  transform-origin: left center;
+  transition: opacity .18s ease, transform .3s cubic-bezier(.16, 1, .3, 1);
+}
+.catalog-stencil-hover-preview.visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+.catalog-stencil-hover-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 9px 13px rgba(0, 0, 0, .55));
+}
+
+/* A later grid declaration must not override the native hidden contract. */
+.sidebar-left .device-card[hidden],
+.sidebar-left .catalog-tree-card[hidden] {
+  display: none !important;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .catalog-stencil-hover-preview { width: min(92vw, 520px); height: min(28vw, 160px); }
+}
+
+.sidebar-left .hw-card-info-row {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 28px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 5px;
+  row-gap: 3px;
+}
+
+.sidebar-left .hw-card-info-row .hw-card-header {
+  grid-column: 1 / 3;
+  grid-row: 1;
+  min-width: 0;
+}
+.sidebar-left .hw-card-info-row .hw-card-top-badges {
+  position: static;
+  margin-left: 5px;
+}
+.sidebar-left .hw-card-info-row .hw-spec-chips {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  display: flex !important;
+  flex-wrap: nowrap;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+.sidebar-left .hw-card-info-row .hw-spec-chip {
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: .59rem;
+  padding: 1px 5px;
+}
+.sidebar-left .hw-card-info-row .hw-card-footer {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+

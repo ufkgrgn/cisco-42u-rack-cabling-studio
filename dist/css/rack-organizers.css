@@ -1,0 +1,586 @@
+/* 3D Skeuomorphic Cable Management Panel (Panduit Finger Duct System) */
+.organizer-faceplate {
+  background: linear-gradient(180deg, #101319 0%, #06080c 100%) !important;
+  border-top: 1px solid #1e2430 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #334155 !important;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85);
+}
+
+/* --- REALISTIC BRUSH PASS-THROUGH ORGANIZER (1U) --- */
+.brush-faceplate {
+  background: linear-gradient(180deg, #131720 0%, #0c0f16 50%, #07090e 100%) !important;
+  border-top: 1px solid #232d3f !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #475569 !important;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.7) !important;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.brush-tag {
+  font-size: 0.58rem;
+  color: #64748b;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brush-tag-icon {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.6);
+}
+
+.brush-slot {
+  flex: 1;
+  height: 18px;
+  background: #020406;
+  border-radius: 3px;
+  border: 1.5px solid #1e293b;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Top and bottom opposing nylon bristles */
+.brush-bristles-top,
+.brush-bristles-bottom {
+  height: 8px;
+  width: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    #05080e 0px,
+    #05080e 1.5px,
+    #111622 1.5px,
+    #1e2636 2px,
+    #0b0f17 2.5px,
+    #05080e 3px
+  );
+  opacity: 0.92;
+}
+
+.brush-bristles-top {
+  border-bottom: 1px solid #000;
+}
+
+.brush-bristles-bottom {
+  border-top: 1px solid #000;
+}
+
+.brush-slit {
+  height: 2px;
+  width: 100%;
+  background: #000;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 1);
+  z-index: 2;
+}
+
+/* --- ENTERPRISE 2U PANDUIT-STYLE FINGER DUCT ORGANIZER WITH SNAP COVER --- */
+.finger-duct-faceplate {
+  background: #080b11 !important;
+  border-top: 1px solid #1e2533 !important;
+  border-bottom: 2px solid #020305 !important;
+  border-left: 4px solid #3b82f6 !important;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 8px;
+  box-sizing: border-box;
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9), 0 3px 8px rgba(0, 0, 0, 0.8) !important;
+}
+
+.finger-duct-tines-row {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  gap: 3px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+}
+
+.finger-tine {
+  flex: 1;
+  height: 100%;
+  max-width: 14px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 1.5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.finger-duct-tines-row.top .finger-tine {
+  border-top: none;
+  border-bottom-left-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.finger-duct-tines-row.bottom .finger-tine {
+  border-bottom: none;
+  border-top-left-radius: 2px;
+  border-top-right-radius: 2px;
+}
+
+/* Middle Snap-on Duct Cover */
+.finger-duct-cover {
+  flex: 1;
+  min-height: 32px;
+  background: linear-gradient(180deg, #1e2533 0%, #111622 40%, #0d121c 60%, #0a0d14 100%);
+  border: 1.5px solid #2d3748;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  position: relative;
+  z-index: 2;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.finger-duct-cover.open {
+  background: linear-gradient(180deg, #070a10 0%, #030508 100%);
+  border-color: #3b82f6;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.95), 0 0 8px rgba(59, 130, 246, 0.3);
+}
+
+.finger-cover-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.finger-cover-tag {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+
+.finger-duct-cover.open .finger-cover-tag {
+  color: #60a5fa;
+}
+
+.finger-cover-grip {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.finger-cover-grip span {
+  width: 2px;
+  height: 14px;
+  background: #334155;
+  border-radius: 1px;
+}
+
+.finger-toggle-btn {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #475569;
+  border-radius: 3px;
+  padding: 2px 7px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.finger-toggle-btn:hover {
+  background: #334155;
+  color: #fff;
+  border-color: #64748b;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.finger-duct-cover.open .finger-toggle-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+
+/* --- CLEAN MODERN ENTERPRISE D-RING CABLE ORGANIZER (1U / 2U) --- */
+.dring-faceplate {
+  background: linear-gradient(
+    180deg,
+    #101520 0%,
+    #0c1018 40%,
+    #0a0d14 60%,
+    #080a10 100%
+  ) !important;
+  border-top: 1px solid #222c3d !important;
+  border-bottom: 1.5px solid #020305 !important;
+  border-left: 4px solid #3d4f65 !important;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+/* Horizontal center guide line on steel faceplate */
+.dring-faceplate::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    #1e293b 0px,
+    #1e293b 4px,
+    transparent 4px,
+    transparent 10px
+  );
+  transform: translateY(-50%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.dring-ring-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 14px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Individual D-Ring Bracket */
+.dring-bracket {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: transform 0.15s ease;
+}
+
+.dring-bracket:hover {
+  transform: translateY(-1px);
+}
+
+/* Solid Steel D-Ring Retention Hoop */
+.dring-loop {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 4px;
+  background: #141b26 !important;
+  border: 1.8px solid #56687e !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 2px 5px rgba(0, 0, 0, 0.6) !important;
+  z-index: 3;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Inner pass-through aperture */
+.dring-loop::before {
+  content: "";
+  display: block;
+  width: 26px;
+  height: 12px;
+  border-radius: 2px;
+  background: #06090f;
+  border: 1px solid #1a2332;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+.dring-bracket:hover .dring-loop {
+  border-color: #38bdf8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 8px rgba(56, 189, 248, 0.4) !important;
+}
+
+.dring-mount-base,
+.dring-aperture,
+.dring-front-face {
+  display: none !important;
+}
+
+
+/* Device Controls Overlay */
+.device-controls {
+  position: absolute;
+  right: 4px;
+  display: none;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  z-index: 6;
+}
+
+.mounted-device:hover .device-controls {
+  display: flex;
+}
+
+.dev-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+}
+
+.dev-btn:hover {
+  color: #ef4444;
+}
+
+.dev-btn.color-device-cables-btn:hover {
+  color: #38bdf8;
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.6));
+}
+
+.dev-btn.clear-device-cables-btn:hover {
+  color: #f59e0b;
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
+}
+
+.dev-btn.autofill-device-btn {
+  color: #38bdf8;
+  font-size: 0.82rem;
+  transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+
+.dev-btn.autofill-device-btn:hover {
+  color: #00e5ff;
+  transform: scale(1.22);
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.75));
+}
+
+/* Switch Auto-Fill Popover */
+.switch-autofill-popover {
+  position: fixed;
+  z-index: 99999;
+  width: 320px;
+  background: rgba(15, 23, 42, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.2);
+  padding: 12px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9;
+  user-select: none;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.autofill-pop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+}
+
+.autofill-pop-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.autofill-pop-icon {
+  font-size: 16px;
+  color: #38bdf8;
+}
+
+.autofill-pop-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.autofill-pop-subtitle {
+  font-size: 10.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 230px;
+}
+
+.autofill-pop-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.autofill-pop-close:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.autofill-pop-field {
+  margin-bottom: 10px;
+}
+
+.autofill-pop-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.autofill-pop-select {
+  width: 100%;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  color: #f8fafc;
+  font-size: 11.5px;
+  padding: 6px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+.autofill-pop-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px #38bdf8;
+}
+
+.autofill-pop-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.autofill-pop-checkbox-row input[type="checkbox"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+.autofill-pop-summary {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px dashed rgba(56, 189, 248, 0.3);
+  border-radius: 5px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #38bdf8;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.autofill-pop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.autofill-pop-btn-cancel {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.autofill-pop-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #64748b;
+}
+
+.autofill-pop-btn-submit {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: 1px solid #38bdf8;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.autofill-pop-btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.6);
+}
+
+.autofill-pop-btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

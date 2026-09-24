@@ -1,47 +1,71 @@
 /* Middle Area: 42U Rack Viewport (Scroll-free Zoom & Pan Studio) */
 .viewport {
-  background: radial-gradient(circle at 50% 30%, #0d1424 0%, #050811 100%);
+  background: var(--viewport-bg);
   display: flex;
   flex: 1;
   min-width: 0;
   flex-direction: column;
   align-items: stretch;
   position: relative;
-  overflow: hidden; /* Prevent page & viewport scrollbars */
+  overflow: hidden;
   padding: 0;
   height: 100%;
 }
 
-/* Modern Floating Bottom Dock: Cable Palette, Routing & Zoom Controls */
+/* Shared floating dock chrome */
+.viewport-controls-bar,
+.viewport-zoom-dock {
+  z-index: 35;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 30px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  box-shadow: var(--glass-shadow);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.viewport-controls-bar:hover,
+.viewport-zoom-dock:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+/* Cable color & routing — center bottom */
 .viewport-controls-bar {
   position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 35;
-  background: rgba(11, 17, 30, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  padding: 3px 10px;
-  border: 1px solid rgba(56, 189, 248, 0.32);
-  border-radius: 30px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
+  padding: 3px 12px;
   flex-wrap: nowrap;
-  max-width: calc(100% - 24px);
+  max-width: calc(100% - 280px);
   overflow-x: auto;
   scrollbar-width: none;
   min-height: 38px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 229, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.viewport-controls-bar:hover {
-  border-color: rgba(0, 229, 255, 0.55);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.75), 0 0 26px rgba(0, 229, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  justify-content: center;
 }
 .viewport-controls-bar::-webkit-scrollbar { display: none; }
+
+/* Zoom & section jump — bottom right */
+.viewport-zoom-dock {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  left: auto;
+  transform: none;
+  padding: 3px 8px;
+  border-radius: 20px;
+  max-width: calc(100% - 32px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-height: 36px;
+}
+.viewport-zoom-dock::-webkit-scrollbar { display: none; }
+.viewport-zoom-dock .ctrl-group::after { display: none; }
 
 .ctrl-group {
   display: flex;
@@ -59,13 +83,18 @@
   display: inline-block;
   width: 1px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-subtle);
   margin-left: 5px;
   margin-right: 1px;
 }
 
 .ctrl-group:last-child::after {
   display: none;
+}
+
+.btn-tidy-cables {
+  font-size: 0.7rem;
+  padding: 3px 8px;
 }
 
 .color-swatch-group {
@@ -92,6 +121,31 @@
   border-color: #fff;
   box-shadow: 0 0 10px currentColor, 0 0 4px #fff;
   transform: scale(1.2);
+}
+
+.multi-rack-view-toggle {
+  display: inline-flex;
+  background: color-mix(in srgb, var(--bg-inset) 80%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  margin-right: 4px;
+}
+
+.multi-rack-view-toggle .btn-rack-action {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  height: 20px;
+  line-height: 16px;
+}
+
+.multi-rack-view-toggle .btn-rack-action.active {
+  background: color-mix(in srgb, var(--accent-blue) 22%, transparent);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
 }
 
 /* Routing Mode Segmented Button */
@@ -254,30 +308,65 @@
 /* Floating Status & Instruction Hint */
 .viewport-bottom-hint {
   position: absolute;
-  bottom: 74px;
+  bottom: 68px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.82);
+  background: var(--glass-bg);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 4px 14px;
+  border: 1px solid var(--border-subtle);
+  padding: 3px 10px 3px 14px;
   border-radius: 20px;
-  font-size: 0.68rem;
-  color: #94a3b8;
-  pointer-events: none;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  pointer-events: auto;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
-  opacity: 0.85;
+  opacity: 0.78;
+  transition: opacity 0.2s ease;
+}
+
+.viewport-bottom-hint:hover {
+  opacity: 1;
+}
+
+.viewport-bottom-hint.is-dismissed {
+  display: none !important;
+}
+
+.viewport-bottom-hint .hint-accent {
+  color: var(--accent-blue);
+}
+
+.viewport-bottom-hint .hint-sep {
+  color: var(--border);
+}
+
+.viewport-bottom-hint .hint-dismiss {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  margin-left: 2px;
+  border-radius: 4px;
+}
+
+.viewport-bottom-hint .hint-dismiss:hover {
+  color: var(--text-main);
+  background: var(--border-subtle);
 }
 
 /* Multi-Rack Tabs & Cabinet Switcher Bar (Floating Sub-Deck under Unified Header) */
 .rack-floating-topdeck {
   position: absolute;
-  top: 58px;
+  top: var(--chrome-offset, 58px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 36;
@@ -285,13 +374,13 @@
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  background: rgba(11, 17, 30, 0.9);
+  background: var(--glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--glass-shadow);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
   width: fit-content;
   max-width: calc(100% - 24px);
   height: 32px;
@@ -307,8 +396,8 @@
 }
 
 .rack-floating-topdeck:hover {
-  border-color: rgba(0, 229, 255, 0.45);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 229, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover);
 }
 
 .rack-floating-topdeck .rack-tabs-bar {
