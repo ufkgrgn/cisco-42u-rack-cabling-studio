@@ -427,21 +427,75 @@
 
     let panOriginClientX = 0;
     let panOriginClientY = 0;
+    let isSpacePressed = false;
+    let wasSpacePanning = false;
+    let panOverlayEl = null;
+    let panOverlayFadeTimer = null;
+    let lastSpacePanEndTime = 0;
+
+    function showPanOverlay() {
+      if (!panOverlayEl) {
+        panOverlayEl = document.createElement('div');
+        panOverlayEl.id = 'studio-pan-overlay-pill';
+        panOverlayEl.className = 'studio-pan-overlay-pill';
+        panOverlayEl.innerHTML = '<span class="pan-pill-icon">✋</span><span class="pan-pill-text">Pan Modu</span><span class="pan-pill-sub">(Space + Sürükle)</span>';
+        document.body.appendChild(panOverlayEl);
+      }
+      if (panOverlayFadeTimer) {
+        clearTimeout(panOverlayFadeTimer);
+        panOverlayFadeTimer = null;
+      }
+      panOverlayEl.classList.remove('fade-out');
+      panOverlayEl.classList.add('visible');
+
+      panOverlayFadeTimer = setTimeout(() => {
+        hidePanOverlay();
+      }, 2500);
+    }
+
+    function hidePanOverlay(immediate = false) {
+      if (panOverlayFadeTimer) {
+        clearTimeout(panOverlayFadeTimer);
+        panOverlayFadeTimer = null;
+      }
+      if (!panOverlayEl) return;
+      if (immediate) {
+        panOverlayEl.classList.remove('visible', 'fade-out');
+      } else {
+        panOverlayEl.classList.add('fade-out');
+        panOverlayFadeTimer = setTimeout(() => {
+          panOverlayEl?.classList.remove('visible', 'fade-out');
+          panOverlayFadeTimer = null;
+        }, 260);
+      }
+    }
 
     canvas.addEventListener('mousedown', (e) => {
+      if (isSpacePressed) {
+        wasSpacePanning = true;
+        panOriginClientX = e.clientX;
+        panOriginClientY = e.clientY;
+        document.body.classList.add('panning-active');
+        beginPan(e.clientX, e.clientY);
+        RS.ZOOM_STATE.hasMoved = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
       if (RS.isDraggingDevice || RS.dom?.rackStage?.classList.contains('device-dragging-active') || e.target.closest('.mounted-device') || e.target.closest('[data-drag-handle="true"]')) {
         if (RS.ZOOM_STATE.isPanning) endPan();
         return;
       }
       const isBlocked = !!e.target.closest('button, .port, .dev-btn, input, select, textarea, [data-drag-handle="true"], .u-label, .rack-u-action-menu, #rack-u-action-menu, .studio-multiselect-pill, #studio-multiselect-pill, .modal, .mounted-device');
-      if (e.button === 1 || (e.button === 0 && (e.altKey || e.spaceKey || !isBlocked))) {
+      if (e.button === 1 || (e.button === 0 && (e.altKey || !isBlocked))) {
         panOriginClientX = e.clientX;
         panOriginClientY = e.clientY;
         beginPan(e.clientX, e.clientY);
         RS.ZOOM_STATE.hasMoved = false;
         e.preventDefault();
       }
-    });
+    }, { capture: true });
 
     window.addEventListener('mousemove', (e) => {
       if (RS.isDraggingDevice || RS.dom?.rackStage?.classList.contains('device-dragging-active')) {
@@ -457,6 +511,11 @@
     });
 
     window.addEventListener('mouseup', () => {
+      if (wasSpacePanning) {
+        wasSpacePanning = false;
+        lastSpacePanEndTime = Date.now();
+      }
+      document.body.classList.remove('panning-active');
       if (RS.ZOOM_STATE.isPanning) {
         endPan();
         if (RS.ZOOM_STATE.hasMoved) {
@@ -595,10 +654,22 @@
       }
     });
 
-    // Keyboard shortcuts: F for Focus/Fit, 0/1 for 100% 1:1 view
+    // Keyboard shortcuts: Space for Global Pan, F for Focus/Fit, 0/1 for 100% 1:1 view
     window.addEventListener('keydown', (e) => {
       const tag = e.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) return;
+
+      if (e.code === 'Space' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (!isSpacePressed) {
+          isSpacePressed = true;
+          RS.isSpacePressed = true;
+          document.body.classList.add('space-pan-active');
+          showPanOverlay();
+        }
+        e.preventDefault();
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key === 'f' || e.key === 'F') {
@@ -613,6 +684,33 @@
         setZoom(1.0, undefined, undefined, true);
       }
     });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        isSpacePressed = false;
+        RS.isSpacePressed = false;
+        document.body.classList.remove('space-pan-active', 'panning-active');
+        hidePanOverlay(true);
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      if (isSpacePressed) {
+        isSpacePressed = false;
+        RS.isSpacePressed = false;
+        document.body.classList.remove('space-pan-active', 'panning-active');
+        hidePanOverlay(true);
+        if (RS.ZOOM_STATE.isPanning) endPan();
+      }
+    });
+
+    window.addEventListener('click', (e) => {
+      if (isSpacePressed || (Date.now() - lastSpacePanEndTime < 200)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    }, { capture: true });
 
     // Zoom and pan are compositor-only. Cable geometry is refreshed by layout
     // mutations and resize handlers, not by view transforms.

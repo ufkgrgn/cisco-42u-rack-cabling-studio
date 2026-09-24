@@ -134,7 +134,7 @@
   window.mountDeviceFromAction = mountDeviceFromAction;
 
   function handleSlotDoubleClick(targetU, e, targetRackId) {
-    if (ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
+    if (RS.isSpacePressed || ZOOM_STATE.hasMoved || ZOOM_STATE.isPanning) return;
     if (!STATE.selectedLibraryItem) {
       showTemporaryTooltip(e.clientX, e.clientY, "Lütfen önce sol menüden monte edilecek bir donanım seçin veya sürükleyin!");
       return;

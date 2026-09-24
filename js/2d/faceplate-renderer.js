@@ -660,6 +660,7 @@
 
     // Bezel click
     stage.addEventListener('click', (e) => {
+      if (RS.isSpacePressed) return;
       const bezel = e.target.closest('.bezel-badge, .cisco-integrated-bezel, .patch-integrated-bezel');
       if (bezel) {
         e.stopPropagation();

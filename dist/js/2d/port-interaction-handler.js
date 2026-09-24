@@ -53,6 +53,7 @@
         }
       });
       stage.addEventListener('click', (e) => {
+        if (RS.isSpacePressed) return;
         const portEl = e.target.closest('.port');
         if (!portEl) return;
         if (STATE.multiSelectMode) {
