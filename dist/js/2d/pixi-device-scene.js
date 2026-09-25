@@ -685,7 +685,6 @@
       return false;
     }
     activeDeviceSceneLod = lod;
-    revealDeviceSprites();
     const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
     const occupied = collectDeviceOccupancy();
     const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;

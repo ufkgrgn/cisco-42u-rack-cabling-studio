@@ -125,19 +125,20 @@
   }
 
   function stripLiveFaceplates() {
+    const unstripped = document.querySelectorAll('.device-faceplate, .organizer-faceplate, .blank-faceplate, .ports-area');
+    if (!unstripped.length) return 0;
     let stripped = 0;
-    document.querySelectorAll('.mounted-device').forEach(deviceEl => {
-      deviceEl.querySelectorAll('.device-faceplate, .organizer-faceplate, .blank-faceplate, .ports-area').forEach(node => {
-        node.remove();
-        stripped++;
-      });
-      if (!deviceEl.querySelector('.pixi-device-body')) {
+    unstripped.forEach(node => {
+      const parent = node.closest('.mounted-device');
+      node.remove();
+      stripped++;
+      if (parent && !parent.querySelector('.pixi-device-body')) {
         const body = document.createElement('div');
         body.className = 'pixi-device-body';
         body.setAttribute('aria-hidden', 'true');
-        const rightEar = deviceEl.querySelector('.device-ear-right');
-        if (rightEar) deviceEl.insertBefore(body, rightEar);
-        else deviceEl.appendChild(body);
+        const rightEar = parent.querySelector('.device-ear-right');
+        if (rightEar) parent.insertBefore(body, rightEar);
+        else parent.appendChild(body);
       }
     });
     return stripped;

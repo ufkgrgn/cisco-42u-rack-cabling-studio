@@ -127,6 +127,9 @@
     const transform = getViewportTransform();
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const signature = `${currentTheme}|${lod}|${isMulti ? 'multi' : 'single'}|${racks.map(r => `${r.id}:${r.heightU || 42}`).join(';')}`;
+    if (signature === lastCabinSignature && cabinScenes.size === racks.length) {
+      return false;
+    }
 
     const currentKeys = new Set(racks.map(r => String(r.id)));
     for (const [key, scene] of cabinScenes) {
