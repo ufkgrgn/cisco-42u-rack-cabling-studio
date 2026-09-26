@@ -1,15 +1,15 @@
 /**
- * Light / dark theme controller for Rack Studio chrome.
- * Persists preference under rack-studio-theme (dark | light).
+ * Shared theme controller for Rack Studio chrome and rendered scenes.
  */
 (function () {
   'use strict';
 
   const STORAGE_KEY = 'rack-studio-theme';
-  const DEFAULT_THEME = 'dark';
+  const DEFAULT_THEME = 'light';
+  const THEMES = ['light', 'dark', 'blueprint', 'high-contrast'];
 
   function normalizeTheme(value) {
-    return value === 'light' ? 'light' : 'dark';
+    return THEMES.includes(value) ? value : DEFAULT_THEME;
   }
 
   function getStoredTheme() {
@@ -59,24 +59,20 @@
     if (window.PixiContext?.renderPixi) {
       window.PixiContext.renderPixi('theme-change');
     }
+    window.__STUDIO3D__?.applyVisualTheme?.(next);
     window.dispatchEvent(new CustomEvent('rackstudio:themechange', { detail: { theme: next } }));
 
     return next;
   }
 
   function syncToggleUi(theme) {
-    const btn = document.getElementById('btn-theme-toggle');
-    if (!btn) return;
-    const isLight = theme === 'light';
-    btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
-    btn.title = isLight ? 'Koyu temaya geç' : 'Açık temaya geç';
-    btn.textContent = isLight ? '🌙' : '☀️';
-    btn.setAttribute('aria-label', btn.title);
+    const select = document.getElementById('btn-theme-toggle');
+    if (select) select.value = theme;
   }
 
   function toggleTheme() {
     const current = document.documentElement.getAttribute('data-theme') || getStoredTheme();
-    return applyTheme(current === 'light' ? 'dark' : 'light');
+    return applyTheme(THEMES[(THEMES.indexOf(current) + 1) % THEMES.length]);
   }
 
   // Apply early to avoid flash when script loads after first paint of chrome
@@ -84,9 +80,8 @@
 
   function initThemeToggle() {
     applyTheme(getStoredTheme());
-    document.getElementById('btn-theme-toggle')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleTheme();
+    document.getElementById('btn-theme-toggle')?.addEventListener('change', (event) => {
+      applyTheme(event.target.value);
     });
   }
 

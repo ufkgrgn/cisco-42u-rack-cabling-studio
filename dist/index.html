@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr" data-device-renderer="pixi" data-theme="dark">
+<html lang="tr" data-device-renderer="pixi" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +7,12 @@
   <script>
     try {
       var t = localStorage.getItem('rack-studio-theme');
-      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      if (['light', 'dark', 'blueprint', 'high-contrast'].includes(t)) document.documentElement.setAttribute('data-theme', t);
     } catch (e) {}
   </script>
   
-  <!-- Modern CAD & Stencil Typography -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bundled typography for offline use -->
+  <link rel="stylesheet" href="css/local-fonts.css">
   
   <!-- Modular Stylesheets (2D Workspace) -->
   <link rel="stylesheet" href="css/theme-tokens.css">
@@ -36,6 +34,7 @@
   <link rel="stylesheet" href="css/catalog-sidebar.css">
   <link rel="stylesheet" href="css/catalog-modal.css">
   <link rel="stylesheet" href="css/catalog-inspector.css">
+  <link rel="stylesheet" href="css/instrument-chrome.css">
 </head>
 <body>
 
@@ -53,6 +52,32 @@
       </div>
     </div>
 
+    <div class="header-rack-meta">
+      <div class="rack-selector-wrapper" id="rack-selector-wrapper">
+        <button type="button" class="hud-btn rack-selector-btn" id="btn-rack-selector" aria-haspopup="listbox" aria-expanded="false" title="Kabin seç">
+          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2h12v3H2V2zm0 4.5h12v3H2v-3zM2 11h12v3H2v-3z"/></svg>
+          <span class="rack-selector-name" id="rack-selector-name">MDF</span>
+          <span class="rack-selector-badge" id="rack-selector-badge">42U</span>
+          <span class="rack-selector-caret">▾</span>
+        </button>
+        <div class="rack-selector-dropdown" id="rack-selector-dropdown" style="display: none;">
+          <div class="rack-selector-dropdown-content" id="rack-selector-dropdown-content">
+          </div>
+          <div class="rack-tabs-list" id="rack-tabs-list" style="display:none;"></div>
+          <div class="rack-dropdown-footer">
+            <button type="button" class="rack-dropdown-footer-btn" id="btn-add-rack" title="Yeni Kabin Ekle">Yeni kabin</button>
+            <button type="button" class="rack-dropdown-footer-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">Adı değiştir</button>
+          </div>
+        </div>
+      </div>
+      <span class="header-u-used" id="header-u-used" title="Dolu ve boş rack birimi">0 / 42U</span>
+    </div>
+
+    <div class="compact-panel-actions" data-context="2d-only">
+      <button type="button" class="hud-btn" id="btn-mobile-catalog" aria-controls="sidebar-left" aria-expanded="false">Donanım</button>
+      <button type="button" class="hud-btn" id="btn-mobile-schedule" aria-controls="sidebar-right" aria-expanded="false">Bağlantılar</button>
+    </div>
+
     <div class="hud-center-cluster">
       <div class="view-switch-segmented">
         <button type="button" class="segmented-btn active" id="btn-view-2d">2D</button>
@@ -60,7 +85,7 @@
       </div>
 
       <label class="device-label-control" for="device-label-mode" id="device-label-control" data-context="3d-only" style="display:none;">
-        <span>Etiket:</span>
+        <span>Etiket</span>
         <select id="device-label-mode" title="Cihazlarda gösterilecek bilgi">
           <option value="name">İsim</option>
           <option value="ip">IP Adresi</option>
@@ -71,69 +96,50 @@
       </label>
 
       <div id="controls-3d-group" class="context-toolbar" style="display:none;">
-        <div class="hud-btn-group" title="3D Kamera Bakış Açıları">
-          <button class="hud-btn cam-btn active" id="cam-iso" title="İzometrik 3D Sinematik Açı (1)">İzo</button>
-          <button class="hud-btn cam-btn" id="cam-front" title="Ön Panel Doğrudan Bakış (2)">Ön</button>
-          <button class="hud-btn cam-btn" id="cam-rear" title="Arka Güç & Portlar (3)">Arka</button>
-          <button class="hud-btn cam-btn" id="cam-top" title="Tavan Kablo Tavası Kuşbakışı (4)">Üst</button>
-          <button class="hud-btn cam-btn" id="cam-focus" title="Aktif Cihazlara Yakından Odaklan (5)">Odak</button>
-        </div>
-        <div class="hud-btn-group">
-          <button class="hud-btn" id="btn-door-toggle" title="Kabin Cam Kapağını Aç / Kapat (D tuşu)">Kapak</button>
-          <button class="hud-btn" id="btn-routing-toggle" title="Kablo Sarkma Fiziğini Değiştir">Catenary</button>
-          <button class="hud-btn" id="btn-lighting-toggle" title="Işıklandırma Modu">Işık</button>
+        <div class="hud-btn-group" title="3D kamera" role="group" aria-label="Kamera">
+          <button class="hud-btn cam-btn active" id="cam-iso" title="İzometrik (1)">İzo</button>
+          <button class="hud-btn cam-btn" id="cam-front" title="Ön (2)">Ön</button>
+          <button class="hud-btn cam-btn" id="cam-rear" title="Arka (3)">Arka</button>
+          <button class="hud-btn cam-btn" id="cam-top" title="Üst (4)">Üst</button>
+          <button class="hud-btn cam-btn" id="cam-focus" title="Odak (5)">Odak</button>
         </div>
       </div>
 
       <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
-        <div class="rack-selector-wrapper" id="rack-selector-wrapper">
-          <button type="button" class="hud-btn rack-selector-btn" id="btn-rack-selector" aria-haspopup="listbox" aria-expanded="false" title="Kabin ve Bağlantılı Kümeleri Seç">
-            <span class="rack-selector-icon">🗄️</span>
-            <span class="rack-selector-name" id="rack-selector-name">MDF</span>
-            <span class="rack-selector-badge" id="rack-selector-badge">42U</span>
-            <span class="rack-selector-caret">▾</span>
-          </button>
-          <div class="rack-selector-dropdown" id="rack-selector-dropdown" style="display: none;">
-            <div class="rack-selector-dropdown-content" id="rack-selector-dropdown-content">
-              <!-- Rendered dynamically by rack-manager.js -->
-            </div>
-            <div class="rack-tabs-list" id="rack-tabs-list" style="display:none;"></div>
-            <div class="rack-dropdown-footer">
-              <button type="button" class="rack-dropdown-footer-btn" id="btn-add-rack" title="Yeni Kabin Ekle">+ Yeni Kabin</button>
-              <button type="button" class="rack-dropdown-footer-btn" id="btn-rename-rack" title="Aktif Kabinin Adını Değiştir">✎ Adı Değiştir</button>
-            </div>
-          </div>
-        </div>
-
         <div class="rack-view-mode-switch" id="rack-view-mode-switch" role="group" aria-label="Kabin görünüm modu">
-          <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek Kabin Odak Modu">
-            <span class="rack-view-mode-icon" aria-hidden="true">▣</span>
+          <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek kabin">
             <span class="rack-view-mode-text">Tek</span>
           </button>
-          <button type="button" class="rack-view-mode-btn active" id="btn-view-mode-multi" title="Tüm Kabinleri Yan Yana Göster">
-            <span class="rack-view-mode-icon" aria-hidden="true">▥</span>
-            <span class="rack-view-mode-text">Yan Yana</span>
+          <button type="button" class="rack-view-mode-btn active" id="btn-view-mode-multi" title="Kabinleri yan yana göster">
+            <span class="rack-view-mode-text">Yan yana</span>
           </button>
         </div>
+        <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin ön veya arka yüzü">Ön / Arka</button>
+      </div>
+    </div>
 
-        <div class="hud-btn-group">
-          <button class="hud-btn" id="btn-2d-face-toggle" title="Kabin Ön/Arka Yüzü Değiştir">Ön / Arka</button>
-          <button class="hud-btn" id="btn-export-visio" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">Visio</button>
+    <div class="compact-view-menu" id="compact-view-menu">
+      <button type="button" class="hud-btn" id="btn-compact-view" aria-controls="compact-view-panel" aria-expanded="false">Görünüm</button>
+      <div class="compact-view-panel" id="compact-view-panel" hidden>
+        <div id="compact-view-2d">
+          <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-multi">Yan yana</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / Arka yüz</button>
         </div>
-        <button class="hud-btn btn-danger-subtle" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Sıfırla</button>
+        <div id="compact-view-3d" hidden>
+          <button type="button" class="hud-btn" data-shortcut-for="cam-iso">İzometrik</button>
+          <button type="button" class="hud-btn" data-shortcut-for="cam-front">Ön</button>
+          <button type="button" class="hud-btn" data-shortcut-for="cam-rear">Arka</button>
+          <button type="button" class="hud-btn" data-shortcut-for="cam-top">Üst</button>
+          <button type="button" class="hud-btn" data-shortcut-for="cam-focus">Seçime odaklan</button>
+        </div>
       </div>
     </div>
 
     <div class="hud-right-cluster">
-      <div class="hud-u-selector" title="Kabin Yüksekliği (12U - 60U Boyutu) / Rack Unit Height">
-        <span class="u-tag">U:</span>
-        <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2" title="Kabin Yüksekliğini Ayarla (12U - 60U)">
-        <span id="rack-u-val">42U</span>
-      </div>
-
       <label class="device-label-control" for="performance-mode" style="display:none;">
-        <span>3D Kalite:</span>
-        <select id="performance-mode" title="3D performans ve görüntü kalitesi dengesi">
+        <span>3D kalite</span>
+        <select id="performance-mode" title="3D performans ve görüntü kalitesi">
           <option value="eco">Ekonomi</option>
           <option value="balanced">Dengeli</option>
           <option value="quality">Yüksek</option>
@@ -141,44 +147,84 @@
       </label>
 
       <div class="hud-btn-group hud-history-group">
-        <button class="hud-btn icon-only" id="btn-3d-undo" title="Geri Al (Ctrl+Z)">↩</button>
-        <button class="hud-btn icon-only" id="btn-3d-redo" title="İleri Al (Ctrl+Y)">↪</button>
+        <button class="hud-btn icon-only" id="btn-3d-undo" title="Geri al (Ctrl+Z)" aria-label="Geri al">
+          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M6 4H3v3M3.5 7A5 5 0 1 0 5 4.2"/></svg>
+        </button>
+        <button class="hud-btn icon-only" id="btn-3d-redo" title="İleri al (Ctrl+Y)" aria-label="İleri al">
+          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M10 4h3v3M12.5 7A5 5 0 1 1 11 4.2"/></svg>
+        </button>
       </div>
 
-      <button type="button" class="hud-btn icon-only" id="btn-theme-toggle" title="Açık temaya geç" aria-pressed="false" aria-label="Açık temaya geç">☀️</button>
+      <button type="button" class="hud-btn" id="btn-command-palette" title="Komutlar (Ctrl+K)">Komut</button>
 
       <div class="hud-tools-menu" id="hud-tools-menu">
-        <button type="button" class="hud-btn" id="btn-tools-menu-toggle" aria-expanded="false" aria-controls="hud-tools-panel" title="Araçlar menüsü">Araçlar ▾</button>
+        <button type="button" class="hud-btn" id="btn-tools-menu-toggle" aria-expanded="false" aria-controls="hud-tools-panel" title="Diğer araçlar">Araçlar</button>
         <div class="hud-tools-panel" id="hud-tools-panel" hidden>
           <div class="hud-tools-section" id="preset-btn-group">
             <span class="hud-tools-label">Şablonlar</span>
             <div class="preset-btn-wrap" data-preset="mdf">
-              <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF Omurga Şablonu Yükle">MDF</button>
+              <button class="hud-btn preset-btn" id="btn-3d-preset-mdf" title="MDF omurga şablonu">MDF</button>
             </div>
             <div class="preset-btn-wrap" data-preset="idf">
-              <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF Kat Şablonu Yükle">IDF</button>
+              <button class="hud-btn preset-btn" id="btn-3d-preset-idf" title="IDF kat şablonu">IDF</button>
             </div>
             <div class="preset-btn-wrap" data-preset="site">
-              <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF Çoklu Kabin)">Saha</button>
+              <button class="hud-btn preset-btn" id="btn-3d-preset-site" title="MDF ve IDF saha topolojisi">Saha</button>
             </div>
+          </div>
+          <div class="hud-tools-section">
+            <span class="hud-tools-label">Kabin</span>
+            <div class="tools-slider-row" title="Kabin yüksekliği 12U–60U">
+              <span>Yükseklik</span>
+              <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2" aria-label="Kabin yüksekliği">
+              <span id="rack-u-val">42U</span>
+            </div>
+          </div>
+          <div class="hud-tools-section" id="tools-3d-only" hidden>
+            <span class="hud-tools-label">3D kabin</span>
+            <button class="hud-btn" data-shortcut-for="cam-iso">İzometrik görünüm</button>
+            <button class="hud-btn" data-shortcut-for="cam-front">Önden görünüm</button>
+            <button class="hud-btn" data-shortcut-for="cam-rear">Arkadan görünüm</button>
+            <button class="hud-btn" data-shortcut-for="cam-top">Üstten görünüm</button>
+            <button class="hud-btn" data-shortcut-for="cam-focus">Seçime odaklan</button>
+            <button class="hud-btn" id="btn-door-toggle" title="Kabin kapağı (D)">Kapak</button>
+            <button class="hud-btn" id="btn-routing-toggle" title="Kablo sarkma fiziği">Sarkma</button>
+            <button class="hud-btn" id="btn-lighting-toggle" title="Işıklandırma">Işık</button>
+          </div>
+          <div class="hud-tools-section" id="tools-2d-only">
+            <span class="hud-tools-label">2D görünüm</span>
+            <button class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
+            <button class="hud-btn" data-shortcut-for="btn-view-mode-multi">Kabinleri yan yana göster</button>
+            <button class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / arka yüz</button>
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Araçlar</span>
-            <button class="hud-btn" id="btn-snapshot-modal" title="Kabin Snapshot Al & Karşılaştır">Snapshot</button>
-            <button class="hud-btn" id="btn-3d-schedule-modal" title="Metraj & Kablo Çizelgesi">Metraj</button>
-            <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel 3D Donanım Üret" style="display:none;">Donanım</button>
-            <button class="hud-btn" id="btn-export-visio-tools" title="Microsoft Visio Uyumlu SVG Çıkar" onclick="window.handleUnifiedVisioExport?.()">Visio</button>
+            <button class="hud-btn" id="btn-snapshot-modal" title="Kabin anlık görüntüsü">Anlık görüntü</button>
+            <button class="hud-btn" id="btn-3d-schedule-modal" title="Bağlantı listesi">Bağlantılar</button>
+            <button class="hud-btn" id="btn-field-sheet" title="Yazdırılabilir saha kartı">Saha kartı</button>
+            <button class="hud-btn" id="btn-field-mode" title="Kütüphaneyi gizle, bağlantı listesini büyüt" aria-pressed="false">Saha görünümü</button>
+            <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel donanım" style="display:none;">Donanım</button>
+            <button class="hud-btn" id="btn-export-visio" title="Visio uyumlu SVG">Visio</button>
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Proje</span>
-            <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON İndir">Kaydet</button>
-            <button class="hud-btn" id="btn-import-json-3d" title="JSON Yükle">Yükle</button>
+            <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON indir">Kaydet</button>
+            <button class="hud-btn" id="btn-import-json-3d" title="JSON yükle">Yükle</button>
             <input type="file" id="file-import-3d" accept=".json" style="display:none;">
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Tercihler</span>
-            <button class="hud-btn icon-only" id="btn-network-compliance" title="Ağ Standartları & Döngü Koruması (Açık/Kapalı)">🛡️ Kurallar</button>
-            <button class="hud-btn icon-only" id="btn-audio-toggle" title="Ses Efektlerini Aç/Kapat">🔊 Ses</button>
+            <label class="theme-choice-label" for="btn-theme-toggle">Tema</label>
+            <select class="hud-btn theme-choice" id="btn-theme-toggle" aria-label="Görünüm teması">
+              <option value="light">Açık</option>
+              <option value="dark">Koyu</option>
+              <option value="blueprint">Plan</option>
+              <option value="high-contrast">Yüksek kontrast</option>
+            </select>
+            <button class="hud-btn" id="btn-network-compliance" title="Ağ standartları ve döngü koruması">Kurallar</button>
+            <button class="hud-btn" id="btn-audio-toggle" title="Ses efektleri">Ses: Açık</button>
+            <button class="hud-btn" id="btn-show-dpad" title="3D yön düğmelerini göster">Yön düğmeleri</button>
+            <button class="hud-btn tools-danger" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Sıfırla</button>
           </div>
         </div>
       </div>
@@ -193,12 +239,12 @@
     <!-- WebGL 3D Canvas Mount -->
     <div id="studio3d-container"></div>
 
-    <!-- LEFT CYBERPUNK CATALOG DRAWER -->
-    <aside class="catalog-drawer" id="catalog-drawer">
+    <button type="button" class="hud-btn catalog-drawer-trigger" id="btn-3d-catalog" aria-controls="catalog-drawer" aria-expanded="false">Kataloğu göster</button>
+    <aside class="catalog-drawer collapsed" id="catalog-drawer" aria-hidden="true" inert>
       <!-- Tab Switcher: Hardware Catalog vs Installed Rack Devices -->
       <div class="drawer-tab-switcher">
-        <button class="drawer-tab-btn active" id="tab-btn-catalog">📦 Donanım Kataloğu</button>
-        <button class="drawer-tab-btn" id="tab-btn-installed">🗄️ Kabindeki Cihazlar (<span id="installed-count">0</span>)</button>
+        <button class="drawer-tab-btn active" id="tab-btn-catalog">Donanım kataloğu</button>
+        <button class="drawer-tab-btn" id="tab-btn-installed">Kabindeki cihazlar (<span id="installed-count">0</span>)</button>
       </div>
 
       <!-- VIEW 1: HARDWARE CATALOG -->
@@ -241,17 +287,19 @@
         <span class="hud-dev-title" id="floating-dev-name">Cihaz Adı</span>
       </div>
       <div class="hud-dev-actions">
-        <button class="hud-action-btn" id="btn-hud-focus" title="Cihaza Odaklan">🔍 Odaklan</button>
-        <button class="hud-action-btn" id="btn-hud-config" title="Cihaz Ayarları">⚙️ Yapılandır</button>
-        <button class="hud-action-btn btn-danger" id="btn-hud-dismount" title="Kabinden Sök (Del)">🗑️ Sök</button>
+        <button class="hud-action-btn" id="btn-hud-focus" title="Cihaza Odaklan">Odaklan</button>
+        <button class="hud-action-btn" id="btn-hud-config" title="Cihaz Ayarları">Yapılandır</button>
+        <button class="hud-action-btn btn-danger" id="btn-hud-dismount" title="Kabinden Sök (Del)">Sök</button>
         <button class="hud-action-btn btn-close-hud" id="btn-hud-close" title="Kapat">✕</button>
       </div>
     </div>
 
     <!-- FLOATING CABLE PALETTE BAR (BOTTOM CENTER) -->
     <div class="cable-palette-bar" id="cable-palette-bar">
-      <span style="font-size:11px;font-weight:700;color:#94a3b8;margin-right:4px;">KABLO RENGİ:</span>
-      <!-- Color dots injected dynamically -->
+      <span class="ctrl-label">Kablo rengi</span>
+      <span id="active-3d-cable-color">Mavi</span>
+      <button type="button" class="hud-btn" id="btn-3d-colors" aria-controls="cable-palette-options" aria-expanded="false">Renk seç</button>
+      <div id="cable-palette-options" hidden></div>
     </div>
 
     <!-- TOAST NOTIFICATION -->
@@ -264,7 +312,7 @@
     <div class="studio-modal" id="modal-schedule">
       <div class="studio-modal-card">
         <div class="modal-header">
-          <h2>KABLO ÇİZELGESİ VE METRAJ RAPORU</h2>
+          <h2>Kablo çizelgesi</h2>
           <button class="hud-btn" id="btn-close-schedule">✕</button>
         </div>
         <div class="modal-body">
@@ -286,7 +334,7 @@
           </table>
         </div>
         <div class="modal-footer">
-          <button class="hud-btn btn-primary" id="btn-export-csv">📥 CSV Raporu İndir</button>
+          <button class="hud-btn btn-primary" id="btn-export-csv">CSV indir</button>
         </div>
       </div>
     </div>
@@ -295,7 +343,7 @@
     <div class="studio-modal" id="modal-cable-edit">
       <div class="studio-modal-card" style="width:480px;">
         <div class="modal-header">
-          <h2>🏷️ KABLO BAĞLANTISI VE ETİKETİ DÜZENLE</h2>
+          <h2>Kablo etiketi</h2>
           <button class="hud-btn" id="btn-close-cable-edit">✕</button>
         </div>
         <div class="modal-body">
@@ -313,30 +361,32 @@
               <!-- Dynamic color dots -->
             </div>
           </div>
-          <div style="background:rgba(15,23,42,0.6);padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);font-size:12px;display:flex;flex-direction:column;gap:6px;">
-            <div><strong>Kaynak Uç:</strong> <span id="edit-cable-from" style="color:#38bdf8;">-</span></div>
-            <div><strong>Hedef Uç:</strong> <span id="edit-cable-to" style="color:#38bdf8;">-</span></div>
-            <div><strong>Hesaplanan 3D Metraj:</strong> <span id="edit-cable-len" style="color:#10b981;font-weight:700;">-</span></div>
+          <div class="cable-ends">
+            <div><strong>Kaynak uç:</strong> <span id="edit-cable-from">-</span></div>
+            <div><strong>Hedef uç:</strong> <span id="edit-cable-to">-</span></div>
+            <div><strong>Metraj:</strong> <span id="edit-cable-len">-</span></div>
           </div>
         </div>
-        <div class="modal-footer" style="display:flex;justify-content:space-between;">
-          <button class="hud-btn" id="btn-delete-cable-modal" style="background:#dc2626;border-color:#ef4444;color:#ffffff;">🗑️ Kabloyu Sök</button>
-          <div style="display:flex;gap:8px;">
-            <button class="hud-btn" id="btn-cancel-cable-edit">İptal</button>
-            <button class="hud-btn btn-primary" id="btn-save-cable-edit">💾 Kaydet</button>
+        <div class="modal-footer">
+          <div class="modal-footer-split">
+            <button class="hud-btn btn-danger" id="btn-delete-cable-modal">Kabloyu sök</button>
+            <div class="footer-actions">
+              <button class="hud-btn" id="btn-cancel-cable-edit">İptal</button>
+              <button class="hud-btn btn-primary" id="btn-save-cable-edit">Kaydet</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 3D DEVICE CONTEXT FLOATING TOOLBAR -->
-    <div id="device-context-menu" style="display:none;position:absolute;z-index:999;background:rgba(15,23,42,0.95);backdrop-filter:blur(10px);border:1px solid rgba(0,229,255,0.4);border-radius:8px;padding:8px;box-shadow:0 8px 30px rgba(0,0,0,0.8);min-width:200px;">
-      <div id="dev-ctx-title" style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">Cihaz Bilgisi</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="hud-btn" id="btn-dev-edit-config" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#38bdf8;border-color:rgba(56,189,248,0.4);">⚙️ Donanımı Yapılandır</button>
-        <button class="hud-btn" id="btn-dev-move-up" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬆️ 1U Yukarı Taşı</button>
-        <button class="hud-btn" id="btn-dev-move-down" style="justify-content:flex-start;padding:4px 8px;font-size:11px;">⬇️ 1U Aşağı Taşı</button>
-        <button class="hud-btn" id="btn-dev-remove" style="justify-content:flex-start;padding:4px 8px;font-size:11px;color:#f87171;border-color:rgba(239,68,68,0.4);">🗑️ Kabinden Sök</button>
+    <div id="device-context-menu" class="instrument-menu" style="display:none;position:absolute;z-index:999;padding:8px;min-width:200px;">
+      <div id="dev-ctx-title">Cihaz</div>
+      <div class="menu-stack">
+        <button class="hud-btn" id="btn-dev-edit-config">Yapılandır</button>
+        <button class="hud-btn" id="btn-dev-move-up">1U yukarı</button>
+        <button class="hud-btn" id="btn-dev-move-down">1U aşağı</button>
+        <button class="hud-btn btn-danger" id="btn-dev-remove">Kabinden sök</button>
       </div>
     </div>
 
@@ -383,7 +433,7 @@
     <div class="studio-modal" id="modal-wizard" style="display:none; z-index:230;">
       <div class="studio-modal-card" style="width:520px;">
         <div class="modal-header">
-          <h2>ÖZEL 3D DONANIM TASARLAMA SİHİRBAZI</h2>
+          <h2>Özel donanım</h2>
           <button class="hud-btn" id="btn-close-wizard">✕</button>
         </div>
         <div class="modal-body">
@@ -436,7 +486,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="hud-btn btn-primary" id="btn-create-custom-device">⚡ 3D Donanımı Üret ve Kataloğa Ekle</button>
+          <button class="hud-btn btn-primary" id="btn-create-custom-device">Kataloğa ekle</button>
         </div>
       </div>
     </div>
@@ -447,7 +497,7 @@
   <div class="studio-modal" id="modal-device-edit" style="display:none;">
     <div class="studio-modal-card" style="width:440px;">
       <div class="modal-header">
-        <h2 id="modal-dev-edit-title">🏷️ DONANIM ETİKETİ & IP YAPILANDIRMASI</h2>
+        <h2 id="modal-dev-edit-title">Cihaz etiketi</h2>
         <button class="hud-btn" id="btn-close-device-edit">✕</button>
       </div>
       <div class="modal-body">
@@ -474,7 +524,7 @@
         </div>
         <div class="form-group" id="dev-edit-trunk-section" style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.1); padding-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <label style="margin:0; font-weight:700; color:#38bdf8;">⚡ Yapılandırılmış Portlar / Trunk Hatları</label>
+            <label style="margin:0;">Yapılandırılmış portlar</label>
           </div>
           <div id="dev-edit-ports-summary" style="font-size:11px; color:#94a3b8; line-height:1.5;">
             Özel port veya 802.1Q TRUNK yapılandırmak için donanım üzerindeki herhangi bir porta <b>sağ tıklayabilir</b> veya <b>Shift + Sol Tık</b> yapabilirsiniz.
@@ -485,7 +535,7 @@
       </div>
       <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;">
         <button class="hud-btn" id="btn-cancel-device-edit">İptal</button>
-        <button class="hud-btn btn-primary" id="btn-save-device-edit">💾 Kaydet ve 3D Paneli Güncelle</button>
+        <button class="hud-btn btn-primary" id="btn-save-device-edit">Kaydet</button>
       </div>
     </div>
   </div>
@@ -494,33 +544,33 @@
   <div class="studio-modal" id="modal-port-edit" style="display:none; z-index:220;">
     <div class="studio-modal-card" style="width:460px;">
       <div class="modal-header">
-        <h2 id="modal-port-edit-title">🔌 PORT YAPILANDIRMASI & TRUNK AYARLARI</h2>
+        <h2 id="modal-port-edit-title">Port ayarları</h2>
         <button class="hud-btn" id="btn-close-port-edit">✕</button>
       </div>
       <div class="modal-body">
-        <div style="background:rgba(15,23,42,0.85); border:1px solid #334155; border-radius:6px; padding:10px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="port-summary">
           <div>
-            <div id="port-edit-dev-name" style="font-weight:700; color:#f8fafc; font-size:13px;">Cisco Catalyst Switch</div>
-            <div id="port-edit-port-label" style="font-size:12px; color:#38bdf8; font-family:monospace; margin-top:2px;">Port #1</div>
+            <div id="port-edit-dev-name">Cisco Catalyst Switch</div>
+            <div id="port-edit-port-label" class="mono">Port #1</div>
           </div>
-          <div id="port-edit-badge" style="font-size:10px; font-weight:bold; padding:4px 10px; border-radius:4px; background:#334155; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">ACCESS</div>
+          <div id="port-edit-badge">ACCESS</div>
         </div>
 
         <div class="form-group">
           <label>Port Rolü / Çalışma Modu</label>
           <select id="port-edit-role" class="form-input">
             <optgroup label="── 802.1Q TRUNK (Çoklu VLAN Taşıyan Hatlar) ──">
-              <option value="trunk">⚡ 802.1Q TRUNK (Switch-to-Switch / Dağıtım Omurgası)</option>
-              <option value="uplink">▲ TRUNK UPLINK (Core / Dağıtım Katı Çıkışı - 10G/SFP+)</option>
-              <option value="trunk-ap">📶 TRUNK AP (Access Point Çoklu-SSID / VLAN Hattı)</option>
+              <option value="trunk">802.1Q trunk (switch-to-switch)</option>
+              <option value="uplink">Trunk uplink (core / 10G)</option>
+              <option value="trunk-ap">Trunk AP (çoklu SSID)</option>
             </optgroup>
             <optgroup label="── ACCESS (Tek VLAN / Uç Nokta Portları) ──">
-              <option value="access">💻 Standart Access (Kullanıcı PC / IP Telefon / Data - PoE Dahil)</option>
-              <option value="mgmt">🔒 Management (OOB / İzole Cihaz Yönetim Portu)</option>
-              <option value="console">📟 Console (Cisco RJ45 Seri Konsol Portu)</option>
+              <option value="access">Standart access (PC / telefon)</option>
+              <option value="mgmt">Management (OOB)</option>
+              <option value="console">Console (RJ45 seri)</option>
             </optgroup>
             <optgroup label="── LAYER 3 / WAN HATLARI ──">
-              <option value="routed">🌐 Routed Port / WAN (Router / Firewall / ISP - no switchport)</option>
+              <option value="routed">Routed port / WAN</option>
             </optgroup>
           </select>
         </div>
@@ -528,8 +578,8 @@
         <div class="form-group">
           <label>PoE (Power over Ethernet) Güç Durumu</label>
           <select id="port-edit-poe" class="form-input">
-            <option value="auto">⚡ PoE Açık (power inline auto - 802.3af/at/bt Aktif)</option>
-            <option value="never">❌ PoE Devre Dışı (power inline never - Güç Kesildi)</option>
+            <option value="auto">PoE açık</option>
+            <option value="never">PoE kapalı</option>
           </select>
           <span style="font-size:11px;color:#94a3b8;margin-top:2px;display:block;">Cisco switch'lerde PoE varsayılan olarak açıktır (IP Telefon / AP). İhtiyaç halinde port bazında kapatılabilir.</span>
         </div>
@@ -569,57 +619,56 @@
 
         <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
           <input type="checkbox" id="port-edit-auto-cable-color" checked style="cursor:pointer; width:16px; height:16px;">
-          <label for="port-edit-auto-cable-color" style="margin:0; cursor:pointer; font-size:12px; color:#e2e8f0;">
+          <label for="port-edit-auto-cable-color" style="margin:0; cursor:pointer;">
             Bu porta bağlanan kablolar otomatik bu portun rengini alsın
           </label>
         </div>
       </div>
       <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <button class="hud-btn btn-danger" id="btn-reset-port-edit" style="color:#ef4444;border-color:#ef4444;">🔄 Sıfırla (Access)</button>
-        <div style="display:flex;gap:10px;">
-          <button class="hud-btn" id="btn-cancel-port-edit">İptal</button>
-          <button class="hud-btn btn-primary" id="btn-save-port-edit">💾 Kaydet ve Uygula</button>
+        <div class="modal-footer-split">
+          <button class="hud-btn btn-danger" id="btn-reset-port-edit">Sıfırla</button>
+          <div class="footer-actions">
+            <button class="hud-btn" id="btn-cancel-port-edit">İptal</button>
+            <button class="hud-btn btn-primary" id="btn-save-port-edit">Kaydet</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ==================== MODERN MODAL: YENİ KABİN EKLE (MULTI-RACK) ==================== -->
-  <div class="modal-backdrop" id="modal-add-rack" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(5,8,17,0.82); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center;">
-    <div class="modal-content" style="background:#0f172a; border:1px solid #38bdf8; border-radius:12px; width:460px; max-width:92vw; box-shadow:0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(56,189,248,0.2); overflow:hidden; animation:modalPop 0.2s cubic-bezier(0.16,1,0.3,1);">
-      <div class="modal-header" style="background:linear-gradient(90deg,#1e293b,#0f172a); padding:14px 18px; border-bottom:1px solid #334155; display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:18px;">🗄️</span>
-          <h3 style="margin:0; font-size:15px; font-weight:700; color:#f8fafc; letter-spacing:0.3px;">Yeni Kabin Ekle (Multi-Rack)</h3>
-        </div>
-        <button type="button" class="btn-icon" id="btn-close-add-rack" style="background:transparent; border:none; color:#94a3b8; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+  <div class="modal-backdrop" id="modal-add-rack">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Yeni kabin</h3>
+        <button type="button" class="hud-btn" id="btn-close-add-rack">Kapat</button>
       </div>
-      <div class="modal-body" style="padding:18px; display:flex; flex-direction:column; gap:14px;">
-        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Adı / Etiketi</label>
-          <input type="text" id="add-rack-name" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px;" placeholder="Örn: IDF-2 Kat 2 Dağıtım Kabini">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Kabin adı</label>
+          <input type="text" id="add-rack-name" class="form-input" placeholder="Örn: IDF-2 Kat 2 Dağıtım Kabini">
         </div>
-        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Yüksekliği (U)</label>
-          <select id="add-rack-height" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px; cursor:pointer;">
+        <div class="form-group">
+          <label>Yükseklik</label>
+          <select id="add-rack-height" class="form-input">
             <option value="42" selected>42U (Standart Tam Boy Datacenter Kabini)</option>
             <option value="48">48U (Yüksek Kapasiteli Omurga Kabini)</option>
             <option value="24">24U (Orta Boy Kat / Sistem Kabini)</option>
             <option value="12">12U (Kompakt Duvar Tipi Saha Kabini)</option>
           </select>
         </div>
-        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:12px; font-weight:600; color:#94a3b8;">Kabin Rolü / Şablon</label>
-          <select id="add-rack-template" class="form-input" style="background:#090d16; border:1px solid #334155; border-radius:6px; padding:8px 12px; color:#fff; font-size:13px; cursor:pointer;">
+        <div class="form-group">
+          <label>Şablon</label>
+          <select id="add-rack-template" class="form-input">
             <option value="empty" selected>Boş Kabin (Cihazları kendim yerleştireceğim)</option>
             <option value="idf-edge">IDF Kenar Dağıtım (Patch Panel + 2x Switch + Organizer)</option>
             <option value="server-rack">Sunucu / Depolama Kabini (Blade + Storage + PDU)</option>
           </select>
         </div>
       </div>
-      <div class="modal-footer" style="background:#090d16; padding:12px 18px; border-top:1px solid #1e293b; display:flex; justify-content:flex-end; gap:10px;">
-        <button type="button" class="hud-btn" id="btn-cancel-add-rack" style="background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:6px; padding:6px 14px; cursor:pointer;">İptal</button>
-        <button type="button" class="hud-btn btn-primary" id="btn-confirm-add-rack" style="background:#0284c7; border:1px solid #38bdf8; color:#fff; border-radius:6px; padding:6px 16px; font-weight:700; cursor:pointer;">➕ Kabini Oluştur</button>
+      <div class="modal-footer">
+        <button type="button" class="hud-btn" id="btn-cancel-add-rack">İptal</button>
+        <button type="button" class="hud-btn btn-primary" id="btn-confirm-add-rack">Kabini oluştur</button>
       </div>
     </div>
   </div>
@@ -652,13 +701,13 @@
 
         <div class="cisco-filter-pills" id="cisco-filter-pills">
           <button type="button" class="cisco-pill active" data-filter="all">Tümü (<span class="pill-count" id="pill-count-all">0</span>)</button>
-          <button type="button" class="cisco-pill" data-filter="current">⚡ Güncel Satışta (Cat9K / 1K / Nexus)</button>
-          <button type="button" class="cisco-pill" data-filter="legacy">⏳ Yaygın Saha (2960 / 3850 / 3560)</button>
+          <button type="button" class="cisco-pill" data-filter="current">Güncel satış (Cat9K / 1K / Nexus)</button>
+          <button type="button" class="cisco-pill" data-filter="legacy">Yaygın saha (2960 / 3850 / 3560)</button>
           <button type="button" class="cisco-pill" data-filter="24p">24 Port Modeller</button>
           <button type="button" class="cisco-pill" data-filter="48p">48 Port Modeller</button>
-          <button type="button" class="cisco-pill" data-filter="poe">⚡ PoE+ / UPOE</button>
-          <button type="button" class="cisco-pill" data-filter="fiber">💡 Fiber Omurga / SFP</button>
-          <button type="button" class="cisco-pill" data-filter="compact">📦 Kompakt (8-16 Port)</button>
+          <button type="button" class="cisco-pill" data-filter="poe">PoE+ / UPOE</button>
+          <button type="button" class="cisco-pill" data-filter="fiber">Fiber omurga / SFP</button>
+          <button type="button" class="cisco-pill" data-filter="compact">Kompakt (8-16 port)</button>
         </div>
       </div>
 
@@ -709,7 +758,7 @@
         IDF Şablonu
       </button>
       <button class="btn" id="btn-preset-site" title="Tüm Saha Topolojisini Yükle (MDF + IDF-1 + IDF-2 Çoklu Kabin)">
-        ⚡ Tam Saha
+        Tam saha
       </button>
       <button class="btn" id="btn-export-json" title="Tüm Kabinleri ve Topolojiyi JSON İndir">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
@@ -725,7 +774,7 @@
         Visio SVG
       </button>
       <button class="btn" id="btn-switch-to-3d" title="3D Stüdyo Moduna Geç" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-color:#c084fc;font-weight:700;">
-        🎮 3D Stüdyo
+        3D stüdyo
       </button>
       <button class="btn btn-danger" id="btn-clear-all" title="Tüm kabinleri ve kabloları sıfırla">
         Sıfırla
@@ -741,46 +790,46 @@
       <!-- Activity Rail (Vertical Category Icon Strip) -->
       <nav class="sidebar-activity-rail" id="sidebar-activity-rail" aria-label="Donanım Kategori Şeridi">
         <button class="rail-btn rail-toggle-btn" id="rail-btn-toggle" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
-          <span class="rail-icon">☰</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M2 4h12M2 8h12M2 12h12"/></svg></span>
           <span class="rail-label">Menü</span>
         </button>
         <div class="rail-divider"></div>
         <button class="rail-btn active" data-category="" title="Tüm Donanımlar">
-          <span class="rail-icon">🗄️</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2 2h12v2.4H2V2zm0 4h12v2.4H2V6zm0 4h12V14H2v-4z"/></svg></span>
           <span class="rail-label">Tümü</span>
         </button>
         <button class="rail-btn" data-category="switch" title="Switchler (14)">
-          <span class="rail-icon">🔀</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4 5h8M10 3l2 2-2 2M12 11H4M6 9l-2 2 2 2"/></svg></span>
           <span class="rail-label">Switch</span>
         </button>
         <button class="rail-btn" data-category="router" title="WAN & Yönlendirici (1)">
-          <span class="rail-icon">🌐</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M3 8h10M8 3c1.6 1.6 1.6 8.4 0 10M8 3c-1.6 1.6-1.6 8.4 0 10"/></svg></span>
           <span class="rail-label">Router</span>
         </button>
         <button class="rail-btn" data-category="patch" title="Patch Paneller (4)">
-          <span class="rail-icon">🔌</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M6 2h4v3H6zM5 5h6v3H5zM7 8v6M4 14h8"/></svg></span>
           <span class="rail-label">Patch</span>
         </button>
         <button class="rail-btn" data-category="organizer" title="Kablo Düzenleyiciler (4)">
-          <span class="rail-icon">🗜️</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M3 4h10M3 8h10M3 12h10"/></svg></span>
           <span class="rail-label">Org</span>
         </button>
         <button class="rail-btn" data-category="fiber" title="Fiber Dağıtım Panelleri (3)">
-          <span class="rail-icon">💡</span>
+          <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 9v5M5 3l3 6 3-6"/></svg></span>
           <span class="rail-label">Fiber</span>
         </button>
         <div class="rail-divider"></div>
         <button class="rail-btn" id="rail-btn-fav" data-filter="favorites" title="Favori Donanımlar">
-          <span class="rail-icon star-icon">★</span>
+          <span class="rail-icon star-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.8l1.7 3.6 4 .5-2.9 2.7.7 3.9L8 10.6 4.5 12.5l.7-3.9L2.3 5.9l4-.5L8 1.8z"/></svg></span>
           <span class="rail-label">Favori</span>
         </button>
         <div class="rail-bottom-actions">
           <button class="rail-btn rail-cisco-btn" id="rail-btn-cisco-catalog" title="Cisco Switch Kataloğu (Master Library)">
-            <span class="rail-icon">🏢</span>
+            <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M3 14V6l5-3 5 3v8M6 14v-4h4v4"/></svg></span>
             <span class="rail-label">Cisco</span>
           </button>
           <button class="rail-btn rail-add-btn" id="rail-btn-custom" data-action="custom" title="Özel Donanım Oluştur">
-            <span class="rail-icon">➕</span>
+            <span class="rail-icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 3v10M3 8h10"/></svg></span>
             <span class="rail-label">Özel</span>
           </button>
         </div>
@@ -795,7 +844,7 @@
             <span class="dock-category-count" id="drawer-category-count">26</span>
           </div>
           <button class="sidebar-toggle-btn" id="btn-toggle-left-sidebar" title="Kütüphaneyi Katla / Aç (Ctrl+B)">
-            ◀
+            <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
           </button>
         </div>
 
@@ -805,7 +854,6 @@
             <span class="cisco-launcher-badge">CISCO</span>
             <span class="cisco-launcher-text">Cisco Switch Kataloğu</span>
             <span class="cisco-launcher-count">46 Model</span>
-            <span class="cisco-launcher-arrow">➔</span>
           </button>
         </div>
 
@@ -1500,18 +1548,19 @@
     <main class="viewport" id="rack-viewport">
       
       <!-- Cable color & routing dock (center-bottom) -->
-      <div class="viewport-controls-bar" id="viewport-cable-dock" aria-label="Kablo kontrolleri">
+      <button type="button" class="hud-btn cable-tools-trigger" id="btn-cable-tools" aria-controls="viewport-cable-dock" aria-expanded="false">Kablo araçları</button>
+      <div class="viewport-controls-bar" id="viewport-cable-dock" aria-label="Kablo kontrolleri" hidden>
         <div class="ctrl-group">
           <span class="ctrl-label">Kablo Rengi:</span>
           <div class="color-swatch-group">
-            <div class="color-swatch selected" data-color="#2563eb" style="background:#2563eb;" title="Cat6 Veri (Mavi)"></div>
-            <div class="color-swatch" data-color="#eab308" style="background:#eab308;" title="VoIP / VLAN (Sarı)"></div>
-            <div class="color-swatch" data-color="#22c55e" style="background:#22c55e;" title="Yönetim / MGMT (Yeşil)"></div>
-            <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Kritik / Uplink (Kırmızı)"></div>
-            <div class="color-swatch" data-color="#06b6d4" style="background:#06b6d4;" title="OM4 Fiber (Aqua Turkuaz)"></div>
-            <div class="color-swatch" data-color="#f97316" style="background:#f97316;" title="OS2 Fiber / Özel (Turuncu)"></div>
-            <div class="color-swatch" data-color="#a855f7" style="background:#a855f7;" title="Storage / SAN (Mor)"></div>
-            <div class="color-swatch" data-color="#94a3b8" style="background:#94a3b8;" title="Konsol / Standart (Gri)"></div>
+            <button type="button" class="color-swatch selected" data-color="#2563eb" title="Cat6 veri, mavi"><span class="swatch-dot" style="background:#2563eb"></span><span class="swatch-name">Cat6</span></button>
+            <button type="button" class="color-swatch" data-color="#eab308" title="VoIP / VLAN, sarı"><span class="swatch-dot" style="background:#eab308"></span><span class="swatch-name">VoIP</span></button>
+            <button type="button" class="color-swatch" data-color="#22c55e" title="Yönetim, yeşil"><span class="swatch-dot" style="background:#22c55e"></span><span class="swatch-name">Mgmt</span></button>
+            <button type="button" class="color-swatch" data-color="#ef4444" title="Kritik / uplink, kırmızı"><span class="swatch-dot" style="background:#ef4444"></span><span class="swatch-name">Uplink</span></button>
+            <button type="button" class="color-swatch" data-color="#06b6d4" title="OM4 fiber, aqua"><span class="swatch-dot" style="background:#06b6d4"></span><span class="swatch-name">OM4</span></button>
+            <button type="button" class="color-swatch" data-color="#f97316" title="OS2 fiber, turuncu"><span class="swatch-dot" style="background:#f97316"></span><span class="swatch-name">OS2</span></button>
+            <button type="button" class="color-swatch" data-color="#a855f7" title="Storage / SAN, mor"><span class="swatch-dot" style="background:#a855f7"></span><span class="swatch-name">SAN</span></button>
+            <button type="button" class="color-swatch" data-color="#94a3b8" title="Konsol, gri"><span class="swatch-dot" style="background:#94a3b8"></span><span class="swatch-name">Konsol</span></button>
           </div>
         </div>
 
@@ -1613,12 +1662,12 @@
 
       <div class="schedule-header">
         <div class="schedule-header-content">
-          <div style="font-weight:700; font-size:0.88rem; color:#fff;">Bağlantı Listesi</div>
-          <div style="font-size:0.7rem; color:var(--text-muted);" id="cable-count-label">0 Bağlantı Yapıldı</div>
+          <div class="schedule-title">Bağlantı Listesi</div>
+          <div class="schedule-subtitle" id="cable-count-label">0 bağlantı</div>
         </div>
-        <button class="btn" id="btn-clear-cables" style="font-size:0.7rem; padding:3px 8px;">Kabloları Sil</button>
+        <button class="btn btn-quiet-danger" id="btn-clear-cables">Kabloları sil</button>
         <button class="sidebar-toggle-btn" id="btn-toggle-right-sidebar" title="Çizelgeyi Katla / Aç">
-          ▶
+          <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </button>
       </div>
 
@@ -1631,8 +1680,8 @@
       <!-- Quick Info / Selected Port Panel -->
       <div class="panel-section schedule-inspector-footer">
         <div class="section-title">Port & Donanım Detayı</div>
-        <div id="inspector-info" style="font-size:0.75rem; color:#cbd5e1; line-height:1.4;">
-          Bir porta tıkladığınızda veya fareyle üzerine geldiğinizde detaylar burada gösterilir.
+        <div id="inspector-info">
+          Bir porta veya kabloya geldiğinizde uçlar, rol ve metraj burada görünür.
         </div>
       </div>
     </aside>
@@ -1642,14 +1691,17 @@
   <!-- Status Bar Footer -->
   <footer class="status-bar">
     <div class="status-badge">
-      <span class="status-indicator"></span>
-      <span>Enterprise Cisco Studio (Hazır)</span>
+      <span class="status-indicator is-ready" id="status-mode-dot"></span>
+      <span id="status-mode-label">Hazır</span>
     </div>
     <div id="status-selection-text">
       Kütüphaneden bir donanım seçip boş bir U pozisyonuna monte edebilirsiniz.
     </div>
-    <div>
-      <span>19" Kabin | 1–60U Düzenleme</span>
+    <div class="status-metrics">
+      <span id="status-rack-name">MDF</span>
+      <span id="status-free-u">42U boş</span>
+      <span id="status-cable-count">0 kablo</span>
+      <span id="status-zoom">100%</span>
     </div>
   </footer>
 
@@ -1717,8 +1769,12 @@
   <script src="js/port-config-editor.js" vite-ignore></script>
   <script src="js/device-metadata-editor.js" vite-ignore></script>
   <script src="js/theme-controller.js" vite-ignore></script>
+  <script src="js/ui-icons.js" vite-ignore></script>
   <script src="js/topbar-controller.js" vite-ignore></script>
   <script src="js/sidebar-controller.js" vite-ignore></script>
   <script src="js/studio-bridge.js" vite-ignore></script>
+  <script src="js/command-palette.js" vite-ignore></script>
+  <script src="js/field-sheet.js" vite-ignore></script>
+  <script src="js/instrument-shell.js" vite-ignore></script>
 </body>
 </html>

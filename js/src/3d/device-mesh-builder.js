@@ -118,6 +118,9 @@ export function registerDeviceMeshMethods(Studio3D) {
     }
     const countEl = document.getElementById('installed-count');
     if (countEl) countEl.textContent = String(this.state.devices.length);
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
     return devData;
   };
 
@@ -137,6 +140,9 @@ export function registerDeviceMeshMethods(Studio3D) {
     }
     const countEl = document.getElementById('installed-count');
     if (countEl) countEl.textContent = String(this.state.devices.length);
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
   };
 
   Studio3D.prototype.moveDevice = function(instanceId, deltaU) {
@@ -163,10 +169,16 @@ export function registerDeviceMeshMethods(Studio3D) {
 
     dev.startU = newU;
     this.rebuildAllDevices();
+    if (this.scene && typeof this.scene.updateMatrixWorld === 'function') {
+      this.scene.updateMatrixWorld(true);
+    }
     this.rebuildAllCables();
     this.state.pushSnapshot();
     this.state.autoSave();
     sfx.insert();
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
     if (typeof window.renderInstalledDevicesList === 'function') {
       window.renderInstalledDevicesList();
     }
@@ -175,9 +187,32 @@ export function registerDeviceMeshMethods(Studio3D) {
   };
 
   Studio3D.prototype.selectDevice = function(instanceId) {
+    if (this._selectionOutline) {
+      if (this._selectionOutline.parent) this._selectionOutline.parent.remove(this._selectionOutline);
+      disposeObject3D(this._selectionOutline);
+      this._selectionOutline = null;
+    }
+
     this.selectedDeviceId = instanceId;
     const dev = this.state.devices.find(d => d.id === instanceId);
     if (!dev) return;
+
+    // Attach high-contrast sleek bounding box outline
+    const devGroup = this.devicesGroup?.getObjectByName(instanceId);
+    if (devGroup) {
+      const chassisMesh = devGroup.children.find(c => c.userData?.isDeviceBody && c.geometry?.parameters);
+      if (chassisMesh) {
+        const p = chassisMesh.geometry.parameters;
+        const boxGeo = new THREE.BoxGeometry(p.width + 0.08, p.height + 0.04, p.depth + 0.08);
+        const edges = new THREE.EdgesGeometry(boxGeo);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2, transparent: true, opacity: 0.85 });
+        const outline = new THREE.LineSegments(edges, lineMat);
+        outline.position.copy(chassisMesh.position);
+        outline.name = '__selection_outline__';
+        devGroup.add(outline);
+        this._selectionOutline = outline;
+      }
+    }
 
     const hud = document.getElementById('floating-device-hud');
     if (hud) {
@@ -194,6 +229,12 @@ export function registerDeviceMeshMethods(Studio3D) {
   };
 
   Studio3D.prototype.deselectDevice = function() {
+    if (this._selectionOutline) {
+      if (this._selectionOutline.parent) this._selectionOutline.parent.remove(this._selectionOutline);
+      disposeObject3D(this._selectionOutline);
+      this._selectionOutline = null;
+    }
+
     this.selectedDeviceId = null;
     const hud = document.getElementById('floating-device-hud');
     if (hud) hud.style.display = 'none';
@@ -239,9 +280,11 @@ export function registerDeviceMeshMethods(Studio3D) {
       const rackId = r.id || 'rack-1';
       (r.devices || []).forEach(d => {
         const catId = d.catalogKey || d.catalogId;
+        const catResolver = (window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(catId) : null;
         const cat3D = (window.CATALOG_3D || []).find(c => c.id === catId);
         const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catId];
-        const cat = cat3D || cat2D || {};
+        const catMaster = Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m.id === catId) : null;
+        const cat = catResolver || cat3D || cat2D || catMaster || {};
         const portDefinitions = Array.isArray(cat.ports) ? cat.ports.map(port => ({
           id: port.id,
           name: port.name,
@@ -286,11 +329,25 @@ export function registerDeviceMeshMethods(Studio3D) {
 
     const resolvePortIndex = (endpoint, devId) => {
       const device = this.state.devices.find(d => d.id === devId);
-      const catalog = (window.RackStudio && window.RackStudio.catalog && device && window.RackStudio.catalog[device.catalogId]) ||
-        (window.CATALOG_3D || []).find(item => device && item.id === device.catalogId) || {};
-      const ports = catalog.ports || [];
-      const byId = ports.findIndex(port => port.id === (endpoint && endpoint.portId));
-      if (byId >= 0) return byId + 1;
+      if (!device) return 1;
+      const catResolver = (window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(device.catalogId) : null;
+      const catalog = catResolver ||
+        (window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[device.catalogId]) ||
+        (window.CATALOG_3D || []).find(item => item.id === device.catalogId) || {};
+      const ports = (device.portDefinitions && device.portDefinitions.length)
+        ? device.portDefinitions
+        : (catalog.ports || []);
+
+      if (endpoint && endpoint.portId) {
+        const byId = ports.findIndex(port => port.id === endpoint.portId);
+        if (byId >= 0) return byId + 1;
+        const byName = ports.findIndex(port => port.name === endpoint.portId || port.id === endpoint.portId.toLowerCase());
+        if (byName >= 0) return byName + 1;
+        if (/^p\d+$/i.test(endpoint.portId)) {
+          const num = parseInt(endpoint.portId.slice(1), 10);
+          if (num >= 1 && (!ports.length || num <= ports.length)) return num;
+        }
+      }
       const saved = Number(endpoint && endpoint.portIdx);
       if (Number.isInteger(saved) && saved >= 1 && (!ports.length || saved <= ports.length)) return saved;
       return 1;

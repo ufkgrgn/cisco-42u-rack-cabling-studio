@@ -22,12 +22,12 @@
     const btnDoor2 = document.getElementById("btn-door-toggle");
     if (btnDoor2) {
       btnDoor2.classList.toggle("active", studio.state.doorOpen);
-      btnDoor2.innerHTML = studio.state.doorOpen ? "\u{1F6AA} Kapak: A\xE7\u0131k" : "\u{1F6AA} Kapak: Kapal\u0131";
+      btnDoor2.textContent = studio.state.doorOpen ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
       btnDoor2.addEventListener("click", () => {
         const next = !studio.state.doorOpen;
         studio.setDoorOpen(next);
         btnDoor2.classList.toggle("active", next);
-        btnDoor2.innerHTML = next ? "\u{1F6AA} Kapak: A\xE7\u0131k" : "\u{1F6AA} Kapak: Kapal\u0131";
+        btnDoor2.textContent = next ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
         studio.showToast(next ? "Kabin Cam Kapa\u011F\u0131 A\xE7\u0131ld\u0131" : "Kabin Cam Kapa\u011F\u0131 Kapat\u0131ld\u0131");
       });
     }
@@ -37,24 +37,23 @@
         const next = studio.state.cableRoutingMode === "catenary" ? "structured" : "catenary";
         studio.state.cableRoutingMode = next;
         studio.rebuildAllCables();
-        btnRouting.innerHTML = next === "catenary" ? "\u3030\uFE0F Catenary Fizik" : "\u{1F532} Yap\u0131sal Kanal";
+        btnRouting.textContent = next === "catenary" ? "Serbest kablo" : "Kablo kanal\u0131";
         studio.showToast(next === "catenary" ? "Kablolama: Yer\xE7ekimi Sarkma Fizi\u011Fi (Catenary)" : "Kablolama: 90\xB0 Yap\u0131sal Yan Kanal");
       });
     }
     const btnLighting = document.getElementById("btn-lighting-toggle");
     if (btnLighting) {
-      const modes = ["studio", "datacenter", "cyberpunk"];
+      const modes = ["studio", "datacenter"];
       const labels = {
-        studio: "\u{1F4A1} St\xFCdyo I\u015F\u0131\u011F\u0131 (Net)",
-        datacenter: "\u{1F3E2} Veri Merkezi",
-        cyberpunk: "\u26A1 Cyberpunk Neon"
+        studio: "I\u015F\u0131k: \u0130nceleme",
+        datacenter: "I\u015F\u0131k: Veri merkezi"
       };
       let currentIdx = 0;
       btnLighting.addEventListener("click", () => {
         currentIdx = (currentIdx + 1) % modes.length;
         const mode = modes[currentIdx];
         studio.setLightingMode(mode);
-        btnLighting.innerHTML = labels[mode];
+        btnLighting.textContent = labels[mode];
         studio.showToast(`I\u015F\u0131k Modu: ${labels[mode]}`);
       });
     }
@@ -97,6 +96,15 @@
 
   // js/src/3d-ui/catalogDrawer.js
   function initCatalogDrawer(studio) {
+    const drawer = document.getElementById("catalog-drawer");
+    const drawerTrigger = document.getElementById("btn-3d-catalog");
+    drawerTrigger?.addEventListener("click", () => {
+      const open = drawer.classList.toggle("collapsed") === false;
+      drawer.inert = !open;
+      drawer.setAttribute("aria-hidden", String(!open));
+      drawerTrigger.setAttribute("aria-expanded", String(open));
+      drawerTrigger.textContent = open ? "Katalo\u011Fu gizle" : "Katalo\u011Fu g\xF6ster";
+    });
     const catalogList = document.getElementById("catalog-items-list");
     const searchInput2 = document.getElementById("catalog-search-input");
     let activeCategory = "all";
@@ -266,11 +274,11 @@
           <div class="installed-card-sub">${dev.manufacturer || "Cisco"} \xB7 ${dev.uHeight}U \xB7 ${dev.powerWatts !== void 0 ? dev.powerWatts : 150}W \xB7 ${dev.category || "Donan\u0131m"}</div>
           ${metaHtml}
           <div class="installed-card-actions">
-            <button class="btn-inst-action btn-inst-edit" title="Donan\u0131m bilgilerini yap\u0131land\u0131r">\u270F\uFE0F D\xFCzenle</button>
-            <button class="btn-inst-action btn-inst-focus" title="Cihaza Odaklan">\u{1F50D} Odaklan</button>
+            <button class="btn-inst-action btn-inst-edit" title="Donan\u0131m bilgilerini yap\u0131land\u0131r">D\xFCzenle</button>
+            <button class="btn-inst-action btn-inst-focus" title="Cihaza Odaklan">Odaklan</button>
             <button class="btn-inst-action btn-inst-up" title="1U Yukar\u0131 Ta\u015F\u0131">\u25B2</button>
             <button class="btn-inst-action btn-inst-down" title="1U A\u015Fa\u011F\u0131 Ta\u015F\u0131">\u25BC</button>
-            <button class="btn-inst-action btn-inst-dismount" title="Kabinden S\xF6k (H\u0131zl\u0131)">\u{1F5D1}\uFE0F S\xF6k</button>
+            <button class="btn-inst-action btn-inst-dismount" title="Kabinden S\xF6k (H\u0131zl\u0131)">S\xF6k</button>
           </div>
         `;
         card.querySelector(".btn-inst-edit")?.addEventListener("click", (e) => {
@@ -455,20 +463,53 @@
   // js/src/3d-ui/cableModals.js
   function initCableModals(studio) {
     const paletteBar = document.getElementById("cable-palette-bar");
-    if (paletteBar && window.CABLE_COLORS_3D) {
+    const paletteOptions = document.getElementById("cable-palette-options");
+    const paletteTrigger = document.getElementById("btn-3d-colors");
+    const activeColor = document.getElementById("active-3d-cable-color");
+    if (paletteBar && paletteOptions && window.CABLE_COLORS_3D) {
+      const selectedIdx = Number.isInteger(studio.state.cableColorIdx) ? studio.state.cableColorIdx : 0;
+      const closePalette = () => {
+        paletteOptions.hidden = true;
+        paletteTrigger?.setAttribute("aria-expanded", "false");
+      };
+      paletteTrigger?.addEventListener("click", () => {
+        paletteOptions.hidden = !paletteOptions.hidden;
+        paletteTrigger.setAttribute("aria-expanded", String(!paletteOptions.hidden));
+      });
+      document.addEventListener("pointerdown", (event) => {
+        if (!paletteOptions.hidden && !paletteBar.contains(event.target)) closePalette();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !paletteOptions.hidden) {
+          closePalette();
+          paletteTrigger?.focus();
+        }
+      });
       window.CABLE_COLORS_3D.forEach((c, idx) => {
-        const dot = document.createElement("div");
-        dot.className = "color-dot" + (idx === 0 ? " active" : "");
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.className = "palette-choice" + (idx === selectedIdx ? " active" : "");
+        const dot = document.createElement("span");
+        dot.className = "color-dot" + (idx === selectedIdx ? " active" : "");
         dot.style.backgroundColor = c.css;
-        dot.title = c.name;
-        dot.addEventListener("click", () => {
-          document.querySelectorAll(".color-dot").forEach((d) => d.classList.remove("active"));
+        const label = document.createElement("span");
+        label.className = "palette-choice-name";
+        label.textContent = c.name;
+        choice.title = c.name;
+        choice.append(dot, label);
+        choice.addEventListener("click", () => {
+          paletteOptions.querySelectorAll(".palette-choice, .color-dot").forEach((d) => d.classList.remove("active"));
+          choice.classList.add("active");
           dot.classList.add("active");
           studio.state.cableColorIdx = idx;
-          studio.showToast(`Kablo Rengi: ${c.name}`);
+          if (activeColor) activeColor.textContent = c.name;
+          closePalette();
+          studio.showToast(`Kablo rengi: ${c.name}`);
         });
-        paletteBar.appendChild(dot);
+        paletteOptions.appendChild(choice);
       });
+      const selected = window.CABLE_COLORS_3D[studio.state.cableColorIdx] || window.CABLE_COLORS_3D[0];
+      if (activeColor && selected) activeColor.textContent = selected.name;
     }
     const cableEditModal = document.getElementById("modal-cable-edit");
     const btnCloseCableEdit = document.getElementById("btn-close-cable-edit");
@@ -564,7 +605,7 @@
                 <td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background-color:#${c.color.toString(16).padStart(6, "0")};margin-right:6px;vertical-align:middle;"></span>#${c.color.toString(16).padStart(6, "0")}</td>
                 <td><strong>${c.lengthM} Metre</strong></td>
                 <td>
-                  <button class="hud-btn btn-edit-cbl" data-id="${c.id}" style="padding:2px 6px;margin-right:4px;">\u270F\uFE0F D\xFCzenle</button>
+                  <button class="hud-btn btn-edit-cbl" data-id="${c.id}">D\xFCzenle</button>
                   <button class="hud-btn btn-del-cbl" data-id="${c.id}" style="padding:2px 6px;color:#ef4444;">S\xF6k</button>
                 </td>
               `;

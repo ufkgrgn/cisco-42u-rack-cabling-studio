@@ -88,7 +88,7 @@
   function updateAudioToggleButton() {
     const btn = document.getElementById('btn-audio-toggle');
     if (btn) {
-      btn.textContent = isMuted ? '🔇 Ses: KAPALI' : '🔊 Ses: AÇIK';
+      btn.textContent = isMuted ? 'Ses: Kapalı' : 'Ses: Açık';
       btn.title = isMuted ? 'Ses Efektlerini Aç (Şu an sessiz)' : 'Ses Efektlerini Kapat (Şu an aktif)';
       btn.classList.toggle('muted', isMuted);
       btn.classList.toggle('active', !isMuted);
@@ -345,7 +345,7 @@
         }
         const toast = document.getElementById('studio-toast');
         if (toast) {
-          toast.textContent = muted ? '🔇 Ses Efektleri KAPATILDI' : '🔊 Ses Efektleri AÇILDI';
+          toast.textContent = muted ? 'Ses kapatıldı' : 'Ses açıldı';
           toast.className = 'show';
           setTimeout(() => { toast.className = ''; }, 2500);
         }

@@ -64,7 +64,7 @@
     // Preserved for test compatibility and accessibility while keeping UI clean & compact
     const accessibleGroup = make('div', undefined, 'catalog-hidden-accessible');
     const category = make('select'); category.setAttribute('aria-label', 'Donanım kategorisi');
-    [['', 'Tüm kategoriler'], ['switch', 'Switch'], ['router', 'Router'], ['fiber-switch', 'Fiber switch'], ['compact', 'Kompakt'], ['patch', 'Patch panel'], ['fiber', 'Fiber panel'], ['organizer', 'Organizatör'], ['blank', 'Boş panel'], ['pdu', 'PDU'], ['custom', 'Özel donanım']].forEach(([value, label]) => { const option = make('option', label); option.value = value; category.append(option); });
+    [['', 'Tüm kategoriler'], ['switch', 'Switch'], ['router', 'Router'], ['fiber-switch', 'Fiber switch'], ['compact', 'Kompakt'], ['patch', 'Patch panel'], ['fiber', 'Fiber panel'], ['organizer', 'Organizatör'], ['blank', 'Boş panel'], ['pdu', 'PDU'], ['server', 'Sunucu'], ['custom', 'Özel donanım']].forEach(([value, label]) => { const option = make('option', label); option.value = value; category.append(option); });
     const units = make('input'); units.type = 'number'; units.min = '1'; units.max = '60'; units.placeholder = 'U yüksekliği'; units.setAttribute('aria-label', 'U yüksekliğine göre filtrele');
     const favoriteLabel = make('label', undefined, 'catalog-favorite-filter'); const favoriteOnly = make('input'); favoriteOnly.type = 'checkbox'; favoriteLabel.append(favoriteOnly, document.createTextNode(' Yalnızca favoriler'));
     const count = make('div', '', 'catalog-count'); count.setAttribute('aria-live', 'polite');
@@ -73,11 +73,11 @@
     // View Mode Segmented Controls (Series Tree vs Category Tree)
     let catalogViewMode = 'series';
     const viewModeSegmented = make('div', undefined, 'catalog-view-segmented');
-    const btnModeSeries = make('button', '🌳 Model Serileri', 'catalog-mode-btn active');
+    const btnModeSeries = make('button', 'Model serileri', 'catalog-mode-btn active');
     btnModeSeries.type = 'button';
     btnModeSeries.dataset.mode = 'series';
     btnModeSeries.title = 'Cisco model serilerine göre Switch Tree yapısı';
-    const btnModeCategory = make('button', '📁 Kategoriler', 'catalog-mode-btn');
+    const btnModeCategory = make('button', 'Kategoriler', 'catalog-mode-btn');
     btnModeCategory.type = 'button';
     btnModeCategory.dataset.mode = 'category';
     btnModeCategory.title = 'Fonksiyonel kategorilere göre Switch Tree yapısı';
@@ -460,8 +460,8 @@
       const mountBtn = make('button', '+', 'btn-card-quick-mount');
       mountBtn.type = 'button';
       mountBtn.setAttribute('draggable', 'false');
-      mountBtn.setAttribute('aria-label', `${item.name} cihazını ilk boş U seviyesine ekle`);
-      mountBtn.title = 'Aktif kabindeki ilk boş U pozisyonuna monte et';
+      mountBtn.setAttribute('aria-label', `${item.name} cihazını aktif kabinin ilk boş U yuvasına monte et`);
+      mountBtn.title = `Kabine Ekle (${item.name})`;
       mountBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();

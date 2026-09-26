@@ -236,7 +236,7 @@
 
     if (dom.inspectorInfo) {
       dom.inspectorInfo.innerHTML = `
-        <div style="font-weight:700; color:#fff; margin-bottom:3px;">${escapeHtml(cat.name)} (${escapeHtml(deviceRack.name)} - U${dev.topU})</div>
+        <div class="inspector-title">${escapeHtml(cat.name)} (${escapeHtml(deviceRack.name)} - U${dev.topU})</div>
         <div><b>Port:</b> ${escapeHtml(portName)} (${escapeHtml(portSpeed)})</div>
         <div><b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
         ${configDetail}
@@ -360,6 +360,10 @@
     const instanceId = portEl.dataset.instanceId;
     const portId = portEl.dataset.portId;
     if (!instanceId || !portId) return;
+
+    STATE.selectedDeviceId = instanceId;
+    document.querySelectorAll('.mounted-device.studio-selected').forEach(el => el.classList.remove('studio-selected'));
+    document.getElementById(instanceId)?.classList.add('studio-selected');
 
     // Find which rack this device belongs to (important for multi-rack mode)
     const devRack = STATE.racks.find(r => r.devices.some(d => d.instanceId === instanceId)) || getActiveRack();

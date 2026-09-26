@@ -30,16 +30,16 @@
 }
 
 .catalog-mode-btn:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--bg-elevated);
+  color: var(--text-main);
+  border-color: var(--border-strong);
 }
 
 .catalog-mode-btn.active {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  border-color: #38bdf8;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .catalog-tree-container {

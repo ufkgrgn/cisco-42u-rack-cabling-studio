@@ -179,7 +179,7 @@
     setCableHover(cableId, true);
 
     // Update duct triggers in-place without destroying schedule table DOM to prevent card flicker
-    const ductLabel = next === 'left' ? '⬅️ Sol' : (next === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductLabel = next === 'left' ? 'Sol' : (next === 'right' ? 'Sağ' : 'Otomatik');
     const ductTooltip = `Dikey Kanal Güzergahı: ${next === 'left' ? 'Sol Dikey Tava' : (next === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
     document.querySelectorAll(`.duct-select-trigger[data-cable-id="${cableId}"]`).forEach(btn => {
       btn.textContent = ductLabel;
@@ -228,7 +228,21 @@
   function findDeviceOrganizer(activeRack, dev) {
     const orgs = getActiveOrganizers(activeRack);
     if (!orgs.length || !dev) return null;
-    const devTop = Number(dev.topU);
+    let devTop = Number(dev.topU);
+    if (RS.isDraggingDevice && dev.instanceId) {
+      const devPos = RS.getPixiDevicePosition?.(dev.instanceId);
+      if (devPos && typeof devPos.y === 'number' && typeof devPos.originY === 'number') {
+        devTop -= Math.round((devPos.y - devPos.originY) / 32);
+      } else {
+        const el = document.getElementById(dev.instanceId);
+        if (el && el.style.transform) {
+          const match = el.style.transform.match(/translateY\((-?\d+(?:\.\d+)?)px\)/);
+          if (match) {
+            devTop -= Math.round(parseFloat(match[1]) / 32);
+          }
+        }
+      }
+    }
     const devBot = devTop - Number(dev.uHeight || 1) + 1;
 
     // 1. Directly adjacent below

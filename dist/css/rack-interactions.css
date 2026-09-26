@@ -154,36 +154,44 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #1e293b;
-  border: 1px solid #38bdf8;
-  color: #38bdf8;
-  font-size: 20px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  font-size: 11.5px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  display: flex;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  opacity: 0.6;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.85;
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+.rack-float-add-btn span:first-child {
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
 }
 .rack-float-add-btn:hover {
   opacity: 1;
-  background: #0284c7;
+  background: #334155;
   color: #ffffff;
-  border-color: #7dd3fc;
-  scale: 1.15;
+  border-color: #64748b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  transform: translateY(-50%) scale(1.04);
 }
 .rack-float-add-left {
-  left: 20px;
+  left: 18px;
 }
 .rack-float-add-right {
-  right: 20px;
+  right: 18px;
 }
 
 /* =====================================================
@@ -212,9 +220,9 @@
 }
 .rack-resize-handle:hover,
 .rack-resize-handle.active {
-  background: #0284c7;
-  border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 .rack-resize-grip {
   width: 24px;
@@ -239,32 +247,43 @@
   flex-wrap: nowrap !important;
 }
 .rack-action-btn {
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid #334155;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: #94a3b8;
-  font-size: 9.5px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 2px 5px;
-  line-height: 1.2;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.rack-action-btn.rack-hdr-move-left,
-.rack-action-btn.rack-hdr-move-right {
-  padding: 2px 4px;
+  color: var(--text-muted);
   font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  height: 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.rack-action-btn .rack-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 .rack-action-btn:hover {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: #38bdf8;
-  color: #f0f9ff;
+  background: var(--bg-panel-light);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+}
+.rack-action-btn.danger {
+  color: var(--status-danger);
+  border-color: color-mix(in srgb, var(--status-danger) 35%, var(--border));
 }
 .rack-action-btn.danger:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
-  color: #fca5a5;
+  background: color-mix(in srgb, var(--status-danger) 15%, transparent);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
 }
 
 /* Six rack actions cannot fit beside the title/standard badge at 634px.
@@ -279,10 +298,10 @@
   display: none;
 }
 .multi-rack-stage .rack-action-btn {
-  width: 25px;
-  min-width: 25px;
-  height: 21px;
-  padding: 1px 3px;
+  width: 24px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -623,143 +642,149 @@ body.space-pan-active #viewport-canvas canvas {
 /* ==========================================================================
    Light Theme Rack Interactions & Controls
    ========================================================================== */
-[data-theme="light"] .rack-header-name-editable[contenteditable="true"] {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-name-editable[contenteditable="true"] {
   background: rgba(2, 132, 199, 0.15);
   outline-color: #0284c7;
   color: #0f172a;
 }
 
-[data-theme="light"] .rack-hdr-btn {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-hdr-btn {
   color: #475569;
 }
 
-[data-theme="light"] .rack-hdr-delete {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-hdr-delete {
   color: #dc2626;
   border-color: rgba(220, 38, 38, 0.25);
 }
 
-[data-theme="light"] .rack-hdr-delete:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-hdr-delete:hover {
   background: rgba(239, 68, 68, 0.12);
   border-color: #dc2626;
   color: #b91c1c;
 }
 
-[data-theme="light"] .rack-inline-name {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-inline-name {
   color: #0369a1;
 }
 
-[data-theme="light"] .rack-inline-name:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-inline-name:hover {
   background: rgba(2, 132, 199, 0.1);
   outline-color: #0284c7;
 }
 
-[data-theme="light"] .rack-inline-name[contenteditable="true"] {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-inline-name[contenteditable="true"] {
   background: rgba(2, 132, 199, 0.15);
   outline-color: #0284c7;
   color: #0f172a;
 }
 
-[data-theme="light"] .rack-inline-meta {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-inline-meta {
   color: #64748b;
 }
 
-[data-theme="light"] .rack-ctrl-btn {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-ctrl-btn {
   background: #f1f5f9;
   border-color: #cbd5e1;
   color: #475569;
 }
 
-[data-theme="light"] .rack-ctrl-btn:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-ctrl-btn:hover {
   background: rgba(2, 132, 199, 0.12);
   border-color: #0284c7;
   color: #0284c7;
 }
 
-[data-theme="light"] .rack-delete-btn {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-delete-btn {
   color: #dc2626;
   border-color: rgba(220, 38, 38, 0.3);
 }
 
-[data-theme="light"] .rack-delete-btn:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-delete-btn:hover {
   background: rgba(239, 68, 68, 0.12);
   border-color: #dc2626;
   color: #b91c1c;
 }
 
-[data-theme="light"] .rack-float-add-btn {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-float-add-btn {
   background: #ffffff;
-  border-color: #0284c7;
-  color: #0284c7;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
-  opacity: 0.85;
+  border-color: #cbd5e1;
+  color: #334155;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  opacity: 0.92;
 }
 
-[data-theme="light"] .rack-float-add-btn:hover {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #0369a1;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-float-add-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   opacity: 1;
 }
 
-[data-theme="light"] .rack-resize-handle {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle {
   background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
   border-color: #cbd5e1;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
 }
 
-[data-theme="light"] .rack-resize-handle:hover,
-[data-theme="light"] .rack-resize-handle.active {
-  background: #0284c7;
-  border-color: #0369a1;
-  box-shadow: 0 0 12px rgba(2, 132, 199, 0.35);
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle:hover,
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle.active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme="light"] .rack-resize-grip {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-grip {
   background: #94a3b8;
 }
 
-[data-theme="light"] .rack-resize-handle:hover .rack-resize-grip,
-[data-theme="light"] .rack-resize-handle.active .rack-resize-grip {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle:hover .rack-resize-grip,
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle.active .rack-resize-grip {
   background: #ffffff;
 }
 
-[data-theme="light"] .rack-action-btn {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #475569;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-action-btn {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
-[data-theme="light"] .rack-action-btn:hover {
-  background: rgba(2, 132, 199, 0.12);
-  border-color: #0284c7;
-  color: #0284c7;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-action-btn:hover {
+  background: var(--bg-panel-light);
+  border-color: var(--border-strong);
+  color: var(--text-main);
 }
 
-[data-theme="light"] .rack-action-btn.danger:hover {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #dc2626;
-  color: #dc2626;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-action-btn.danger {
+  color: var(--status-danger);
+  border-color: color-mix(in srgb, var(--status-danger) 35%, var(--border));
 }
 
-[data-theme="light"] .device-ear-handle {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-action-btn.danger:hover {
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+}
+
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-ear-handle {
   background: linear-gradient(90deg, #94a3b8 0%, #cbd5e1 50%, #94a3b8 100%);
   border-color: #64748b;
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.8), inset -1px 0 0 rgba(0, 0, 0, 0.25), 0 2px 5px rgba(15, 23, 42, 0.18);
 }
 
-[data-theme="light"] .device-ear-handle:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-ear-handle:hover {
   background: linear-gradient(90deg, #64748b 0%, #94a3b8 50%, #64748b 100%);
   border-color: #0284c7;
   box-shadow: 0 0 6px rgba(2, 132, 199, 0.4);
 }
 
-[data-theme="light"] .ear-screw {
+:is([data-theme="light"], [data-theme="high-contrast"]) .ear-screw {
   background: radial-gradient(circle at 35% 35%, #ffffff 0%, #cbd5e1 60%, #64748b 100%);
   border-color: #475569;
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme="light"] .ear-screw::after {
+:is([data-theme="light"], [data-theme="high-contrast"]) .ear-screw::after {
   color: #334155;
 }
 

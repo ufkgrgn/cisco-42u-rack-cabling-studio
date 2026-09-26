@@ -34,7 +34,6 @@
   const bindZoomAndPanEvents = () => RS.bindZoomAndPanEvents && RS.bindZoomAndPanEvents();
   const renderScheduleTable = () => RS.renderScheduleTable && RS.renderScheduleTable();
   const setConnectionRole = (...args) => RS.setConnectionRole && RS.setConnectionRole(...args);
-  const exportVisioSvg = () => RS.exportVisioSvg && RS.exportVisioSvg();
   const exportJson = () => RS.exportJson && RS.exportJson();
   const validateTopology = (d) => RS.validateTopology && RS.validateTopology(d);
   const refresh = () => RS.refresh && RS.refresh();
@@ -267,15 +266,32 @@
       });
     }
 
+    const addRackModal = document.getElementById('modal-add-rack');
+    const closeAddRack = () => {
+      if (addRackModal) addRackModal.style.display = 'none';
+    };
     if (dom.btnAddRack) {
       dom.btnAddRack.addEventListener('click', () => {
         if (RS.closeRackDropdown) RS.closeRackDropdown();
-        const name = prompt("Yeni Kabin Adı (Örn: IDF-2 Kat 2):");
-        if (name && name.trim()) {
-          addNewRack(name.trim());
-        }
+        if (!addRackModal) return;
+        const nameInput = document.getElementById('add-rack-name');
+        if (nameInput && !nameInput.value) nameInput.value = '';
+        addRackModal.style.display = 'flex';
+        nameInput?.focus();
       });
     }
+    document.getElementById('btn-cancel-add-rack')?.addEventListener('click', closeAddRack);
+    document.getElementById('btn-close-add-rack')?.addEventListener('click', closeAddRack);
+    document.getElementById('btn-confirm-add-rack')?.addEventListener('click', () => {
+      const name = document.getElementById('add-rack-name')?.value.trim();
+      const height = Number(document.getElementById('add-rack-height')?.value || 42);
+      if (!name) {
+        document.getElementById('add-rack-name')?.focus();
+        return;
+      }
+      addNewRack(name, height);
+      closeAddRack();
+    });
 
     if (dom.btnRenameRack) {
       dom.btnRenameRack.addEventListener('click', () => {
@@ -383,9 +399,6 @@
       });
     }
 
-    if (dom.btnExportVisio) {
-      dom.btnExportVisio.addEventListener('click', () => exportVisioSvg());
-    }
   }
 
   function bindGlobalEvents() {

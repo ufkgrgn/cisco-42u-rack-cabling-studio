@@ -41,7 +41,10 @@
     if (!target || !graphics) return;
     let commands;
     if (typeof target === 'object' && target !== null && target.pathD) {
-      if (!target._parsedCommands) target._parsedCommands = parsePathString(target.pathD);
+      if (!target._parsedCommands || target._parsedPathD !== target.pathD) {
+        target._parsedPathD = target.pathD;
+        target._parsedCommands = parsePathString(target.pathD);
+      }
       commands = target._parsedCommands;
     } else if (typeof target === 'string') {
       commands = parsedPathCache.get(target);
@@ -404,7 +407,7 @@
       batchedRackGroups.delete(rackKey);
 
       const displays = (previous.displays && previous.displays.length)
-        ? previous.displays.filter(d => cableDisplays.has(d.id))
+        ? previous.displays.filter(d => (d.id ? cableDisplays.has(d.id) : Array.from(cableDisplays.values()).includes(d)))
         : Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__:unknown:unknown') === rackKey);
       processedDisplays += displays.length;
       if (displays.length) batchedRackGroups.set(rackKey, buildRetainedRackBatch(rackKey, displays, cableIndex, connectorIndex));

@@ -8,7 +8,7 @@
     const bar = document.createElement('section');
     bar.className = 'studio-editor';
     bar.setAttribute('aria-label', 'Kabin düzenleme araçları');
-    bar.innerHTML = `<label title="Kabin Toplam Yüksekliği (U)">U <input id="studio-height" type="number" min="1" max="60" value="42"></label><button data-command="resize">Uygula</button><span class="studio-divider"></span><span id="studio-selection">Cihaz seçin</span><label title="Cihaz Üst U Pozisyonu">Poz <input id="studio-position" type="number" min="1" max="60"></label><select id="studio-target" aria-label="Hedef kabin"></select><button data-command="move">Taşı</button><button data-command="duplicate">Çoğalt</button><button data-command="delete">Sil</button><span class="studio-divider"></span><button data-command="undo" title="Geri al (Ctrl+Z)">↩️</button><button data-command="redo" title="Yinele (Ctrl+Shift+Z)">↪️</button><span id="studio-save" role="status" aria-live="polite"></span>`;
+    bar.innerHTML = `<label title="Kabin Toplam Yüksekliği (U)">U <input id="studio-height" type="number" min="1" max="60" value="42"></label><button data-command="resize">Uygula</button><span class="studio-divider"></span><span id="studio-selection">Cihaz seçin</span><label title="Cihaz Üst U Pozisyonu">Poz <input id="studio-position" type="number" min="1" max="60"></label><select id="studio-target" aria-label="Hedef kabin"></select><button data-command="move">Taşı</button><button data-command="duplicate">Çoğalt</button><button data-command="delete">Sil</button><span class="studio-divider"></span><button data-command="undo" title="Geri al (Ctrl+Z)">Geri</button><button data-command="redo" title="Yinele (Ctrl+Shift+Z)">İleri</button><span id="studio-save" role="status" aria-live="polite"></span>`;
     document.body.appendChild(bar);
     const field = id => bar.querySelector('#studio-' + id);
     let selected = null, restoring = false, queued = false, saveTimer, revision = 0, recoveryPending = true;
@@ -168,13 +168,13 @@
       if (count > 1 || (count > 0 && state.multiSelectMode)) {
         multiselectPill.classList.remove('hidden');
         multiselectPill.innerHTML = `
-          <span class="pill-badge">🟣 Çoklu Seçim</span>
+          <span class="pill-badge">Çoklu seçim</span>
           <span class="pill-count"><strong>${count}</strong> cihaz seçildi</span>
-          <button class="pill-btn" data-multi-action="up" title="Tümünü 1U Yukarı Taşı">⬆️ +1U</button>
-          <button class="pill-btn" data-multi-action="down" title="Tümünü 1U Aşağı Taşı">⬇️ -1U</button>
-          <button class="pill-btn pill-btn-danger" data-multi-action="delete" title="Seçilen Cihazları Sil">🗑️ Sil</button>
-          <button class="pill-btn" data-multi-action="deselect" title="Seçimleri Temizle">⤹ Seçimi Temizle</button>
-          <button class="pill-btn pill-btn-close" data-multi-action="clear" title="Çoklu Seçimden Çık">✕ Vazgeç / Kapat</button>
+          <button class="pill-btn" data-multi-action="up" title="Tümünü 1U Yukarı Taşı">+1U</button>
+          <button class="pill-btn" data-multi-action="down" title="Tümünü 1U Aşağı Taşı">-1U</button>
+          <button class="pill-btn pill-btn-danger" data-multi-action="delete" title="Seçilen Cihazları Sil">Sil</button>
+          <button class="pill-btn" data-multi-action="deselect" title="Seçimleri Temizle">Seçimi temizle</button>
+          <button class="pill-btn pill-btn-close" data-multi-action="clear" title="Çoklu Seçimden Çık">Vazgeç</button>
         `;
       } else if (count === 0 && state.multiSelectMode) {
         multiselectPill.classList.remove('hidden');
@@ -277,6 +277,17 @@
       }
 
       devices.forEach(d => { d.topU += deltaU; });
+      const movedIds = new Set(devices.map(d => d.instanceId));
+      for (const cable of (state.cables || [])) {
+        if (movedIds.has(cable.from?.instanceId) || movedIds.has(cable.to?.instanceId)) {
+          cable.lengthMeters = null;
+        }
+      }
+      if (typeof api.invalidateLayoutGeometryCache === 'function') {
+        api.invalidateLayoutGeometryCache();
+      } else if (typeof api.invalidatePixiLayoutGeometry === 'function') {
+        api.invalidatePixiLayoutGeometry();
+      }
       rebuild(targetRack);
       api.refresh();
       record();
@@ -304,6 +315,14 @@
         return false;
       }
 
+      for (const cable of (state.cables || [])) {
+        cable.lengthMeters = null;
+      }
+      if (typeof api.invalidateLayoutGeometryCache === 'function') {
+        api.invalidateLayoutGeometryCache();
+      } else if (typeof api.invalidatePixiLayoutGeometry === 'function') {
+        api.invalidatePixiLayoutGeometry();
+      }
       rebuild(rack);
       api.refresh();
       record();
@@ -335,6 +354,14 @@
       }
 
       devicesBelow.forEach(d => { d.topU += count; });
+      for (const cable of (state.cables || [])) {
+        cable.lengthMeters = null;
+      }
+      if (typeof api.invalidateLayoutGeometryCache === 'function') {
+        api.invalidateLayoutGeometryCache();
+      } else if (typeof api.invalidatePixiLayoutGeometry === 'function') {
+        api.invalidatePixiLayoutGeometry();
+      }
       rebuild(rack);
       api.refresh();
       record();
@@ -446,6 +473,17 @@
         plannedMoves.forEach(m => {
           m.device.topU = m.topU;
         });
+      }
+      const affectedIds = new Set(plannedMoves.map(m => m.device.instanceId));
+      for (const cable of (state.cables || [])) {
+        if (affectedIds.has(cable.from?.instanceId) || affectedIds.has(cable.to?.instanceId)) {
+          cable.lengthMeters = null;
+        }
+      }
+      if (typeof api.invalidateLayoutGeometryCache === 'function') {
+        api.invalidateLayoutGeometryCache();
+      } else if (typeof api.invalidatePixiLayoutGeometry === 'function') {
+        api.invalidatePixiLayoutGeometry();
       }
       rebuild(rack); rebuild(target); state.activeRackId = target.id;
       state.pendingConnection = null; api.refresh(); record();
@@ -572,7 +610,13 @@
     let drag = null, frame = 0, longPressTimer = null, pendingTouch = null;
     document.addEventListener('mousedown', e => {
       if (window.RackStudio?.isSpacePressed) return;
-      const dev = e.target.closest('.mounted-device');
+      let dev = e.target.closest('.mounted-device');
+      if (!dev && window.RackStudio?.hitDeviceChassisAt && !window.RackStudio?.hitDevicePortAt?.(e.clientX, e.clientY)) {
+        const hit = window.RackStudio.hitDeviceChassisAt(e.clientX, e.clientY);
+        if (hit?.instanceId) {
+          dev = document.getElementById(hit.instanceId);
+        }
+      }
       const isHandle = !!e.target.closest('[data-drag-handle="true"]');
       if (isHandle || (dev && state.multiSelectedDevices?.has(dev.id)) || api.isDraggingDevice) {
         e.stopPropagation();
@@ -580,8 +624,15 @@
     }, true);
     document.addEventListener('pointerdown', e => {
       if (window.RackStudio?.isSpacePressed) return;
-      const el = e.target.closest('.mounted-device');
-      if (e.button !== 0 || !el || e.target.closest('button,.port-icon,.port,[data-port-id]')) return;
+      if (e.button !== 0 || e.target.closest('button,.port-icon,.port,[data-port-id]')) return;
+      let el = e.target.closest('.mounted-device');
+      if (!el && window.RackStudio?.hitDeviceChassisAt && !window.RackStudio?.hitDevicePortAt?.(e.clientX, e.clientY)) {
+        const hit = window.RackStudio.hitDeviceChassisAt(e.clientX, e.clientY);
+        if (hit?.instanceId) {
+          el = document.getElementById(hit.instanceId);
+        }
+      }
+      if (!el) return;
       const isDragHandle = !!e.target.closest('[data-drag-handle="true"]');
       const slot = el.closest('.rack-slot');
       if (!slot) return;
@@ -651,7 +702,8 @@
       }
       if (!drag) return;
       drag.delta = e.clientY - drag.y;
-      if (Math.abs(drag.delta) > 4) {
+      drag.deltaX = e.clientX - drag.x;
+      if (Math.hypot(drag.deltaX, drag.delta) > 4) {
         if (!drag.active) {
           if (state.pendingConnection && api.cancelPendingConnection) {
             api.cancelPendingConnection();
@@ -729,12 +781,27 @@
       let moved = false;
       if (finished.active && e.type !== 'pointercancel') {
         const deltaU = -Math.round(finished.delta / finished.step);
-        if (deltaU !== 0) {
+        let targetRackId = finished.rackId;
+        let targetTopU = finished.top + deltaU;
+
+        if (typeof api.resolveDropSlot === 'function') {
+          const dropSlot = api.resolveDropSlot(e);
+          if (dropSlot && dropSlot.rackId) {
+            targetRackId = dropSlot.rackId;
+          }
+        }
+
+        const targetRack = state.racks.find(r => r.id === targetRackId);
+        const maxU = targetRack?.heightU || 42;
+        const uHeight = finished.el?.dataset?.uHeight ? Number(finished.el.dataset.uHeight) : 1;
+        targetTopU = Math.min(maxU, Math.max(uHeight, targetTopU));
+
+        if (deltaU !== 0 || targetRackId !== finished.rackId) {
           try {
             if (state.multiSelectedDevices?.has(finished.el.id) && state.multiSelectedDevices.size > 1) {
-              moveMultiSelectedBlock(deltaU, finished.rackId);
+              moveMultiSelectedBlock(deltaU, targetRackId);
             } else {
-              move(finished.top + deltaU, finished.rackId);
+              move(targetTopU, targetRackId);
             }
             moved = true;
           }

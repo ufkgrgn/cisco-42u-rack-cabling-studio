@@ -271,7 +271,7 @@
     const selected = multi || !!el?.classList.contains('studio-selected');
     const hovered = hoveredDeviceId === id && !selected;
     const w = entry.width, h = entry.height;
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
 
     // In light theme, draw a crisp metallic chassis chamfer edge & shadow outline
     if (isLight) {
@@ -586,7 +586,8 @@
     devicePortOccupancy.clear();
     devicePortVariantCounts.clear();
     devicePortHitGrid.clear();
-    const density = activeDeviceSceneLod === 'macro' ? 0.48 : 0.82;
+    // Port silhouettes must not jump between LOD tiers during zoom.
+    const density = 0.82;
     ports.forEach(port => {
       const key = `${port.instanceId}::${port.portId}`;
       const devEntry = deviceContainers.get(String(port.instanceId));

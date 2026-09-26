@@ -144,6 +144,59 @@
   white-space: nowrap;
 }
 
+/* Card Endpoint Summary (Kaynak ➔ Hedef her zaman net ve okunaklı) */
+.card-endpoint-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 3px 2px 1px 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+.card-endpoint-summary span:first-child {
+  color: #7dd3fc;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-endpoint-summary span[aria-hidden="true"] {
+  color: #38bdf8;
+  font-weight: 900;
+  flex-shrink: 0;
+  padding: 0 1px;
+}
+
+.card-endpoint-summary span:last-child {
+  color: #e2e8f0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is([data-theme="light"], [data-theme="high-contrast"]) .card-endpoint-summary {
+  color: #475569;
+}
+:is([data-theme="light"], [data-theme="high-contrast"]) .card-endpoint-summary span:first-child {
+  color: #0284c7;
+}
+:is([data-theme="light"], [data-theme="high-contrast"]) .card-endpoint-summary span[aria-hidden="true"] {
+  color: #0284c7;
+}
+:is([data-theme="light"], [data-theme="high-contrast"]) .card-endpoint-summary span:last-child {
+  color: #0f172a;
+}
+
 /* Card Route Bar (Alt Satır: Kaynak ➔ Düzenleyici ➔ Hedef ve Silme Butonu) */
 .card-route-bar {
   display: flex;
@@ -441,24 +494,40 @@
 }
 
 .inter-rack-tag {
-  background: rgba(2, 132, 199, 0.3);
-  color: #38bdf8;
+  background: var(--bg-inset, rgba(15, 23, 42, 0.6));
+  color: var(--text-muted, #94a3b8);
   font-size: 8.5px;
-  font-weight: 800;
-  padding: 1px 3px;
-  border-right: 1px solid rgba(2, 132, 199, 0.5);
-  flex-shrink: 0;
-}
-
-.inter-rack-badge {
-  background: rgba(2, 132, 199, 0.2);
-  border: 1px solid #0284c7;
-  color: #38bdf8;
-  font-size: 9px;
   font-weight: 700;
   padding: 1px 4px;
   border-radius: 3px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+}
+
+.inter-rack-tag.cross-rack {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.inter-rack-badge,
+.rack-badge-tag {
+  background: var(--bg-inset, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  color: var(--text-muted, #94a3b8);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
   white-space: nowrap;
+}
+
+.inter-rack-badge.cross-rack,
+.rack-badge-tag.cross-rack {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
 }
 
 /* Interactive Role Selector Trigger Button */
@@ -547,54 +616,54 @@
 .role-select-trigger.standard .role-tag { background: #334155; color: #cbd5e1; }
 
 /* Light Theme Adaptations for Cable Schedule Cards */
-[data-theme="light"] .schedule-table tr.schedule-cable-card {
+:is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card {
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
   border-left: 4px solid var(--row-accent, #0284c7) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
 }
 
-[data-theme="light"] .schedule-table tr.schedule-cable-card:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card:hover {
   background: #f8fafc !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
-[data-theme="light"] .cable-id-badge {
+:is([data-theme="light"], [data-theme="high-contrast"]) .cable-id-badge {
   color: #0f172a;
 }
 
-[data-theme="light"] .route-endpoint-box {
+:is([data-theme="light"], [data-theme="high-contrast"]) .route-endpoint-box {
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
 }
 
-[data-theme="light"] .badge-port-prominent {
+:is([data-theme="light"], [data-theme="high-contrast"]) .badge-port-prominent {
   color: #0f172a;
 }
 
-[data-theme="light"] .badge-u-prominent {
+:is([data-theme="light"], [data-theme="high-contrast"]) .badge-u-prominent {
   background: #e2e8f0;
   border-color: #0284c7;
   color: #0284c7;
 }
 
-[data-theme="light"] .metraj-badge {
+:is([data-theme="light"], [data-theme="high-contrast"]) .metraj-badge {
   background: #e2e8f0;
   border-color: #cbd5e1;
   color: #334155;
 }
 
-[data-theme="light"] .duct-select-trigger {
+:is([data-theme="light"], [data-theme="high-contrast"]) .duct-select-trigger {
   background: #e2e8f0;
   border-color: #cbd5e1;
   color: #334155;
 }
 
-[data-theme="light"] .card-legend-left:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .card-legend-left:hover {
   background: rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] .schedule-table tr.schedule-cable-card:hover .card-legend-bar {
+:is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card:hover .card-legend-bar {
   border-bottom-color: #e2e8f0;
 }
 

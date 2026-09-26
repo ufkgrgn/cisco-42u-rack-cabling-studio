@@ -83,6 +83,49 @@
     if (window.RackStudio && typeof window.RackStudio.updateRackHeaderTelemetry === 'function') {
       window.RackStudio.updateRackHeaderTelemetry();
     }
+    updateInstrumentStatus();
+  }
+
+  function updateInstrumentStatus() {
+    const RS = window.RackStudio;
+    const rack = RS?.getActiveRack ? RS.getActiveRack() : RS?.STATE?.racks?.[0];
+    const height = rack?.heightU || 42;
+    let used = 0;
+    (rack?.devices || []).forEach(d => {
+      const span = Number(d.uHeight) || 1;
+      if (span > 0) used += span;
+    });
+    const free = Math.max(0, height - used);
+    const cables = (RS?.STATE?.cables || []).length;
+    const name = rack?.name || 'Kabin';
+    const shortName = name.split(' - ')[0] || name;
+
+    const uUsed = document.getElementById('header-u-used');
+    const rackName = document.getElementById('status-rack-name');
+    const freeU = document.getElementById('status-free-u');
+    const cableCount = document.getElementById('status-cable-count');
+    const zoomEl = document.getElementById('status-zoom');
+    const modeLabel = document.getElementById('status-mode-label');
+    const modeDot = document.getElementById('status-mode-dot');
+    const zoomBadge = document.getElementById('zoom-badge');
+
+    if (uUsed) uUsed.textContent = `${used} / ${height}U`;
+    if (rackName) rackName.textContent = shortName;
+    if (freeU) freeU.textContent = `${free}U boş`;
+    if (cableCount) cableCount.textContent = `${cables} kablo`;
+    if (zoomEl && zoomBadge) zoomEl.textContent = zoomBadge.textContent || '100%';
+
+    const pending = RS?.STATE?.pendingConnection;
+    if (modeLabel && modeDot) {
+      modeDot.classList.remove('is-ready', 'is-connect', 'is-blocked');
+      if (pending) {
+        modeLabel.textContent = 'Hedef port';
+        modeDot.classList.add('is-connect');
+      } else {
+        modeLabel.textContent = 'Hazır';
+        modeDot.classList.add('is-ready');
+      }
+    }
   }
   window.updateTelemetry = updateTelemetry;
 
@@ -94,6 +137,7 @@
   };
 
   function initTopbar() {
+    document.getElementById('btn-export-visio')?.addEventListener('click', window.handleUnifiedVisioExport);
     const deviceLabelModeEl = document.getElementById('device-label-mode');
     if (deviceLabelModeEl) {
       deviceLabelModeEl.value = localStorage.getItem('rack-studio-device-label-mode') || 'name';
@@ -151,9 +195,10 @@
 
     // 2D Reset / Clear Action
     document.getElementById('btn-2d-clear-action')?.addEventListener('click', (e) => {
-      if (!window.is3DMode) {
-        e.stopImmediatePropagation();
-        document.getElementById('btn-clear-all')?.click();
+      e.stopImmediatePropagation();
+      document.getElementById('btn-clear-all')?.click();
+      if (window.is3DMode && typeof window.sync2Dto3D === 'function') {
+        window.sync2Dto3D();
       }
     }, true);
 
@@ -203,7 +248,7 @@
         btnCompliance.classList.toggle('active', active);
         btnCompliance.classList.toggle('compliance-on', active);
         btnCompliance.classList.toggle('compliance-off', !active);
-        btnCompliance.textContent = active ? '🛡️ Kurallar: AÇIK' : '🛡️ Kurallar: KAPALI';
+        btnCompliance.textContent = active ? 'Kurallar: Açık' : 'Kurallar: Kapalı';
         btnCompliance.title = active 
           ? 'Ağ Standartları & Döngü Koruması: AKTİF (Trunk zorunluluğu, STP döngü engelleme, medya denetimi devrede)' 
           : 'Ağ Standartları: KAPALI (Serbest Mod - Switch trunk/uplink dayatması ve döngü engeli yok, serbest kablolama)';
@@ -263,6 +308,15 @@
             if (!ok) {
               uSlider.value = activeRack.heightU || 42;
               if (uDisplay) uDisplay.textContent = (activeRack.heightU || 42) + 'U';
+            } else if (window.__STUDIO3D__) {
+              window.__STUDIO3D__.state.rackHeightU = val;
+              if (Array.isArray(window.__STUDIO3D__.state.racks)) {
+                const r3d = window.__STUDIO3D__.state.racks.find(r => r.id === activeRack.id);
+                if (r3d) r3d.heightU = val;
+              }
+              window.__STUDIO3D__.buildRack(val);
+              window.__STUDIO3D__.rebuildAllDevices();
+              window.__STUDIO3D__.rebuildAllCables();
             }
           }
         }

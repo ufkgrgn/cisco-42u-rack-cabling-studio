@@ -16,8 +16,8 @@
 
       if (titleEl) {
         titleEl.textContent = isPanel
-          ? `🏷️ ${dev.name || 'Patch Panel'} - PANEL YAPILANDIRMASI`
-          : `⚙️ ${dev.name || 'Switch'} - CİHAZ YAPILANDIRMASI`;
+          ? `${dev.name || 'Patch panel'} — panel`
+          : `${dev.name || 'Cihaz'} — etiket`;
       }
       if (nameLabelEl) nameLabelEl.textContent = isPanel ? 'Panel Adı' : 'Hostname / Cihaz Adı';
       if (panelGroupEl) panelGroupEl.style.display = isPanel ? 'block' : 'none';

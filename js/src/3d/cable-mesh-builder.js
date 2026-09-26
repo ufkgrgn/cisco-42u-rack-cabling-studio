@@ -26,14 +26,25 @@ export function registerCableMeshMethods(Studio3D) {
     const pB = this.getPortWorldPosition(to.devId, to.portIdx);
     if (!pA || !pB) return false;
 
-    const dist = pA.distanceTo(pB);
-    const lengthM = parseFloat((dist * 0.44 + 0.5).toFixed(2));
-
     const devFrom = this.state.devices.find(d => d.id === from.devId);
     const devTo = this.state.devices.find(d => d.id === to.devId);
     const defaultRackId = (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
     from.rackId = from.rackId || (devFrom && devFrom.rackId) || defaultRackId;
     to.rackId = to.rackId || (devTo && devTo.rackId) || defaultRackId;
+    const isInterRack = from.rackId !== to.rackId;
+
+    const lengthM = (typeof window !== 'undefined' && window.RackStudio?.calculateCableLengthMeters)
+      ? window.RackStudio.calculateCableLengthMeters(from.devId, to.devId, isInterRack)
+      : (() => {
+          const uFrom = devFrom?.u || devFrom?.startU || 1;
+          const uTo = devTo?.u || devTo?.startU || 1;
+          const deltaU = Math.abs(uFrom - uTo);
+          const totalM = isInterRack
+            ? (((42 - uFrom) + (42 - uTo)) * 0.04445 + 1.8) * 1.15
+            : (deltaU * 0.04445 + 0.7) * 1.10;
+          return Math.max(0.5, Math.round(totalM * 2) / 2);
+        })();
+
     const nameFrom = devFrom ? devFrom.name.split(' ')[1] || 'Cihaz' : 'D1';
     const nameTo = devTo ? devTo.name.split(' ')[1] || 'Cihaz' : 'D2';
 
@@ -112,6 +123,9 @@ export function registerCableMeshMethods(Studio3D) {
     if (!options?.silent) {
       sfx.plug();
     }
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
     return cableData;
   };
 
@@ -151,6 +165,9 @@ export function registerCableMeshMethods(Studio3D) {
     this.rebuildAllCables();
     this.state.pushSnapshot();
     this.showToast(`Kablo Güncellendi: "${cable.name}"`);
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
     return true;
   };
 
@@ -159,6 +176,9 @@ export function registerCableMeshMethods(Studio3D) {
     this.rebuildAllCables();
     this.state.pushSnapshot();
     sfx.delete();
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
   };
 
   Studio3D.prototype.buildCable3D = function(cable) {

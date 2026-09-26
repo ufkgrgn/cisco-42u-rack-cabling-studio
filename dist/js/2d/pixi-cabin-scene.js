@@ -80,7 +80,7 @@
 
     const totalHeight = heightU * 32;
     const slotWidth = 530;
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
 
     for (let u = heightU; u >= 1; u--) {
       const slotY = (heightU - u) * 32;

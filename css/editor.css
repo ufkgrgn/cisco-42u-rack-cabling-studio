@@ -88,29 +88,26 @@
   transform: none !important;
 }
 .studio-editor button[data-command="resize"] {
-  background: linear-gradient(135deg, #0284c7, #0ea5e9);
-  border-color: #38bdf8;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .studio-editor button[data-command="resize"]:hover {
-  background: linear-gradient(135deg, #0369a1, #0284c7);
-  border-color: #00e5ff;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-  color: #fff;
+  filter: brightness(1.1);
 }
 .studio-editor button[data-command="move"],
 .studio-editor button[data-command="duplicate"] {
-  background: rgba(30, 41, 59, 0.85);
-  border-color: rgba(56, 189, 248, 0.3);
-  color: #e2e8f0;
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  color: var(--text-main);
 }
 .studio-editor button[data-command="move"]:hover:not(:disabled),
 .studio-editor button[data-command="duplicate"]:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.22);
-  border-color: #38bdf8;
-  color: #fff;
+  background: var(--bg-panel-light);
+  border-color: var(--border-strong);
+  color: var(--text-main);
 }
 .studio-editor button[data-command="delete"] {
   color: #f87171;
@@ -289,16 +286,16 @@
 .form-input {
   width: 100%;
   padding: 7px 12px;
-  border-radius: 6px;
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #fff;
+  border-radius: var(--radius-flat, 2px);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  color: var(--text-main);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
 }
 
 .form-input:focus {
-  border-color: #38bdf8;
+  border-color: var(--accent);
 }
 

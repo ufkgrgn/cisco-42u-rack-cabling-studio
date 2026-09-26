@@ -667,24 +667,203 @@
       heatBtu: 0,
       desc: 'Hava akışını yönlendirmek ve boş U yuvalarını kapatmak için kör panel.',
       ports: []
+    },
+    'blank-panel-2u': {
+      name: '2U Boşluk Kapatma Paneli',
+      u: 2,
+      category: 'blank',
+      logo: 'BLANK',
+      modelTag: '2U BLANKING PANEL',
+      powerWatts: 0,
+      heatBtu: 0,
+      desc: 'Hava akışını yönlendirmek ve 2U boş yuvaları kapatmak için kör panel.',
+      ports: []
+    },
+    'dell-r750': {
+      name: 'Dell PowerEdge R750',
+      u: 2,
+      category: 'server',
+      logo: 'DELL',
+      modelTag: 'POWEREDGE R750 2U',
+      powerWatts: 1400,
+      heatBtu: 4777,
+      desc: '2U Dual Xeon Enterprise Rack Sunucu (24x 2.5" NVMe/SAS), 4x 1GbE LOM Portu.',
+      ports: Array.from({ length: 4 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `NIC-${i + 1}`,
+        type: 'rj45',
+        group: 0,
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '10/100/1000 Gigabit Base-T'
+      }))
+    },
+    'dell-r740': {
+      name: 'Dell PowerEdge R740',
+      u: 2,
+      category: 'server',
+      logo: 'DELL',
+      modelTag: 'POWEREDGE R740 2U',
+      powerWatts: 1100,
+      heatBtu: 3753,
+      desc: '2U Dual Xeon Sanallaştırma ve Veritabanı Sunucusu, 4x 1GbE Ağ Kartı.',
+      ports: Array.from({ length: 4 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `NIC-${i + 1}`,
+        type: 'rj45',
+        group: 0,
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '10/100/1000 Gigabit Base-T'
+      }))
+    },
+    'hpe-dl380-g10': {
+      name: 'HPE ProLiant DL380 Gen10',
+      u: 2,
+      category: 'server',
+      logo: 'HPE',
+      modelTag: 'PROLIANT DL380 G10',
+      powerWatts: 1200,
+      heatBtu: 4094,
+      desc: '2U Kurumsal Endüstri Standardı Sunucu, 4x 1GbE Esnek LOM Yuvası.',
+      ports: Array.from({ length: 4 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `NIC-${i + 1}`,
+        type: 'rj45',
+        group: 0,
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '10/100/1000 Gigabit Base-T'
+      }))
+    },
+    'cisco-ucs-c220': {
+      name: 'Cisco UCS C220 M5',
+      u: 1,
+      category: 'server',
+      logo: 'CISCO',
+      modelTag: 'UCS C220 M5 1U',
+      powerWatts: 770,
+      heatBtu: 2627,
+      desc: '1U Cisco Birleşik Hesaplama Sistemi (UCS) Raf Tipi Sunucu, Çift 10G/1G Portu.',
+      ports: Array.from({ length: 2 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `LOM-${i + 1}`,
+        type: 'rj45',
+        group: 0,
+        row: 0,
+        speed: '10G / 1G Base-T'
+      }))
+    },
+    'cisco-ucs-c240': {
+      name: 'Cisco UCS C240 M5',
+      u: 2,
+      category: 'server',
+      logo: 'CISCO',
+      modelTag: 'UCS C240 M5 2U',
+      powerWatts: 1050,
+      heatBtu: 3582,
+      desc: '2U Yüksek Depolama Kapasiteli UCS Raf Tipi Sunucu, 4x Dahili Ağ Portu.',
+      ports: Array.from({ length: 4 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `LOM-${i + 1}`,
+        type: 'rj45',
+        group: 0,
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '10G / 1G Base-T'
+      }))
+    },
+    'cisco-isr4451': {
+      name: 'Cisco ISR 4451-X Router',
+      u: 2,
+      category: 'router',
+      logo: 'CISCO',
+      modelTag: 'ISR 4451-X WAN',
+      powerWatts: 450,
+      heatBtu: 1535,
+      desc: '2U Kurumsal WAN Uç Birim Ağ Yönlendiricisi, 8 Port Dahili GE/SFP Modülü.',
+      ports: Array.from({ length: 8 }, (_, i) => ({
+        id: `ge0_0_${i}`,
+        name: `GE0/0/${i}`,
+        type: i >= 4 ? 'sfp' : 'rj45',
+        group: Math.floor(i / 4),
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: i >= 4 ? '1G SFP Fiber' : '10/100/1000 Gigabit Base-T'
+      }))
+    },
+    'cisco-c9500-32qc': {
+      name: 'Cisco Catalyst 9500-32QC',
+      u: 1,
+      category: 'switch',
+      logo: 'CISCO',
+      modelTag: 'C9500-32QC',
+      powerWatts: 950,
+      heatBtu: 3241,
+      desc: '32x 100G/40G QSFP28 Yüksek Hızlı Veri Merkezi Spine Switch.',
+      ports: Array.from({ length: 32 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `HundredGig1/0/${i + 1}`,
+        type: 'sfp',
+        group: Math.floor(i / 8),
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '100G QSFP28 Spine'
+      }))
+    },
+    'cisco-nexus-9336c': {
+      name: 'Cisco Nexus 9336C-FX2',
+      u: 1,
+      category: 'switch',
+      logo: 'CISCO',
+      modelTag: 'N9K-C9336C-FX2',
+      powerWatts: 850,
+      heatBtu: 2900,
+      desc: '36x 40/100G Cloud Scale Nexus Spine/Leaf Veri Merkezi Switchi.',
+      ports: Array.from({ length: 36 }, (_, i) => ({
+        id: `p${i + 1}`,
+        name: `Ethernet1/${i + 1}`,
+        type: 'sfp',
+        group: Math.floor(i / 12),
+        row: (i % 2 === 0) ? 0 : 1,
+        speed: '100G QSFP28 Fabric'
+      }))
     }
   };
 
   const BUILTIN_KEYS = new Set(Object.keys(HARDWARE_CATALOG));
 
+  const ALIAS_MAP = {
+    'cisco-c9300-48p': 'cisco-9300-48u',
+    'cisco-c9200l-24p': 'cisco-9200l-24p',
+    'cisco-c9500-32qc': 'cisco-9500-24y4c',
+    'patch-cat6a-24p': 'patch-cat6-24',
+    'patch-cat6-48p': 'patch-cat6-48',
+    'cable-manager-1u': 'organizer-1u',
+    'cable-org-1u': 'organizer-1u',
+    'cable-org-2u': 'organizer-2u',
+    'pdu-1u-8c13': 'pdu-8port-1u',
+    'apc-pdu-1u': 'pdu-8port-1u',
+    'apc-pdu-vert': 'pdu-8port-1u',
+    'odf-fiber-24': 'fiber-odf-24'
+  };
+
   function resolveCatalogItem(key) {
     if (!key) return null;
-    return (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) ||
+    let item = (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) ||
            (RS.catalog && RS.catalog[key]) ||
            (RS.STATE?.customCatalog && RS.STATE.customCatalog[key]) ||
            (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === key) : window.CISCO_MASTER_CATALOG?.[key]) ||
            (Array.isArray(RS.CISCO_MASTER_CATALOG) ? RS.CISCO_MASTER_CATALOG.find(m => m && m.id === key) : RS.CISCO_MASTER_CATALOG?.[key]) ||
+           (window.CATALOG_3D && window.CATALOG_3D.find(c => c && c.id === key)) ||
            null;
+    if (!item && ALIAS_MAP[key]) {
+      const aliasKey = ALIAS_MAP[key];
+      item = (HARDWARE_CATALOG && HARDWARE_CATALOG[aliasKey]) ||
+             (RS.catalog && RS.catalog[aliasKey]) ||
+             (Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m && m.id === aliasKey) : window.CISCO_MASTER_CATALOG?.[aliasKey]);
+    }
+    return item;
   }
 
   RS.HARDWARE_CATALOG = HARDWARE_CATALOG;
   RS.catalog = HARDWARE_CATALOG;
   RS.BUILTIN_KEYS = BUILTIN_KEYS;
   RS.resolveCatalogItem = resolveCatalogItem;
+  RS.CATALOG_ALIAS_MAP = ALIAS_MAP;
   window.HARDWARE_CATALOG = HARDWARE_CATALOG;
 })();

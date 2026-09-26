@@ -325,19 +325,19 @@
 /* ==========================================================================
    Light Theme Rack & Cabinet Styling
    ========================================================================== */
-[data-theme="light"] .rack-container {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-container {
   background: var(--rack-body, #e6ecf2);
   border-color: #b0c0d2;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15), 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-[data-theme="light"] .rack-rail {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-rail {
   background: var(--rack-post, #d9e2ec);
   border-left-color: #b0c0d2;
   border-right-color: #b0c0d2;
 }
 
-[data-theme="light"] .rack-main-space {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-main-space {
   background: repeating-linear-gradient(
     0deg,
     #e6ecf2,
@@ -347,62 +347,62 @@
   );
 }
 
-[data-theme="light"] .u-unit {
+:is([data-theme="light"], [data-theme="high-contrast"]) .u-unit {
   border-bottom-color: rgba(100, 116, 139, 0.25);
 }
 
-[data-theme="light"] .u-label {
+:is([data-theme="light"], [data-theme="high-contrast"]) .u-label {
   color: #334155;
   text-shadow: none;
   font-weight: 800;
 }
 
-[data-theme="light"] .u-label .u-dot {
+:is([data-theme="light"], [data-theme="high-contrast"]) .u-label .u-dot {
   color: #0284c7;
   opacity: 0.85;
 }
 
-[data-theme="light"] .u-label:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .u-label:hover {
   color: #0284c7 !important;
   background: rgba(2, 132, 199, 0.12) !important;
   box-shadow: 0 0 6px rgba(2, 132, 199, 0.25), inset 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
-[data-theme="light"] .u-label:active {
+:is([data-theme="light"], [data-theme="high-contrast"]) .u-label:active {
   background: rgba(2, 132, 199, 0.2) !important;
 }
 
-[data-theme="light"] .hole {
+:is([data-theme="light"], [data-theme="high-contrast"]) .hole {
   background: #94a3b8;
   border-color: #64748b;
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="light"] .rack-slot:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-slot:hover {
   background: rgba(2, 132, 199, 0.08);
 }
 
-[data-theme="light"] .mounted-device {
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device {
   background: #f8fafc;
   border-top: 1px solid #ffffff;
   border-bottom: 1px solid #cbd5e1;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
-[data-theme="light"] .mounted-device[data-category="switch"],
-[data-theme="light"] .mounted-device[data-category="fiber-switch"],
-[data-theme="light"] .mounted-device[data-category="compact"],
-[data-theme="light"] .mounted-device[data-category="router"] {
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="switch"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="fiber-switch"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="compact"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="router"] {
   background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
   border-top: 1px solid #ffffff;
   border-bottom: 1px solid #cbd5e1;
 }
 
-[data-theme="light"] .mounted-device[data-category="patch"],
-[data-theme="light"] .mounted-device[data-category="fiber"],
-[data-theme="light"] .mounted-device[data-category="pdu"],
-[data-theme="light"] .mounted-device[data-category="organizer"],
-[data-theme="light"] .mounted-device[data-category="blank"] {
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="patch"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="fiber"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="pdu"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="organizer"],
+:is([data-theme="light"], [data-theme="high-contrast"]) .mounted-device[data-category="blank"] {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border-top: 1px solid #ffffff;
   border-bottom: 1px solid #cbd5e1;

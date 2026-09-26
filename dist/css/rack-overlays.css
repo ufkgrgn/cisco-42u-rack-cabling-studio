@@ -217,7 +217,7 @@
 
 
 .multi-rack-stage .rack-container.active-rack-target {
-  box-shadow: 0 0 0 3px #38bdf8, 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+  box-shadow: 0 0 0 2px var(--accent-strong), 0 20px 50px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Cabinet Header Aluminum Plate (Extended Canopy with EIA-310-D & Per-Rack Telemetry) */
@@ -227,19 +227,19 @@
   left: 0;
   width: 100%;
   height: 60px;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
-  border-bottom: 2px solid #0284c7;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent-strong);
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 4px 8px;
+  padding: 5px 8px;
   box-sizing: border-box;
   user-select: none;
   z-index: 10;
-  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .rack-header-top-tier {
@@ -265,18 +265,22 @@
 }
 
 .rack-header-title {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 800;
-  color: #38bdf8;
-  letter-spacing: 0.4px;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
   white-space: nowrap !important;
   overflow: hidden;
+}
+.rack-header-title svg {
+  color: var(--accent-strong);
+  flex-shrink: 0;
 }
 
 .rack-header-name-editable {
@@ -308,12 +312,12 @@
 
 .rack-header-standard-badge {
   font-size: 9px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  color: #38bdf8;
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
   padding: 1px 6px;
   border-radius: 4px;
   text-transform: uppercase;
@@ -379,9 +383,9 @@
 }
 
 .rack-telemetry-badge.pdu {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.3);
-  background: rgba(56, 189, 248, 0.08);
+  color: var(--accent-green);
+  border-color: color-mix(in srgb, var(--accent-green) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-green) 10%, transparent);
 }
 
 .rack-telemetry-badge.overload {
@@ -601,21 +605,20 @@
 }
 
 .uplink-modal-footer .btn-primary {
-  background: linear-gradient(135deg, #0284c7, #0369a1);
-  border: 1px solid #38bdf8;
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-strong);
   color: #ffffff;
   border-radius: 6px;
   padding: 7px 16px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
-  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.15s ease;
 }
 
 .uplink-modal-footer .btn-primary:hover {
-  background: linear-gradient(135deg, #0369a1, #075985);
-  box-shadow: 0 2px 14px rgba(56, 189, 248, 0.5);
+  filter: brightness(1.1);
 }
 
 /* Inline Delete Popover (Anchored right at X button) */
@@ -720,96 +723,96 @@
 /* ==========================================================================
    Light Theme Rack Canopy & Telemetry Overlays
    ========================================================================== */
-[data-theme="light"] .rack-header-plate {
-  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  border-color: #cbd5e1;
-  border-bottom: 2px solid #0284c7;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-plate {
+  background: var(--bg-panel);
+  border-color: var(--border);
+  border-bottom: 2px solid var(--accent-strong);
   box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
 }
 
-[data-theme="light"] .rack-header-bottom-tier {
-  border-top: 1px solid rgba(100, 116, 139, 0.18);
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-bottom-tier {
+  border-top: 1px solid var(--border-subtle);
 }
 
-[data-theme="light"] .rack-header-title {
-  color: #0369a1;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-title {
+  color: var(--text-main);
 }
 
-[data-theme="light"] .rack-header-name-editable {
-  color: #0f172a;
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-name-editable {
+  color: var(--text-main);
 }
 
-[data-theme="light"] .rack-header-name-editable:hover {
-  background: rgba(2, 132, 199, 0.12);
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-name-editable:hover {
+  background: var(--border-subtle);
 }
 
-[data-theme="light"] .rack-header-standard-badge {
-  color: #0369a1;
-  background: rgba(2, 132, 199, 0.1);
-  border-color: rgba(2, 132, 199, 0.25);
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-standard-badge {
+  color: var(--text-muted);
+  background: var(--bg-inset);
+  border-color: var(--border-subtle);
 }
 
-[data-theme="light"] .rack-header-meta {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-meta {
   color: #475569;
   background: #e2e8f0;
   border-color: #cbd5e1;
 }
 
-[data-theme="light"] .rack-telemetry-badge {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge {
   background: #e2e8f0;
   border-color: #cbd5e1;
   color: #1e293b;
 }
 
-[data-theme="light"] .rack-telemetry-badge.power {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge.power {
   color: #b45309;
   border-color: rgba(217, 119, 6, 0.35);
   background: #fef3c7;
 }
 
-[data-theme="light"] .rack-telemetry-badge.heat {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge.heat {
   color: #c2410c;
   border-color: rgba(234, 88, 12, 0.35);
   background: #ffedd5;
 }
 
-[data-theme="light"] .rack-telemetry-badge.pdu {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge.pdu {
   color: #047857;
   border-color: rgba(16, 185, 129, 0.35);
   background: #d1fae5;
 }
 
-[data-theme="light"] .rack-telemetry-badge.weight {
+:is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge.weight {
   color: #4338ca;
   border-color: rgba(99, 102, 241, 0.35);
   background: #e0e7ff;
 }
 
-[data-theme="light"] .active-rack-target {
-  box-shadow: 0 0 0 3px #0284c7, 0 16px 40px rgba(15, 23, 42, 0.2) !important;
+:is([data-theme="light"], [data-theme="high-contrast"]) .active-rack-target {
+  box-shadow: 0 0 0 2px var(--accent-strong), 0 16px 40px rgba(15, 23, 42, 0.15) !important;
 }
 
-[data-theme="light"] [data-device-renderer="pixi"] .device-controls,
-[data-theme="light"] .device-controls-floating {
+:is([data-theme="light"], [data-theme="high-contrast"]) [data-device-renderer="pixi"] .device-controls,
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-controls-floating {
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(2, 132, 199, 0.4);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15), 0 0 8px rgba(2, 132, 199, 0.1);
 }
 
-[data-theme="light"] [data-device-renderer="pixi"] .dev-btn,
-[data-theme="light"] .device-controls-floating .dev-btn {
+:is([data-theme="light"], [data-theme="high-contrast"]) [data-device-renderer="pixi"] .dev-btn,
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-controls-floating .dev-btn {
   background: rgba(241, 245, 249, 0.9);
   border-color: rgba(148, 163, 184, 0.35);
   color: #334155;
 }
 
-[data-theme="light"] [data-device-renderer="pixi"] .dev-btn:hover,
-[data-theme="light"] .device-controls-floating .dev-btn:hover {
+:is([data-theme="light"], [data-theme="high-contrast"]) [data-device-renderer="pixi"] .dev-btn:hover,
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-controls-floating .dev-btn:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
 
-[data-theme="light"] [data-device-renderer="pixi"] .mounted-device {
+:is([data-theme="light"], [data-theme="high-contrast"]) [data-device-renderer="pixi"] .mounted-device {
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.22), 0 1px 3px rgba(15, 23, 42, 0.12) !important;
   border-radius: 2px;
 }

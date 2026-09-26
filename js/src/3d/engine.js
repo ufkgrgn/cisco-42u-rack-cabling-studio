@@ -7,7 +7,8 @@ import { escapeTooltipHtml } from './helpers.js';
 import { 
   CATALOG, 
   CABLE_COLORS, 
-  U_HEIGHT 
+  U_HEIGHT,
+  RACK_DEPTH
 } from './catalog3d.js';
 import { StudioState } from './state3d.js';
 import { registerRackSceneMethods } from './rack-scene-builder.js';
@@ -113,7 +114,7 @@ class Studio3D {
     this.controls.dampingFactor = 0.06;
     this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
     this.controls.minDistance = 2.5;
-    this.controls.maxDistance = 45;
+    this.controls.maxDistance = 100;
     this.controls.target.set(0, midY, 0);
     this.controls.addEventListener('change', () => { this.isDirty = true; });
 
@@ -141,11 +142,11 @@ class Studio3D {
     this.lights.rackInternalLight.position.set(0, midY + 4, 3.6);
     this.scene.add(this.lights.rackInternalLight);
 
-    this.lights.cyanRim = new THREE.DirectionalLight(0x00e5ff, 1.6);
+    this.lights.cyanRim = new THREE.DirectionalLight(0xc8d4d5, 1.0);
     this.lights.cyanRim.position.set(-14, 16, -12);
     this.scene.add(this.lights.cyanRim);
 
-    this.lights.amberRim = new THREE.DirectionalLight(0xf59e0b, 1.2);
+    this.lights.amberRim = new THREE.DirectionalLight(0xe3d5bd, 0.8);
     this.lights.amberRim.position.set(14, 12, -12);
     this.scene.add(this.lights.amberRim);
 
@@ -605,31 +606,48 @@ class Studio3D {
   }
 
   // --- CAMERA PRESET VIEWS ---
-  setCameraView(mode) {
-    const midY = (this.state.rackHeightU * U_HEIGHT) / 2 + 0.3;
-    switch (mode) {
-      case 'front':
-        this.camera.position.set(0, midY, 11.5);
-        this.controls.target.set(0, midY, 0);
-        break;
-      case 'rear':
-        this.camera.position.set(0, midY, -11.5);
-        this.controls.target.set(0, midY, 0);
-        break;
-      case 'iso':
-        this.camera.position.set(7.5, midY + 1.8, 12.0);
-        this.controls.target.set(0, midY, 0);
-        break;
-      case 'top':
-        this.camera.position.set(0, midY + 14.0, 0.1);
-        this.controls.target.set(0, midY, 0);
-        break;
-      case 'focus':
-        this.camera.position.set(0, midY + 4.2, 5.8);
-        this.controls.target.set(0, midY + 4.2, 0);
-        break;
-    }
+  fitCameraToRacks(mode = 'iso', rackId = null) {
+    const racks = Array.isArray(this.state.racks) && this.state.racks.length
+      ? this.state.racks
+      : [{ id: 'rack-1', heightU: this.state.rackHeightU || 42 }];
+    const subjects = rackId ? racks.filter(rack => rack.id === rackId) : racks;
+    const targetRacks = subjects.length ? subjects : racks;
+    const width = rackId ? 5.8 : (targetRacks.length - 1) * 6.4 + 5.8;
+    const height = Math.max(...targetRacks.map(rack => (rack.heightU || 42) * U_HEIGHT)) + 1.4;
+    const targetX = rackId ? this.getRackX(rackId) : 0;
+    const targetY = height / 2;
+    const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+    const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+    const distance = Math.max(
+      height / (2 * Math.tan(verticalHalfAngle)),
+      width / (2 * Math.tan(horizontalHalfAngle))
+    ) * 1.22 + RACK_DEPTH / 2;
+    this.controls.target.set(targetX, targetY, 0);
+    if (mode === 'front') this.camera.position.set(targetX, targetY, distance);
+    else if (mode === 'rear') this.camera.position.set(targetX, targetY, -distance);
+    else if (mode === 'top') this.camera.position.set(targetX, targetY + distance, 0.1);
+    else this.camera.position.set(targetX + distance * 0.22, targetY + distance * 0.07, distance * 0.98);
+    this.camera.updateProjectionMatrix();
     this.controls.update();
+    this.isDirty = true;
+  }
+
+  applyVisualTheme(theme) {
+    if (!this.scene) return;
+    const background = theme === 'light' || theme === 'high-contrast'
+      ? 0xe8edf1 : theme === 'blueprint' ? 0x101d2d : 0x111827;
+    this.scene.background.setHex(background);
+    if (this.scene.fog) this.scene.fog.color.setHex(background);
+    this.isDirty = true;
+  }
+
+  setCameraView(mode) {
+    if (mode === 'focus' && this.selectedDeviceId) {
+      this.focusDevice(this.selectedDeviceId);
+    } else {
+      this.fitCameraToRacks(mode === 'focus' ? 'front' : mode,
+        mode === 'focus' ? this.state.activeRackId : null);
+    }
     sfx.click();
   }
 

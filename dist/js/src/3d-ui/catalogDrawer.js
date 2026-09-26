@@ -2,6 +2,15 @@
  * 3D Catalog Drawer & Installed Devices List
  */
 export function initCatalogDrawer(studio) {
+    const drawer = document.getElementById('catalog-drawer');
+    const drawerTrigger = document.getElementById('btn-3d-catalog');
+    drawerTrigger?.addEventListener('click', () => {
+      const open = drawer.classList.toggle('collapsed') === false;
+      drawer.inert = !open;
+      drawer.setAttribute('aria-hidden', String(!open));
+      drawerTrigger.setAttribute('aria-expanded', String(open));
+      drawerTrigger.textContent = open ? 'Kataloğu gizle' : 'Kataloğu göster';
+    });
     // 6. Catalog Search & Filter with Smart Auto-Slot Allocation & Unified Cisco Catalog
     const catalogList = document.getElementById('catalog-items-list');
     const searchInput = document.getElementById('catalog-search-input');
@@ -207,11 +216,11 @@ export function initCatalogDrawer(studio) {
           <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${dev.powerWatts !== undefined ? dev.powerWatts : 150}W · ${dev.category || 'Donanım'}</div>
           ${metaHtml}
           <div class="installed-card-actions">
-            <button class="btn-inst-action btn-inst-edit" title="Donanım bilgilerini yapılandır">✏️ Düzenle</button>
-            <button class="btn-inst-action btn-inst-focus" title="Cihaza Odaklan">🔍 Odaklan</button>
+            <button class="btn-inst-action btn-inst-edit" title="Donanım bilgilerini yapılandır">Düzenle</button>
+            <button class="btn-inst-action btn-inst-focus" title="Cihaza Odaklan">Odaklan</button>
             <button class="btn-inst-action btn-inst-up" title="1U Yukarı Taşı">▲</button>
             <button class="btn-inst-action btn-inst-down" title="1U Aşağı Taşı">▼</button>
-            <button class="btn-inst-action btn-inst-dismount" title="Kabinden Sök (Hızlı)">🗑️ Sök</button>
+            <button class="btn-inst-action btn-inst-dismount" title="Kabinden Sök (Hızlı)">Sök</button>
           </div>
         `;
 

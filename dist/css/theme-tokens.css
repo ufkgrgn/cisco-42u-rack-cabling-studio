@@ -1,135 +1,165 @@
-/* Canonical theme tokens — dark (default) + light cyberpunk neon */
+/* Instrument tokens — warm neutrals, one steel accent.
+   Cable swatches stay on the data, not on these variables. */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --bg-app: #0b0f19;
-  --bg-panel: #151d2f;
-  --bg-elevated: #1a2438;
-  --bg-panel-light: #243048;
-  --bg-inset: #0f172a;
-  --border: #334155;
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-strong: #64748b;
+  --bg-app: #141311;
+  --bg-panel: #1c1b19;
+  --bg-elevated: #242320;
+  --bg-panel-light: #2e2c29;
+  --bg-inset: #0e0d0c;
+  --border: #3f3c37;
+  --border-subtle: rgba(244, 241, 234, 0.08);
+  --border-strong: #6f6a60;
 
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-inverse: #0b0f19;
+  --text-main: #f4f1ea;
+  --text-muted: #a8a194;
+  --text-inverse: #141311;
 
-  --accent-blue: #38bdf8;
-  --accent-cyan: #00e5ff;
-  --accent-green: #22c55e;
-  --accent-amber: #f59e0b;
-  --accent-red: #ef4444;
-  --accent-orange: #f97316;
+  --accent: #9eb6cc;
+  --accent-strong: #3d6f99;
+  --accent-blue: var(--accent);
+  --accent-cyan: var(--accent);
+  --accent-green: #3d9a6a;
+  --accent-amber: #c4843a;
+  --accent-red: #c4544a;
+  --accent-orange: #c47a3a;
 
-  --neon-cyan: #00e5ff;
-  --neon-green: #10b981;
-  --glow-cyan: rgba(0, 229, 255, 0.2);
-  --glow-cyan-strong: rgba(0, 229, 255, 0.45);
-  --panel-border: rgba(0, 229, 255, 0.25);
+  --status-ok: #3d9a6a;
+  --status-warn: #c4843a;
+  --status-danger: #c4544a;
+  --status-idle: var(--text-muted);
 
-  --glass-bg: rgba(11, 17, 30, 0.88);
-  --glass-bg-strong: rgba(11, 17, 30, 0.92);
-  --glass-border: rgba(56, 189, 248, 0.28);
-  --glass-border-hover: rgba(0, 229, 255, 0.45);
-  --glass-inset: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(0, 229, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --glass-shadow-hover: 0 12px 38px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 229, 255, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  /* Legacy neon names now point at the single accent, without bloom. */
+  --neon-cyan: var(--accent);
+  --neon-green: var(--status-ok);
+  --glow-cyan: transparent;
+  --glow-cyan-strong: transparent;
+  --panel-border: var(--border);
 
-  --viewport-bg: radial-gradient(circle at 50% 30%, #0d1424 0%, #050811 100%);
-  --chrome-offset: 62px;
-  --scrollbar-track: rgba(11, 15, 25, 0.45);
-  --scrollbar-thumb: rgba(148, 163, 184, 0.32);
+  --glass-bg: var(--bg-panel);
+  --glass-bg-strong: color-mix(in srgb, var(--bg-panel) 94%, transparent);
+  --glass-border: var(--border);
+  --glass-border-hover: var(--border-strong);
+  --glass-inset: var(--border-subtle);
+  --glass-shadow: none;
+  --glass-shadow-hover: none;
+
+  --viewport-bg: #10100e;
+  --chrome-offset: 48px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(168, 161, 148, 0.35);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --control-h: 32px;
+  --radius-flat: 2px;
+  --radius-overlay: 8px;
 
   --rack-body: #11141c;
   --rack-post: #1c2230;
 
-
-  /* Typography (from master) */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Cisco stencil hardware */
   --chassis-catalyst: #2d3340;
   --chassis-nexus: #141720;
   --chassis-router: #2a303d;
   --chassis-patch: #1a1e27;
-  --cisco-blue: #0284c7;
-  --cisco-beacon: #00bceb;
+  --cisco-blue: #1f4e79;
+  --cisco-beacon: #3d6f99;
   --silkscreen-text: #f1f5f9;
   --silkscreen-dim: #94a3b8;
 
-  /* Canvas / dock aliases used by newer chrome */
-  --canvas-bg: #0b0f19;
-  --canvas-dot: #1e293b;
-  --dock-bg: var(--glass-bg);
-  --dock-border: var(--glass-border);
-  --dock-shadow: var(--glass-shadow);
+  --canvas-bg: var(--bg-app);
+  --canvas-dot: #2a2825;
+  --dock-bg: var(--bg-panel);
+  --dock-border: var(--border);
+  --dock-shadow: none;
   --dock-pill-bg: var(--bg-inset);
-  --dock-pill-border: var(--border-subtle);
+  --dock-pill-border: var(--border);
   --dock-btn-text: var(--text-muted);
   --dock-btn-hover-text: var(--text-main);
   --dock-btn-hover-bg: var(--bg-elevated);
   --dock-divider: var(--border);
 
-  /* Legacy aliases */
   --bg-dark: var(--bg-app);
   --border-color: var(--border);
 }
 
-[data-theme="light"] {
+:is([data-theme="light"], [data-theme="high-contrast"]) {
   color-scheme: light;
 
-  --bg-app: #e8eef6;
-  --bg-panel: #f4f7fb;
+  --bg-app: #f3f0e8;
+  --bg-panel: #faf8f3;
   --bg-elevated: #ffffff;
-  --bg-panel-light: #e2e8f0;
-  --bg-inset: #dbe4f0;
-  --border: #cbd5e1;
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-strong: #94a3b8;
+  --bg-panel-light: #e7e2d6;
+  --bg-inset: #e7e2d6;
+  --border: #d4cec2;
+  --border-subtle: rgba(28, 25, 21, 0.08);
+  --border-strong: #8a8478;
 
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-inverse: #f8fafc;
+  --text-main: #1c1915;
+  --text-muted: #6f6a60;
+  --text-inverse: #faf8f3;
 
-  --accent-blue: #0284c7;
-  --accent-cyan: #0891b2;
-  --accent-green: #16a34a;
-  --accent-amber: #d97706;
-  --accent-red: #dc2626;
-  --accent-orange: #ea580c;
+  --accent: #506b73;
+  --accent-strong: #3e5e68;
+  --accent-blue: var(--accent);
+  --accent-cyan: var(--accent);
+  --accent-green: #1f7a45;
+  --accent-amber: #8a5a12;
+  --accent-red: #9d322c;
+  --accent-orange: #9a4e16;
 
-  --neon-cyan: #0891b2;
-  --neon-green: #059669;
-  --glow-cyan: rgba(8, 145, 178, 0.14);
-  --glow-cyan-strong: rgba(8, 145, 178, 0.28);
-  --panel-border: rgba(8, 145, 178, 0.28);
+  --status-ok: #1f7a45;
+  --status-warn: #8a5a12;
+  --status-danger: #9d322c;
+  --status-idle: var(--text-muted);
 
-  --glass-bg: rgba(244, 247, 251, 0.92);
-  --glass-bg-strong: rgba(255, 255, 255, 0.94);
-  --glass-border: rgba(8, 145, 178, 0.32);
-  --glass-border-hover: rgba(8, 145, 178, 0.55);
+  --neon-cyan: var(--accent);
+  --neon-green: var(--status-ok);
+  --glow-cyan: transparent;
+  --glow-cyan-strong: transparent;
+  --panel-border: var(--border);
+
+  --glass-bg: var(--bg-panel);
+  --glass-bg-strong: rgba(250, 248, 243, 0.96);
+  --glass-border: var(--border);
+  --glass-border-hover: var(--border-strong);
   --glass-inset: rgba(255, 255, 255, 0.7);
-  --glass-shadow: 0 10px 28px rgba(15, 23, 42, 0.12), 0 0 14px rgba(8, 145, 178, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --glass-shadow-hover: 0 12px 32px rgba(15, 23, 42, 0.16), 0 0 18px rgba(8, 145, 178, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-shadow: none;
+  --glass-shadow-hover: none;
 
-  --viewport-bg: radial-gradient(circle at 50% 30%, #dce6f4 0%, #c5d0e0 100%);
-  --chrome-offset: 62px;
-  --scrollbar-track: rgba(148, 163, 184, 0.25);
-  --scrollbar-thumb: rgba(100, 116, 139, 0.4);
+  --viewport-bg: #e6e1d6;
+  --chrome-offset: 48px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(111, 106, 96, 0.4);
 
-  --rack-body: #e6ecf2;
-  --rack-post: #d9e2ec;
-  --rack-frame-border: #b0c0d2;
-  --rack-divider: #cbd5e1;
-  --rack-hole-bg: #94a3b8;
-  --rack-hole-border: #64748b;
-  --rack-u-label: #334155;
-  --rack-u-label-hover: #0284c7;
-  --rack-slot-hover: rgba(2, 132, 199, 0.08);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --control-h: 32px;
+  --radius-flat: 2px;
+  --radius-overlay: 8px;
 
+  --rack-body: #343a3f;
+  --rack-post: #252b30;
+  --rack-frame-border: #171c20;
+  --rack-divider: #4b5358;
+  --rack-hole-bg: #12171b;
+  --rack-hole-border: #7a8285;
+  --rack-u-label: #e4e8e8;
+  --rack-u-label-hover: #1f4e79;
+  --rack-slot-hover: rgba(31, 78, 121, 0.08);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -138,18 +168,18 @@
   --chassis-nexus: #f0fdf4;
   --chassis-router: #fff7ed;
   --chassis-patch: #f8fafc;
-  --cisco-blue: #0284c7;
-  --cisco-beacon: #0891b2;
+  --cisco-blue: #1f4e79;
+  --cisco-beacon: #1f4e79;
   --silkscreen-text: #0f172a;
   --silkscreen-dim: #64748b;
 
-  --canvas-bg: #e8eef6;
-  --canvas-dot: #cbd5e1;
-  --dock-bg: var(--glass-bg);
-  --dock-border: var(--glass-border);
-  --dock-shadow: var(--glass-shadow);
+  --canvas-bg: var(--bg-app);
+  --canvas-dot: #d4cec2;
+  --dock-bg: var(--bg-panel);
+  --dock-border: var(--border);
+  --dock-shadow: none;
   --dock-pill-bg: var(--bg-inset);
-  --dock-pill-border: var(--border-subtle);
+  --dock-pill-border: var(--border);
   --dock-btn-text: var(--text-muted);
   --dock-btn-hover-text: var(--text-main);
   --dock-btn-hover-bg: var(--bg-elevated);
@@ -161,4 +191,99 @@
 
 html {
   background-color: var(--bg-app);
+}
+
+/* Professional presentation variants share the same semantic surface system. */
+[data-theme="blueprint"] {
+  color-scheme: dark;
+  --bg-app: #101b29;
+  --bg-panel: #172538;
+  --bg-elevated: #203148;
+  --bg-panel-light: #2a3d55;
+  --bg-inset: #0d1928;
+  --border: #40536a;
+  --border-subtle: rgba(225, 237, 249, 0.13);
+  --border-strong: #8299b2;
+  --text-main: #f2f6fa;
+  --text-muted: #b8c9d9;
+  --text-inverse: #101b29;
+  --accent: #99c7e7;
+  --accent-strong: #346d99;
+  --accent-blue: var(--accent);
+  --accent-cyan: var(--accent);
+  --viewport-bg: #0d1826;
+  --canvas-bg: var(--bg-app);
+  --canvas-dot: #284059;
+  --rack-body: #14263c;
+  --rack-post: #30465d;
+  --glass-bg: rgba(18, 33, 50, 0.88);
+  --glass-bg-strong: rgba(18, 33, 50, 0.96);
+  --glass-border: #6985a0;
+  --dock-bg: var(--bg-panel);
+  --dock-border: var(--border);
+  --dock-pill-bg: var(--bg-inset);
+  --dock-pill-border: var(--border);
+  --dock-btn-text: var(--text-muted);
+  --dock-btn-hover-text: var(--text-main);
+  --dock-btn-hover-bg: var(--bg-elevated);
+  --dock-divider: var(--border);
+  --bg-dark: var(--bg-app);
+  --border-color: var(--border);
+}
+
+[data-theme="high-contrast"] {
+  color-scheme: light;
+  --bg-app: #fff;
+  --bg-panel: #fff;
+  --bg-elevated: #fff;
+  --bg-panel-light: #f0f0f0;
+  --bg-inset: #f3f3f3;
+  --border: #282828;
+  --border-subtle: #555;
+  --border-strong: #000;
+  --text-main: #080808;
+  --text-muted: #303030;
+  --text-inverse: #fff;
+  --accent: #064886;
+  --accent-strong: #064886;
+  --accent-blue: var(--accent);
+  --accent-cyan: var(--accent);
+  --status-ok: #086330;
+  --status-warn: #764000;
+  --status-danger: #9e1212;
+  --viewport-bg: #e8e8e8;
+  --canvas-bg: var(--bg-app);
+  --canvas-dot: #aaa;
+  --rack-body: #fff;
+  --rack-post: #4c4c4c;
+  --glass-bg: #fff;
+  --glass-bg-strong: #fff;
+  --glass-border: #000;
+  --dock-bg: var(--bg-panel);
+  --dock-border: var(--border);
+  --dock-pill-bg: var(--bg-inset);
+  --dock-pill-border: var(--border);
+  --dock-btn-text: var(--text-main);
+  --dock-btn-hover-text: var(--text-main);
+  --dock-btn-hover-bg: var(--bg-panel-light);
+  --dock-divider: var(--border);
+  --bg-dark: var(--bg-app);
+  --border-color: var(--border);
+}
+
+:root {
+  --focus-ring: #1c6ea5;
+  --surface-shadow: 0 8px 24px rgba(10, 20, 30, 0.14);
+  --glass-blur: 10px;
+}
+
+[data-theme="dark"], [data-theme="blueprint"] {
+  --focus-ring: #b9dbf3;
+  --surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="high-contrast"] {
+  --focus-ring: #000;
+  --surface-shadow: none;
+  --glass-blur: 0px;
 }

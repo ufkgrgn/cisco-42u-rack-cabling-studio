@@ -292,15 +292,15 @@
 .form-input {
   width: 100%;
   padding: 8px 12px;
-  border-radius: 6px;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #fff;
+  border-radius: var(--radius-flat, 2px);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  color: var(--text-main);
   font-size: 13px;
   outline: none;
 }
 .form-input:focus {
-  border-color: var(--neon-cyan);
+  border-color: var(--accent);
 }
 
 .table-custom {
@@ -437,6 +437,61 @@
   color: var(--neon-cyan);
 }
 
+/* The cable palette is the one persistent glass surface in the 3D scene. */
+#studio3d-wrapper .cable-palette-bar {
+  width: max-content;
+  max-width: min(420px, calc(100vw - 48px));
+  bottom: 18px;
+  padding: 8px 12px;
+  gap: 6px;
+  overflow: visible;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-panel) 86%, transparent);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  box-shadow: var(--surface-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+#studio3d-wrapper #active-3d-cable-color { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 650; }
+#studio3d-wrapper #btn-3d-colors { min-height: 34px; background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border); }
+#studio3d-wrapper #cable-palette-options {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: min(570px, calc(100vw - 32px));
+  max-height: min(42vh, 290px);
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--surface-shadow);
+}
+#studio3d-wrapper #cable-palette-options[hidden] { display: none; }
+
+#studio3d-wrapper .palette-choice {
+  flex: 0 0 auto;
+  min-height: 36px;
+  font-size: 11px;
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+}
+
+#studio3d-wrapper .palette-choice-name { color: var(--text-main); }
+#studio3d-wrapper .color-dot { width: 14px; height: 14px; flex: 0 0 14px; transform: none; border-color: var(--border-strong); box-shadow: none; }
+#studio3d-wrapper .color-dot.active { transform: none; border-color: var(--text-main); box-shadow: 0 0 0 2px var(--bg-panel); }
+#studio3d-wrapper .floating-device-hud { background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border); box-shadow: var(--surface-shadow); backdrop-filter: none; }
+#studio3d-wrapper #studio-toast { background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border); box-shadow: var(--surface-shadow); }
+
+[data-theme="high-contrast"] #studio3d-wrapper .cable-palette-bar { background: var(--bg-panel); backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) {
+  #studio3d-wrapper .cable-palette-bar { background: var(--bg-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
 /* PORT CONFIGURATION & TRUNK CHIPS */
 .color-chip-btn {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -446,7 +501,102 @@
   box-shadow: 0 0 8px currentColor;
 }
 .color-chip-btn.active {
-  outline: 2px solid #ffffff;
-  box-shadow: 0 0 10px currentColor;
+  outline: 2px solid var(--text-main);
+  box-shadow: none;
+}
+
+.hud-action-btn,
+.btn-inst-action,
+.drawer-tab-btn {
+  min-height: var(--control-h, 32px);
+  height: var(--control-h, 32px);
+  padding: 0 10px;
+  border-radius: var(--radius-flat, 2px);
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-muted);
+  font: 600 12px var(--font-sans);
+  box-shadow: none;
+  transform: none;
+}
+
+.hud-action-btn:hover,
+.btn-inst-action:hover,
+.drawer-tab-btn:hover {
+  transform: none;
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+  box-shadow: none;
+  filter: none;
+}
+
+.drawer-tab-btn.active,
+.hud-action-btn.btn-primary {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #f4f1ea;
+}
+
+.hud-action-btn.btn-danger,
+.btn-inst-action.btn-inst-dismount {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--status-danger) 45%, var(--border));
+  color: var(--status-danger);
+  margin-left: 0;
+}
+
+.hud-action-btn.btn-danger:hover,
+.btn-inst-action.btn-inst-dismount:hover {
+  background: color-mix(in srgb, var(--status-danger) 14%, transparent);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+  box-shadow: none;
+}
+
+#studio3d-wrapper .catalog-drawer-trigger {
+  position: absolute;
+  top: 60px;
+  left: 16px;
+  z-index: 12;
+  min-height: 36px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  box-shadow: var(--surface-shadow);
+}
+#studio3d-wrapper .catalog-drawer {
+  top: 104px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow);
+  backdrop-filter: none;
+}
+#studio3d-wrapper .drawer-tab-switcher,
+#studio3d-wrapper .catalog-card,
+#studio3d-wrapper .installed-device-card { background: var(--bg-panel); border-color: var(--border); }
+#studio3d-wrapper .catalog-search-input,
+#studio3d-wrapper .slot-input,
+#studio3d-wrapper .cat-pill { background: var(--bg-inset); border-color: var(--border); color: var(--text-main); }
+#studio3d-wrapper .catalog-card-name,
+#studio3d-wrapper .catalog-card-desc,
+#studio3d-wrapper .catalog-card-u { color: var(--text-main); }
+#studio3d-wrapper .catalog-card-desc { font-size: 12px; line-height: 1.4; }
+#studio3d-wrapper .catalog-card:hover { background: var(--bg-elevated); border-color: var(--border-strong); box-shadow: none; transform: none; }
+#studio3d-wrapper .cat-pill.active { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+#studio3d-wrapper .drawer-tab-btn.active { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+#studio3d-wrapper .catalog-search-input::placeholder { color: var(--text-muted); opacity: 1; }
+
+@media (max-width: 520px) {
+  #studio3d-wrapper .catalog-drawer {
+    left: 8px;
+    width: calc(100vw - 16px);
+    bottom: 76px;
+    border-radius: 10px;
+  }
+  #studio3d-wrapper .catalog-drawer.collapsed { transform: translateX(calc(-100% - 8px)); }
+  #studio3d-wrapper:has(.catalog-drawer:not(.collapsed)) #rack-vertical-navigator { display: none; }
+  #studio3d-wrapper .drawer-tab-switcher { overflow-x: auto; flex-wrap: nowrap; }
+  #studio3d-wrapper .drawer-tab-btn { white-space: nowrap; }
 }
 

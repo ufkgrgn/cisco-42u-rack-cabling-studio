@@ -92,7 +92,7 @@
     hud.style.top = `${top}px`;
 
     const currentDuct = cable.ductSide || 'auto';
-    const ductIcon = currentDuct === 'left' ? '⬅️ Sol' : (currentDuct === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductIcon = currentDuct === 'left' ? 'Sol' : (currentDuct === 'right' ? 'Sağ' : 'Otomatik');
     const ductTitle = `Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
     const fullName = cable.name || cable.id;
     const compactName = formatCompactHudName(fullName, cable.id);
@@ -100,9 +100,9 @@
     hud.innerHTML = `
       <span class="hud-title" title="${escapeHtml(fullName)}"><span style="color:${cable.color};">●</span> ${escapeHtml(compactName)} <span class="hud-length-val" style="color:#94a3b8; font-size:0.72rem; margin-left:4px;">${Number(cable.lengthMeters || 0).toFixed(1)}m</span></span>
       <button type="button" class="hud-btn-duct" title="${escapeHtml(ductTitle)}">${escapeHtml(ductIcon)}</button>
-      <button type="button" class="hud-btn-settings" title="Tüm Kablo Ayarları & Menü">⚙️ Menü</button>
-      <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">✂️ Sök</button>
-      <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">🎨</button>
+      <button type="button" class="hud-btn-settings" title="Tüm Kablo Ayarları & Menü">Menü</button>
+      <button type="button" class="hud-btn-disconnect" title="Kabloyu Sök (Delete Tuşu)">Sök</button>
+      <button type="button" class="hud-btn-color" title="Kablo Rengini Değiştir">Renk</button>
       <button type="button" class="hud-btn-close" title="Kapat">✕</button>
     `;
 
@@ -168,28 +168,28 @@
         <span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} (${cable.lengthMeters || 1.5}m)
       </div>
       <div class="menu-item ${currentDuct === 'auto' ? 'active' : ''}" id="ctx-duct-auto">
-        ⚖️ Kanal: Otomatik Dengeli
+        Kanal: Otomatik
       </div>
       <div class="menu-item ${currentDuct === 'left' ? 'active' : ''}" id="ctx-duct-left">
-        ⬅️ Kanal: Sol Dikey Tava
+        Kanal: Sol
       </div>
       <div class="menu-item ${currentDuct === 'right' ? 'active' : ''}" id="ctx-duct-right">
-        ➡️ Kanal: Sağ Dikey Tava
+        Kanal: Sağ
       </div>
       <div class="menu-divider"></div>
       <div class="menu-item danger" id="ctx-disconnect">
-        ✂️ Kabloyu Sök (Delete)
+        Kabloyu sök
       </div>
       <div class="menu-item" id="ctx-rename">
-        ✏️ Yeniden Adlandır
+        Yeniden adlandır
       </div>
       <div class="menu-item" id="ctx-change-color">
-        🎨 Renk Değiştir
+        Renk değiştir
       </div>
       <div id="ctx-color-swatches" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;"></div>
       <div class="menu-divider"></div>
       <div class="menu-item" id="ctx-cancel">
-        ✕ Kapat
+        Kapat
       </div>
     `;
 
@@ -336,6 +336,7 @@
   }
 
   function showDeviceContextMenu(instanceId, clientX, clientY) {
+    if (instanceId) STATE.selectedDeviceId = instanceId;
     hideCableQuickHud();
     hideCableContextMenu();
     hideDeviceContextMenu();
@@ -358,32 +359,32 @@
     menu.id = 'device-context-menu';
 
     let html = `
-      <div class="context-menu-header" style="padding:6px 12px; font-weight:700; color:#38bdf8; border-bottom:1px solid #334155; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:6px;">
-        <span>📦 ${escapeHtml(devName)}</span>
+      <div class="context-menu-header">
+        <span>${escapeHtml(devName)}</span>
         <span style="font-size:10px; color:#94a3b8; background:#1e293b; padding:1px 4px; border-radius:3px;">U${dev?.topU || ''}</span>
       </div>
       <div class="context-menu-body" style="padding:4px 0;">
     `;
 
     if (hasFree && (cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact' || isPatch || cat.category === 'router')) {
-      html += `<button class="context-menu-item" id="ctx-dev-autofill" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">⚡ Boş Portları Otomatik Bağla (Auto-Fill)</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-autofill">Boş portları bağla</button>`;
     }
     if (hasCables) {
-      html += `<button class="context-menu-item" id="ctx-dev-color" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">🎨 Kabloları Renklendir</button>`;
-      html += `<button class="context-menu-item" id="ctx-dev-clear" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">✂️ Tüm Kabloları Sök (${devCables.length} Kablo)</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-color">Kabloları renklendir</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-clear">Kabloları sök (${devCables.length})</button>`;
     }
     if (isFinger) {
-      html += `<button class="context-menu-item" id="ctx-dev-toggle-cover" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">📂 Kanal Kapağını Aç/Kapat</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-toggle-cover">Kanal kapağı</button>`;
     }
     if (cat.category !== 'blank') {
-      html += `<button class="context-menu-item" id="ctx-dev-config" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#e2e8f0; font-size:12px; text-align:left; cursor:pointer;">⚙️ Cihaz Bilgilerini Düzenle</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-config">Cihaz bilgisi</button>`;
     }
 
     const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
     html += `
         <div style="height:1px; background:#334155; margin:4px 0;"></div>
-        <button class="context-menu-item" id="ctx-dev-delete" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#ef4444; font-size:12px; text-align:left; cursor:pointer; font-weight:600;">🗑️ ${delTitle} (Sil)</button>
-        <button class="context-menu-item" id="ctx-dev-cancel" style="display:flex; align-items:center; gap:8px; width:100%; padding:6px 12px; background:none; border:none; color:#94a3b8; font-size:11px; text-align:left; cursor:pointer;">✕ İptal</button>
+        <button class="context-menu-item danger" id="ctx-dev-delete">${delTitle}</button>
+        <button class="context-menu-item" id="ctx-dev-cancel">İptal</button>
       </div>
     `;
 
@@ -676,17 +677,17 @@
 
     let btns = '';
     if (hasFree && (isSwitch || isPatch || cat.category === 'router')) {
-      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${instanceId}" title="Boş portları akıllıca bağla (Auto-Fill)">⚡</button>`;
+      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${instanceId}" title="Boş portları akıllıca bağla (Auto-Fill)">Bağla</button>`;
     }
     if (hasCables) {
-      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>`;
-      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları temizle / sök">✂️</button>`;
+      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${instanceId}" title="Cihazın tüm kablolarını renklendir">Renk</button>`;
+      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları temizle / sök">Sök</button>`;
     }
     if (isFinger) {
-      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${instanceId}" title="Kanal Kapağını Aç/Kapat">📂</button>`;
+      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${instanceId}" title="Kanal Kapağını Aç/Kapat">Kapak</button>`;
     }
     if (!isOrg && !isBlank) {
-      btns += `<button type="button" class="dev-btn cfg-device-btn" data-instance-id="${instanceId}" title="Cihaz Ayarları & Bilgileri">⚙️</button>`;
+      btns += `<button type="button" class="dev-btn cfg-device-btn" data-instance-id="${instanceId}" title="Cihaz Ayarları & Bilgileri">Ayar</button>`;
     }
     const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
     btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${instanceId}" title="${delTitle}">✕</button>`;

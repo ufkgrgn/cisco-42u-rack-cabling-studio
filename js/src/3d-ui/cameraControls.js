@@ -25,12 +25,12 @@ export function initCameraControls(studio) {
     const btnDoor = document.getElementById('btn-door-toggle');
     if (btnDoor) {
       btnDoor.classList.toggle('active', studio.state.doorOpen);
-      btnDoor.innerHTML = studio.state.doorOpen ? '🚪 Kapak: Açık' : '🚪 Kapak: Kapalı';
+      btnDoor.textContent = studio.state.doorOpen ? 'Kapak: Açık' : 'Kapak: Kapalı';
       btnDoor.addEventListener('click', () => {
         const next = !studio.state.doorOpen;
         studio.setDoorOpen(next);
         btnDoor.classList.toggle('active', next);
-        btnDoor.innerHTML = next ? '🚪 Kapak: Açık' : '🚪 Kapak: Kapalı';
+        btnDoor.textContent = next ? 'Kapak: Açık' : 'Kapak: Kapalı';
         studio.showToast(next ? 'Kabin Cam Kapağı Açıldı' : 'Kabin Cam Kapağı Kapatıldı');
       });
     }
@@ -42,26 +42,25 @@ export function initCameraControls(studio) {
         const next = studio.state.cableRoutingMode === 'catenary' ? 'structured' : 'catenary';
         studio.state.cableRoutingMode = next;
         studio.rebuildAllCables();
-        btnRouting.innerHTML = next === 'catenary' ? '〰️ Catenary Fizik' : '🔲 Yapısal Kanal';
+        btnRouting.textContent = next === 'catenary' ? 'Serbest kablo' : 'Kablo kanalı';
         studio.showToast(next === 'catenary' ? 'Kablolama: Yerçekimi Sarkma Fiziği (Catenary)' : 'Kablolama: 90° Yapısal Yan Kanal');
       });
     }
 
-    // 3b. Lighting Mode Toggle (Studio vs Datacenter vs Cyberpunk)
+    // 3b. Lighting Mode Toggle
     const btnLighting = document.getElementById('btn-lighting-toggle');
     if (btnLighting) {
-      const modes = ['studio', 'datacenter', 'cyberpunk'];
+      const modes = ['studio', 'datacenter'];
       const labels = {
-        studio: '💡 Stüdyo Işığı (Net)',
-        datacenter: '🏢 Veri Merkezi',
-        cyberpunk: '⚡ Cyberpunk Neon'
+        studio: 'Işık: İnceleme',
+        datacenter: 'Işık: Veri merkezi'
       };
       let currentIdx = 0;
       btnLighting.addEventListener('click', () => {
         currentIdx = (currentIdx + 1) % modes.length;
         const mode = modes[currentIdx];
         studio.setLightingMode(mode);
-        btnLighting.innerHTML = labels[mode];
+        btnLighting.textContent = labels[mode];
         studio.showToast(`Işık Modu: ${labels[mode]}`);
       });
     }

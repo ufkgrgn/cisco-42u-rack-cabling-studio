@@ -93,7 +93,6 @@
     popover.innerHTML = `
       <div class="bulk-color-header">
         <div class="bulk-color-title-group">
-          <span class="bulk-color-icon">🎨</span>
           <div class="bulk-color-text">
             <div class="bulk-color-title">${escapeHtml(devName)}</div>
             <div class="bulk-color-subtitle">Tüm Kabloları Renklendir (${swCables.length} Bağlantı)</div>

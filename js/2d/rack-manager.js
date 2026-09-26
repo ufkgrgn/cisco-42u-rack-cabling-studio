@@ -246,15 +246,16 @@
     }
   }
 
-  function addNewRack(customName) {
+  function addNewRack(customName, heightU) {
     do { RS.STATE.rackCounter++; } while (RS.STATE.racks.some(r => r.id === `rack-${RS.STATE.rackCounter}`));
     const newId = `rack-${RS.STATE.rackCounter}`;
     const newName = customName || `Kabin ${RS.STATE.rackCounter} - IDF Kenar`;
+    const height = [12, 24, 42, 48].includes(Number(heightU)) ? Number(heightU) : 42;
     const newRack = {
       id: newId,
       name: newName,
-      heightU: 42,
-      units: Array(43).fill(null),
+      heightU: height,
+      units: Array(height + 1).fill(null),
       devices: []
     };
     RS.STATE.racks.push(newRack);

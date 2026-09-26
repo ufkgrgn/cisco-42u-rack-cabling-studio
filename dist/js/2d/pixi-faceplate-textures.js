@@ -101,7 +101,7 @@
   }
 
   function paintMetal(ctx, w, h, fill, edge) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     ctx.fillStyle = fill;
     ctx.fillRect(0, 0, w, h);
 
@@ -137,7 +137,7 @@
   }
 
   function drawCisco(ctx, w, h, spec, cat) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const series = seriesKey(spec, cat);
     const isWhite = series === 'cat1k' || series === 'compact' || series === 'cbs';
     const isTeal = series === 'cat2960' || series === 'cat2960x' || series === 'cat3k';
@@ -417,7 +417,7 @@
   }
 
   function drawPatch(ctx, w, h, spec, cat) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const fiber = spec.category === 'fiber' || cat?.category === 'fiber';
     const name = `${cat?.name || ''} ${cat?.modelTag || ''} ${spec.catalogKey || ''}`;
 
@@ -558,7 +558,7 @@
   }
 
   function drawPdu(ctx, w, h) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     if (isLight) {
       paintMetal(ctx, w, h, '#f1f5f9', '#16a34a');
       ctx.fillStyle = '#f0fdf4';
@@ -595,7 +595,7 @@
   }
 
   function drawBlank(ctx, w, h) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     if (isLight) {
       paintMetal(ctx, w, h, '#e2e8f0', '#94a3b8');
       ctx.fillStyle = '#64748b';
@@ -614,7 +614,7 @@
   }
 
   function drawChassis(ctx, w, h, spec) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const cat = lookupCatalog(spec.catalogKey);
     const category = spec.category || cat?.category || '';
     if (category === 'blank') return drawBlank(ctx, w, h);
@@ -654,7 +654,7 @@
   }
 
   function paintChassisGraphics(graphics, spec, width, height, coverOpen) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const kind = organizerKind(spec.catalogKey, spec.category);
     const w = width;
     const h = height;
@@ -696,7 +696,7 @@
   }
 
   function paintDringBackplate(graphics, x, y, w, h) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const count = 5;
     const slot = w / count;
     for (let index = 0; index < count; index++) {
@@ -716,7 +716,7 @@
   }
 
   function paintDringHoops(graphics, x, y, w, h) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const count = 5;
     const slot = w / count;
     const bar = 3.5;
@@ -734,7 +734,7 @@
   }
 
   function paintOrganizerForeground(graphics, frames) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     (frames || []).forEach(frame => {
       if (frame.category !== 'organizer') return;
       const kind = organizerKind(frame.catalogKey, 'organizer');
@@ -765,7 +765,7 @@
   }
 
   function drawPort(ctx, style, x) {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const occupied = !!style.occupied;
     const isKeystone = !!style.keystone;
 

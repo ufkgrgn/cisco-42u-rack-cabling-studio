@@ -772,9 +772,9 @@
     canvas.width = 512;
     canvas.height = 512;
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "#3b4448";
     ctx.fillRect(0, 0, 512, 512);
-    ctx.strokeStyle = "#334155";
+    ctx.strokeStyle = "#586267";
     ctx.lineWidth = 8;
     ctx.strokeRect(4, 4, 504, 504);
     ctx.fillStyle = "rgba(255, 255, 255, 0.035)";
@@ -783,7 +783,7 @@
       const ry = Math.random() * 512;
       ctx.fillRect(rx, ry, 2, 2);
     }
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = "#6a7478";
     [[20, 20], [492, 20], [20, 492], [492, 492]].forEach(([x, y]) => {
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, Math.PI * 2);
@@ -793,80 +793,6 @@
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(20, 20);
-    return tex;
-  }
-  function createRailTexture(uCount) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = Math.max(1024, uCount * 128);
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#0f172a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#334155";
-    ctx.lineWidth = 6;
-    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
-    const stepY = canvas.height / uCount;
-    for (let u = 1; u <= uCount; u++) {
-      const actualU = uCount - u + 1;
-      const yTop = (u - 1) * stepY;
-      const isFifth = actualU % 5 === 0;
-      ctx.fillStyle = "#020617";
-      for (let h = 0; h < 3; h++) {
-        const hy = yTop + (h + 0.5) * (stepY / 3) - 14;
-        ctx.fillRect(36, hy, 44, 28);
-        ctx.strokeStyle = isFifth ? "#0ea5e9" : "#475569";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(36, hy, 44, 28);
-      }
-      const badgeX = 120;
-      const badgeY = yTop + stepY / 2 - 36;
-      const badgeW = 340;
-      const badgeH = 72;
-      ctx.fillStyle = isFifth ? "rgba(14, 165, 233, 0.35)" : "rgba(15, 23, 42, 0.95)";
-      ctx.strokeStyle = isFifth ? "#00e5ff" : "#64748b";
-      ctx.lineWidth = isFifth ? 4 : 2;
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 10);
-      } else {
-        ctx.rect(badgeX, badgeY, badgeW, badgeH);
-      }
-      ctx.fill();
-      ctx.stroke();
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = isFifth ? "#38bdf8" : "#94a3b8";
-      ctx.font = '800 32px -apple-system, BlinkMacSystemFont, "Segoe UI", Consolas, monospace';
-      ctx.fillText("U", badgeX + 24, badgeY + badgeH / 2);
-      ctx.fillStyle = isFifth ? "#00e5ff" : "#ffffff";
-      ctx.font = '900 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Consolas, monospace';
-      ctx.fillText(String(actualU), badgeX + 64, badgeY + badgeH / 2);
-      if (isFifth) {
-        ctx.fillStyle = "#00e5ff";
-        ctx.beginPath();
-        ctx.arc(badgeX + badgeW - 32, badgeY + badgeH / 2, 8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.strokeStyle = isFifth ? "rgba(0, 229, 255, 0.6)" : "#334155";
-      ctx.lineWidth = isFifth ? 4 : 2;
-      ctx.beginPath();
-      ctx.moveTo(12, yTop);
-      ctx.lineTo(canvas.width - 12, yTop);
-      ctx.stroke();
-      ctx.strokeStyle = "#1e293b";
-      ctx.lineWidth = 2;
-      [1 / 3, 2 / 3].forEach((fraction) => {
-        const ty = yTop + stepY * fraction;
-        ctx.beginPath();
-        ctx.moveTo(canvas.width - 40, ty);
-        ctx.lineTo(canvas.width - 12, ty);
-        ctx.stroke();
-      });
-    }
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.anisotropy = 16;
-    tex.minFilter = THREE.LinearMipmapLinearFilter;
-    tex.generateMipmaps = true;
     return tex;
   }
   function createFaceplateTexture(dev) {
@@ -1155,6 +1081,7 @@
   // js/src/3d/rack-scene-builder.js
   function registerRackSceneMethods(Studio3D2) {
     Studio3D2.prototype.setLightingMode = function(mode) {
+      if (mode !== "studio" && mode !== "datacenter") mode = "studio";
       this.state.lightingMode = mode;
       if (mode === "studio") {
         this.scene.background.setHex(1120295);
@@ -1178,18 +1105,8 @@
         this.lights.cyanRim.intensity = 1.6;
         this.lights.amberRim.intensity = 1.2;
         this.renderer.toneMappingExposure = 1.25;
-      } else if (mode === "cyberpunk") {
-        this.scene.background.setHex(329745);
-        this.scene.fog.color.setHex(329745);
-        this.lights.ambient.intensity = 0.8;
-        this.lights.hemi.intensity = 1;
-        this.lights.keyLight.intensity = 1.8;
-        this.lights.fillLight.intensity = 1.2;
-        this.lights.rackInternalLight.intensity = 1.8;
-        this.lights.cyanRim.intensity = 2.8;
-        this.lights.amberRim.intensity = 2.2;
-        this.renderer.toneMappingExposure = 1.15;
       }
+      this.applyVisualTheme(document.documentElement.getAttribute("data-theme"));
       this.state.autoSave();
       sfx.toggle();
     };
@@ -1207,7 +1124,7 @@
       this.scene.add(floor);
       const ventGeo = new THREE.BoxGeometry(RACK_WIDTH + 1.2, 0.05, 3.6);
       const ventMat = new THREE.MeshStandardMaterial({
-        color: 3359061,
+        color: 4542034,
         metalness: 0.85,
         roughness: 0.25
       });
@@ -1215,8 +1132,10 @@
       ventTile.position.set(0, 0.02, 5.5);
       ventTile.receiveShadow = true;
       this.scene.add(ventTile);
-      const grid = new THREE.GridHelper(floorSize, 60, 959977, 1976635);
+      const grid = new THREE.GridHelper(floorSize, 60, 4674921, 3359061);
       grid.position.y = 0.03;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.12;
       this.scene.add(grid);
       const lightPanelMat = new THREE.MeshBasicMaterial({ color: 16317180 });
       for (let z = -15; z <= 15; z += 10) {
@@ -1226,19 +1145,6 @@
           lp.position.set(x, 24, z);
           this.scene.add(lp);
         });
-      }
-      const trayMat = new THREE.MeshStandardMaterial({ color: 4674921, metalness: 0.75, roughness: 0.3 });
-      for (let z = -20; z <= 20; z += 10) {
-        const ladderGeo = new THREE.BoxGeometry(40, 0.25, 1.4);
-        const ladder = new THREE.Mesh(ladderGeo, trayMat);
-        ladder.position.set(0, 23.5, z);
-        this.scene.add(ladder);
-        const bundleGeo = new THREE.CylinderGeometry(0.12, 0.12, 40, 8);
-        const bundleMat = new THREE.MeshStandardMaterial({ color: 165063, roughness: 0.4 });
-        const bundle = new THREE.Mesh(bundleGeo, bundleMat);
-        bundle.rotation.z = Math.PI / 2;
-        bundle.position.set(0, 23.7, z);
-        this.scene.add(bundle);
       }
       this.ghostRacksGroup = new THREE.Group();
       this.ghostRacksGroup.name = "ghost_racks_group";
@@ -1250,20 +1156,12 @@
       while (this.ghostRacksGroup.children.length > 0) {
         this.ghostRacksGroup.remove(this.ghostRacksGroup.children[0]);
       }
-      const racks = Array.isArray(this.state.racks) && this.state.racks.length > 0 ? this.state.racks : [{ id: "rack-1" }];
-      const spacing = 6.4;
-      const numRacks = racks.length;
-      const startX = -((numRacks - 1) * spacing) / 2;
-      const leftGhostX = startX - spacing;
-      const rightGhostX = startX + (numRacks - 1) * spacing + spacing;
-      this.buildGhostRack(leftGhostX, 42);
-      this.buildGhostRack(rightGhostX, 42);
     };
     Studio3D2.prototype.buildGhostRack = function(xPos, uCount) {
       const gGroup = new THREE.Group();
       const h = uCount * U_HEIGHT;
       const mat = new THREE.MeshStandardMaterial({
-        color: 1976635,
+        color: 3160638,
         metalness: 0.8,
         roughness: 0.4,
         transparent: true,
@@ -1274,7 +1172,7 @@
       m.position.y = h / 2 + 0.3;
       gGroup.add(m);
       const beaconGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.4, 12);
-      const beaconMat = new THREE.MeshBasicMaterial({ color: xPos < 0 ? 1096065 : 58879 });
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 11715013 });
       const beacon = new THREE.Mesh(beaconGeo, beaconMat);
       beacon.position.set(0, h + 0.5, 0);
       gGroup.add(beacon);
@@ -1295,18 +1193,31 @@
     };
     Studio3D2.prototype.focusRack = function(rackId) {
       const rack = this.getRack(rackId);
-      const rx = this.getRackX(rack.id);
-      const h = (rack.heightU || 42) * U_HEIGHT;
-      const targetY = h / 2 + 0.3;
-      if (this.controls) {
-        this.controls.target.set(rx, targetY, 0);
-        this.camera.position.set(rx + 3.2, targetY + 1.2, 6.4);
-        this.controls.update();
-      }
+      this.fitCameraToRacks("iso", rack.id);
       this.state.activeRackId = rack.id;
       this.showToast(`\u{1F50D} ${rack.name} odakland\u0131`);
     };
     Studio3D2.prototype.buildRack = function(uHeight) {
+      const disposedGeometries = /* @__PURE__ */ new Set();
+      const disposedMaterials = /* @__PURE__ */ new Set();
+      const disposedTextures = /* @__PURE__ */ new Set();
+      this.rackGroup.traverse((object) => {
+        if (object === this.rackGroup) return;
+        if (object.geometry && !disposedGeometries.has(object.geometry)) {
+          object.geometry.dispose();
+          disposedGeometries.add(object.geometry);
+        }
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.forEach((material) => {
+          if (!material || disposedMaterials.has(material)) return;
+          if (material.map && !disposedTextures.has(material.map)) {
+            material.map.dispose();
+            disposedTextures.add(material.map);
+          }
+          material.dispose();
+          disposedMaterials.add(material);
+        });
+      });
       while (this.rackGroup.children.length > 0) {
         this.rackGroup.remove(this.rackGroup.children[0]);
       }
@@ -1326,7 +1237,7 @@
         singleRackGroup.name = `rack_enclosure_${rack.id}`;
         singleRackGroup.position.set(rackX, 0, 0);
         const frameMat = new THREE.MeshStandardMaterial({
-          color: 1975860,
+          color: 2896696,
           roughness: 0.35,
           metalness: 0.8
         });
@@ -1346,15 +1257,14 @@
           pillar.receiveShadow = true;
           singleRackGroup.add(pillar);
         });
-        const railTex = createRailTexture(rackU);
         const railMat = new THREE.MeshStandardMaterial({
-          map: railTex,
-          roughness: 0.4,
-          metalness: 0.7
+          color: 6845562,
+          roughness: 0.62,
+          metalness: 0.5
         });
         const railH = totalH;
-        const railGeo = new THREE.BoxGeometry(RAIL_WIDTH, railH, 0.12);
-        const railX = RACK_WIDTH / 2 - 0.25;
+        const railGeo = new THREE.BoxGeometry(0.16, railH, 0.12);
+        const railX = RACK_WIDTH / 2 - 0.34;
         const railZ = RACK_DEPTH / 2 - 0.5;
         const railL = new THREE.Mesh(railGeo, railMat);
         railL.position.set(-railX, railH / 2 + 0.2, railZ);
@@ -1368,6 +1278,24 @@
         const railBR = new THREE.Mesh(railGeo, railMat);
         railBR.position.set(railX, railH / 2 + 0.2, -railZ);
         singleRackGroup.add(railBR);
+        for (let unit = 5; unit <= rackU; unit += 5) {
+          const markerCanvas = document.createElement("canvas");
+          markerCanvas.width = 128;
+          markerCanvas.height = 64;
+          const markerContext = markerCanvas.getContext("2d");
+          markerContext.fillStyle = "#263747";
+          markerContext.fillRect(0, 0, 128, 64);
+          markerContext.fillStyle = "#f5f7fa";
+          markerContext.font = "600 34px sans-serif";
+          markerContext.textAlign = "center";
+          markerContext.textBaseline = "middle";
+          markerContext.fillText(`U${unit}`, 64, 32);
+          const markerTexture = new THREE.CanvasTexture(markerCanvas);
+          const markerMaterial = new THREE.MeshBasicMaterial({ map: markerTexture, depthWrite: false });
+          const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.18), markerMaterial);
+          marker.position.set(-RACK_WIDTH / 2 - 0.2, (unit - 0.5) * U_HEIGHT + 0.3, railZ + 0.09);
+          singleRackGroup.add(marker);
+        }
         const roofFloorGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.2, RACK_DEPTH);
         const roof = new THREE.Mesh(roofFloorGeo, frameMat);
         roof.position.set(0, totalH + 0.3, 0);
@@ -1387,7 +1315,7 @@
         singleRackGroup.add(floor);
         const sideMeshGeo = new THREE.BoxGeometry(0.04, totalH, RACK_DEPTH - 0.6);
         const sideMat = new THREE.MeshStandardMaterial({
-          color: 988970,
+          color: 2107436,
           roughness: 0.6,
           metalness: 0.5,
           wireframe: false
@@ -1402,19 +1330,16 @@
         singleDoorGroup.name = `door_group_${rack.id}`;
         singleDoorGroup.position.set(-RACK_WIDTH / 2, 0, RACK_DEPTH / 2 + 0.05);
         const glassGeo = new THREE.BoxGeometry(RACK_WIDTH - 0.4, totalH, 0.04);
-        const glassMat = new THREE.MeshPhysicalMaterial({
-          color: 165063,
-          metalness: 0.1,
-          roughness: 0.1,
-          transmission: 0.9,
+        const glassMat = new THREE.MeshBasicMaterial({
+          color: 10271178,
           transparent: true,
-          opacity: 0.4,
-          ior: 1.5
+          opacity: 0.08,
+          depthWrite: false
         });
         const glass = new THREE.Mesh(glassGeo, glassMat);
         glass.position.set(RACK_WIDTH / 2, totalH / 2 + 0.2, 0);
         singleDoorGroup.add(glass);
-        const doorFrameMat = new THREE.MeshStandardMaterial({ color: 165063, metalness: 0.9, roughness: 0.2 });
+        const doorFrameMat = new THREE.MeshStandardMaterial({ color: 6450803, metalness: 0.55, roughness: 0.48 });
         const handleGeo = new THREE.BoxGeometry(0.12, 1.8, 0.16);
         const handle = new THREE.Mesh(handleGeo, doorFrameMat);
         handle.position.set(RACK_WIDTH - 0.35, totalH / 2 + 0.2, 0.12);
@@ -1486,10 +1411,20 @@
         return false;
       }
       this.state.rackHeightU = newU;
+      if (Array.isArray(this.state.racks)) {
+        const active = this.state.racks.find((r) => r.id === this.state.activeRackId) || this.state.racks[0];
+        if (active) active.heightU = newU;
+      }
       this.buildRack(newU);
       this.rebuildAllDevices();
       this.rebuildAllCables();
       this.state.pushSnapshot();
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
       return true;
     };
   }
@@ -1587,6 +1522,12 @@
       }
       const countEl = document.getElementById("installed-count");
       if (countEl) countEl.textContent = String(this.state.devices.length);
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
       return devData;
     };
     Studio3D2.prototype.removeDevice = function(instanceId) {
@@ -1605,6 +1546,12 @@
       }
       const countEl = document.getElementById("installed-count");
       if (countEl) countEl.textContent = String(this.state.devices.length);
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
     };
     Studio3D2.prototype.moveDevice = function(instanceId, deltaU) {
       const dev = this.state.devices.find((d) => d.id === instanceId);
@@ -1626,10 +1573,19 @@
       }
       dev.startU = newU;
       this.rebuildAllDevices();
+      if (this.scene && typeof this.scene.updateMatrixWorld === "function") {
+        this.scene.updateMatrixWorld(true);
+      }
       this.rebuildAllCables();
       this.state.pushSnapshot();
       this.state.autoSave();
       sfx.insert();
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
       if (typeof window.renderInstalledDevicesList === "function") {
         window.renderInstalledDevicesList();
       }
@@ -1637,9 +1593,29 @@
       return true;
     };
     Studio3D2.prototype.selectDevice = function(instanceId) {
+      if (this._selectionOutline) {
+        if (this._selectionOutline.parent) this._selectionOutline.parent.remove(this._selectionOutline);
+        disposeObject3D(this._selectionOutline);
+        this._selectionOutline = null;
+      }
       this.selectedDeviceId = instanceId;
       const dev = this.state.devices.find((d) => d.id === instanceId);
       if (!dev) return;
+      const devGroup = this.devicesGroup?.getObjectByName(instanceId);
+      if (devGroup) {
+        const chassisMesh = devGroup.children.find((c) => c.userData?.isDeviceBody && c.geometry?.parameters);
+        if (chassisMesh) {
+          const p = chassisMesh.geometry.parameters;
+          const boxGeo = new THREE.BoxGeometry(p.width + 0.08, p.height + 0.04, p.depth + 0.08);
+          const edges = new THREE.EdgesGeometry(boxGeo);
+          const lineMat = new THREE.LineBasicMaterial({ color: 3718648, linewidth: 2, transparent: true, opacity: 0.85 });
+          const outline = new THREE.LineSegments(edges, lineMat);
+          outline.position.copy(chassisMesh.position);
+          outline.name = "__selection_outline__";
+          devGroup.add(outline);
+          this._selectionOutline = outline;
+        }
+      }
       const hud = document.getElementById("floating-device-hud");
       if (hud) {
         hud.style.display = "flex";
@@ -1653,6 +1629,11 @@
       });
     };
     Studio3D2.prototype.deselectDevice = function() {
+      if (this._selectionOutline) {
+        if (this._selectionOutline.parent) this._selectionOutline.parent.remove(this._selectionOutline);
+        disposeObject3D(this._selectionOutline);
+        this._selectionOutline = null;
+      }
       this.selectedDeviceId = null;
       const hud = document.getElementById("floating-device-hud");
       if (hud) hud.style.display = "none";
@@ -1690,9 +1671,11 @@
         const rackId = r.id || "rack-1";
         (r.devices || []).forEach((d) => {
           const catId = d.catalogKey || d.catalogId;
+          const catResolver = window.RackStudio && window.RackStudio.resolveCatalogItem ? window.RackStudio.resolveCatalogItem(catId) : null;
           const cat3D = (window.CATALOG_3D || []).find((c) => c.id === catId);
           const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catId];
-          const cat = cat3D || cat2D || {};
+          const catMaster = Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find((m) => m.id === catId) : null;
+          const cat = catResolver || cat3D || cat2D || catMaster || {};
           const portDefinitions = Array.isArray(cat.ports) ? cat.ports.map((port) => ({
             id: port.id,
             name: port.name,
@@ -1734,10 +1717,20 @@
       this.state.devices = loadedDevices;
       const resolvePortIndex = (endpoint, devId) => {
         const device = this.state.devices.find((d) => d.id === devId);
-        const catalog = window.RackStudio && window.RackStudio.catalog && device && window.RackStudio.catalog[device.catalogId] || (window.CATALOG_3D || []).find((item) => device && item.id === device.catalogId) || {};
-        const ports = catalog.ports || [];
-        const byId = ports.findIndex((port) => port.id === (endpoint && endpoint.portId));
-        if (byId >= 0) return byId + 1;
+        if (!device) return 1;
+        const catResolver = window.RackStudio && window.RackStudio.resolveCatalogItem ? window.RackStudio.resolveCatalogItem(device.catalogId) : null;
+        const catalog = catResolver || window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[device.catalogId] || (window.CATALOG_3D || []).find((item) => item.id === device.catalogId) || {};
+        const ports = device.portDefinitions && device.portDefinitions.length ? device.portDefinitions : catalog.ports || [];
+        if (endpoint && endpoint.portId) {
+          const byId = ports.findIndex((port) => port.id === endpoint.portId);
+          if (byId >= 0) return byId + 1;
+          const byName = ports.findIndex((port) => port.name === endpoint.portId || port.id === endpoint.portId.toLowerCase());
+          if (byName >= 0) return byName + 1;
+          if (/^p\d+$/i.test(endpoint.portId)) {
+            const num = parseInt(endpoint.portId.slice(1), 10);
+            if (num >= 1 && (!ports.length || num <= ports.length)) return num;
+          }
+        }
         const saved = Number(endpoint && endpoint.portIdx);
         if (Number.isInteger(saved) && saved >= 1 && (!ports.length || saved <= ports.length)) return saved;
         return 1;
@@ -2108,13 +2101,19 @@
       const pA = this.getPortWorldPosition(from.devId, from.portIdx);
       const pB = this.getPortWorldPosition(to.devId, to.portIdx);
       if (!pA || !pB) return false;
-      const dist = pA.distanceTo(pB);
-      const lengthM = parseFloat((dist * 0.44 + 0.5).toFixed(2));
       const devFrom = this.state.devices.find((d) => d.id === from.devId);
       const devTo = this.state.devices.find((d) => d.id === to.devId);
       const defaultRackId = this.state.racks[0] && this.state.racks[0].id || "rack-1";
       from.rackId = from.rackId || devFrom && devFrom.rackId || defaultRackId;
       to.rackId = to.rackId || devTo && devTo.rackId || defaultRackId;
+      const isInterRack = from.rackId !== to.rackId;
+      const lengthM = typeof window !== "undefined" && window.RackStudio?.calculateCableLengthMeters ? window.RackStudio.calculateCableLengthMeters(from.devId, to.devId, isInterRack) : (() => {
+        const uFrom = devFrom?.u || devFrom?.startU || 1;
+        const uTo = devTo?.u || devTo?.startU || 1;
+        const deltaU = Math.abs(uFrom - uTo);
+        const totalM = isInterRack ? ((42 - uFrom + (42 - uTo)) * 0.04445 + 1.8) * 1.15 : (deltaU * 0.04445 + 0.7) * 1.1;
+        return Math.max(0.5, Math.round(totalM * 2) / 2);
+      })();
       const nameFrom = devFrom ? devFrom.name.split(" ")[1] || "Cihaz" : "D1";
       const nameTo = devTo ? devTo.name.split(" ")[1] || "Cihaz" : "D2";
       const portCfgFrom = devFrom && devFrom.portsConfig && (devFrom.portsConfig[from.portIdx] || devFrom.portsConfig["p" + from.portIdx]) || null;
@@ -2184,6 +2183,12 @@
       if (!options?.silent) {
         sfx.plug();
       }
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
       return cableData;
     };
     Studio3D2.prototype.updatePortConfig = function(devId, portIdx, config) {
@@ -2219,6 +2224,12 @@
       this.rebuildAllCables();
       this.state.pushSnapshot();
       this.showToast(`Kablo G\xFCncellendi: "${cable.name}"`);
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
       return true;
     };
     Studio3D2.prototype.removeCable = function(cableId) {
@@ -2226,6 +2237,12 @@
       this.rebuildAllCables();
       this.state.pushSnapshot();
       sfx.delete();
+      if (typeof window.sync3Dto2D === "function") {
+        try {
+          window.sync3Dto2D();
+        } catch (_) {
+        }
+      }
     };
     Studio3D2.prototype.buildCable3D = function(cable) {
       const pA = this.getPortWorldPosition(cable.from.devId, cable.from.portIdx);
@@ -2531,7 +2548,7 @@
       this.controls.dampingFactor = 0.06;
       this.controls.maxPolarAngle = Math.PI / 2 + 0.05;
       this.controls.minDistance = 2.5;
-      this.controls.maxDistance = 45;
+      this.controls.maxDistance = 100;
       this.controls.target.set(0, midY, 0);
       this.controls.addEventListener("change", () => {
         this.isDirty = true;
@@ -2554,10 +2571,10 @@
       this.lights.rackInternalLight = new THREE.PointLight(16777215, 2.5, 35, 1.1);
       this.lights.rackInternalLight.position.set(0, midY + 4, 3.6);
       this.scene.add(this.lights.rackInternalLight);
-      this.lights.cyanRim = new THREE.DirectionalLight(58879, 1.6);
+      this.lights.cyanRim = new THREE.DirectionalLight(13161685, 1);
       this.lights.cyanRim.position.set(-14, 16, -12);
       this.scene.add(this.lights.cyanRim);
-      this.lights.amberRim = new THREE.DirectionalLight(16096779, 1.2);
+      this.lights.amberRim = new THREE.DirectionalLight(14931389, 0.8);
       this.lights.amberRim.position.set(14, 12, -12);
       this.scene.add(this.lights.amberRim);
       this.rackGroup = new THREE.Group();
@@ -2962,31 +2979,45 @@
       this.state.pushSnapshot();
     }
     // --- CAMERA PRESET VIEWS ---
-    setCameraView(mode) {
-      const midY = this.state.rackHeightU * U_HEIGHT / 2 + 0.3;
-      switch (mode) {
-        case "front":
-          this.camera.position.set(0, midY, 11.5);
-          this.controls.target.set(0, midY, 0);
-          break;
-        case "rear":
-          this.camera.position.set(0, midY, -11.5);
-          this.controls.target.set(0, midY, 0);
-          break;
-        case "iso":
-          this.camera.position.set(7.5, midY + 1.8, 12);
-          this.controls.target.set(0, midY, 0);
-          break;
-        case "top":
-          this.camera.position.set(0, midY + 14, 0.1);
-          this.controls.target.set(0, midY, 0);
-          break;
-        case "focus":
-          this.camera.position.set(0, midY + 4.2, 5.8);
-          this.controls.target.set(0, midY + 4.2, 0);
-          break;
-      }
+    fitCameraToRacks(mode = "iso", rackId = null) {
+      const racks = Array.isArray(this.state.racks) && this.state.racks.length ? this.state.racks : [{ id: "rack-1", heightU: this.state.rackHeightU || 42 }];
+      const subjects = rackId ? racks.filter((rack) => rack.id === rackId) : racks;
+      const targetRacks = subjects.length ? subjects : racks;
+      const width = rackId ? 5.8 : (targetRacks.length - 1) * 6.4 + 5.8;
+      const height = Math.max(...targetRacks.map((rack) => (rack.heightU || 42) * U_HEIGHT)) + 1.4;
+      const targetX = rackId ? this.getRackX(rackId) : 0;
+      const targetY = height / 2;
+      const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+      const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+      const distance = Math.max(
+        height / (2 * Math.tan(verticalHalfAngle)),
+        width / (2 * Math.tan(horizontalHalfAngle))
+      ) * 1.22 + RACK_DEPTH / 2;
+      this.controls.target.set(targetX, targetY, 0);
+      if (mode === "front") this.camera.position.set(targetX, targetY, distance);
+      else if (mode === "rear") this.camera.position.set(targetX, targetY, -distance);
+      else if (mode === "top") this.camera.position.set(targetX, targetY + distance, 0.1);
+      else this.camera.position.set(targetX + distance * 0.22, targetY + distance * 0.07, distance * 0.98);
+      this.camera.updateProjectionMatrix();
       this.controls.update();
+      this.isDirty = true;
+    }
+    applyVisualTheme(theme) {
+      if (!this.scene) return;
+      const background = theme === "light" || theme === "high-contrast" ? 15265265 : theme === "blueprint" ? 1056045 : 1120295;
+      this.scene.background.setHex(background);
+      if (this.scene.fog) this.scene.fog.color.setHex(background);
+      this.isDirty = true;
+    }
+    setCameraView(mode) {
+      if (mode === "focus" && this.selectedDeviceId) {
+        this.focusDevice(this.selectedDeviceId);
+      } else {
+        this.fitCameraToRacks(
+          mode === "focus" ? "front" : mode,
+          mode === "focus" ? this.state.activeRackId : null
+        );
+      }
       sfx.click();
     }
     pause() {

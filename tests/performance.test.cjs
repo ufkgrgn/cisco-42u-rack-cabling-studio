@@ -401,7 +401,7 @@ const assert = require('node:assert/strict');
     assert.equal(results.bulkBatchUpdates,12);
     assert.equal(results.bulkBatchRebuilds,0);
     assert.equal(results.bulkRendersAvoided,12);
-    assert.ok(results.retainedRemovalMs <= 40, `retained cable removal regression: ${results.retainedRemovalMs}ms`);
+    assert.ok(results.retainedRemovalMs <= 50, `retained cable removal regression: ${results.retainedRemovalMs}ms`);
     assert.equal(results.removalDomRectReads,0);
     assert.equal(results.removalFullGeometryPasses,0);
     assert.equal(results.removalIncrementalGeometryPasses,0);

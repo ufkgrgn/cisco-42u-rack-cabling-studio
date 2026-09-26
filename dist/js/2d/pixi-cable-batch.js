@@ -22,23 +22,47 @@
     traySpacing: 2.8
   });
 
-  function parseSvgPathD(graphics, pathD) {
-    if (!pathD || !graphics) return;
-    const commands = pathD.match(/[MLCQZ][^MLCQZ]*/gi) || [];
-    for (const cmd of commands) {
-      const type = cmd[0];
-      const args = cmd.slice(1).trim().split(/[\s,]+/).map(Number);
-      if (type === 'M' || type === 'm') {
-        graphics.moveTo(args[0], args[1]);
-      } else if (type === 'L' || type === 'l') {
-        graphics.lineTo(args[0], args[1]);
-      } else if (type === 'Q' || type === 'q') {
-        graphics.quadraticCurveTo(args[0], args[1], args[2], args[3]);
-      } else if (type === 'C' || type === 'c') {
-        graphics.bezierCurveTo(args[0], args[1], args[2], args[3], args[4], args[5]);
-      } else if (type === 'Z' || type === 'z') {
-        graphics.closePath();
+  const parsedPathCache = new Map();
+
+  function parsePathString(pathD) {
+    const raw = pathD.match(/[MLCQZ][^MLCQZ]*/gi) || [];
+    const parsed = new Array(raw.length);
+    for (let i = 0; i < raw.length; i++) {
+      const cmd = raw[i];
+      parsed[i] = {
+        type: cmd[0],
+        args: cmd.slice(1).trim().split(/[\s,]+/).map(Number)
+      };
+    }
+    return parsed;
+  }
+
+  function parseSvgPathD(graphics, target) {
+    if (!target || !graphics) return;
+    let commands;
+    if (typeof target === 'object' && target !== null && target.pathD) {
+      if (!target._parsedCommands || target._parsedPathD !== target.pathD) {
+        target._parsedPathD = target.pathD;
+        target._parsedCommands = parsePathString(target.pathD);
       }
+      commands = target._parsedCommands;
+    } else if (typeof target === 'string') {
+      commands = parsedPathCache.get(target);
+      if (!commands) {
+        commands = parsePathString(target);
+        if (parsedPathCache.size < 5000) parsedPathCache.set(target, commands);
+      }
+    }
+    if (!commands) return;
+    for (let i = 0; i < commands.length; i++) {
+      const cmd = commands[i];
+      const type = cmd.type;
+      const args = cmd.args;
+      if (type === 'M' || type === 'm') graphics.moveTo(args[0], args[1]);
+      else if (type === 'L' || type === 'l') graphics.lineTo(args[0], args[1]);
+      else if (type === 'Q' || type === 'q') graphics.quadraticCurveTo(args[0], args[1], args[2], args[3]);
+      else if (type === 'C' || type === 'c') graphics.bezierCurveTo(args[0], args[1], args[2], args[3], args[4], args[5]);
+      else if (type === 'Z' || type === 'z') graphics.closePath();
     }
   }
 
@@ -193,7 +217,7 @@
     // 3. 3D cylindrical highlight (0.8px #ffffff alpha 0.18)
     displays.forEach(display => {
       // 1. Casing
-      parseSvgPathD(casing, display.pathD);
+      parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.casingWidth,
         color: CABLE_VISUAL_STYLE.casingColor,
@@ -203,7 +227,7 @@
       });
 
       // 2. Core
-      parseSvgPathD(casing, display.pathD);
+      parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.coreWidth,
         color: display.colorNum,
@@ -213,7 +237,7 @@
       });
 
       // 3. Highlight
-      parseSvgPathD(casing, display.pathD);
+      parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.highlightWidth,
         color: CABLE_VISUAL_STYLE.highlightColor,
@@ -241,6 +265,7 @@
     rackGroup.casing = casing;
     rackGroup.connectors = connectors;
     rackGroup.badges = badges;
+    rackGroup.displays = displays;
     return rackGroup;
   }
 
@@ -381,7 +406,9 @@
       previous.connectorBatch.destroy?.();
       batchedRackGroups.delete(rackKey);
 
-      const displays = Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__:unknown:unknown') === rackKey);
+      const displays = (previous.displays && previous.displays.length)
+        ? previous.displays.filter(d => (d.id ? cableDisplays.has(d.id) : Array.from(cableDisplays.values()).includes(d)))
+        : Array.from(cableDisplays.values()).filter(display => (display.rackKey || '__cross__:unknown:unknown') === rackKey);
       processedDisplays += displays.length;
       if (displays.length) batchedRackGroups.set(rackKey, buildRetainedRackBatch(rackKey, displays, cableIndex, connectorIndex));
     }

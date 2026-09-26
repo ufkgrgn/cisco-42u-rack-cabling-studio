@@ -48,6 +48,7 @@
     const portB = catB ? catB.ports?.find(p => p.id === c.to?.portId) : null;
 
     const isInterRack = c.from?.rackId !== c.to?.rackId;
+    const showRackBadge = Boolean((STATE.racks && STATE.racks.length > 1) || isInterRack);
 
     const tr = document.createElement('tr');
     tr.dataset.cableId = c.id;
@@ -181,7 +182,7 @@
     const flowTooltip = `Saha Güzergahı: ${left.devLabel || 'Cihaz'} (U${left.dev ? left.dev.topU : '?'}, ${left.port ? left.port.name : left.portId})${orgPathStr}${right.devLabel || 'Cihaz'} (U${right.dev ? right.dev.topU : '?'}, ${right.port ? right.port.name : right.portId}) | Gerçek Saha Metrajı: ${c.lengthMeters}m (%10 Servis Halkası Dahil)`;
 
     const currentDuct = c.ductSide || 'auto';
-    const ductLabel = currentDuct === 'left' ? '⬅️ Sol' : (currentDuct === 'right' ? '➡️ Sağ' : '⚖️ Oto');
+    const ductLabel = currentDuct === 'left' ? 'Sol' : (currentDuct === 'right' ? 'Sağ' : 'Otomatik');
     const ductTooltip = `Dikey Kanal Güzergahı: ${currentDuct === 'left' ? 'Sol Dikey Tava' : (currentDuct === 'right' ? 'Sağ Dikey Tava' : 'Otomatik Dengeli')} (Değiştirmek için tıkla)`;
 
     tr.innerHTML = `
@@ -197,20 +198,25 @@
             <span class="metraj-badge" title="Gerçek Saha Metrajı (Servis Payı Dahil)">${c.lengthMeters}m</span>
           </div>
         </div>
+        <div class="card-endpoint-summary" title="${escapeHtml(flowTooltip)}">
+          <span>${showRackBadge && left.rack ? `[${escapeHtml(left.rackShort)}] ` : ''}${escapeHtml(left.devLabel || 'Cihaz')} · ${escapeHtml(left.port ? left.port.name : left.portId)}</span>
+          <span aria-hidden="true">→</span>
+          <span>${showRackBadge && right.rack ? `[${escapeHtml(right.rackShort)}] ` : ''}${escapeHtml(right.devLabel || 'Cihaz')} · ${escapeHtml(right.port ? right.port.name : right.portId)}</span>
+        </div>
         <div class="card-route-bar">
           <div class="route-split-container" title="${escapeHtml(flowTooltip)}">
-            <div class="route-endpoint-box left clickable-endpoint" data-instance-id="${left.instanceId}" data-port-id="${left.portId}" title="Kaynak: ${escapeHtml(left.devLabel)} (${left.port ? left.port.name : left.portId})">
-              ${isInterRack && left.rack ? `<span class="inter-rack-tag" title="${escapeHtml(left.rack.name)}">${escapeHtml(left.rackShort)}</span>` : ''}
+            <div class="route-endpoint-box left clickable-endpoint" data-instance-id="${left.instanceId}" data-port-id="${left.portId}" title="Kaynak: ${showRackBadge && left.rack ? `[${escapeHtml(left.rack.name)}] ` : ''}${escapeHtml(left.devLabel)} (${left.port ? left.port.name : left.portId})">
+              ${showRackBadge && left.rack ? `<span class="inter-rack-tag ${isInterRack ? 'cross-rack' : ''}" title="${escapeHtml(left.rack.name)}">${escapeHtml(left.rackShort)}</span>` : ''}
               <span class="badge-u-prominent">U${left.dev ? left.dev.topU : '?'}</span>
               <span class="route-pipe">|</span>
               <span class="badge-port-prominent ${left.portType}">${left.panelTag ? left.panelTag + ' ' : ''}${escapeHtml(left.port ? left.port.name : left.portId)}</span>
             </div>
             <span class="route-center-sep" aria-hidden="true">➔</span>
-            <div class="route-endpoint-box right clickable-endpoint" data-instance-id="${right.instanceId}" data-port-id="${right.portId}" title="Hedef: ${escapeHtml(right.devLabel)} (${right.port ? right.port.name : right.portId})">
+            <div class="route-endpoint-box right clickable-endpoint" data-instance-id="${right.instanceId}" data-port-id="${right.portId}" title="Hedef: ${showRackBadge && right.rack ? `[${escapeHtml(right.rack.name)}] ` : ''}${escapeHtml(right.devLabel)} (${right.port ? right.port.name : right.portId})">
               <span class="badge-port-prominent ${right.portType}">${right.panelTag ? right.panelTag + ' ' : ''}${escapeHtml(right.port ? right.port.name : right.portId)}</span>
               <span class="route-pipe">|</span>
               <span class="badge-u-prominent">U${right.dev ? right.dev.topU : '?'}</span>
-              ${isInterRack && right.rack ? `<span class="inter-rack-tag" title="${escapeHtml(right.rack.name)}">${escapeHtml(right.rackShort)}</span>` : ''}
+              ${showRackBadge && right.rack ? `<span class="inter-rack-tag ${isInterRack ? 'cross-rack' : ''}" title="${escapeHtml(right.rack.name)}">${escapeHtml(right.rackShort)}</span>` : ''}
             </div>
           </div>
           <button class="del-cable-btn" data-cable-id="${c.id}" title="Kabloyu Sök (Delete)">✕</button>
@@ -388,7 +394,7 @@
               ${sw.hostname && sw.hostname !== swShort ? `<span class="tree-switch-model">(${escapeHtml(sw.hostname)})</span>` : ''}
             </div>
             <div class="tree-switch-actions">
-              <button type="button" class="btn-switch-bulk-color" data-instance-id="${sw.instanceId}" title="Bu switch'e bağlı tüm kabloları renklendir">🎨 Renk</button>
+              <button type="button" class="btn-switch-bulk-color" data-instance-id="${sw.instanceId}" title="Bu switch'e bağlı tüm kabloları renklendir">Renk</button>
               <span class="tree-switch-count">${swCables.length} Port Bağlı</span>
             </div>
           </div>
@@ -492,9 +498,9 @@
         <span class="schedule-total-badge">${STATE.cables.length} Bağlantı</span>
       </div>
       <div class="schedule-sort-group">
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'u' ? 'active' : ''}" data-sort="u" title="Kabin U Konumuna Göre Sırala">⇕ U Sırası</button>
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'panel' ? 'active' : ''}" data-sort="panel" title="Patch Panel Adına Göre Sırala (A-Z)">A-Z Panel</button>
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'tree' ? 'active' : ''}" data-sort="tree" title="Cisco Switch Port Ağacı Görünümü">🌿 Switch Ağacı</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'u' ? 'active' : ''}" data-sort="u" title="Kabin U Konumuna Göre Sırala">U sırası</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'panel' ? 'active' : ''}" data-sort="panel" title="Patch Panel Adına Göre Sırala (A-Z)">Panel</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'tree' ? 'active' : ''}" data-sort="tree" title="Cisco Switch Port Ağacı Görünümü">Switch ağacı</button>
       </div>
     `;
 

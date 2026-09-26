@@ -159,7 +159,30 @@
     document.querySelectorAll('#schedule-tbody tr').forEach(row => {
       row.classList.toggle('active', row.dataset.cableId === STATE.highlightedCableId);
     });
+    renderHighlightedCableInspector();
     RS.syncPixiCableSelection?.();
+  }
+
+  function renderHighlightedCableInspector() {
+    if (!dom.inspectorInfo) return;
+    const cable = (STATE.cables || []).find(c => c.id === STATE.highlightedCableId);
+    if (!cable) return;
+    const rack = getActiveRack();
+    const info = RS.SvgCablePathway?.getCableEndpointInfo;
+    const from = info ? info(rack, cable.from) : { deviceName: 'Kaynak', portName: cable.from?.portId || '' };
+    const to = info ? info(rack, cable.to) : { deviceName: 'Hedef', portName: cable.to?.portId || '' };
+    const meters = cable.lengthMeters != null ? `${cable.lengthMeters} m` : '—';
+    const color = cable.color || '#2563eb';
+    dom.inspectorInfo.innerHTML = `
+      <div class="inspector-kicker">Kablo izi</div>
+      <div class="inspector-title">${escapeHtml(cable.name || cable.id || 'Kablo')}</div>
+      <div class="inspector-ends">
+        <div><b>Kaynak:</b> ${escapeHtml(from.deviceName)} / ${escapeHtml(from.portName)}</div>
+        <div><b>Hedef:</b> ${escapeHtml(to.deviceName)} / ${escapeHtml(to.portName)}</div>
+        <div><b>Metraj:</b> <span class="inspector-meter">${escapeHtml(meters)}</span></div>
+        <div><b>Renk:</b> <span class="swatch-dot" style="background:${escapeHtml(color)};vertical-align:middle;"></span> ${escapeHtml(color)}</div>
+      </div>
+    `;
   }
 
   function addDirectCable(rackA, instA, portA, rackB, instB, portB, color, lengthMeters) {

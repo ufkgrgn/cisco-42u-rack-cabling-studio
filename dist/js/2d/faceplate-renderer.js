@@ -44,14 +44,14 @@
     const hasFree = connPorts > occupiedCount;
     let btns = '';
     if (hasFree && (isSwitch || isPatch || cat.category === 'router')) {
-      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>`;
+      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">Bağla</button>`;
     }
     if (hasCables) {
-      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>`;
-      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatch ? 'Panelin tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">✂️</button>`;
+      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">Renk</button>`;
+      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatch ? 'Panelin tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">Sök</button>`;
     }
     if (isFinger) {
-      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${dev.instanceId}" title="Kanal Kapağını Aç/Kapat">📂</button>`;
+      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${dev.instanceId}" title="Kanal Kapağını Aç/Kapat">Kapak</button>`;
     }
     const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
     btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${dev.instanceId}" title="${delTitle}">✕</button>`;
@@ -277,9 +277,9 @@
     return `
       <div class="device-faceplate faceplate-router" style="background:linear-gradient(90deg, #242934 0%, #2f3645 100%); border-top: 1px solid #475569;">
         <div class="device-controls">
-          ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>` : ''}
-          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
-          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını temizle / sök">✂️</button>` : ''}
+          ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">Bağla</button>` : ''}
+          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">Renk</button>` : ''}
+          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını temizle / sök">Sök</button>` : ''}
           <button class="dev-btn del-device-btn" title="Cihazı Kaldır">✕</button>
         </div>
         <div class="bezel-badge" style="border-right: 1px solid #3b4455; padding-right: 6px;">
@@ -605,9 +605,9 @@
       <div class="device-faceplate ${typeClass}${faceplateStencil ? ' stencil-faceplate' : ''}"${faceplateStyle}>
         ${faceplateStencil ? `<img class="rack-faceplate-stencil" src="assets/stencils/${encodeURIComponent(faceplateStencil.stencil)}" alt="" draggable="false" aria-hidden="true">` : ''}
         <div class="device-controls">
-          ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">⚡</button>` : ''}
-          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">🎨</button>` : ''}
-          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatchPanel ? 'Paneli tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">✂️</button>` : ''}
+          ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">Bağla</button>` : ''}
+          ${hasCables ? `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${dev.instanceId}" title="Cihazın tüm kablolarını renklendir">Renk</button>` : ''}
+          ${hasCables ? `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${dev.instanceId}" title="${isPatchPanel ? 'Paneli tüm kablolarını temizle / sök' : 'Cihazın tüm kablolarını temizle / sök'}">Sök</button>` : ''}
           <button class="dev-btn del-device-btn" title="${isPatchPanel ? 'Paneli Kaldır' : 'Cihazı Kaldır'}">✕</button>
         </div>
         ${leftSection}

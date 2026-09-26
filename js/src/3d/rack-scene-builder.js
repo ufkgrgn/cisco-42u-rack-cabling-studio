@@ -2,17 +2,16 @@ import { sfx } from './audio.js';
 import { 
   U_HEIGHT, 
   RACK_WIDTH, 
-  RACK_DEPTH, 
-  RAIL_WIDTH 
+  RACK_DEPTH
 } from './catalog3d.js';
 import { 
-  createFloorTexture, 
-  createRailTexture, 
+  createFloorTexture,
   createRackHeaderBadgeTexture 
 } from './textures.js';
 
 export function registerRackSceneMethods(Studio3D) {
   Studio3D.prototype.setLightingMode = function(mode) {
+    if (mode !== 'studio' && mode !== 'datacenter') mode = 'studio';
     this.state.lightingMode = mode;
     if (mode === 'studio') {
       this.scene.background.setHex(0x111827);
@@ -36,18 +35,8 @@ export function registerRackSceneMethods(Studio3D) {
       this.lights.cyanRim.intensity = 1.6;
       this.lights.amberRim.intensity = 1.2;
       this.renderer.toneMappingExposure = 1.25;
-    } else if (mode === 'cyberpunk') {
-      this.scene.background.setHex(0x050811);
-      this.scene.fog.color.setHex(0x050811);
-      this.lights.ambient.intensity = 0.8;
-      this.lights.hemi.intensity = 1.0;
-      this.lights.keyLight.intensity = 1.8;
-      this.lights.fillLight.intensity = 1.2;
-      this.lights.rackInternalLight.intensity = 1.8;
-      this.lights.cyanRim.intensity = 2.8;
-      this.lights.amberRim.intensity = 2.2;
-      this.renderer.toneMappingExposure = 1.15;
     }
+    this.applyVisualTheme(document.documentElement.getAttribute('data-theme'));
     this.state.autoSave();
     sfx.toggle();
   };
@@ -67,7 +56,7 @@ export function registerRackSceneMethods(Studio3D) {
 
     const ventGeo = new THREE.BoxGeometry(RACK_WIDTH + 1.2, 0.05, 3.6);
     const ventMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
+      color: 0x454e52,
       metalness: 0.85,
       roughness: 0.25
     });
@@ -76,8 +65,10 @@ export function registerRackSceneMethods(Studio3D) {
     ventTile.receiveShadow = true;
     this.scene.add(ventTile);
 
-    const grid = new THREE.GridHelper(floorSize, 60, 0x0ea5e9, 0x1e293b);
+    const grid = new THREE.GridHelper(floorSize, 60, 0x475569, 0x334155);
     grid.position.y = 0.03;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.12;
     this.scene.add(grid);
 
     const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
@@ -90,20 +81,6 @@ export function registerRackSceneMethods(Studio3D) {
       });
     }
 
-    const trayMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.75, roughness: 0.3 });
-    for (let z = -20; z <= 20; z += 10) {
-      const ladderGeo = new THREE.BoxGeometry(40, 0.25, 1.4);
-      const ladder = new THREE.Mesh(ladderGeo, trayMat);
-      ladder.position.set(0, 23.5, z);
-      this.scene.add(ladder);
-
-      const bundleGeo = new THREE.CylinderGeometry(0.12, 0.12, 40, 8);
-      const bundleMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.4 });
-      const bundle = new THREE.Mesh(bundleGeo, bundleMat);
-      bundle.rotation.z = Math.PI / 2;
-      bundle.position.set(0, 23.7, z);
-      this.scene.add(bundle);
-    }
     this.ghostRacksGroup = new THREE.Group();
     this.ghostRacksGroup.name = 'ghost_racks_group';
     this.scene.add(this.ghostRacksGroup);
@@ -115,23 +92,13 @@ export function registerRackSceneMethods(Studio3D) {
     while (this.ghostRacksGroup.children.length > 0) {
       this.ghostRacksGroup.remove(this.ghostRacksGroup.children[0]);
     }
-    const racks = (Array.isArray(this.state.racks) && this.state.racks.length > 0)
-      ? this.state.racks
-      : [{ id: 'rack-1' }];
-    const spacing = 6.4;
-    const numRacks = racks.length;
-    const startX = -((numRacks - 1) * spacing) / 2;
-    const leftGhostX = startX - spacing;
-    const rightGhostX = startX + (numRacks - 1) * spacing + spacing;
-    this.buildGhostRack(leftGhostX, 42);
-    this.buildGhostRack(rightGhostX, 42);
   };
 
   Studio3D.prototype.buildGhostRack = function(xPos, uCount) {
     const gGroup = new THREE.Group();
     const h = uCount * U_HEIGHT;
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
+      color: 0x303a3e,
       metalness: 0.8,
       roughness: 0.4,
       transparent: true,
@@ -143,7 +110,7 @@ export function registerRackSceneMethods(Studio3D) {
     gGroup.add(m);
 
     const beaconGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.4, 12);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: xPos < 0 ? 0x10b981 : 0x00e5ff });
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xb2c1c5 });
     const beacon = new THREE.Mesh(beaconGeo, beaconMat);
     beacon.position.set(0, h + 0.5, 0);
     gGroup.add(beacon);
@@ -172,19 +139,32 @@ export function registerRackSceneMethods(Studio3D) {
 
   Studio3D.prototype.focusRack = function(rackId) {
     const rack = this.getRack(rackId);
-    const rx = this.getRackX(rack.id);
-    const h = (rack.heightU || 42) * U_HEIGHT;
-    const targetY = h / 2 + 0.3;
-    if (this.controls) {
-      this.controls.target.set(rx, targetY, 0);
-      this.camera.position.set(rx + 3.2, targetY + 1.2, 6.4);
-      this.controls.update();
-    }
+    this.fitCameraToRacks('iso', rack.id);
     this.state.activeRackId = rack.id;
     this.showToast(`🔍 ${rack.name} odaklandı`);
   };
 
   Studio3D.prototype.buildRack = function(uHeight) {
+    const disposedGeometries = new Set();
+    const disposedMaterials = new Set();
+    const disposedTextures = new Set();
+    this.rackGroup.traverse(object => {
+      if (object === this.rackGroup) return;
+      if (object.geometry && !disposedGeometries.has(object.geometry)) {
+        object.geometry.dispose();
+        disposedGeometries.add(object.geometry);
+      }
+      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      materials.forEach(material => {
+        if (!material || disposedMaterials.has(material)) return;
+        if (material.map && !disposedTextures.has(material.map)) {
+          material.map.dispose();
+          disposedTextures.add(material.map);
+        }
+        material.dispose();
+        disposedMaterials.add(material);
+      });
+    });
     while (this.rackGroup.children.length > 0) {
       this.rackGroup.remove(this.rackGroup.children[0]);
     }
@@ -212,7 +192,7 @@ export function registerRackSceneMethods(Studio3D) {
       singleRackGroup.position.set(rackX, 0, 0);
 
       const frameMat = new THREE.MeshStandardMaterial({
-        color: 0x1e2634,
+        color: 0x2c3338,
         roughness: 0.35,
         metalness: 0.8
       });
@@ -235,16 +215,15 @@ export function registerRackSceneMethods(Studio3D) {
         singleRackGroup.add(pillar);
       });
 
-      const railTex = createRailTexture(rackU);
       const railMat = new THREE.MeshStandardMaterial({
-        map: railTex,
-        roughness: 0.4,
-        metalness: 0.7
+        color: 0x68747a,
+        roughness: 0.62,
+        metalness: 0.5
       });
 
       const railH = totalH;
-      const railGeo = new THREE.BoxGeometry(RAIL_WIDTH, railH, 0.12);
-      const railX = RACK_WIDTH / 2 - 0.25;
+      const railGeo = new THREE.BoxGeometry(0.16, railH, 0.12);
+      const railX = RACK_WIDTH / 2 - 0.34;
       const railZ = RACK_DEPTH / 2 - 0.5;
 
       const railL = new THREE.Mesh(railGeo, railMat);
@@ -262,6 +241,26 @@ export function registerRackSceneMethods(Studio3D) {
       const railBR = new THREE.Mesh(railGeo, railMat);
       railBR.position.set(railX, railH / 2 + 0.2, -railZ);
       singleRackGroup.add(railBR);
+
+      // Numbers sit outside the mounting aperture, so they cannot mask ports.
+      for (let unit = 5; unit <= rackU; unit += 5) {
+        const markerCanvas = document.createElement('canvas');
+        markerCanvas.width = 128;
+        markerCanvas.height = 64;
+        const markerContext = markerCanvas.getContext('2d');
+        markerContext.fillStyle = '#263747';
+        markerContext.fillRect(0, 0, 128, 64);
+        markerContext.fillStyle = '#f5f7fa';
+        markerContext.font = '600 34px sans-serif';
+        markerContext.textAlign = 'center';
+        markerContext.textBaseline = 'middle';
+        markerContext.fillText(`U${unit}`, 64, 32);
+        const markerTexture = new THREE.CanvasTexture(markerCanvas);
+        const markerMaterial = new THREE.MeshBasicMaterial({ map: markerTexture, depthWrite: false });
+        const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.18), markerMaterial);
+        marker.position.set(-RACK_WIDTH / 2 - 0.2, (unit - 0.5) * U_HEIGHT + 0.3, railZ + 0.09);
+        singleRackGroup.add(marker);
+      }
 
       const roofFloorGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.2, RACK_DEPTH);
       const roof = new THREE.Mesh(roofFloorGeo, frameMat);
@@ -285,7 +284,7 @@ export function registerRackSceneMethods(Studio3D) {
 
       const sideMeshGeo = new THREE.BoxGeometry(0.04, totalH, RACK_DEPTH - 0.6);
       const sideMat = new THREE.MeshStandardMaterial({
-        color: 0x0f172a,
+        color: 0x20282c,
         roughness: 0.6,
         metalness: 0.5,
         wireframe: false
@@ -303,20 +302,17 @@ export function registerRackSceneMethods(Studio3D) {
       singleDoorGroup.position.set(-RACK_WIDTH / 2, 0, RACK_DEPTH / 2 + 0.05);
 
       const glassGeo = new THREE.BoxGeometry(RACK_WIDTH - 0.4, totalH, 0.04);
-      const glassMat = new THREE.MeshPhysicalMaterial({
-        color: 0x0284c7,
-        metalness: 0.1,
-        roughness: 0.1,
-        transmission: 0.9,
+      const glassMat = new THREE.MeshBasicMaterial({
+        color: 0x9cb9ca,
         transparent: true,
-        opacity: 0.4,
-        ior: 1.5
+        opacity: 0.08,
+        depthWrite: false
       });
       const glass = new THREE.Mesh(glassGeo, glassMat);
       glass.position.set(RACK_WIDTH / 2, totalH / 2 + 0.2, 0);
       singleDoorGroup.add(glass);
 
-      const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.2 });
+      const doorFrameMat = new THREE.MeshStandardMaterial({ color: 0x626e73, metalness: 0.55, roughness: 0.48 });
       const handleGeo = new THREE.BoxGeometry(0.12, 1.8, 0.16);
       const handle = new THREE.Mesh(handleGeo, doorFrameMat);
       handle.position.set(RACK_WIDTH - 0.35, totalH / 2 + 0.2, 0.12);
@@ -402,10 +398,17 @@ export function registerRackSceneMethods(Studio3D) {
       return false;
     }
     this.state.rackHeightU = newU;
+    if (Array.isArray(this.state.racks)) {
+      const active = this.state.racks.find(r => r.id === this.state.activeRackId) || this.state.racks[0];
+      if (active) active.heightU = newU;
+    }
     this.buildRack(newU);
     this.rebuildAllDevices();
     this.rebuildAllCables();
     this.state.pushSnapshot();
+    if (typeof window.sync3Dto2D === 'function') {
+      try { window.sync3Dto2D(); } catch (_) {}
+    }
     return true;
   };
 }

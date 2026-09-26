@@ -222,10 +222,10 @@
 }
 
 .sort-tab-btn.active {
-  background: #0284c7;
+  background: var(--accent-strong);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* ==========================================================================

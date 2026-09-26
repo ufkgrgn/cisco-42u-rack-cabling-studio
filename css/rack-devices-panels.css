@@ -411,63 +411,63 @@
 /* ==========================================================================
    Light Theme Passive Panels & PDU Styling (DOM fallback / measurement)
    ========================================================================== */
-[data-theme="light"] .device-faceplate.stencil-faceplate {
+:is([data-theme="light"], [data-theme="high-contrast"]) .device-faceplate.stencil-faceplate {
   background: #f8fafc;
 }
 
-[data-theme="light"] .faceplate-patch-panel {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-patch-panel {
   background: linear-gradient(90deg, #fff7ed 0%, #f8fafc 74px, #f1f5f9 100%);
   border-left: 4px solid #ea580c;
   border-top: 1.5px solid #fdba74;
   border-bottom: 1.5px solid #cbd5e1;
 }
 
-[data-theme="light"] .patch-integrated-bezel {
+:is([data-theme="light"], [data-theme="high-contrast"]) .patch-integrated-bezel {
   background: #fff7ed;
   border: 1px solid #fed7aa;
   border-left: 2.5px solid #ea580c;
 }
 
-[data-theme="light"] .patch-model-code {
+:is([data-theme="light"], [data-theme="high-contrast"]) .patch-model-code {
   color: #c2410c;
 }
 
-[data-theme="light"] .faceplate-patch-panel .port-group {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-patch-panel .port-group {
   background: #ffffff;
   border: 1px solid #fdba74;
 }
 
-[data-theme="light"] .faceplate-fiber-panel {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-fiber-panel {
   background: linear-gradient(90deg, #faf5ff 0%, #f8fafc 74px, #f1f5f9 100%);
   border-left: 4px solid #9333ea;
   border-top: 1.5px solid #d8b4fe;
   border-bottom: 1.5px solid #cbd5e1;
 }
 
-[data-theme="light"] .faceplate-fiber-panel .port-group {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-fiber-panel .port-group {
   background: #ffffff;
   border: 1px solid #d8b4fe;
   border-top: 2px solid #9333ea;
 }
 
-[data-theme="light"] .faceplate-pdu {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-pdu {
   background: linear-gradient(90deg, #f0fdf4 0%, #f8fafc 74px, #f1f5f9 100%);
   border-left: 4px solid #16a34a;
   border-top: 1.5px solid #86efac;
   border-bottom: 1.5px solid #cbd5e1;
 }
 
-[data-theme="light"] .faceplate-pdu .patch-integrated-bezel {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-pdu .patch-integrated-bezel {
   border-color: #86efac;
   border-left-color: #16a34a;
   background: #f0fdf4;
 }
 
-[data-theme="light"] .faceplate-pdu .patch-brand-logo {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-pdu .patch-brand-logo {
   color: #15803d;
 }
 
-[data-theme="light"] .faceplate-pdu .port-group {
+:is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-pdu .port-group {
   background: #ffffff;
   border: 1px solid #86efac;
   border-top: 2px solid #16a34a;

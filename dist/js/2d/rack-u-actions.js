@@ -32,7 +32,9 @@
       const btn = document.createElement('button');
       btn.className = 'rack-float-add-btn rack-float-add-' + direction;
       btn.title = direction === 'left' ? 'Sola Yeni Kabin Ekle' : 'Sağa Yeni Kabin Ekle';
-      btn.textContent = '+';
+      const plusSvg = (window.getLucideIconSvg && window.getLucideIconSvg('Plus', 14)) ||
+        '<svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+      btn.innerHTML = `${plusSvg}<span>${direction === 'left' ? 'Sola kabin' : 'Sağa kabin'}</span>`;
       btn.addEventListener('click', () => {
         if (!RS.addNewRack) return;
         const newRack = RS.addNewRack();
@@ -198,9 +200,9 @@
         uActionMenu.className = 'rack-u-action-menu';
         uActionMenu.innerHTML = `
           <div style="padding: 4px 8px; font-weight: bold; color: #94a3b8; border-bottom: 1px solid #334155;">U ${targetU} (${escapeHtml(rack?.name || 'Kabin')})</div>
-          <button data-u-action="insert-1u">➕ Araya 1U Boşluk Aç</button>
-          <button data-u-action="collapse-1u">➖ Boşluğu Kapat (1U Çek)</button>
-          <button data-u-action="multiselect">☑️ Çoklu Seçimi Başlat</button>
+          <button data-u-action="insert-1u">Araya 1U boşluk</button>
+          <button data-u-action="collapse-1u">Boşluğu kapat</button>
+          <button data-u-action="multiselect">Çoklu seçim</button>
         `;
         uActionMenu.style.top = `${Math.min(window.innerHeight - 150, Math.max(10, rect.top))}px`;
         uActionMenu.style.left = `${Math.min(window.innerWidth - 200, rect.right + 8)}px`;

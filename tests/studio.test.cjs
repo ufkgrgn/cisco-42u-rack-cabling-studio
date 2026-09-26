@@ -66,9 +66,11 @@ const server = http.createServer((req, res) => {
       catch (error) { if (error.message === 'Accepted occupied port') throw error; }
       if (before !== JSON.stringify(api.STATE.racks)) throw new Error('Bad cable import mutated project');
     });
-    const downloadWait = page.waitForEvent('download');
-    await page.locator('#btn-export-visio').click();
-    const download = await downloadWait;
+    if (!await page.locator('#btn-export-visio').isVisible()) await page.locator('#btn-tools-menu-toggle').click();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.locator('#btn-export-visio').click()
+    ]);
     const stream = await download.createReadStream();
     const chunks = []; for await (const chunk of stream) chunks.push(chunk);
     const svg = Buffer.concat(chunks).toString('utf8');

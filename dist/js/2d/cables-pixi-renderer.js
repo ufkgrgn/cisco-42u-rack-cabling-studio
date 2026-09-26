@@ -293,7 +293,7 @@
 
       if (!display) {
         if (usesBatchedViewportRenderer()) {
-          display = { visualAlpha: 1, glowAlpha: 0, previewColorNum: null };
+          display = { id: cable.id, visualAlpha: 1, glowAlpha: 0, previewColorNum: null };
         } else {
           const glow = new window.PIXI.Graphics();
           glow.eventMode = 'none';
@@ -311,7 +311,7 @@
           bootB.on('pointerdown', e => RS.handleCablePointerDown?.(cable.id, e));
           if (cablesContainer) cablesContainer.addChild(glow, casing, core);
           if (connectorsContainer) connectorsContainer.addChild(bootA, bootB);
-          display = { glow, casing, core, boots: [bootA, bootB] };
+          display = { id: cable.id, glow, casing, core, boots: [bootA, bootB] };
         }
         cableDisplays.set(cable.id, display);
         if (renderStats) renderStats.createdDisplays++;
@@ -322,7 +322,12 @@
       if (usesBatchedViewportRenderer() && (display.pathD !== pathD || display.colorNum !== colorNum)) {
         RS.PixiCableBatch?.destroyFocusVariants(display);
       }
-      display.pathD = pathD;
+      display.id = cable.id;
+      if (display.pathD !== pathD) {
+        display.pathD = pathD;
+        display._parsedCommands = null;
+        display._parsedPathD = null;
+      }
       display.colorNum = colorNum;
       display.geometrySignature = geometrySignature;
       display.rackKey = rackKey;

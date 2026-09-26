@@ -140,6 +140,8 @@
   function isBuiltinKey(key) {
     const builtinKeys = RS.BUILTIN_KEYS || BUILTIN_KEYS;
     if (builtinKeys && builtinKeys.has(key)) return true;
+    if (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) return true;
+    if (RS.resolveCatalogItem && RS.resolveCatalogItem(key)) return true;
     if (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG.some(m => m.id === key)) return true;
     return false;
   }
@@ -170,7 +172,7 @@
       rackIds.add(source.id);
       const units = Array(heightU + 1).fill(null);
       const devices = source.devices.map(dev => {
-        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : (catalog[dev.catalogKey] || null);
+        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : (catalog[dev.catalogKey] || (RS.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) || null);
         if (!cat || !validId(dev.instanceId) || deviceIds.has(dev.instanceId) || !Number.isInteger(dev.topU) || dev.topU > heightU || dev.topU - cat.u < 0 || (dev.uHeight !== undefined && dev.uHeight !== cat.u)) throw new Error('Geçersiz cihaz veya U konumu.');
         for(let u = dev.topU - cat.u + 1; u <= dev.topU; u++) { if(units[u]) throw new Error('Cihaz yerleşimleri çakışıyor.'); units[u] = dev.instanceId; }
         deviceIds.add(dev.instanceId); deviceMap.set(dev.instanceId, {rackId:source.id, cat});

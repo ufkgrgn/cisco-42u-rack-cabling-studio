@@ -11,10 +11,10 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
     canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#111827';
+    ctx.fillStyle = '#3b4448';
     ctx.fillRect(0, 0, 512, 512);
 
-    ctx.strokeStyle = '#334155';
+    ctx.strokeStyle = '#586267';
     ctx.lineWidth = 8;
     ctx.strokeRect(4, 4, 504, 504);
 
@@ -25,7 +25,7 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       ctx.fillRect(rx, ry, 2, 2);
     }
 
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#6a7478';
     [ [20, 20], [492, 20], [20, 492], [492, 492] ].forEach(([x, y]) => {
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, Math.PI * 2);

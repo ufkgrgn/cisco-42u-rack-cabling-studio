@@ -4,20 +4,53 @@
 export function initCableModals(studio) {
     // 7. Cable Color Palette Bar
     const paletteBar = document.getElementById('cable-palette-bar');
-    if (paletteBar && window.CABLE_COLORS_3D) {
+    const paletteOptions = document.getElementById('cable-palette-options');
+    const paletteTrigger = document.getElementById('btn-3d-colors');
+    const activeColor = document.getElementById('active-3d-cable-color');
+    if (paletteBar && paletteOptions && window.CABLE_COLORS_3D) {
+      const selectedIdx = Number.isInteger(studio.state.cableColorIdx) ? studio.state.cableColorIdx : 0;
+      const closePalette = () => {
+        paletteOptions.hidden = true;
+        paletteTrigger?.setAttribute('aria-expanded', 'false');
+      };
+      paletteTrigger?.addEventListener('click', () => {
+        paletteOptions.hidden = !paletteOptions.hidden;
+        paletteTrigger.setAttribute('aria-expanded', String(!paletteOptions.hidden));
+      });
+      document.addEventListener('pointerdown', event => {
+        if (!paletteOptions.hidden && !paletteBar.contains(event.target)) closePalette();
+      });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !paletteOptions.hidden) {
+          closePalette();
+          paletteTrigger?.focus();
+        }
+      });
       window.CABLE_COLORS_3D.forEach((c, idx) => {
-        const dot = document.createElement('div');
-        dot.className = 'color-dot' + (idx === 0 ? ' active' : '');
+        const choice = document.createElement('button');
+        choice.type = 'button';
+        choice.className = 'palette-choice' + (idx === selectedIdx ? ' active' : '');
+        const dot = document.createElement('span');
+        dot.className = 'color-dot' + (idx === selectedIdx ? ' active' : '');
         dot.style.backgroundColor = c.css;
-        dot.title = c.name;
-        dot.addEventListener('click', () => {
-          document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        const label = document.createElement('span');
+        label.className = 'palette-choice-name';
+        label.textContent = c.name;
+        choice.title = c.name;
+        choice.append(dot, label);
+        choice.addEventListener('click', () => {
+          paletteOptions.querySelectorAll('.palette-choice, .color-dot').forEach(d => d.classList.remove('active'));
+          choice.classList.add('active');
           dot.classList.add('active');
           studio.state.cableColorIdx = idx;
-          studio.showToast(`Kablo Rengi: ${c.name}`);
+          if (activeColor) activeColor.textContent = c.name;
+          closePalette();
+          studio.showToast(`Kablo rengi: ${c.name}`);
         });
-        paletteBar.appendChild(dot);
+        paletteOptions.appendChild(choice);
       });
+      const selected = window.CABLE_COLORS_3D[studio.state.cableColorIdx] || window.CABLE_COLORS_3D[0];
+      if (activeColor && selected) activeColor.textContent = selected.name;
     }
 
     // 8. CABLE EDIT & NAMING MODAL (User Priority #1)
@@ -130,7 +163,7 @@ export function initCableModals(studio) {
                 <td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background-color:#${c.color.toString(16).padStart(6, '0')};margin-right:6px;vertical-align:middle;"></span>#${c.color.toString(16).padStart(6, '0')}</td>
                 <td><strong>${c.lengthM} Metre</strong></td>
                 <td>
-                  <button class="hud-btn btn-edit-cbl" data-id="${c.id}" style="padding:2px 6px;margin-right:4px;">✏️ Düzenle</button>
+                  <button class="hud-btn btn-edit-cbl" data-id="${c.id}">Düzenle</button>
                   <button class="hud-btn btn-del-cbl" data-id="${c.id}" style="padding:2px 6px;color:#ef4444;">Sök</button>
                 </td>
               `;

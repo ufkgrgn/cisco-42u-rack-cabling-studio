@@ -73,7 +73,8 @@
       RS.dom.rackStage.style.transform = transformValue;
       lastTransformValue = transformValue;
     }
-    RS.setPixiInteractionMode?.(true, true);
+    // Keep the backing buffer stable while panning. Resolution changes alter
+    // port edges even though their geometry and zoom have not changed.
     const rackSyncStarted = performance.now();
     RS.syncRackViewportVisibility?.(RS.ZOOM_STATE);
     cameraPerformanceTelemetry.totalRackSyncDurationMs += performance.now() - rackSyncStarted;
@@ -91,7 +92,10 @@
     }
     // Resize the Pixi backing buffer once the gesture/animation settles so
     // high zoom stays sharp without reallocating GPU surfaces on every frame.
-    schedulePixiResolutionRefresh(RS.ZOOM_STATE.scale);
+    if (lastDispatchedScale !== RS.ZOOM_STATE.scale) {
+      schedulePixiResolutionRefresh(RS.ZOOM_STATE.scale);
+      lastDispatchedScale = RS.ZOOM_STATE.scale;
+    }
 
     // Dynamic 2D Level of Detail (LOD) tiering
     const currentLod = RS.ZOOM_STATE.scale < 0.35 ? 'macro' : 'detail';
@@ -482,11 +486,12 @@
 
       if (!canvas.contains(e.target)) return;
 
-      if (RS.isDraggingDevice || RS.dom?.rackStage?.classList.contains('device-dragging-active') || e.target.closest('.mounted-device') || e.target.closest('[data-drag-handle="true"]')) {
+      const isDeviceHit = !e.altKey && (e.target.closest('.mounted-device') || RS.hitDeviceChassisAt?.(e.clientX, e.clientY) || RS.PixiDeviceScene?.hitDeviceBodyAt?.(e.clientX, e.clientY));
+      if (RS.isDraggingDevice || RS.dom?.rackStage?.classList.contains('device-dragging-active') || isDeviceHit || e.target.closest('[data-drag-handle="true"]')) {
         if (RS.ZOOM_STATE.isPanning) endPan();
         return;
       }
-      const isBlocked = !!e.target.closest('button, .port, .dev-btn, input, select, textarea, [data-drag-handle="true"], .u-label, .rack-u-action-menu, #rack-u-action-menu, .studio-multiselect-pill, #studio-multiselect-pill, .modal, .mounted-device');
+      const isBlocked = !!e.target.closest('button, .port, .dev-btn, input, select, textarea, [data-drag-handle="true"], .u-label, .rack-u-action-menu, #rack-u-action-menu, .studio-multiselect-pill, #studio-multiselect-pill, .modal, .mounted-device') || (!e.altKey && !!RS.hitDevicePortAt?.(e.clientX, e.clientY));
       if (e.button === 1 || (e.button === 0 && (e.altKey || !isBlocked))) {
         panOriginClientX = e.clientX;
         panOriginClientY = e.clientY;

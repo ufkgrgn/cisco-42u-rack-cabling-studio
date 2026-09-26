@@ -210,9 +210,9 @@
 
     if (targetBtn) {
       showInlineDeleteConfirm(targetBtn, rack.name, {
-        title: '🧹 KABLO TEMİZLE?',
+        title: 'Kabloları sil?',
         msg: `<strong>${escapeHtml(rack.name)}</strong> kabinine bağlı <strong>${rackCables.length} adet kablo</strong> sökülecektir.`,
-        confirmText: '🧹 Kabloları Sil'
+        confirmText: 'Kabloları sil'
       }, doClear);
     } else {
       if (confirm(`[${rack.name}] kabinindeki ${rackCables.length} adet kablo silinsin mi?`)) {
@@ -265,9 +265,9 @@
 
     if (targetBtn) {
       showInlineDeleteConfirm(targetBtn, rack.name, {
-        title: '🗑️ CİHAZLARI BOŞALT?',
+        title: 'Cihazları boşalt?',
         msg: `<strong>${escapeHtml(rack.name)}</strong> kabinindeki <strong>${devCount} adet cihaz</strong> ve tüm kablolar kaldırılacaktır.<br><small style="color:#94a3b8;">(Kabin boşaltılacak, kabin çerçevesi silinmeyecektir)</small>`,
-        confirmText: '🗑️ Cihazları Boşalt'
+        confirmText: 'Cihazları boşalt'
       }, doClear);
     } else {
       if (confirm(`[${rack.name}] kabinindeki ${devCount} adet cihaz ve bunlara bağlı tüm kablolar kaldırılsın mı?\n(Kabin boşaltılacak, kabin silinmeyecektir)`)) {
@@ -301,9 +301,9 @@
 
     if (targetBtn) {
       showInlineDeleteConfirm(targetBtn, devName, {
-        title: '✂️ KABLOLARI TEMİZLE?',
+        title: 'Kabloları sök?',
         msg: `<strong>${escapeHtml(devName)}</strong> üzerindeki <strong>${devCables.length} adet kablo</strong> sökülecektir.`,
-        confirmText: '✂️ Kabloları Sök'
+        confirmText: 'Kabloları sök'
       }, doClear);
     } else {
       if (confirm(`[${devName}] üzerindeki ${devCables.length} adet kablo sökülsün mü?`)) {
@@ -321,23 +321,23 @@
     const popover = document.createElement('div');
     popover.className = 'inline-delete-popover';
 
-    let title = options.title || '⚠️ CİHAZI SİL?';
+    let title = options.title || 'Cihazı sil?';
     let msg = options.msg || `<strong>${escapeHtml(deviceName)}</strong> ve bağlı tüm kablolar kaldırılacaktır.`;
-    let confirmText = options.confirmText || '✕ Sil';
+    let confirmText = options.confirmText || 'Sil';
 
     if (!options.title && !options.msg) {
       if (options.category === 'organizer') {
-        title = '🗑️ DÜZENLEYİCİYİ KALDIR?';
+        title = 'Düzenleyiciyi kaldır?';
         msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
       } else if (options.category === 'blank') {
-        title = '🗑️ KÖR PANELİ KALDIR?';
+        title = 'Kör paneli kaldır?';
         msg = `<strong>${escapeHtml(deviceName)}</strong> kabin yuvasından kaldırılacaktır.`;
       } else if (typeof options.cableCount === 'number') {
         if (options.cableCount > 0) {
-          title = '⚠️ CİHAZI SİL?';
+          title = 'Cihazı sil?';
           msg = `<strong>${escapeHtml(deviceName)}</strong> ve bu cihaza bağlı <strong>${options.cableCount} kablo</strong> sökülecektir.`;
         } else {
-          title = '⚠️ CİHAZI SİL?';
+          title = 'Cihazı sil?';
           msg = `<strong>${escapeHtml(deviceName)}</strong> kabinden kaldırılacaktır (bağlı kablo yok).`;
         }
       }

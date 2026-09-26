@@ -123,9 +123,13 @@
         const d = devMap.get(devId);
         if (!d) return savedPortId || ('p' + (portIdx || 1));
         const catKey = d.catalogId;
-        let cat = catalog[catKey];
+        const catResolver = (window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(catKey) : null;
+        let cat = catResolver || catalog[catKey];
         if (!cat && window.CATALOG_3D) {
           cat = window.CATALOG_3D.find(c => c.id === catKey);
+        }
+        if (!cat && Array.isArray(window.CISCO_MASTER_CATALOG)) {
+          cat = window.CISCO_MASTER_CATALOG.find(m => m.id === catKey);
         }
         const ports = (cat && cat.ports) || [];
         if (!ports.length) {
@@ -239,7 +243,17 @@
       };
       localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
       if (window.RackStudio && window.RackStudio.loadCustomTopology) {
-        window.RackStudio.loadCustomTopology(legacyProj);
+        try {
+          window.RackStudio.loadCustomTopology(legacyProj);
+        } catch (loadErr) {
+          console.warn('loadCustomTopology failed in sync3Dto2D, falling back to direct state assignment:', loadErr);
+          if (window.RackStudio.STATE) {
+            window.RackStudio.STATE.racks = legacyProj.racks;
+            window.RackStudio.STATE.cables = legacyProj.cables;
+            window.RackStudio.STATE.activeRackId = legacyProj.activeRackId;
+            if (window.RackStudio.refresh) window.RackStudio.refresh();
+          }
+        }
       }
     } catch (e) {
       console.error('sync3Dto2D error:', e);
@@ -272,6 +286,11 @@
   window.sync2Dto3D = sync2Dto3D;
 
   function applyMode() {
+    document.body.classList.toggle('studio-3d-mode', window.is3DMode);
+    if (window.is3DMode && window.matchMedia('(max-width: 1023px)').matches) {
+      window.setLeftSidebarCollapsed?.(true);
+      window.setRightSidebarCollapsed?.(true, false);
+    }
     const wrapper3D = getWrapper3D();
     const legacyWrapper = document.getElementById('legacy-wrapper');
     const btnView2D = document.getElementById('btn-view-2d');
@@ -282,6 +301,16 @@
     const btnWizard = document.getElementById('btn-3d-wizard-modal');
     const fpsCounter = document.getElementById('fps-counter');
     const deviceLabelControl = document.getElementById('device-label-control');
+    const tools3d = document.getElementById('tools-3d-only');
+    const tools2d = document.getElementById('tools-2d-only');
+    const compact2d = document.getElementById('compact-view-2d');
+    const compact3d = document.getElementById('compact-view-3d');
+    if (tools3d) tools3d.hidden = !window.is3DMode;
+    if (tools2d) tools2d.hidden = window.is3DMode;
+    if (compact2d) compact2d.hidden = window.is3DMode;
+    if (compact3d) compact3d.hidden = !window.is3DMode;
+    document.getElementById('compact-view-panel')?.setAttribute('hidden', '');
+    document.getElementById('btn-compact-view')?.setAttribute('aria-expanded', 'false');
 
     if (window.is3DMode) {
       if (hibernate3DTimer) {
@@ -342,14 +371,52 @@
     pixi: window.RackStudio?.getPixiPerformanceTelemetry?.() || null
   });
 
+  function captureStudioSelection() {
+    const RS = window.RackStudio;
+    const fromDom = document.querySelector('.mounted-device.studio-selected')?.id || null;
+    const from2d = RS?.STATE?.selectedDeviceId || fromDom;
+    const from3d = window.__STUDIO3D__?.selectedDeviceId || null;
+    return {
+      deviceId: window.is3DMode ? (from3d || from2d) : (from2d || from3d),
+      cableId: RS?.STATE?.highlightedCableId || null
+    };
+  }
+
+  function restoreStudioSelection(selection) {
+    if (!selection) return;
+    const RS = window.RackStudio;
+    if (selection.deviceId && RS?.STATE) {
+      RS.STATE.selectedDeviceId = selection.deviceId;
+    }
+    if (window.is3DMode && selection.deviceId && window.__STUDIO3D__) {
+      if (typeof window.__STUDIO3D__.focusDevice === 'function') {
+        window.__STUDIO3D__.focusDevice(selection.deviceId);
+      } else if (typeof window.__STUDIO3D__.selectDevice === 'function') {
+        window.__STUDIO3D__.selectDevice(selection.deviceId);
+      }
+      return;
+    }
+    document.querySelectorAll('.mounted-device.studio-selected').forEach(el => el.classList.remove('studio-selected'));
+    if (selection.deviceId) {
+      document.getElementById(selection.deviceId)?.classList.add('studio-selected');
+      RS?.syncPixiDeviceSelection?.();
+    }
+    if (selection.cableId && RS?.highlightCable) {
+      RS.highlightCable(selection.cableId, true);
+    }
+  }
+
   async function setMode(to3D) {
     if (window.is3DMode === to3D) return;
+    const selection = captureStudioSelection();
     if (to3D) {
       const loaded = await ensure3DStudioLoaded();
       if (!loaded) return;
       sync2Dto3D();
+      window.__STUDIO3D__?.fitCameraToRacks?.('iso');
       window.is3DMode = true;
       applyMode();
+      requestAnimationFrame(() => restoreStudioSelection(selection));
     } else {
       window.is3DMode = false;
       applyMode();
@@ -369,6 +436,7 @@
             uSlider.value = activeRack.heightU || 42;
             if (uDisplay) uDisplay.textContent = (activeRack.heightU || 42) + 'U';
           }
+          restoreStudioSelection(selection);
         }, 60);
       });
     }

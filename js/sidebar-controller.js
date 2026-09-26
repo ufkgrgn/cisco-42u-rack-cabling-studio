@@ -8,6 +8,8 @@
     const sidebarLeft = document.getElementById('sidebar-left');
     const btnToggleLeft = document.getElementById('btn-toggle-left-sidebar');
     const railBtnToggle = document.getElementById('rail-btn-toggle');
+    const mobileCatalogButton = document.getElementById('btn-mobile-catalog');
+    const mobileScheduleButton = document.getElementById('btn-mobile-schedule');
     const sidebarScrim = document.createElement('button');
     sidebarScrim.type = 'button';
     sidebarScrim.className = 'sidebar-scrim';
@@ -20,11 +22,13 @@
       if (!sidebarLeft) return;
       sidebarLeft.classList.toggle('collapsed', collapsed);
       if (btnToggleLeft) {
-        btnToggleLeft.textContent = collapsed ? '▶' : '◀';
+        const iconSvg = window.getLucideIconSvg ? window.getLucideIconSvg(collapsed ? 'ChevronRight' : 'ChevronLeft', 14) : (collapsed ? '▶' : '◀');
+        btnToggleLeft.innerHTML = iconSvg;
         btnToggleLeft.title = collapsed ? 'Kütüphaneyi Aç (Ctrl+B)' : 'Kütüphaneyi Katla (Ctrl+B)';
       }
       try { localStorage.setItem('rack_studio_left_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
       document.body.classList.toggle('left-sidebar-open', isOverlaySidebar() && !collapsed);
+      mobileCatalogButton?.setAttribute('aria-expanded', String(!collapsed));
       setTimeout(() => {
         if (!isOverlaySidebar()) window.dispatchEvent(new Event('resize'));
       }, 260);
@@ -41,12 +45,22 @@
       setLeftSidebarCollapsed(!isCollapsed);
     });
     sidebarScrim.addEventListener('click', () => setLeftSidebarCollapsed(true));
+    mobileCatalogButton?.addEventListener('click', () => {
+      const collapsed = sidebarLeft?.classList.contains('collapsed');
+      if (collapsed && window.matchMedia('(max-width: 1023px)').matches) setRightSidebarCollapsed(true);
+      setLeftSidebarCollapsed(!collapsed);
+    });
 
     // 2D Collapsible Right Sidebar
     const sidebarRight = document.getElementById('sidebar-right');
     const btnToggleRight = document.getElementById('btn-toggle-right-sidebar');
+    const rightScrim = document.createElement('button');
+    rightScrim.type = 'button';
+    rightScrim.className = 'sidebar-right-scrim';
+    rightScrim.setAttribute('aria-label', 'Bağlantı listesini kapat');
+    document.body.append(rightScrim);
 
-    function setRightSidebarCollapsed(collapsed) {
+    function setRightSidebarCollapsed(collapsed, persist = true) {
       if (!sidebarRight) return;
       sidebarRight.classList.toggle('collapsed', collapsed);
       if (collapsed) {
@@ -64,10 +78,13 @@
         sidebarRight.style.maxWidth = '750px';
       }
       if (btnToggleRight) {
-        btnToggleRight.textContent = collapsed ? '◀' : '▶';
+        const iconSvg = window.getLucideIconSvg ? window.getLucideIconSvg(collapsed ? 'ChevronLeft' : 'ChevronRight', 14) : (collapsed ? '◀' : '▶');
+        btnToggleRight.innerHTML = iconSvg;
         btnToggleRight.title = collapsed ? 'Çizelgeyi Aç' : 'Çizelgeyi Katla';
       }
-      try { localStorage.setItem('rack_studio_right_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+      mobileScheduleButton?.setAttribute('aria-expanded', String(!collapsed));
+      document.body.classList.toggle('right-sidebar-open', window.matchMedia('(max-width: 1023px)').matches && !collapsed);
+      if (persist) try { localStorage.setItem('rack_studio_right_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'));
       }, 260);
@@ -78,6 +95,12 @@
       const isCollapsed = sidebarRight?.classList.contains('collapsed');
       setRightSidebarCollapsed(!isCollapsed);
     });
+    mobileScheduleButton?.addEventListener('click', () => {
+      const collapsed = sidebarRight?.classList.contains('collapsed');
+      if (collapsed) setLeftSidebarCollapsed(true);
+      setRightSidebarCollapsed(!collapsed);
+    });
+    rightScrim.addEventListener('click', () => setRightSidebarCollapsed(true));
 
     // Keyboard shortcut Ctrl+B or Cmd+B to toggle left sidebar
     window.addEventListener('keydown', (e) => {
@@ -87,11 +110,14 @@
         setLeftSidebarCollapsed(!isCollapsed);
       } else if (e.key === 'Escape' && isOverlaySidebar() && !sidebarLeft?.classList.contains('collapsed')) {
         setLeftSidebarCollapsed(true);
+      } else if (e.key === 'Escape' && window.matchMedia('(max-width: 1023px)').matches && !sidebarRight?.classList.contains('collapsed')) {
+        setRightSidebarCollapsed(true);
       }
     });
 
     window.addEventListener('resize', () => {
       document.body.classList.toggle('left-sidebar-open', isOverlaySidebar() && !sidebarLeft?.classList.contains('collapsed'));
+      document.body.classList.toggle('right-sidebar-open', window.matchMedia('(max-width: 1023px)').matches && !sidebarRight?.classList.contains('collapsed'));
     }, { passive: true });
 
     // Restore sidebar state from localStorage
@@ -100,8 +126,8 @@
       if (savedLeftState === '1' || (savedLeftState === null && isOverlaySidebar())) {
         setLeftSidebarCollapsed(true);
       }
-      if (localStorage.getItem('rack_studio_right_sidebar_collapsed') === '1') {
-        setRightSidebarCollapsed(true);
+      if (window.matchMedia('(max-width: 1023px)').matches || localStorage.getItem('rack_studio_right_sidebar_collapsed') === '1') {
+        setRightSidebarCollapsed(true, !window.matchMedia('(max-width: 1023px)').matches);
       } else {
         const savedRightW = localStorage.getItem('rack_studio_right_sidebar_width');
         if (savedRightW && Number(savedRightW) >= 360 && Number(savedRightW) <= 750 && sidebarRight) {
@@ -163,7 +189,7 @@
       btnToggleTopdeck.addEventListener('click', () => {
         topdeck.classList.toggle('collapsed');
         const isCollapsed = topdeck.classList.contains('collapsed');
-        if (toggleIcon) toggleIcon.textContent = isCollapsed ? '▶' : '◀';
+        if (toggleIcon) toggleIcon.innerHTML = window.getLucideIconSvg ? window.getLucideIconSvg(isCollapsed ? 'ChevronRight' : 'ChevronLeft', 14) : (isCollapsed ? '▶' : '◀');
         btnToggleTopdeck.title = isCollapsed ? 'Kabin Düzenleme Araçlarını Göster' : 'Kabin Düzenleme Araçlarını Gizle (Dikey Alan Aç)';
       });
     }
@@ -185,7 +211,7 @@
       const savedRouting = localStorage.getItem('rack-studio-cable-routing-mode');
       if (savedRouting && window.RackStudio && window.RackStudio.STATE) {
         window.RackStudio.STATE.cableRoutingMode = savedRouting;
-        if (btnRouting2D) btnRouting2D.textContent = savedRouting === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
+        if (btnRouting2D) btnRouting2D.textContent = savedRouting === 'structured' ? 'Düzenli' : 'Serbest';
       }
     } catch (e) {}
 
@@ -194,19 +220,13 @@
         const cur = window.RackStudio.STATE.cableRoutingMode || 'structured';
         const next = cur === 'structured' ? 'direct' : 'structured';
         window.RackStudio.STATE.cableRoutingMode = next;
-        btnRouting2D.textContent = next === 'structured' ? '〰️ Düzenli' : '〰️ Serbest';
+        btnRouting2D.textContent = next === 'structured' ? 'Düzenli' : 'Serbest';
         try { localStorage.setItem('rack-studio-cable-routing-mode', next); } catch (e) {}
         if (window.RackStudio.renderAllCables) window.RackStudio.renderAllCables();
         document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
         document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
         window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
       }
-    });
-
-    // 2D Clear Action & Face Toggle
-    document.getElementById('btn-2d-clear-action')?.addEventListener('click', () => {
-      document.getElementById('btn-clear-all')?.click();
-      if (typeof window.updateTelemetry === 'function') window.updateTelemetry();
     });
 
     document.getElementById('btn-2d-face-toggle')?.addEventListener('click', () => {
