@@ -23,7 +23,10 @@
   ];
   function decorate(button) {
     if (button.closest('template') || button.matches('.port, .sidebar-scrim, .sidebar-right-scrim, [data-color], .color-swatch, .cable-color-swatch')) return;
-    if (button.querySelector(':scope > svg.ui-icon')) return;
+    // Skip buttons that already have an icon — check both direct children AND nested (e.g. inside .rack-action-icon span)
+    if (button.querySelector('svg.ui-icon')) return;
+    // Skip buttons that manage their own icons via JS rendering
+    if (button.matches('.rack-action-btn, .rail-btn, .dev-btn, .hud-btn-duct')) return;
     const action = window.UIActions?.get(button.id || button.dataset.shortcutFor);
     const label = button.textContent.trim();
     const search = window.UIActions?.normalize([button.dataset.action, button.dataset.command, button.dataset.cameraAction, button.dataset.cameraView, label, button.title, button.getAttribute('aria-label')].filter(Boolean).join(' ')) || label;

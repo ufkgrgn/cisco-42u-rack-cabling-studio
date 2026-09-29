@@ -43,6 +43,10 @@
   const loadFullSitePreset = () => RS.loadFullSitePreset && RS.loadFullSitePreset();
 
   function init() {
+    // Hide rack stage during init to prevent flash of empty rack or demo devices
+    const _rackStage = document.getElementById('rack-stage');
+    if (_rackStage) _rackStage.style.visibility = 'hidden';
+
     initDomReferences();
     const savedViewMode = (typeof localStorage !== 'undefined') ? localStorage.getItem('rack_studio_view_mode') : null;
     if (savedViewMode === 'multi' || savedViewMode === 'single') {
@@ -68,6 +72,8 @@
     }
 
     requestAnimationFrame(() => {
+      // Reveal rack after first paint with data
+      if (_rackStage) _rackStage.style.visibility = '';
       fitRackToScreen(false);
       requestAnimationFrame(() => {
         if (RS.invalidatePixiCableGeometry) RS.invalidatePixiCableGeometry();
