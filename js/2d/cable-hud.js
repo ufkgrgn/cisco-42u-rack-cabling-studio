@@ -170,8 +170,8 @@
 
     menu.innerHTML = `
       <div class="context-menu-header">
-        <span><span style="color:${cable.color}; margin-right:4px;">●</span>${escapeHtml(cable.name || cable.id)}</span>
-        <span class="context-menu-badge">${cable.lengthMeters || 1.5}m</span>
+        <span class="context-menu-title" title="${escapeHtml(cable.name || cable.id)}"><span style="color:${cable.color}; flex-shrink:0;">●</span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(formatCompactHudName(cable.name || cable.id, cable.id))}</span></span>
+        <span class="context-menu-badge">${Number(cable.lengthMeters || 1.5).toFixed(1)}m</span>
       </div>
       <div class="context-menu-body">
         <div class="context-menu-section-title">Kanal Güzergahı</div>
@@ -388,7 +388,7 @@
 
     let html = `
       <div class="context-menu-header">
-        <span>${escapeHtml(devName)}</span>
+        <span class="context-menu-title" title="${escapeHtml(devName)}"><span>${escapeHtml(devName)}</span></span>
         <span class="context-menu-badge">U${dev?.topU || ''}</span>
       </div>
       <div class="context-menu-body">

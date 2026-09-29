@@ -284,69 +284,90 @@
   color: var(--text-muted);
 }
 
-/* Custom Cable & Device Context Menu */
+/* Custom Cable & Device Context Menu - Compact & Elegant */
 .cable-context-menu {
   position: fixed;
   z-index: 10000;
   display: flex;
   flex-direction: column;
-  min-width: 190px;
+  width: 230px;
+  max-width: 250px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius-overlay, 8px);
+  border-radius: 8px;
   padding: 4px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32), 0 0 1px rgba(255, 255, 255, 0.1);
   user-select: none;
-  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-sizing: border-box;
 }
 
 .cable-context-menu .context-menu-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 4px 6px 6px;
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-main);
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+  min-width: 0;
+}
+
+.cable-context-menu .context-menu-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 0;
+  flex: 1;
 }
 
 .cable-context-menu .context-menu-badge {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-muted);
   background: var(--bg-inset);
   border: 1px solid var(--border-subtle);
-  padding: 1px 5px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 3px;
   font-weight: 600;
   font-family: var(--font-mono, monospace);
+  flex-shrink: 0;
 }
 
 .cable-context-menu .context-menu-section-title {
-  padding: 4px 8px 2px;
-  font-size: 9.5px;
-  font-weight: 700;
+  padding: 4px 6px 2px;
+  font-size: 9px;
+  font-weight: 750;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  opacity: 0.85;
 }
 
 .cable-context-menu .context-menu-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .cable-context-menu .menu-item,
 .cable-context-menu .context-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  font-size: 11.5px;
-  font-weight: 600;
+  gap: 7px;
+  padding: 4px 7px;
+  min-height: 24px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 550;
   color: var(--text-main);
   background: transparent;
   border: none;
@@ -355,7 +376,8 @@
   text-align: left;
   width: 100%;
   box-sizing: border-box;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background 0.1s ease, color 0.1s ease;
+  line-height: 1;
 }
 
 .cable-context-menu .context-menu-icon {
@@ -364,12 +386,13 @@
   justify-content: center;
   color: var(--text-muted);
   flex-shrink: 0;
-  width: 14px;
+  width: 13px;
+  height: 13px;
 }
 
 .cable-context-menu .menu-item:hover,
 .cable-context-menu .context-menu-item:hover {
-  background: var(--bg-panel-light, rgba(255, 255, 255, 0.06));
+  background: var(--bg-panel-light, rgba(255, 255, 255, 0.08));
   color: var(--text-main);
 }
 
@@ -380,8 +403,8 @@
 
 .cable-context-menu .menu-item.active {
   color: var(--accent);
-  font-weight: 700;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-weight: 650;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .cable-context-menu .menu-item.active .context-menu-icon {
@@ -407,29 +430,30 @@
 .cable-context-menu .menu-divider {
   height: 1px;
   background: var(--border-subtle);
-  margin: 4px 0;
+  margin: 3px 0;
 }
 
 .cable-context-menu .context-swatches-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  padding: 4px 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 3px 6px;
 }
 
 .cable-context-menu .context-color-swatch {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   cursor: pointer;
-  border: 2px solid transparent;
+  border: 1.5px solid transparent;
   box-sizing: border-box;
   transition: transform 0.1s ease, border-color 0.1s ease;
 }
 
 .cable-context-menu .context-color-swatch:hover {
-  transform: scale(1.18);
+  transform: scale(1.22);
   border-color: var(--text-main);
 }
 
