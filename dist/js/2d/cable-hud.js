@@ -491,6 +491,7 @@
     });
 
     window.addEventListener('keydown', (e) => {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       if (e.key === 'Escape') {
         hideCableQuickHud();
         hideCableContextMenu();

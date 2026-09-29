@@ -2,6 +2,33 @@
  * 3D Camera Controls, Lighting, Door & D-Pad
  */
 export function initCameraControls(studio) {
+    const mobileControls = document.querySelector('.mobile-3d-controls');
+    mobileControls?.addEventListener('click', event => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      const view = button.dataset.cameraView;
+      if (view) {
+        studio.setCameraView(view);
+        mobileControls.querySelectorAll('[data-camera-view]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        mobileControls.querySelector('details')?.removeAttribute('open');
+        return;
+      }
+      const action = button.dataset.cameraAction;
+      if (action === 'zoom-in') studio.zoomCamera(2.2);
+      else if (action === 'zoom-out') studio.zoomCamera(-2.2);
+      else if (action === 'door') document.getElementById('btn-door-toggle')?.click();
+      else if (action === 'lighting') document.getElementById('btn-lighting-toggle')?.click();
+    });
+    const mobileQuality = document.getElementById('mobile-3d-quality');
+    const desktopQuality = document.getElementById('performance-mode');
+    if (mobileQuality && desktopQuality) {
+      mobileQuality.value = desktopQuality.value;
+      mobileQuality.addEventListener('change', () => {
+        desktopQuality.value = mobileQuality.value;
+        desktopQuality.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      desktopQuality.addEventListener('change', () => { mobileQuality.value = desktopQuality.value; });
+    }
     // 1. Camera Buttons
     const camButtons = {
       'cam-iso': 'iso',
@@ -73,12 +100,8 @@ export function initCameraControls(studio) {
     if (uSlider) {
       uSlider.value = studio.state.rackHeightU;
       if (uDisplay) uDisplay.textContent = studio.state.rackHeightU + 'U';
-      uSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value);
-        if (uDisplay) uDisplay.textContent = val + 'U';
-        studio.setRackHeight(val);
-        if (rackNavSlider) rackNavSlider.max = val;
-      });
+      // The shared topbar owns the live resize transaction and its undo boundary.
+      uSlider.addEventListener('change', () => { if (rackNavSlider) rackNavSlider.max = studio.state.rackHeightU; });
     }
 
     // 5. On-Screen Navigation D-Pad & Zoom Controls

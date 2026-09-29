@@ -219,6 +219,8 @@
         make('span', item.name, 'catalog-detail-name'),
         make('span', `${item.u || 1}U · ${getDeviceSpecChips(item).join(' · ') || 'Donanım'}`, 'catalog-detail-spec')
       );
+      const geometryState = item.portGeometry?.verification;
+      copy.append(make('span', geometryState === 'verified' ? 'Port konumu: doğrulanmış' : geometryState === 'calibrated-local' ? 'Port konumu: yerel kalibrasyon' : geometryState === 'approximate' ? 'Port konumu: yaklaşık' : 'Port konumu: genel yerleşim', 'catalog-detail-geometry'));
       const mount = make('button', 'İlk boş U’ya ekle', 'catalog-detail-mount');
       mount.type = 'button';
       mount.addEventListener('click', () => mountCardDeviceToRack(key));
@@ -465,6 +467,10 @@
       mountBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (window.matchMedia('(max-width: 1023px)').matches && window.openMobileMountFlow) {
+          window.openMobileMountFlow(key);
+          return;
+        }
         mountCardDeviceToRack(key);
       });
       footer.append(mountBtn);

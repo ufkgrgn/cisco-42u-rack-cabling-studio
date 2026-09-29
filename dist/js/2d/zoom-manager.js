@@ -687,6 +687,7 @@
 
     // Keyboard shortcuts: Space for Global Pan, F for Focus/Fit, 0/1 for 100% 1:1 view
     window.addEventListener('keydown', (e) => {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       const tag = e.target?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) return;
 

@@ -73,17 +73,24 @@
     let startY = 0;
     let startU = 0;
     let isDragging = false;
+    let source = null;
+    let frame = 0;
+    let targetU = 0;
+    let startScale = 1;
+
+    const preview = () => {
+      frame = 0;
+      if (targetU !== rack.heightU) RS.resizeRackHeight?.(rack.id, targetU, { preview: true, source });
+    };
 
     const onPointerMove = e => {
       if (!isDragging) return;
       const deltaY = e.clientY - startY;
-      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
+      const uHeightPx = 32 * startScale;
       const deltaU = Math.round(deltaY / uHeightPx);
-      const targetU = Math.max(12, Math.min(60, startU + deltaU));
-
-      if (RS.showTemporaryTooltip) {
-        RS.showTemporaryTooltip(e.clientX, e.clientY - 30, `📐 Kabin Boyutu: ${targetU}U (Bırakıldığında uygulanır)`);
-      }
+      const minimum = Math.max(12, source.devices.reduce((sum, d) => sum + d.uHeight, 0));
+      targetU = Math.max(minimum, Math.min(60, startU + deltaU));
+      if (!frame) frame = requestAnimationFrame(preview);
     };
 
     const onPointerUp = e => {
@@ -93,15 +100,10 @@
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
-
-      const deltaY = e.clientY - startY;
-      const uHeightPx = 32 * (ZOOM_STATE.scale || 1);
-      const deltaU = Math.round(deltaY / uHeightPx);
-      const targetU = Math.max(12, Math.min(60, startU + deltaU));
-
-      if (targetU !== startU && RS.resizeRackHeight) {
-        RS.resizeRackHeight(rack.id, targetU);
-      }
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      if (e.type === 'pointercancel') RS.resizeRackHeight?.(rack.id, startU, { preview: true, source });
+      else RS.resizeRackHeight?.(rack.id, targetU, { source });
     };
 
     handleEl.addEventListener('pointerdown', e => {
@@ -111,6 +113,9 @@
       isDragging = true;
       startY = e.clientY;
       startU = rack.heightU || 42;
+      targetU = startU;
+      startScale = ZOOM_STATE.scale || 1;
+      source = { heightU: startU, devices: rack.devices.map(d => ({ ...d })) };
       handleEl.classList.add('active');
       window.addEventListener('pointermove', onPointerMove);
       window.addEventListener('pointerup', onPointerUp);

@@ -352,28 +352,42 @@
 
   /**
    * Resizes a rack's height in U units.
-   * Ensures devices are not clipped; returns false if occupied slots would be cut off.
+   * Remove empty U slots from the top down, preserving device order and sizes.
    */
-  function resizeRackHeight(rackId, newHeightU) {
+  function planRackResize(devices, heightU, newHeightU) {
+    const occupied = new Set();
+    for (const device of devices) {
+      for (let u = device.topU - device.uHeight + 1; u <= device.topU; u++) occupied.add(u);
+    }
+    let remaining = Math.max(0, heightU - newHeightU);
+    const removed = [];
+    for (let u = heightU; u >= 1 && remaining > 0; u--) {
+      if (!occupied.has(u)) { removed.push(u); remaining--; }
+    }
+    if (remaining) return null;
+    return devices.map(device => ({ ...device,
+      topU: device.topU - removed.filter(u => u < device.topU).length
+    }));
+  }
+
+  function resizeRackHeight(rackId, newHeightU, options = {}) {
     const rack = RS.STATE.racks.find(r => r.id === rackId);
     if (!rack) return false;
-    newHeightU = Math.max(12, Math.min(60, Math.round(newHeightU)));
-    if (newHeightU === rack.heightU) return true;
+    if (!Number.isFinite(Number(newHeightU))) return false;
+    newHeightU = Math.max(options.minHeight || 12, Math.min(60, Math.round(newHeightU)));
 
-    // Check if any device would be cut off (devices are placed from 1 to topU)
-    // Note: in this studio, topU is the top unit of device.
-    // If shrinking, cannot shrink below the highest occupied slot or lowest occupied slot depending on coordinate system.
-    // In our system, slot 1 is bottom, slot heightU is top.
-    // So shrinking from 42U to 30U cuts off slots 31-42.
-    // Therefore, any device with topU > newHeightU would be cut off.
-    const highestOccupiedU = rack.devices.reduce((max, d) => Math.max(max, d.topU), 0);
-    if (newHeightU < highestOccupiedU) {
-      if (RS.showTemporaryTooltip) {
-        RS.showTemporaryTooltip(window.innerWidth / 2, window.innerHeight / 2, `⚠️ Kabin U${highestOccupiedU} seviyesindeki cihazdan daha aşağıya küçültülemez.`);
+    // Preview from the gesture's original layout so reversing the drag restores gaps.
+    const source = options.source || rack;
+    const planned = planRackResize(source.devices, source.heightU || 42, newHeightU);
+    if (!planned) {
+      if (!options.preview && RS.showTemporaryTooltip) {
+        RS.showTemporaryTooltip(window.innerWidth / 2, window.innerHeight / 2, 'Cihazların toplam yüksekliği için yeterli U alanı yok.');
       }
       return false;
     }
 
+    const positions = new Map(planned.map(d => [d.instanceId, d.topU]));
+    rack.devices.forEach(d => { d.topU = positions.get(d.instanceId) ?? d.topU; });
     rack.heightU = newHeightU;
     rack.units = Array(newHeightU + 1).fill(null);
     rack.devices.forEach(d => {
@@ -387,7 +401,7 @@
     if (RS.renderMountedDevices) RS.renderMountedDevices();
     if (RS.renderScheduleTable) RS.renderScheduleTable();
     if (RS.renderAllCables) RS.renderAllCables();
-    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+    if (!options.preview) document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
     return true;
   }
 
@@ -469,6 +483,7 @@
   RS.renameActiveRack = renameActiveRack;
   RS.deleteRack = deleteRack;
   RS.resizeRackHeight = resizeRackHeight;
+  RS.planRackResize = planRackResize;
   RS.moveRackOrder = moveRackOrder;
   RS.duplicateRack = duplicateRack;
   RS.toggleRackDropdown = toggleRackDropdown;

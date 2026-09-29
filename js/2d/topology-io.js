@@ -121,6 +121,7 @@
     const exportData = {
       version: '4.0-studio',
       customCatalog: STATE.customCatalog,
+      portGeometryOverrides: RS.exportPortGeometryOverrides?.() || {},
       timestamp: new Date().toISOString(),
       activeRackId: STATE.activeRackId,
       viewMode: STATE.viewMode || 'single',
@@ -149,6 +150,7 @@
   function validateTopology(data) {
     if (!data || typeof data !== 'object') throw new Error('Geçersiz proje.');
     const customCatalog = JSON.parse(JSON.stringify(data.customCatalog || {}));
+    const portGeometryOverrides = RS.validatePortGeometryOverrides?.(data.portGeometryOverrides || {}) || {};
     if (Array.isArray(customCatalog) || typeof customCatalog !== 'object') throw new Error('Geçersiz katalog.');
     const validId = value => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,160}$/.test(value);
     for (const [key, cat] of Object.entries(customCatalog)) {
@@ -200,6 +202,7 @@
       racks,
       cables,
       customCatalog,
+      portGeometryOverrides,
       activeRackId: rackIds.has(data.activeRackId) ? data.activeRackId : racks[0].id,
       viewMode: (data.viewMode === 'multi' || data.viewMode === 'single') ? data.viewMode : (STATE.viewMode || 'single'),
       cableRoutingMode: data.cableRoutingMode || 'structured'
@@ -225,6 +228,7 @@
       if (!isBuiltinKey(key)) delete HARDWARE_CATALOG[key];
     }
     Object.assign(HARDWARE_CATALOG, next.customCatalog);
+    RS.applyPortGeometryOverrides?.(next.portGeometryOverrides);
     Object.assign(STATE, next);
     if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
     if (next.viewMode && RS.setViewMode) {

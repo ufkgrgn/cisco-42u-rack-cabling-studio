@@ -65,10 +65,10 @@ export function registerRackSceneMethods(Studio3D) {
     ventTile.receiveShadow = true;
     this.scene.add(ventTile);
 
-    const grid = new THREE.GridHelper(floorSize, 60, 0x475569, 0x334155);
+    const grid = new THREE.GridHelper(floorSize, 60, 0x3a454b, 0x273035);
     grid.position.y = 0.03;
     grid.material.transparent = true;
-    grid.material.opacity = 0.12;
+    grid.material.opacity = 0.06;
     this.scene.add(grid);
 
     const lightPanelMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
@@ -390,13 +390,19 @@ export function registerRackSceneMethods(Studio3D) {
     sfx.toggle();
   };
 
-  Studio3D.prototype.setRackHeight = function(newU) {
+  Studio3D.prototype.setRackHeight = function(newU, options = {}) {
     newU = Math.max(12, Math.min(60, parseInt(newU) || 42));
-    const maxOccupiedU = this.state.devices.reduce((max, d) => Math.max(max, d.startU + d.uHeight - 1), 0);
-    if (newU < maxOccupiedU) {
-      alert(`Kabin U yüksekliği küçültülemez! U${maxOccupiedU} pozisyonunda cihaz bulunmaktadır.`);
+    const active = this.state.racks?.find(r => r.id === this.state.activeRackId) || this.state.racks?.[0];
+    const devices = this.state.devices.filter(d => !active || d.rackId === active.id);
+    const source = options.source || { heightU: active?.heightU || this.state.rackHeightU,
+      devices: devices.map(d => ({ ...d, topU: d.startU + d.uHeight - 1 })) };
+    const planned = window.RackStudio?.planRackResize?.(source.devices, source.heightU, newU);
+    if (!planned) {
+      if (!options.preview) this.showToast('Cihazların toplam yüksekliği için yeterli U alanı yok.');
       return false;
     }
+    const positions = new Map(planned.map(d => [d.id, d.topU - d.uHeight + 1]));
+    devices.forEach(d => { d.startU = positions.get(d.id) ?? d.startU; });
     this.state.rackHeightU = newU;
     if (Array.isArray(this.state.racks)) {
       const active = this.state.racks.find(r => r.id === this.state.activeRackId) || this.state.racks[0];
@@ -405,8 +411,9 @@ export function registerRackSceneMethods(Studio3D) {
     this.buildRack(newU);
     this.rebuildAllDevices();
     this.rebuildAllCables();
-    this.state.pushSnapshot();
-    if (typeof window.sync3Dto2D === 'function') {
+    this.markDirty();
+    if (!options.preview) this.state.pushSnapshot();
+    if (!options.preview && typeof window.sync3Dto2D === 'function') {
       try { window.sync3Dto2D(); } catch (_) {}
     }
     return true;

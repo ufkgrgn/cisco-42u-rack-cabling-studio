@@ -39,6 +39,7 @@
     // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.
     pixiViewportRendererV2: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_pixi_viewport_v2') !== '0',
     viewMode: (typeof localStorage !== 'undefined' && (localStorage.getItem('rack_studio_view_mode') === 'multi' || localStorage.getItem('rack_studio_view_mode') === 'single')) ? localStorage.getItem('rack_studio_view_mode') : 'single', // 'single' (focused on active rack) or 'multi' (side-by-side all racks)
+    activeFace: 'front', // 'front' or 'rear'
     pendingConnection: null, // { rackId, instanceId, portId, element }
     highlightedCableId: null,
     deviceById: new Map(),
@@ -251,6 +252,28 @@
     dom.rackSelectorBadge = document.getElementById('rack-selector-badge');
   }
 
+  function toggleActiveFace() {
+    const nextFace = STATE.activeFace === 'front' ? 'rear' : 'front';
+    STATE.activeFace = nextFace;
+    const btn = document.getElementById('btn-2d-face-toggle');
+    if (btn) {
+      btn.classList.toggle('active', nextFace === 'rear');
+      const textSpan = btn.querySelector('.btn-text');
+      if (textSpan) textSpan.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
+      else btn.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
+      btn.title = nextFace === 'rear' ? 'Kabin Arka Yüzü (Güç girişleri ve arka panel)' : 'Kabin Ön Yüzü (Portlar ve göstergeler)';
+    }
+
+    if (window.is3DMode && window.__STUDIO3D__?.fitCameraToRacks) {
+      window.__STUDIO3D__.fitCameraToRacks(nextFace);
+    } else {
+      document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+      document.dispatchEvent(new CustomEvent('rackstudio:refresh', { bubbles: true }));
+      window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    }
+    return nextFace;
+  }
+
   RS.STATE = STATE;
   RS.ZOOM_STATE = ZOOM_STATE;
   RS.dom = dom;
@@ -259,4 +282,5 @@
   RS.rebuildStateIndexes = rebuildStateIndexes;
   RS.getDeviceById = getDeviceById;
   RS.getRackById = getRackById;
+  RS.toggleActiveFace = toggleActiveFace;
 })();

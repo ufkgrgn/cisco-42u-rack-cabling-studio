@@ -88,7 +88,18 @@
   function updateAudioToggleButton() {
     const btn = document.getElementById('btn-audio-toggle');
     if (btn) {
-      btn.textContent = isMuted ? 'Ses: Kapalı' : 'Ses: Açık';
+      const text = isMuted ? 'Ses: Kapalı' : 'Ses: Açık';
+      const span = btn.querySelector('.btn-text');
+      if (span) span.textContent = text;
+      else {
+        const svg = btn.querySelector('svg');
+        btn.innerHTML = '';
+        if (svg) btn.appendChild(svg);
+        const s = document.createElement('span');
+        s.className = 'btn-text';
+        s.textContent = text;
+        btn.appendChild(s);
+      }
       btn.title = isMuted ? 'Ses Efektlerini Aç (Şu an sessiz)' : 'Ses Efektlerini Kapat (Şu an aktif)';
       btn.classList.toggle('muted', isMuted);
       btn.classList.toggle('active', !isMuted);

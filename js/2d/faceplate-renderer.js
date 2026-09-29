@@ -269,7 +269,6 @@
         </div>
       `;
     });
-
     const hasCables = (STATE.cables || []).some(c => c.from?.instanceId === dev.instanceId || c.to?.instanceId === dev.instanceId);
     const occupiedCount = cat.ports ? cat.ports.filter(p => p.type !== 'power' && occupiedPortKeys.has(portKey(dev.instanceId, p.id))).length : 0;
     const connectablePortsCount = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
@@ -489,6 +488,16 @@
       }
     });
 
+    const physical = cat.portGeometry?.face === 'front' ? cat.portGeometry : null;
+    if (physical && physical.ports.length === cat.ports.length) {
+      const positions = new Map(physical.ports.map(port => [port.id, port]));
+      portsHtml = cat.ports.map(port => {
+        const anchor = positions.get(port.id);
+        if (!anchor) return '';
+        return `<div class="physical-port-slot" style="left:${anchor.x * 100}%;top:${anchor.y * 100}%;width:${anchor.width * 100}%;height:${anchor.height * 100}%">${renderPortIcon(dev.instanceId, port)}</div>`;
+      }).join('');
+    }
+
     let leftSection = '';
     if (isCisco) {
       // Series-specific Bezel styling & signature LEDs
@@ -602,7 +611,7 @@
       ? ` style="--fp-ports-left:${Number(portsRect.left) || 0}%;--fp-ports-top:${Number(portsRect.top) || 0}%;--fp-ports-width:${Number(portsRect.width) || 100}%;--fp-ports-height:${Number(portsRect.height) || 100}%;"`
       : '';
     return `
-      <div class="device-faceplate ${typeClass}${faceplateStencil ? ' stencil-faceplate' : ''}"${faceplateStyle}>
+      <div class="device-faceplate ${typeClass}${faceplateStencil ? ' stencil-faceplate' : ''}${physical ? ' physical-port-faceplate' : ''}"${faceplateStyle}>
         ${faceplateStencil ? `<img class="rack-faceplate-stencil" src="assets/stencils/${encodeURIComponent(faceplateStencil.stencil)}" alt="" draggable="false" aria-hidden="true">` : ''}
         <div class="device-controls">
           ${hasFreePorts ? `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${dev.instanceId}" title="Boş portları akıllıca patch panele bağla (Auto-Fill)">Bağla</button>` : ''}
@@ -611,7 +620,7 @@
           <button class="dev-btn del-device-btn" title="${isPatchPanel ? 'Paneli Kaldır' : 'Cihazı Kaldır'}">✕</button>
         </div>
         ${leftSection}
-        <div class="ports-area">
+        <div class="ports-area${physical ? ' physical-port-area' : ''}">
           ${portsHtml}
         </div>
       </div>

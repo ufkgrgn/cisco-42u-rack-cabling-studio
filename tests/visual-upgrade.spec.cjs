@@ -111,10 +111,315 @@ test('3D rails and camera fit real one- and three-rack scenes', async ({ browser
   await page.close();
 });
 
+test('device focus centers the front face in 2D and 3D', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  await page.goto(baseUrl);
+  await page.waitForFunction(() => Boolean(window.RackStudio?.focusOnDevice && document.querySelector('#rack-stage .mounted-device')));
+  const deviceId = await page.evaluate(() => {
+    const device = document.querySelector('#rack-stage .mounted-device');
+    const duplicate = document.createElement('div');
+    duplicate.dataset.instanceId = device.dataset.instanceId;
+    document.body.prepend(duplicate);
+    window.RackStudio.focusOnDevice(device.dataset.instanceId, { duration: 80 });
+    return device.dataset.instanceId;
+  });
+  await page.waitForFunction(() => !window.RackStudio.ZOOM_STATE.isFocusing);
+  const centered2D = await page.evaluate(id => {
+    const canvas = document.getElementById('viewport-canvas').getBoundingClientRect();
+    const device = Array.from(document.querySelectorAll('#rack-stage .mounted-device'))
+      .find(element => element.dataset.instanceId === id).getBoundingClientRect();
+    return { dx: (device.left + device.right - canvas.left - canvas.right) / 2,
+      dy: (device.top + device.bottom - canvas.top - canvas.bottom) / 2 };
+  }, deviceId);
+  expect(Math.abs(centered2D.dx)).toBeLessThan(3);
+  expect(Math.abs(centered2D.dy)).toBeLessThan(3);
+
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.rackGroup));
+  const centered3D = await page.evaluate(() => {
+    const studio = window.__STUDIO3D__;
+    const device = studio.state.devices[0];
+    studio.selectDevice(device.id);
+    document.getElementById('btn-hud-focus').click();
+    studio.camera.updateMatrixWorld(true);
+    const face = studio.devicesGroup.getObjectByName(device.id).getWorldPosition(new THREE.Vector3()).project(studio.camera);
+    return { dx: studio.camera.position.x - studio.controls.target.x,
+      dy: studio.camera.position.y - studio.controls.target.y, projectedX: face.x, projectedY: face.y };
+  });
+  expect(Math.abs(centered3D.dx)).toBeLessThan(0.001);
+  expect(Math.abs(centered3D.dy)).toBeLessThan(0.001);
+  expect(Math.abs(centered3D.projectedX)).toBeLessThan(0.02);
+  expect(Math.abs(centered3D.projectedY)).toBeLessThan(0.02);
+  await page.close();
+});
+
+test('rack resize consumes gaps and previews before pointer release with one undo', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  await page.goto(baseUrl);
+  await page.waitForSelector('.studio-editor[data-ready="true"]');
+  const baseline = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    const planned = RS.planRackResize([{ topU: 42, uHeight: 2 }, { topU: 20, uHeight: 4 }], 42, 6);
+    if (JSON.stringify(planned.map(d => d.topU)) !== '[6,4]') throw new Error('Multi-U compaction failed');
+    if (RS.planRackResize([{ topU: 42, uHeight: 2 }, { topU: 20, uHeight: 4 }], 42, 5) !== null) throw new Error('Overflow accepted');
+    RS.fitRackToScreen();
+    return { positions: RS.getActiveRack().devices.map(d => d.topU), cables: JSON.stringify(RS.STATE.cables) };
+  });
+  await page.waitForTimeout(350);
+  const box = await page.locator('.rack-resize-handle').first().boundingBox();
+  const scale = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y - 4 * 32 * scale);
+  await expect.poll(() => page.evaluate(() => window.RackStudio.getActiveRack().heightU)).toBe(38);
+  await page.mouse.move(x, y);
+  await expect.poll(() => page.evaluate(() => window.RackStudio.getActiveRack().heightU)).toBe(42);
+  expect(await page.evaluate(() => window.RackStudio.getActiveRack().devices.map(d => d.topU))).toEqual(baseline.positions);
+  await page.mouse.move(x, y - 4 * 32 * scale);
+  await expect.poll(() => page.evaluate(() => window.RackStudio.getActiveRack().heightU)).toBe(38);
+  await page.mouse.up();
+  await page.locator('[data-command="undo"]').click();
+  expect(await page.evaluate(() => window.RackStudio.getActiveRack().heightU)).toBe(42);
+  expect(await page.evaluate(() => window.RackStudio.getActiveRack().devices.map(d => d.topU))).toEqual(baseline.positions);
+  expect(await page.evaluate(() => JSON.stringify(window.RackStudio.STATE.cables))).toBe(baseline.cables);
+  await page.close();
+});
+
+test('3D height slider previews only the active rack and preserves other racks', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.rackGroup));
+  await page.evaluate(() => {
+    const s = window.__STUDIO3D__;
+    const rack = s.state.racks[0];
+    s.state.activeRackId = rack.id;
+    const other = { ...rack, id: 'resize-other', name: 'Other' };
+    s.state.racks.push(other);
+    s.state.devices.push({ ...s.state.devices[0], id: 'resize-other-device', rackId: other.id, startU: 42, uHeight: 1 });
+    s.buildRack(42); s.rebuildAllDevices();
+    const slider = document.getElementById('rack-u-slider');
+    slider.value = '30'; slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect.poll(() => page.evaluate(() => window.__STUDIO3D__.state.racks[0].heightU)).toBe(30);
+  const result = await page.evaluate(() => {
+    const s = window.__STUDIO3D__;
+    return { otherHeight: s.state.racks[1].heightU,
+      otherU: s.state.devices.find(d => d.id === 'resize-other-device').startU,
+      maxU: Math.max(...s.state.devices.filter(d => d.rackId === s.state.activeRackId).map(d => d.startU + d.uHeight - 1)) };
+  });
+  expect(result.otherHeight).toBe(42);
+  expect(result.otherU).toBe(42);
+  expect(result.maxU).toBeLessThanOrEqual(30);
+  await page.locator('#rack-u-slider').dispatchEvent('change');
+  expect(await page.evaluate(() => window.RackStudio.getActiveRack().heightU)).toBe(30);
+  await page.close();
+});
+
+test('pilot device keeps the same port anchors through 2D and 3D', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const twoD = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('cisco-m-c9200l-24p-4x', 40);
+    RS.refresh();
+    RS.DeviceSceneRegistry.captureFromDom('pilot-check');
+    const device = RS.STATE.racks[0].devices[0];
+    const geometry = RS.getPhysicalPortGeometry(device.catalogKey);
+    const snapshot = RS.DeviceSceneRegistry.getSnapshot();
+    const sceneDevice = snapshot.devices.find(item => item.instanceId === device.instanceId);
+    const first = snapshot.ports.find(item => item.instanceId === device.instanceId && item.portId === 'p1');
+    return { instanceId: device.instanceId, status: geometry?.verification, normalizedX: (first.x - sceneDevice.x) / sceneDevice.width, normalizedY: (first.y - sceneDevice.y) / sceneDevice.height };
+  });
+  expect(twoD.status).toBe('approximate');
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.devicesGroup));
+  const threeD = await page.evaluate(instanceId => {
+    const group = window.__STUDIO3D__.devicesGroup.getObjectByName(instanceId);
+    const face = group.children.find(child => child.geometry?.type === 'BoxGeometry' && child.geometry.parameters.depth === 0.03);
+    let port;
+    group.traverse(child => { if (child.userData?.isPort && child.userData.portIdx === 1) port = child; });
+    return { normalizedX: port.position.x / face.geometry.parameters.width + 0.5, normalizedY: 0.5 - port.position.y / face.geometry.parameters.height };
+  }, twoD.instanceId);
+  expect(Math.abs(twoD.normalizedX - threeD.normalizedX)).toBeLessThan(0.01);
+  expect(Math.abs(twoD.normalizedY - threeD.normalizedY)).toBeLessThan(0.01);
+  await page.close();
+});
+
+test('project search finds hardware and field sheet keeps cable meaning separate from color', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('cisco-m-c9200l-24p-4x', 40);
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    const [source, target] = RS.STATE.racks[0].devices;
+    source.hostname = 'EDGE-42';
+    source.serialNumber = 'SERIAL-42';
+    RS.STATE.cables.push({ id: 'TRACE-42', name: 'TRACE-42', from: { rackId: 'rack-1', instanceId: source.instanceId, portId: 'p1' }, to: { rackId: 'rack-1', instanceId: target.instanceId, portId: 'p1' }, color: '#ef4444', medium: 'Cat6A', role: 'management', lengthMeters: 2 });
+    RS.refresh();
+  });
+  await page.keyboard.press('Control+k');
+  await page.getByRole('textbox', { name: 'Komut ara' }).fill('SERIAL-42');
+  await expect(page.locator('.command-item')).toContainText(['Cihaz: EDGE-42 · Pilot']);
+  await page.getByRole('textbox', { name: 'Komut ara' }).fill('TRACE-42');
+  await expect(page.locator('.command-item')).toContainText(['Kablo: TRACE-42']);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.RackStudioFieldSheet.open());
+  await expect(page.locator('#field-sheet-body')).toContainText('Cat6A / management');
+  await expect(page.locator('#field-sheet-body')).toContainText('#ef4444');
+  await page.close();
+});
+
+test('local port calibration persists without claiming vendor verification', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.evaluate(() => window.RackStudio.PortCalibrator.open());
+  await expect(page.locator('#port-calibrator-dialog')).toBeVisible();
+  await page.locator('#cal-model').selectOption('cisco-m-c9200l-24p-4x');
+  await page.locator('#cal-port').selectOption('p1');
+  await page.locator('.port-calibrator-stage').click({ position: { x: 120, y: 70 } });
+  const coordinate = await page.locator('.port-calibrator-values input').first().inputValue();
+  await page.getByRole('button', { name: 'Yerel kalibrasyonu kaydet' }).click();
+  await expect(page.locator('#port-calibrator-dialog')).toBeHidden();
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('rack-studio-port-geometry-v1'))['cisco-m-c9200l-24p-4x']);
+  expect(stored.verification).toBe('calibrated-local');
+  expect(stored.ports.find(port => port.id === 'p1').x).toBe(Number(coordinate));
+  await page.reload();
+  expect(await page.evaluate(() => window.RackStudio.getPhysicalPortGeometry('cisco-m-c9200l-24p-4x').verification)).toBe('calibrated-local');
+  await page.close();
+});
+
+test('project geometry calibration survives a 2D and 3D round trip', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const result = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    const id = 'cisco-m-c9200l-24p-4x';
+    const calibrated = structuredClone(RS.getPhysicalPortGeometry(id));
+    calibrated.ports[0].x = 0.412;
+    RS.applyPortGeometryOverrides({ [id]: calibrated });
+    const portable = RS.exportPortGeometryOverrides();
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [], portGeometryOverrides: portable });
+    let json = null;
+    const originalClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { json = JSON.parse(decodeURIComponent(this.href.split(',')[1])); };
+    RS.exportJson();
+    HTMLAnchorElement.prototype.click = originalClick;
+    return {
+      exportedX: portable[id].ports[0].x,
+      activeX: RS.getPhysicalPortGeometry(id).ports[0].x,
+      savedX: json.portGeometryOverrides[id].ports[0].x
+    };
+  });
+  expect(result).toEqual({ exportedX: 0.412, activeX: 0.412, savedX: 0.412 });
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.state));
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cisco_rack_studio_3d_state'))?.portGeometryOverrides?.['cisco-m-c9200l-24p-4x']?.ports[0].x)).toBe(0.412);
+  await page.locator('#btn-view-2d').click();
+  expect(await page.evaluate(() => window.RackStudio.getPhysicalPortGeometry('cisco-m-c9200l-24p-4x').ports[0].x)).toBe(0.412);
+  await page.close();
+});
+
+test('saved views restore the working camera without changing topology', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const original = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Saved view pilot', heightU: 42, devices: [] }], cables: [] });
+    const topology = JSON.stringify({ racks: RS.STATE.racks, cables: RS.STATE.cables });
+    RS.ZOOM_STATE.scale = 0.75;
+    RS.ZOOM_STATE.panX = 83;
+    RS.ZOOM_STATE.panY = -42;
+    RS.updateStageTransform(false);
+    RS.SavedViews.capture('MDF test');
+    RS.ZOOM_STATE.scale = 1.2;
+    RS.ZOOM_STATE.panX = 0;
+    RS.ZOOM_STATE.panY = 0;
+    RS.updateStageTransform(false);
+    return topology;
+  });
+  await page.evaluate(() => window.RackStudio.SavedViews.open());
+  await expect(page.locator('#saved-view-list')).toContainText('MDF test');
+  await page.locator('#saved-view-list button[data-action="open"]').click();
+  await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.panX)).toBe(83);
+  expect(await page.evaluate(() => {
+    const RS = window.RackStudio;
+    return { scale: RS.ZOOM_STATE.scale, panY: RS.ZOOM_STATE.panY, topology: JSON.stringify({ racks: RS.STATE.racks, cables: RS.STATE.cables }) };
+  })).toEqual({ scale: 0.75, panY: -42, topology: original });
+  await page.close();
+});
+
+test('offline inventory import reviews observations without changing planned device data', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const deviceId = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('cisco-m-c9200l-24p-4x', 40);
+    return RS.STATE.racks[0].devices[0].instanceId;
+  });
+  await page.evaluate(() => window.RackStudio.InventoryImport.open());
+  const csv = `instanceId,hostname,ipAddress,portId,interfaceName,status\n${deviceId},OBSERVED-42,10.1.2.3,p1,Gi1/0/1,up\n`;
+  await page.locator('#inventory-import-file').setInputFiles({ name: 'inventory.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+  await expect(page.locator('#inventory-import-status')).toContainText('1 eşleşme');
+  await page.getByRole('button', { name: 'Seçili gözlemleri kaydet' }).click();
+  const result = await page.evaluate(() => {
+    const device = window.RackStudio.STATE.racks[0].devices[0];
+    return { planned: device.hostname, observed: device.observed };
+  });
+  expect(result.planned).not.toBe('OBSERVED-42');
+  expect(result.observed.hostname).toBe('OBSERVED-42');
+  expect(result.observed.interfaces.p1.status).toBe('up');
+  await page.evaluate(() => window.RackStudio.ProjectChecks.open());
+  await expect(page.locator('#project-checks-summary')).toContainText('2 gözlem farkı');
+  await expect(page.locator('.project-check-item.difference').first()).toContainText('OBSERVED-42');
+  await page.locator('#project-checks-dialog [data-check-action="close"]').click();
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.state));
+  expect(await page.evaluate(id => window.__STUDIO3D__.state.devices.find(device => device.id === id)?.observed?.hostname, deviceId)).toBe('OBSERVED-42');
+  await page.locator('#btn-view-2d').click();
+  expect(await page.evaluate(() => window.RackStudio.STATE.racks[0].devices[0].observed.hostname)).toBe('OBSERVED-42');
+  await page.close();
+});
+
+test('circuit trace stops at unknown panel wiring and continues after explicit mapping', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('cisco-m-c9200l-24p-4x', 40);
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    RS.mountDeviceAt('cisco-m-c9200l-24p-4x', 36);
+    const [left, panel, right] = RS.STATE.racks[0].devices;
+    RS.STATE.cables.push(
+      { id: 'A', name: 'A', from: { rackId: 'rack-1', instanceId: left.instanceId, portId: 'p1' }, to: { rackId: 'rack-1', instanceId: panel.instanceId, portId: 'pt1' }, color: '#2563eb', lengthMeters: 1 },
+      { id: 'B', name: 'B', from: { rackId: 'rack-1', instanceId: panel.instanceId, portId: 'pt2' }, to: { rackId: 'rack-1', instanceId: right.instanceId, portId: 'p1' }, color: '#2563eb', lengthMeters: 1 }
+    );
+    RS.refresh();
+  });
+  const before = await page.evaluate(() => window.RackStudio.CircuitTrace.trace('A'));
+  expect(before.hops.filter(hop => hop.type === 'cable')).toHaveLength(1);
+  expect(before.stops.join(' ')).toContain('tanımlı değil');
+  await page.evaluate(() => window.RackStudio.CircuitTrace.open('A'));
+  await page.locator('#trace-port-a').selectOption('pt1');
+  await page.locator('#trace-port-b').selectOption('pt2');
+  await page.getByRole('button', { name: 'Eşle' }).click();
+  const after = await page.evaluate(() => window.RackStudio.CircuitTrace.trace('A'));
+  expect(after.hops.map(hop => hop.type)).toEqual(['cable', 'panel', 'cable']);
+  expect(after.stops).toEqual([]);
+  await page.close();
+});
+
 test('theme choice persists without changing rack data and 3D drawer remains operable', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(baseUrl);
   await page.locator('#rack-viewport').waitFor();
+  await expect(page.locator('#rack-empty-state')).toHaveCount(0);
   const before = await page.evaluate(() => JSON.stringify(window.RackStudio?.STATE?.racks ?? window.RackStudio?.state?.racks));
   await page.locator('#btn-tools-menu-toggle').click();
   await page.locator('#btn-theme-toggle').selectOption('high-contrast');
@@ -147,13 +452,18 @@ for (const width of [390, 820]) {
     await page.goto(baseUrl);
     await page.locator('#rack-viewport').waitFor();
     await expect(page.locator('#sidebar-right')).toHaveClass(/collapsed/);
-    await page.locator('#btn-compact-view').click();
-    await expect(page.locator('#compact-view-2d')).toBeVisible();
-    await expect(page.locator('#compact-view-3d')).toBeHidden();
-    await page.locator('#btn-compact-view').click();
+    await expect(page.locator('#sidebar-left')).toHaveAttribute('inert', '');
+    await expect(page.locator('#sidebar-right')).toHaveAttribute('inert', '');
+    if (width > 520) {
+      await page.locator('#btn-compact-view').click();
+      await expect(page.locator('#compact-view-2d')).toBeVisible();
+      await expect(page.locator('#compact-view-3d')).toBeHidden();
+      await page.locator('#btn-compact-view').click();
+    } else await expect(page.locator('#btn-compact-view')).toBeHidden();
     fs.mkdirSync(path.join(root, 'tmp', 'visual-upgrade'), { recursive: true });
     await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', `${width}-2d.png`) });
     await page.locator('#btn-mobile-catalog').click();
+    await expect(page.locator('#sidebar-left')).not.toHaveAttribute('inert');
     await expect(page.locator('#btn-mobile-catalog')).toHaveAttribute('aria-expanded', 'true');
     await expect.poll(async () => (await page.locator('#sidebar-left').boundingBox()).x).toBeGreaterThanOrEqual(-1);
     const catalogBox = await page.locator('#sidebar-left').boundingBox();
@@ -161,19 +471,26 @@ for (const width of [390, 820]) {
     expect(catalogBox.width).toBeLessThanOrEqual(width + 1);
     await expect(page.locator('#sidebar-drawer')).toBeVisible();
     await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', `${width}-catalog.png`) });
+    if (width <= 520) await page.locator('#btn-toggle-left-sidebar').click();
     await page.locator('#btn-mobile-schedule').click();
+    await expect(page.locator('#sidebar-left')).toHaveAttribute('inert', '');
+    await expect(page.locator('#sidebar-right')).not.toHaveAttribute('inert');
     await expect(page.locator('#btn-mobile-catalog')).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#btn-mobile-schedule')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('#sidebar-right')).not.toHaveClass(/collapsed/);
-    await page.locator('.sidebar-right-scrim').click({ position: { x: 10, y: 300 } });
+    if (width <= 520) await page.locator('#btn-mobile-schedule-close').click();
+    else await page.locator('.sidebar-right-scrim').click({ position: { x: 10, y: 300 } });
     await expect(page.locator('#sidebar-right')).toHaveClass(/collapsed/);
+    await expect(page.locator('#sidebar-right')).toHaveAttribute('inert', '');
     await page.locator('#btn-view-3d').click();
     await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.rackGroup));
     await expect(page.locator('.compact-panel-actions')).toBeHidden();
-    await page.locator('#btn-compact-view').click();
-    await expect(page.locator('#compact-view-3d')).toBeVisible();
-    await expect(page.locator('#compact-view-2d')).toBeHidden();
-    await page.locator('#btn-compact-view').click();
+    if (width > 520) {
+      await page.locator('#btn-compact-view').click();
+      await expect(page.locator('#compact-view-3d')).toBeVisible();
+      await expect(page.locator('#compact-view-2d')).toBeHidden();
+      await page.locator('#btn-compact-view').click();
+    } else await expect(page.locator('.mobile-3d-controls')).toBeVisible();
     await page.locator('#btn-3d-catalog').click();
     await expect(page.locator('#catalog-drawer')).toHaveAttribute('aria-hidden', 'false');
     await expect.poll(async () => (await page.locator('#catalog-drawer').boundingBox()).x).toBeGreaterThanOrEqual(0);
@@ -200,4 +517,104 @@ test('2D pan preserves Pixi backing resolution and port presentation', async ({ 
     return { resolution: studio.getPixiPerformanceTelemetry().resolution, changes: studio.getPixiPerformanceTelemetry().resolutionChanges, lod: document.getElementById('rack-stage').dataset.lod };
   });
   expect(after).toEqual(before);
+  const zoom = await page.evaluate(() => {
+    const studio = window.RackStudio;
+    const beforeZoom = studio.getPixiPerformanceTelemetry().resolutionChanges;
+    studio.setPixiInteractionMode(true);
+    studio.updatePixiResolutionForZoom();
+    studio.setPixiInteractionMode(false);
+    return { beforeZoom, afterZoom: studio.getPixiPerformanceTelemetry().resolutionChanges };
+  });
+  expect(zoom.afterZoom).toBe(zoom.beforeZoom);
+});
+
+test('phone mounting and two-port connection work without dragging', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  await page.goto(baseUrl);
+  await page.locator('#rack-viewport').waitFor();
+  await page.locator('#btn-mobile-catalog').click();
+  await page.locator('.device-card .btn-card-quick-mount').first().click();
+  await expect(page.locator('#mobile-workflow-dialog')).toBeVisible();
+  await expect(page.locator('#mobile-mount-slot option:disabled').first()).toBeAttached();
+  const beforeMount = await page.evaluate(() => window.RackStudio.STATE.racks[0].devices.length);
+  await page.getByRole('button', { name: 'Yerleştir' }).click();
+  expect(await page.evaluate(() => window.RackStudio.STATE.racks[0].devices.length)).toBe(beforeMount + 1);
+  await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Telefon', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('cisco-2960x-24ps', 40);
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    RS.refresh();
+  });
+  const devices = await page.evaluate(() => window.RackStudio.STATE.racks[0].devices.map(d => d.instanceId));
+  await page.locator('#btn-mobile-selection').click();
+  await page.getByRole('button', { name: 'Port seçerek bağla' }).click();
+  await page.locator('#mobile-port-device').selectOption(devices[0]);
+  await page.locator('.mobile-port-option').first().click();
+  await page.locator('#mobile-port-device').selectOption(devices[1]);
+  await page.locator('.mobile-port-option').first().click();
+  await expect(page.locator('#mobile-workflow-dialog')).toBeHidden();
+  expect(await page.evaluate(() => window.RackStudio.STATE.cables.length)).toBe(1);
+  await page.close();
+});
+
+test('phone schedule scroll area isolates cable picking and opens readable detail', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 402, height: 874 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
+  await page.goto(baseUrl);
+  await page.locator('#btn-mobile-schedule').click();
+  await expect(page.locator('#sidebar-right')).not.toHaveClass(/collapsed/);
+  expect(await page.evaluate(() => document.getElementById('rack-viewport').inert)).toBe(true);
+  const bounds = await page.locator('#sidebar-right').boundingBox();
+  expect(bounds.width).toBeGreaterThan(390);
+  await expect.poll(async () => (await page.locator('#sidebar-right').boundingBox()).x).toBeLessThanOrEqual(1);
+  fs.mkdirSync(path.join(root, 'tmp', 'visual-upgrade'), { recursive: true });
+  await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', 'phone-schedule.png') });
+  const state = await page.evaluate(() => {
+    const target = document.querySelector('.schedule-table-wrapper');
+    for (const type of ['pointerdown', 'pointermove', 'pointerup']) {
+      target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'touch', pointerId: 11, isPrimary: true, clientX: 180, clientY: 440 }));
+    }
+    return { hover: window.RackStudio.PixiContext.getHoveredCableId(), selected: window.RackStudio.STATE.highlightedCableId };
+  });
+  expect(state.hover).toBeNull();
+  expect(state.selected).toBeNull();
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 200, y: 720 }] });
+  for (let y = 670; y >= 370; y -= 50) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 200, y }] });
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(() => page.locator('.schedule-table-wrapper').evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.RackStudio.STATE.highlightedCableId)).toBeNull();
+  await page.locator('#schedule-tbody tr[data-cable-id]').first().click();
+  await expect(page.locator('#sidebar-right')).toHaveClass(/mobile-detail-open/);
+  await expect(page.locator('.schedule-inspector-footer')).toBeVisible();
+  await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', 'phone-detail.png') });
+  await page.locator('#btn-mobile-schedule-close').click();
+  expect(await page.evaluate(() => document.getElementById('rack-viewport').inert)).toBe(false);
+  const panBefore = await page.evaluate(() => window.RackStudio.ZOOM_STATE.panY);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 190, y: 570 }] });
+  for (let y = 540; y >= 390; y -= 30) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 190, y }] });
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.panY)).not.toBe(panBefore);
+  expect(await page.evaluate(() => ({ selected: window.RackStudio.STATE.highlightedCableId, hover: window.RackStudio.PixiContext.getHoveredCableId() }))).toEqual({ selected: null, hover: null });
+  await page.close();
+});
+
+test('phone 3D view exposes camera presets and zoom', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 402, height: 874 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
+  await page.goto(baseUrl);
+  await page.locator('#btn-view-3d').click();
+  await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.camera));
+  await expect(page.locator('.mobile-3d-controls')).toBeVisible();
+  fs.mkdirSync(path.join(root, 'tmp', 'visual-upgrade'), { recursive: true });
+  await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', 'phone-3d.png') });
+  await page.locator('.mobile-3d-controls [data-camera-view="front"]').click();
+  await expect(page.locator('.mobile-3d-controls [data-camera-view="front"]')).toHaveAttribute('aria-pressed', 'true');
+  const before = await page.evaluate(() => window.__STUDIO3D__.camera.position.z);
+  await page.locator('.mobile-3d-controls [data-camera-action="zoom-in"]').click();
+  expect(await page.evaluate(() => window.__STUDIO3D__.camera.position.z)).toBeLessThan(before);
+  await page.close();
 });

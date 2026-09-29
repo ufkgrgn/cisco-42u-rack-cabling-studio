@@ -566,11 +566,11 @@
   ];
   window.CATALOG_3D = CATALOG;
   var CABLE_COLORS = [
-    { name: "Neon Mavi (Data)", hex: 54015, css: "#00d2ff", type: "copper" },
-    { name: "Z\xFCmr\xFCt Ye\u015Fil (PoE/VoIP)", hex: 1096065, css: "#10b981", type: "copper" },
+    { name: "Mavi (Veri)", hex: 54015, css: "#00d2ff", type: "copper" },
+    { name: "Ye\u015Fil (PoE/VoIP)", hex: 1096065, css: "#10b981", type: "copper" },
     { name: "Sar\u0131 (Single-Mode Fiber)", hex: 16436245, css: "#facc15", type: "fiber" },
     { name: "Turuncu (Multi-Mode OM3/OM4)", hex: 16347926, css: "#f97316", type: "fiber" },
-    { name: "Lazer K\u0131rm\u0131z\u0131 (Kritik/Uplink)", hex: 15680580, css: "#ef4444", type: "copper" },
+    { name: "K\u0131rm\u0131z\u0131 (Kritik/Uplink)", hex: 15680580, css: "#ef4444", type: "copper" },
     { name: "Mor (Y\xF6netim/Management)", hex: 11032055, css: "#a855f7", type: "copper" },
     { name: "Siyah (G\xFC\xE7 / Power)", hex: 4674921, css: "#475569", type: "power" },
     { name: "Bak\u0131r DAC (Twinax 10G/40G)", hex: 440020, css: "#06b6d4", type: "dac" }
@@ -604,6 +604,7 @@
       try {
         const payload = {
           version: "3.2.0",
+          portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
           updatedAt: Date.now(),
           rackHeightU: this.rackHeightU,
           racks: this.racks,
@@ -631,9 +632,11 @@
             ipAddress: d.ipAddress || "",
             macAddress: d.macAddress || "",
             serialNumber: d.serialNumber || "",
+            observed: d.observed || null,
+            passThroughPairs: d.passThroughPairs || [],
             panelLabel: d.panelLabel || "",
             portsConfig: d.portsConfig || {},
-            face: "front"
+            face: d.face || "front"
           }))
         })) : [{
           id: "rack-1",
@@ -648,13 +651,16 @@
             ipAddress: d.ipAddress || "",
             macAddress: d.macAddress || "",
             serialNumber: d.serialNumber || "",
+            observed: d.observed || null,
+            passThroughPairs: d.passThroughPairs || [],
             panelLabel: d.panelLabel || "",
             portsConfig: d.portsConfig || {},
-            face: "front"
+            face: d.face || "front"
           }))
         }];
         const canonicalProj = {
           version: "3.0.0",
+          portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
           doorOpen: this.doorOpen,
           activeRackId: this.activeRackId || defaultRackId,
           racks: racksData,
@@ -666,7 +672,9 @@
             return {
               id: c.id,
               name: c.name || "Kablo",
+              note: c.note || "",
               role: c.role || "",
+              medium: c.medium || "",
               ductSide: c.ductSide || "auto",
               color: typeof c.color === "number" ? "#" + c.color.toString(16).padStart(6, "0") : c.color || "#00d2ff",
               lengthMeters: c.lengthM || 1.5,
@@ -674,13 +682,13 @@
                 rackId: rackFrom,
                 instanceId: c.from.devId,
                 portId: c.from.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devFrom || {}).catalogId] || {}).ports || [])[c.from.portIdx - 1] || {}).id || "p" + (c.from.portIdx || 1),
-                face: "front"
+                face: c.from.face || devFrom?.face || "front"
               },
               to: {
                 rackId: rackTo,
                 instanceId: c.to.devId,
                 portId: c.to.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devTo || {}).catalogId] || {}).ports || [])[c.to.portIdx - 1] || {}).id || "p" + (c.to.portIdx || 1),
-                face: "front"
+                face: c.to.face || devTo?.face || "front"
               }
             };
           })
@@ -813,9 +821,9 @@
       bg.addColorStop(0.5, "#1b2230");
       bg.addColorStop(1, "#0f131a");
     } else if (visualKind === "switch") {
-      bg.addColorStop(0, "#243248");
-      bg.addColorStop(0.5, "#32445e");
-      bg.addColorStop(1, "#1e293b");
+      bg.addColorStop(0, "#30383d");
+      bg.addColorStop(0.5, "#3c454a");
+      bg.addColorStop(1, "#252c30");
     } else if (visualKind === "patch-panel") {
       bg.addColorStop(0, "#17120a");
       bg.addColorStop(0.5, "#292011");
@@ -1132,10 +1140,10 @@
       ventTile.position.set(0, 0.02, 5.5);
       ventTile.receiveShadow = true;
       this.scene.add(ventTile);
-      const grid = new THREE.GridHelper(floorSize, 60, 4674921, 3359061);
+      const grid = new THREE.GridHelper(floorSize, 60, 3818827, 2568245);
       grid.position.y = 0.03;
       grid.material.transparent = true;
-      grid.material.opacity = 0.12;
+      grid.material.opacity = 0.06;
       this.scene.add(grid);
       const lightPanelMat = new THREE.MeshBasicMaterial({ color: 16317180 });
       for (let z = -15; z <= 15; z += 10) {
@@ -1403,23 +1411,34 @@
       this.state.autoSave();
       sfx.toggle();
     };
-    Studio3D2.prototype.setRackHeight = function(newU) {
+    Studio3D2.prototype.setRackHeight = function(newU, options = {}) {
       newU = Math.max(12, Math.min(60, parseInt(newU) || 42));
-      const maxOccupiedU = this.state.devices.reduce((max, d) => Math.max(max, d.startU + d.uHeight - 1), 0);
-      if (newU < maxOccupiedU) {
-        alert(`Kabin U y\xFCksekli\u011Fi k\xFC\xE7\xFClt\xFClemez! U${maxOccupiedU} pozisyonunda cihaz bulunmaktad\u0131r.`);
+      const active = this.state.racks?.find((r) => r.id === this.state.activeRackId) || this.state.racks?.[0];
+      const devices = this.state.devices.filter((d) => !active || d.rackId === active.id);
+      const source = options.source || {
+        heightU: active?.heightU || this.state.rackHeightU,
+        devices: devices.map((d) => ({ ...d, topU: d.startU + d.uHeight - 1 }))
+      };
+      const planned = window.RackStudio?.planRackResize?.(source.devices, source.heightU, newU);
+      if (!planned) {
+        if (!options.preview) this.showToast("Cihazlar\u0131n toplam y\xFCksekli\u011Fi i\xE7in yeterli U alan\u0131 yok.");
         return false;
       }
+      const positions = new Map(planned.map((d) => [d.id, d.topU - d.uHeight + 1]));
+      devices.forEach((d) => {
+        d.startU = positions.get(d.id) ?? d.startU;
+      });
       this.state.rackHeightU = newU;
       if (Array.isArray(this.state.racks)) {
-        const active = this.state.racks.find((r) => r.id === this.state.activeRackId) || this.state.racks[0];
-        if (active) active.heightU = newU;
+        const active2 = this.state.racks.find((r) => r.id === this.state.activeRackId) || this.state.racks[0];
+        if (active2) active2.heightU = newU;
       }
       this.buildRack(newU);
       this.rebuildAllDevices();
       this.rebuildAllCables();
-      this.state.pushSnapshot();
-      if (typeof window.sync3Dto2D === "function") {
+      this.markDirty();
+      if (!options.preview) this.state.pushSnapshot();
+      if (!options.preview && typeof window.sync3Dto2D === "function") {
         try {
           window.sync3Dto2D();
         } catch (_) {
@@ -1501,10 +1520,13 @@
         startU: targetU,
         uHeight,
         depthMm: item.depthMm || 450,
-        color: item.color || 2372168,
+        color: item.color || 3160125,
         portsCount: portDefinitions.length || (Number.isFinite(Number(item.portsCount)) ? Number(item.portsCount) : ["organizer", "accessory", "blank"].includes(item.category) ? 0 : 24),
         portType: item.portType || portDefinitions[0] && portDefinitions[0].type || "rj45",
         portDefinitions,
+        portGeometry: item.portGeometry || null,
+        observed: item.observed || null,
+        passThroughPairs: item.passThroughPairs || [],
         uplinks: inferSwitchUplinks(item),
         faceplateStyle: item.faceplateStyle || "",
         powerWatts,
@@ -1608,7 +1630,7 @@
           const p = chassisMesh.geometry.parameters;
           const boxGeo = new THREE.BoxGeometry(p.width + 0.08, p.height + 0.04, p.depth + 0.08);
           const edges = new THREE.EdgesGeometry(boxGeo);
-          const lineMat = new THREE.LineBasicMaterial({ color: 3718648, linewidth: 2, transparent: true, opacity: 0.85 });
+          const lineMat = new THREE.LineBasicMaterial({ color: 5213109, linewidth: 2, transparent: true, opacity: 0.95 });
           const outline = new THREE.LineSegments(edges, lineMat);
           outline.position.copy(chassisMesh.position);
           outline.name = "__selection_outline__";
@@ -1647,15 +1669,27 @@
       const rackX = this.getRackX(dev.rackId);
       const targetY = (dev.startU - 1) * U_HEIGHT + dev.uHeight * U_HEIGHT / 2 + 0.3;
       if (this.controls) {
-        this.controls.target.set(rackX, targetY, 0);
-        this.camera.position.set(rackX + 3.2, targetY + 0.8, 6.2);
+        const frontZ = RACK_DEPTH / 2 - 0.8;
+        const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+        const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+        const distance = Math.max(
+          5.5,
+          (RAIL_WIDTH + 0.7) / (2 * Math.tan(horizontalHalfAngle)),
+          (dev.uHeight * U_HEIGHT + 0.6) / (2 * Math.tan(verticalHalfAngle))
+        ) * 1.2;
+        this.controls.target.set(rackX, targetY, frontZ);
+        this.camera.position.set(rackX, targetY, frontZ + distance);
         this.controls.update();
+        this.markDirty();
       }
       this.selectDevice(instanceId);
       this.showToast(`\u{1F50D} ${dev.name} (U${dev.startU}) odakland\u0131`);
     };
     Studio3D2.prototype.loadTopologyFromProject = function(projectData) {
       if (!projectData) return;
+      if (projectData.portGeometryOverrides) {
+        window.RackStudio?.applyPortGeometryOverrides?.(projectData.portGeometryOverrides);
+      }
       const rawRacks = Array.isArray(projectData.racks) && projectData.racks.length > 0 ? projectData.racks : projectData.heightU ? [projectData] : [{ id: "rack-1", name: "MDF - Da\u011F\u0131t\u0131m Kabini", heightU: 42 }];
       if (typeof projectData.doorOpen === "boolean") this.state.doorOpen = projectData.doorOpen;
       else if (typeof rawRacks[0].doorOpen === "boolean") this.state.doorOpen = rawRacks[0].doorOpen;
@@ -1697,15 +1731,19 @@
             macAddress: d.macAddress || "",
             serialNumber: d.serialNumber || "",
             panelLabel: d.panelLabel || "",
+            face: d.face || "front",
             manufacturer: cat.manufacturer || cat.logo || (cat.category === "patch" || cat.category === "fiber" ? "Panel" : "Cisco"),
             category: cat.category || "switch",
             startU: Math.max(1, startU),
             uHeight: uH,
             depthMm: cat.depthMm || 450,
-            color: cat.color || 2372168,
+            color: cat.color || 3160125,
             portsCount: portDefinitions.length || (Number.isFinite(Number(cat.portsCount)) ? Number(cat.portsCount) : ["organizer", "accessory", "blank"].includes(cat.category) ? 0 : 24),
             portType: cat.portType || portDefinitions[0] && portDefinitions[0].type || "rj45",
             portDefinitions,
+            portGeometry: cat.portGeometry || null,
+            observed: d.observed || null,
+            passThroughPairs: d.passThroughPairs || [],
             uplinks: inferSwitchUplinks(cat),
             faceplateStyle: cat.faceplateStyle || "",
             powerWatts,
@@ -1749,11 +1787,12 @@
           name: c.name || "Kablo",
           note: c.note || "",
           role: c.role || "",
+          medium: c.medium || "",
           ductSide: c.ductSide || "auto",
           color: typeof c.color === "number" ? c.color : parseInt((c.color || "#00d2ff").replace("#", ""), 16) || 54015,
           lengthM: c.lengthMeters || c.lengthM || 1.5,
-          from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: c.from && c.from.portId || void 0 },
-          to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: c.to && c.to.portId || void 0 }
+          from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: c.from && c.from.portId || void 0, face: c.from && c.from.face || "front" },
+          to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: c.to && c.to.portId || void 0, face: c.to && c.to.face || "front" }
         };
       });
       this.buildRack(this.state.rackHeightU);
@@ -1778,9 +1817,9 @@
       const zFront = RACK_DEPTH / 2 - 0.8;
       const zPos = zFront - d / 2;
       const visualKind = getDeviceVisualKind(dev);
-      const chassisColors = { switch: 2504783, "patch-panel": 1577739, "fiber-panel": 1120295 };
+      const chassisColors = { switch: 3160125, "patch-panel": 2370350, "fiber-panel": 2502195 };
       const chassisMat = new THREE.MeshStandardMaterial({
-        color: chassisColors[visualKind] || dev.color || 2372168,
+        color: chassisColors[visualKind] || dev.color || 3160125,
         metalness: 0.85,
         roughness: 0.25
       });
@@ -1948,6 +1987,7 @@
       }
       if (!blocksInteractivePorts && dev.portsCount > 0) {
         const layout = getDevicePortLayout(dev);
+        const physical = dev.portGeometry?.face === (dev.face || "front") ? new Map(dev.portGeometry.ports.map((port) => [String(port.id), port])) : null;
         const pCount = layout.count;
         const availableW = w - 1.72;
         const groupGap = 0.1;
@@ -1958,6 +1998,7 @@
         const startX = -w / 2 + 1.42 + pWidth / 2;
         for (let p = 0; p < pCount; p++) {
           const portDefinition = Array.isArray(dev.portDefinitions) ? dev.portDefinitions[p] : null;
+          const anchor = physical?.get(String(portDefinition?.id));
           const isUplink = p >= layout.primary;
           const effectivePortType = portDefinition && portDefinition.type || dev.portType;
           let row = 0;
@@ -1978,7 +2019,9 @@
           const py = layout.stackedSwitch || layout.stackedPatch || isUplink ? row === 0 ? 0.058 : -0.058 : 0;
           const pz = d / 2 + 0.035;
           const isFiber = effectivePortType === "fiber-adapter" || effectivePortType === "lc" || effectivePortType === "sc" || dev.catalogId === "hcs-datalight-24" || dev.catalogId === "fiber-odf-24";
-          const portGeo = new THREE.BoxGeometry(pWidth, pHeight, 0.045);
+          const drawnWidth = anchor ? Math.max(0.04, Math.min(0.16, anchor.width * (w - 0.06))) : pWidth;
+          const drawnHeight = anchor ? Math.max(0.04, Math.min(0.13, anchor.height * (h - 0.02))) : pHeight;
+          const portGeo = new THREE.BoxGeometry(drawnWidth, drawnHeight, 0.045);
           const portCfg = dev.portsConfig && (dev.portsConfig[p + 1] || dev.portsConfig["p" + (p + 1)]) || null;
           const isTrunk = portCfg && (portCfg.role === "trunk" || portCfg.isTrunk);
           const customColor = portCfg && portCfg.color;
@@ -1991,8 +2034,12 @@
             emissiveIntensity: isTrunk ? 0.45 : 0
           });
           const portMesh = new THREE.Mesh(portGeo, portMat);
-          portMesh.position.set(px, py, pz);
-          const cavityGeo = new THREE.BoxGeometry(pWidth * 0.75, pHeight * 0.7, 0.02);
+          portMesh.position.set(
+            anchor ? (anchor.x - 0.5) * (w - 0.06) : px,
+            anchor ? (0.5 - anchor.y) * (h - 0.02) : py,
+            pz
+          );
+          const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.75, drawnHeight * 0.7, 0.02);
           const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 1379620 : 593174 });
           const cavity = new THREE.Mesh(cavityGeo, cavityMat);
           cavity.position.set(0, 0, 0.02);
@@ -2002,7 +2049,7 @@
             const ledColor = isTrunk ? trunkColorNum || 11032055 : 16096779;
             const ledMat = new THREE.MeshBasicMaterial({ color: ledColor });
             const portLed = new THREE.Mesh(ledGeo, ledMat);
-            portLed.position.set(0, -pHeight * 0.38, 0.032);
+            portLed.position.set(0, -drawnHeight * 0.38, 0.032);
             portMesh.add(portLed);
           }
           portMesh.userData = {
@@ -2450,12 +2497,14 @@
       return `${describe(cable.from)} \u2192 ${describe(cable.to)}`;
     };
     Studio3D2.prototype.rebuildAllCables = function() {
+      this._selectedCableMesh = null;
       while (this.cablesGroup.children.length > 0) {
         const child = this.cablesGroup.children[0];
         disposeObject3D(child);
         this.cablesGroup.remove(child);
       }
       this.state.cables.forEach((c) => this.buildCable3D(c));
+      if (this.state.selectedCableId) this.selectCable?.(this.state.selectedCableId);
       this.updateInteractiveTargets?.();
       this.markDirty?.();
     };
@@ -2550,9 +2599,7 @@
       this.controls.minDistance = 2.5;
       this.controls.maxDistance = 100;
       this.controls.target.set(0, midY, 0);
-      this.controls.addEventListener("change", () => {
-        this.isDirty = true;
-      });
+      this.controls.addEventListener("change", () => this.markDirty());
       this.lights.ambient = new THREE.AmbientLight(16777215, 1.4);
       this.scene.add(this.lights.ambient);
       this.lights.hemi = new THREE.HemisphereLight(15792639, 1976635, 1.7);
@@ -2586,8 +2633,8 @@
     }
     setPerformanceMode(mode, persist = true) {
       const profiles = {
-        eco: { pixelRatio: 0.75, fps: 30, shadows: false, shadowSize: 256, ledMs: 500, damping: false },
-        balanced: { pixelRatio: 1, fps: 45, shadows: true, shadowSize: 512, ledMs: 200, damping: true },
+        eco: { pixelRatio: 0.75, fps: 30, shadows: false, shadowSize: 256, ledMs: Infinity, damping: false },
+        balanced: { pixelRatio: 1, fps: 45, shadows: true, shadowSize: 512, ledMs: 250, damping: true },
         quality: { pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5), fps: 60, shadows: true, shadowSize: 1024, ledMs: 100, damping: true }
       };
       const selectedMode = Object.hasOwn(profiles, mode) ? mode : "balanced";
@@ -2612,6 +2659,7 @@
         this.state.autoSave();
         this.showToast(`3D kalite profili: ${selectedMode === "eco" ? "Ekonomi" : selectedMode === "quality" ? "Y\xFCksek" : "Dengeli"}`);
       }
+      this.markDirty();
       return selectedMode;
     }
     // --- NAVIGATION API (D-Pad, Zoom, Vertical Pan) ---
@@ -2637,6 +2685,9 @@
     }
     // --- INTERACTION & RAYCASTING ---
     initEvents() {
+      document.getElementById("btn-3d-focus-cable")?.addEventListener("click", () => {
+        this.focusCable(this.state.selectedCableId);
+      });
       const dom = this.renderer.domElement;
       window.addEventListener("resize", () => {
         const w = this.container.clientWidth;
@@ -2683,6 +2734,7 @@
         if (isSpaceDown) dom.style.cursor = "grab";
       });
       window.addEventListener("keydown", (e) => {
+        if (window.UIInteraction?.isSceneBlocked()) return;
         if ((e.code === "Delete" || e.code === "Backspace") && this.selectedDeviceId && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
           e.preventDefault();
           const dev = this.state.devices.find((d) => d.id === this.selectedDeviceId);
@@ -2773,6 +2825,7 @@
       this.interactiveTargets = targets;
     }
     handleHover(e) {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       this.raycaster.setFromCamera(this.mouse, this.camera);
       const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
       const intersects = this.raycaster.intersectObjects(targets, true);
@@ -2847,6 +2900,7 @@
       }
     }
     handleClick(e) {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       this.raycaster.setFromCamera(this.mouse, this.camera);
       const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
       const intersects = this.raycaster.intersectObjects(targets, true);
@@ -2880,6 +2934,7 @@
           return;
         }
         if (hit.object.userData && hit.object.userData.isCable) {
+          this.selectCable(hit.object.userData.cableId);
           sfx.click();
           return;
         }
@@ -2898,6 +2953,7 @@
       if (devContext) devContext.style.display = "none";
     }
     handleDoubleClick(e) {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       const rect = this.renderer.domElement.getBoundingClientRect();
       this.mouse.x = (e.clientX - rect.left) / rect.width * 2 - 1;
       this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -3000,14 +3056,14 @@
       else this.camera.position.set(targetX + distance * 0.22, targetY + distance * 0.07, distance * 0.98);
       this.camera.updateProjectionMatrix();
       this.controls.update();
-      this.isDirty = true;
+      this.markDirty();
     }
     applyVisualTheme(theme) {
       if (!this.scene) return;
       const background = theme === "light" || theme === "high-contrast" ? 15265265 : theme === "blueprint" ? 1056045 : 1120295;
       this.scene.background.setHex(background);
       if (this.scene.fog) this.scene.fog.color.setHex(background);
-      this.isDirty = true;
+      this.markDirty();
     }
     setCameraView(mode) {
       if (mode === "focus" && this.selectedDeviceId) {
@@ -3020,8 +3076,59 @@
       }
       sfx.click();
     }
+    selectCable(cableId) {
+      if (this._selectedCableMesh?.material && this._selectedCableOriginalIntensity != null) {
+        this._selectedCableMesh.material.emissiveIntensity = this._selectedCableOriginalIntensity;
+      }
+      this._selectedCableMesh = null;
+      this.state.selectedCableId = this.state.cables.some((c) => c.id === cableId) ? cableId : null;
+      if (window.RackStudio?.STATE) window.RackStudio.STATE.highlightedCableId = this.state.selectedCableId;
+      const cable = this.state.cables.find((c) => c.id === this.state.selectedCableId);
+      const summary = document.getElementById("3d-cable-selection");
+      const focusButton = document.getElementById("btn-3d-focus-cable");
+      if (summary) {
+        summary.hidden = !cable;
+        summary.textContent = cable ? `${cable.name} \xB7 ${this.getCableEndpointLabel(cable)} \xB7 ${cable.lengthM} m` : "";
+      }
+      if (focusButton) focusButton.hidden = !cable;
+      if (cable) {
+        const mesh = this.cablesGroup?.getObjectByName(cable.id);
+        if (mesh?.material) {
+          this._selectedCableMesh = mesh;
+          this._selectedCableOriginalIntensity = mesh.material.emissiveIntensity;
+          mesh.material.emissiveIntensity = Math.max(0.35, this._selectedCableOriginalIntensity || 0);
+        }
+      }
+      this.markDirty();
+    }
+    focusCable(cableId) {
+      const cable = this.state.cables.find((c) => c.id === cableId);
+      if (!cable || !this.controls) return false;
+      const endpoints = [cable.from, cable.to].map((endpoint) => {
+        const device = this.state.devices.find((d) => d.id === endpoint?.devId);
+        if (!device) return null;
+        return { x: this.getRackX(device.rackId), y: (device.startU - 1 + device.uHeight / 2) * U_HEIGHT + 0.3 };
+      });
+      if (endpoints.some((point) => !point)) return false;
+      const centerX = (endpoints[0].x + endpoints[1].x) / 2;
+      const centerY = (endpoints[0].y + endpoints[1].y) / 2;
+      const width = Math.abs(endpoints[0].x - endpoints[1].x) + 4;
+      const height = Math.abs(endpoints[0].y - endpoints[1].y) + 2;
+      const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+      const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+      const distance = Math.max(height / (2 * Math.tan(verticalHalfAngle)), width / (2 * Math.tan(horizontalHalfAngle))) * 1.3 + 2;
+      this.controls.target.set(centerX, centerY, 0);
+      this.camera.position.set(centerX, centerY, distance);
+      this.controls.update();
+      this.selectCable(cable.id);
+      return true;
+    }
     pause() {
       this.isPaused = true;
+      if (this._idleTimer) {
+        clearTimeout(this._idleTimer);
+        this._idleTimer = null;
+      }
       if (this.animFrameId) {
         cancelAnimationFrame(this.animFrameId);
         this.animFrameId = null;
@@ -3046,12 +3153,20 @@
     // --- ANIMATION LOOP (Sustained 60 FPS) ---
     markDirty() {
       this.isDirty = true;
+      if (this._idleTimer && !this.isPaused) {
+        clearTimeout(this._idleTimer);
+        this._idleTimer = null;
+        this.animFrameId = requestAnimationFrame(() => this.animate());
+      }
     }
     animate() {
+      this.animFrameId = null;
       if (this.isPaused) return;
-      this.animFrameId = requestAnimationFrame(() => this.animate());
       const now = performance.now();
-      if (now - this.lastRenderTime < this.targetFrameInterval) return;
+      if (now - this.lastRenderTime < this.targetFrameInterval) {
+        this.animFrameId = requestAnimationFrame(() => this.animate());
+        return;
+      }
       this.lastRenderTime = now;
       this.frameCount++;
       if (now - this.lastTime >= 1e3) {
@@ -3064,8 +3179,13 @@
       let ledChanged = false;
       if (now - this.lastLedUpdate >= this.ledUpdateInterval) {
         this.lastLedUpdate = now;
+        this.camera.updateMatrixWorld();
+        const visibleFrustum = new THREE.Frustum().setFromProjectionMatrix(
+          new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
+        );
+        const ledPoint = new THREE.Vector3();
         this.ledObjects.forEach((led) => {
-          if (!led.isPower) {
+          if (!led.isPower && led.mesh.visible && led.mesh.parent?.visible !== false && visibleFrustum.containsPoint(led.mesh.getWorldPosition(ledPoint))) {
             led.blinkTimer--;
             if (led.blinkTimer <= 0) {
               const isOn = led.mesh.material.color.getHex() === led.baseColor;
@@ -3081,9 +3201,21 @@
       if (controlsMoved || ledChanged) {
         this.isDirty = true;
       }
-      if (!this.isDirty) return;
+      if (!this.isDirty) {
+        const fpsEl = document.getElementById("fps-counter");
+        if (fpsEl) fpsEl.textContent = "Sabit";
+        this._idleTimer = setTimeout(
+          () => {
+            this._idleTimer = null;
+            this.animate();
+          },
+          Number.isFinite(this.ledUpdateInterval) ? this.ledUpdateInterval : 250
+        );
+        return;
+      }
       this.renderer.render(this.scene, this.camera);
       this.isDirty = false;
+      this.animFrameId = requestAnimationFrame(() => this.animate());
     }
   };
   registerRackSceneMethods(Studio3D);

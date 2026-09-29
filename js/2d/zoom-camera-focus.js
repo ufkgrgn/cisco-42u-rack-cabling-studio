@@ -66,13 +66,15 @@
     const ch = canvas.clientHeight;
     if (cw <= 0 || ch <= 0) return;
 
-    let devEl = document.querySelector(`[data-instance-id="${instanceId}"]`);
+    const findMountedDevice = () => Array.from(RS.dom?.rackStage?.querySelectorAll('.mounted-device') || [])
+      .find(element => element.dataset.instanceId === instanceId);
+    let devEl = findMountedDevice();
     if (!devEl) {
       const allRacks = RS.STATE?.racks || [];
       const foundRack = allRacks.find(r => (r.devices || []).some(d => d.instanceId === instanceId));
       if (foundRack && foundRack.id !== RS.STATE?.activeRackId && RS.switchActiveRack) {
         RS.switchActiveRack(foundRack.id);
-        devEl = document.querySelector(`[data-instance-id="${instanceId}"]`);
+        devEl = findMountedDevice();
       }
     }
     if (!devEl || !RS.dom?.rackStage) return;

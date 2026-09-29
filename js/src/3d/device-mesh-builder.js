@@ -95,11 +95,14 @@ export function registerDeviceMeshMethods(Studio3D) {
       startU: targetU,
       uHeight: uHeight,
       depthMm: item.depthMm || 450,
-      color: item.color || 0x243248,
+      color: item.color || 0x30383d,
       portsCount: portDefinitions.length || (Number.isFinite(Number(item.portsCount)) ? Number(item.portsCount) :
         (['organizer', 'accessory', 'blank'].includes(item.category) ? 0 : 24)),
       portType: item.portType || (portDefinitions[0] && portDefinitions[0].type) || 'rj45',
       portDefinitions,
+      portGeometry: item.portGeometry || null,
+      observed: item.observed || null,
+      passThroughPairs: item.passThroughPairs || [],
       uplinks: inferSwitchUplinks(item),
       faceplateStyle: item.faceplateStyle || '',
       powerWatts: powerWatts,
@@ -205,7 +208,7 @@ export function registerDeviceMeshMethods(Studio3D) {
         const p = chassisMesh.geometry.parameters;
         const boxGeo = new THREE.BoxGeometry(p.width + 0.08, p.height + 0.04, p.depth + 0.08);
         const edges = new THREE.EdgesGeometry(boxGeo);
-        const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 2, transparent: true, opacity: 0.85 });
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x4f8bb5, linewidth: 2, transparent: true, opacity: 0.95 });
         const outline = new THREE.LineSegments(edges, lineMat);
         outline.position.copy(chassisMesh.position);
         outline.name = '__selection_outline__';
@@ -249,9 +252,18 @@ export function registerDeviceMeshMethods(Studio3D) {
     const rackX = this.getRackX(dev.rackId);
     const targetY = (dev.startU - 1) * U_HEIGHT + (dev.uHeight * U_HEIGHT) / 2 + 0.3;
     if (this.controls) {
-      this.controls.target.set(rackX, targetY, 0);
-      this.camera.position.set(rackX + 3.2, targetY + 0.8, 6.2);
+      const frontZ = RACK_DEPTH / 2 - 0.8;
+      const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+      const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+      const distance = Math.max(
+        5.5,
+        (RAIL_WIDTH + 0.7) / (2 * Math.tan(horizontalHalfAngle)),
+        (dev.uHeight * U_HEIGHT + 0.6) / (2 * Math.tan(verticalHalfAngle))
+      ) * 1.2;
+      this.controls.target.set(rackX, targetY, frontZ);
+      this.camera.position.set(rackX, targetY, frontZ + distance);
       this.controls.update();
+      this.markDirty();
     }
     this.selectDevice(instanceId);
     this.showToast(`🔍 ${dev.name} (U${dev.startU}) odaklandı`);
@@ -259,6 +271,9 @@ export function registerDeviceMeshMethods(Studio3D) {
 
   Studio3D.prototype.loadTopologyFromProject = function(projectData) {
     if (!projectData) return;
+    if (projectData.portGeometryOverrides) {
+      window.RackStudio?.applyPortGeometryOverrides?.(projectData.portGeometryOverrides);
+    }
     const rawRacks = (Array.isArray(projectData.racks) && projectData.racks.length > 0)
       ? projectData.racks
       : (projectData.heightU ? [projectData] : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: 42 }]);
@@ -307,16 +322,20 @@ export function registerDeviceMeshMethods(Studio3D) {
           macAddress: d.macAddress || '',
           serialNumber: d.serialNumber || '',
           panelLabel: d.panelLabel || '',
+          face: d.face || 'front',
           manufacturer: cat.manufacturer || cat.logo || (cat.category === 'patch' || cat.category === 'fiber' ? 'Panel' : 'Cisco'),
           category: cat.category || 'switch',
           startU: Math.max(1, startU),
           uHeight: uH,
           depthMm: cat.depthMm || 450,
-          color: cat.color || 0x243248,
+          color: cat.color || 0x30383d,
           portsCount: portDefinitions.length || (Number.isFinite(Number(cat.portsCount)) ? Number(cat.portsCount) :
             (['organizer', 'accessory', 'blank'].includes(cat.category) ? 0 : 24)),
           portType: cat.portType || (portDefinitions[0] && portDefinitions[0].type) || 'rj45',
           portDefinitions,
+          portGeometry: cat.portGeometry || null,
+          observed: d.observed || null,
+          passThroughPairs: d.passThroughPairs || [],
           uplinks: inferSwitchUplinks(cat),
           faceplateStyle: cat.faceplateStyle || '',
           powerWatts: powerWatts,
@@ -368,11 +387,12 @@ export function registerDeviceMeshMethods(Studio3D) {
         name: c.name || 'Kablo',
         note: c.note || '',
         role: c.role || '',
+        medium: c.medium || '',
         ductSide: c.ductSide || 'auto',
         color: typeof c.color === 'number' ? c.color : (parseInt((c.color || '#00d2ff').replace('#', ''), 16) || 0x00d2ff),
         lengthM: c.lengthMeters || c.lengthM || 1.5,
-        from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: (c.from && c.from.portId) || undefined },
-        to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: (c.to && c.to.portId) || undefined }
+        from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: (c.from && c.from.portId) || undefined, face: (c.from && c.from.face) || 'front' },
+        to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: (c.to && c.to.portId) || undefined, face: (c.to && c.to.face) || 'front' }
       };
     });
 
@@ -402,9 +422,9 @@ export function registerDeviceMeshMethods(Studio3D) {
 
     // 1. Galvanized Sheet Steel Main Chassis Box
     const visualKind = getDeviceVisualKind(dev);
-    const chassisColors = { switch: 0x26384f, 'patch-panel': 0x18130b, 'fiber-panel': 0x111827 };
+    const chassisColors = { switch: 0x30383d, 'patch-panel': 0x242b2e, 'fiber-panel': 0x262e33 };
     const chassisMat = new THREE.MeshStandardMaterial({
-      color: chassisColors[visualKind] || dev.color || 0x243248,
+      color: chassisColors[visualKind] || dev.color || 0x30383d,
       metalness: 0.85,
       roughness: 0.25
     });
@@ -613,6 +633,8 @@ export function registerDeviceMeshMethods(Studio3D) {
     // 5. Interactive 3D Ports
     if (!blocksInteractivePorts && dev.portsCount > 0) {
       const layout = getDevicePortLayout(dev);
+      const physical = dev.portGeometry?.face === (dev.face || 'front')
+        ? new Map(dev.portGeometry.ports.map(port => [String(port.id), port])) : null;
       const pCount = layout.count;
       const availableW = w - 1.72;
       const groupGap = 0.10;
@@ -624,6 +646,7 @@ export function registerDeviceMeshMethods(Studio3D) {
 
       for (let p = 0; p < pCount; p++) {
         const portDefinition = Array.isArray(dev.portDefinitions) ? dev.portDefinitions[p] : null;
+        const anchor = physical?.get(String(portDefinition?.id));
         const isUplink = p >= layout.primary;
         const effectivePortType = (portDefinition && portDefinition.type) || dev.portType;
         let row = 0;
@@ -646,7 +669,9 @@ export function registerDeviceMeshMethods(Studio3D) {
 
         const isFiber = effectivePortType === 'fiber-adapter' || effectivePortType === 'lc' || effectivePortType === 'sc' ||
                         dev.catalogId === 'hcs-datalight-24' || dev.catalogId === 'fiber-odf-24';
-        const portGeo = new THREE.BoxGeometry(pWidth, pHeight, 0.045);
+        const drawnWidth = anchor ? Math.max(0.04, Math.min(0.16, anchor.width * (w - 0.06))) : pWidth;
+        const drawnHeight = anchor ? Math.max(0.04, Math.min(0.13, anchor.height * (h - 0.02))) : pHeight;
+        const portGeo = new THREE.BoxGeometry(drawnWidth, drawnHeight, 0.045);
 
         const portCfg = (dev.portsConfig && (dev.portsConfig[p + 1] || dev.portsConfig['p' + (p + 1)])) || null;
         const isTrunk = portCfg && (portCfg.role === 'trunk' || portCfg.isTrunk);
@@ -661,9 +686,10 @@ export function registerDeviceMeshMethods(Studio3D) {
           emissiveIntensity: isTrunk ? 0.45 : 0
         });
         const portMesh = new THREE.Mesh(portGeo, portMat);
-        portMesh.position.set(px, py, pz);
+        portMesh.position.set(anchor ? (anchor.x - 0.5) * (w - 0.06) : px,
+          anchor ? (0.5 - anchor.y) * (h - 0.02) : py, pz);
 
-        const cavityGeo = new THREE.BoxGeometry(pWidth * 0.75, pHeight * 0.7, 0.02);
+        const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.75, drawnHeight * 0.7, 0.02);
         const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 0x150d24 : 0x090d16 });
         const cavity = new THREE.Mesh(cavityGeo, cavityMat);
         cavity.position.set(0, 0, 0.02);
@@ -674,7 +700,7 @@ export function registerDeviceMeshMethods(Studio3D) {
           const ledColor = isTrunk ? (trunkColorNum || 0xa855f7) : 0xf59e0b;
           const ledMat = new THREE.MeshBasicMaterial({ color: ledColor });
           const portLed = new THREE.Mesh(ledGeo, ledMat);
-          portLed.position.set(0, -pHeight * 0.38, 0.032);
+          portLed.position.set(0, -drawnHeight * 0.38, 0.032);
           portMesh.add(portLed);
         }
 

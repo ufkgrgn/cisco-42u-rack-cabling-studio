@@ -26,6 +26,7 @@
       try {
         const payload = {
           version: '3.2.0',
+          portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
           updatedAt: Date.now(),
           rackHeightU: this.rackHeightU,
           racks: this.racks,
@@ -56,9 +57,11 @@
                 ipAddress: d.ipAddress || '',
                 macAddress: d.macAddress || '',
                 serialNumber: d.serialNumber || '',
+                observed: d.observed || null,
+                passThroughPairs: d.passThroughPairs || [],
                 panelLabel: d.panelLabel || '',
                 portsConfig: d.portsConfig || {},
-                face: 'front'
+                face: d.face || 'front'
               }))
             }))
           : [{
@@ -74,14 +77,17 @@
                 ipAddress: d.ipAddress || '',
                 macAddress: d.macAddress || '',
                 serialNumber: d.serialNumber || '',
+                observed: d.observed || null,
+                passThroughPairs: d.passThroughPairs || [],
                 panelLabel: d.panelLabel || '',
                 portsConfig: d.portsConfig || {},
-                face: 'front'
+                face: d.face || 'front'
               }))
             }];
 
         const canonicalProj = {
           version: '3.0.0',
+          portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
           doorOpen: this.doorOpen,
           activeRackId: this.activeRackId || defaultRackId,
           racks: racksData,
@@ -93,7 +99,9 @@
             return {
               id: c.id,
               name: c.name || 'Kablo',
+              note: c.note || '',
               role: c.role || '',
+              medium: c.medium || '',
               ductSide: c.ductSide || 'auto',
               color: typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff'),
               lengthMeters: c.lengthM || 1.5,
@@ -101,13 +109,13 @@
                 rackId: rackFrom,
                 instanceId: c.from.devId,
                 portId: c.from.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devFrom || {}).catalogId] || {}).ports || [])[c.from.portIdx - 1] || {}).id || ('p' + (c.from.portIdx || 1)),
-                face: 'front'
+                face: c.from.face || devFrom?.face || 'front'
               },
               to: {
                 rackId: rackTo,
                 instanceId: c.to.devId,
                 portId: c.to.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devTo || {}).catalogId] || {}).ports || [])[c.to.portIdx - 1] || {}).id || ('p' + (c.to.portIdx || 1)),
-                face: 'front'
+                face: c.to.face || devTo?.face || 'front'
               }
             };
           })

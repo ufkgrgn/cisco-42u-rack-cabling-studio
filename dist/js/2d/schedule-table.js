@@ -225,11 +225,11 @@
     `;
 
     tr.addEventListener('mouseenter', () => {
-      setCableHover(c.id, true);
+      if (window.matchMedia('(hover: hover)').matches) setCableHover(c.id, true);
     });
 
     tr.addEventListener('mouseleave', () => {
-      setCableHover(c.id, false);
+      if (window.matchMedia('(hover: hover)').matches) setCableHover(c.id, false);
     });
 
     tr.addEventListener('click', (e) => {
@@ -437,11 +437,13 @@
         const cId = row.dataset.cableId;
         row.addEventListener('mouseenter', (e) => {
           e.stopPropagation();
+          if (!window.matchMedia('(hover: hover)').matches) return;
           row.classList.add('hovered');
           setCableHover(cId, true);
         });
         row.addEventListener('mouseleave', (e) => {
           e.stopPropagation();
+          if (!window.matchMedia('(hover: hover)').matches) return;
           row.classList.remove('hovered');
           setCableHover(cId, false);
         });

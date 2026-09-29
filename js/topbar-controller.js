@@ -248,7 +248,18 @@
         btnCompliance.classList.toggle('active', active);
         btnCompliance.classList.toggle('compliance-on', active);
         btnCompliance.classList.toggle('compliance-off', !active);
-        btnCompliance.textContent = active ? 'Kurallar: Açık' : 'Kurallar: Kapalı';
+        const text = active ? 'Kurallar: Açık' : 'Kurallar: Kapalı';
+        const span = btnCompliance.querySelector('.btn-text');
+        if (span) span.textContent = text;
+        else {
+          const svg = btnCompliance.querySelector('svg');
+          btnCompliance.innerHTML = '';
+          if (svg) btnCompliance.appendChild(svg);
+          const s = document.createElement('span');
+          s.className = 'btn-text';
+          s.textContent = text;
+          btnCompliance.appendChild(s);
+        }
         btnCompliance.title = active 
           ? 'Ağ Standartları & Döngü Koruması: AKTİF (Trunk zorunluluğu, STP döngü engelleme, medya denetimi devrede)' 
           : 'Ağ Standartları: KAPALI (Serbest Mod - Switch trunk/uplink dayatması ve döngü engeli yok, serbest kablolama)';
@@ -286,7 +297,13 @@
     const uSlider = document.getElementById('rack-u-slider');
     const uDisplay = document.getElementById('rack-u-val');
     if (uSlider) {
+      let resizeSource = null;
+      let resizeRackId = null;
+      let resizeIn3D = false;
+      let resizeFrame = 0;
+      let requestedHeight = 42;
       const syncUSliderFromRack = () => {
+        if (resizeSource) return;
         const activeRack = window.RackStudio?.getActiveRack ? window.RackStudio.getActiveRack() : window.RackStudio?.STATE?.racks?.[0];
         const h = (window.is3DMode && window.__STUDIO3D__?.state?.rackHeightU) 
           ? window.__STUDIO3D__.state.rackHeightU 
@@ -295,31 +312,35 @@
         if (uDisplay) uDisplay.textContent = h + 'U';
       };
 
-      uSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        if (Number.isNaN(val)) return;
-        if (uDisplay) uDisplay.textContent = val + 'U';
-        if (window.is3DMode && window.__STUDIO3D__) {
-          window.__STUDIO3D__.setRackHeight(val);
-        } else if (window.RackStudio?.resizeRackHeight) {
-          const activeRack = window.RackStudio.getActiveRack ? window.RackStudio.getActiveRack() : window.RackStudio.STATE?.racks?.[0];
-          if (activeRack) {
-            const ok = window.RackStudio.resizeRackHeight(activeRack.id, val);
-            if (!ok) {
-              uSlider.value = activeRack.heightU || 42;
-              if (uDisplay) uDisplay.textContent = (activeRack.heightU || 42) + 'U';
-            } else if (window.__STUDIO3D__) {
-              window.__STUDIO3D__.state.rackHeightU = val;
-              if (Array.isArray(window.__STUDIO3D__.state.racks)) {
-                const r3d = window.__STUDIO3D__.state.racks.find(r => r.id === activeRack.id);
-                if (r3d) r3d.heightU = val;
-              }
-              window.__STUDIO3D__.buildRack(val);
-              window.__STUDIO3D__.rebuildAllDevices();
-              window.__STUDIO3D__.rebuildAllCables();
-            }
-          }
+      const applyHeight = preview => {
+        resizeFrame = 0;
+        if (!resizeSource) return;
+        const options = { preview, source: resizeSource };
+        if (resizeIn3D) window.__STUDIO3D__?.setRackHeight(requestedHeight, options);
+        else window.RackStudio?.resizeRackHeight(resizeRackId, requestedHeight, options);
+      };
+      uSlider.addEventListener('input', () => {
+        if (!resizeSource) {
+          resizeIn3D = !!window.is3DMode;
+          const state = resizeIn3D ? window.__STUDIO3D__?.state : window.RackStudio?.STATE;
+          const rack = state?.racks?.find(r => r.id === state.activeRackId) || state?.racks?.[0];
+          if (!rack) return;
+          resizeRackId = rack.id;
+          resizeSource = { heightU: rack.heightU || 42, devices: resizeIn3D
+            ? state.devices.filter(d => d.rackId === rack.id).map(d => ({ ...d, topU: d.startU + d.uHeight - 1 }))
+            : rack.devices.map(d => ({ ...d })) };
         }
+        const minimum = Math.max(12, resizeSource.devices.reduce((sum, d) => sum + d.uHeight, 0));
+        requestedHeight = Math.max(minimum, Number(uSlider.value));
+        uSlider.value = requestedHeight;
+        if (uDisplay) uDisplay.textContent = requestedHeight + 'U';
+        if (!resizeFrame) resizeFrame = requestAnimationFrame(() => applyHeight(true));
+      });
+      uSlider.addEventListener('change', () => {
+        if (resizeFrame) cancelAnimationFrame(resizeFrame);
+        applyHeight(false);
+        resizeSource = null;
+        syncUSliderFromRack();
       });
 
       document.addEventListener('rackstudio:change', syncUSliderFromRack);
@@ -333,10 +354,17 @@
     const toolsPanel = document.getElementById('hud-tools-panel');
     function setToolsOpen(open) {
       if (!toolsMenu || !toolsToggle || !toolsPanel) return;
+      const is3D = Boolean(window.is3DMode);
+      const tools2D = document.getElementById('tools-2d-only');
+      const tools3D = document.getElementById('tools-3d-only');
+      if (tools2D) tools2D.hidden = is3D;
+      if (tools3D) tools3D.hidden = !is3D;
       toolsMenu.classList.toggle('is-open', open);
       toolsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       toolsPanel.hidden = !open;
     }
+    window.setToolsOpen = setToolsOpen;
+    document.getElementById('btn-close-tools')?.addEventListener('click', () => { setToolsOpen(false); toolsToggle?.focus(); });
     toolsToggle?.addEventListener('click', (e) => {
       e.stopPropagation();
       setToolsOpen(toolsPanel?.hidden !== false);
@@ -351,7 +379,7 @@
       const btn = e.target.closest('button');
       if (btn && btn.id !== 'btn-tools-menu-toggle') {
         // Keep menu open for file import; close for other actions shortly after
-        if (btn.id !== 'btn-import-json-3d') {
+        if (!['btn-import-json-3d', 'btn-network-compliance', 'btn-audio-toggle', 'btn-show-dpad', 'btn-door-toggle', 'btn-routing-toggle', 'btn-lighting-toggle', 'btn-field-mode'].includes(btn.id)) {
           setTimeout(() => setToolsOpen(false), 80);
         }
       }

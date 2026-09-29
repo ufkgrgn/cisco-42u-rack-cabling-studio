@@ -34,8 +34,9 @@ test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
     const cable1 = {
       id: 'cable-test-1',
       name: 'Cat6 Test Cable',
-      from: { rackId: 'rack-1', instanceId: dev1.instanceId, portId: 'p1' },
-      to: { rackId: 'rack-1', instanceId: dev2.instanceId, portId: 'p1' },
+      from: { rackId: 'rack-1', instanceId: dev1.instanceId, portId: 'p1', face: 'rear' },
+      to: { rackId: 'rack-1', instanceId: dev2.instanceId, portId: 'p1', face: 'front' },
+      note: 'review-note',
       color: '#2563eb',
       lengthMeters: 1.5
     };
@@ -54,6 +55,7 @@ test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
 
     const devicesIn3D = s3d.state.devices.length;
     const cablesIn3D = s3d.state.cables.length;
+    const cableMetadataIn3D = s3d.state.cables.find(c => c.id === 'cable-test-1');
 
     // 5. Mount a new device in 3D (e.g. Dell server at U20)
     const mountedIn3D = s3d.mountDevice('dell-r750', 20);
@@ -77,10 +79,13 @@ test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
     const serverIn2D = activeRack.devices.find(d => d.instanceId === mountedIn3D.id || d.catalogKey === 'dell-r750');
     const cableCountIn2D = RS.STATE.cables.length;
     const serverCableIn2D = RS.STATE.cables.find(c => c.name === 'Server-to-Patch Uplink' || (c.from.instanceId === mountedIn3D.id || c.to.instanceId === mountedIn3D.id));
+    const originalCableIn2D = RS.STATE.cables.find(c => c.id === 'cable-test-1');
 
     return {
       devicesIn3D,
       cablesIn3D,
+      cableMetadataIn3D: cableMetadataIn3D && { note: cableMetadataIn3D.note, fromFace: cableMetadataIn3D.from.face },
+      originalCableIn2D: originalCableIn2D && { note: originalCableIn2D.note, fromFace: originalCableIn2D.from.face },
       hasServerIn2D: !!serverIn2D,
       serverTopU: serverIn2D ? serverIn2D.topU : null,
       cableCountIn2D,
@@ -92,6 +97,8 @@ test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
 
   assert.equal(result.devicesIn3D, 2, '2D devices successfully synced to 3D');
   assert.equal(result.cablesIn3D, 1, '2D cable successfully synced to 3D');
+  assert.deepEqual(result.cableMetadataIn3D, { note: 'review-note', fromFace: 'rear' }, 'Cable metadata preserved on 3D import');
+  assert.deepEqual(result.originalCableIn2D, { note: 'review-note', fromFace: 'rear' }, 'Cable metadata preserved on 2D return');
   assert.ok(result.hasServerIn2D, 'Device mounted in 3D seamlessly synced to 2D');
   assert.equal(result.cableCountIn2D, 2, 'Cable created in 3D seamlessly synced to 2D');
   assert.ok(result.hasServerCableIn2D, 'Cable endpoints and metadata preserved across 2D/3D');

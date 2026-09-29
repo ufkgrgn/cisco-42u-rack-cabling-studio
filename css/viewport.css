@@ -216,9 +216,9 @@
 
 .zoom-badge {
   font-size: 0.68rem;
-  font-family: monospace;
+  font-family: var(--font-mono, monospace);
   font-weight: 700;
-  color: var(--accent-blue);
+  color: var(--text-main, #f1f5f9);
   padding: 1px 4px;
   min-width: 36px;
   text-align: center;
@@ -227,6 +227,7 @@
 }
 
 .zoom-badge:hover {
+  color: var(--accent-strong);
   text-decoration: underline;
 }
 

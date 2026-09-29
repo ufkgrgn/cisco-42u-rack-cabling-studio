@@ -429,12 +429,14 @@ export function registerCableMeshMethods(Studio3D) {
   };
 
   Studio3D.prototype.rebuildAllCables = function() {
+    this._selectedCableMesh = null;
     while (this.cablesGroup.children.length > 0) {
       const child = this.cablesGroup.children[0];
       disposeObject3D(child);
       this.cablesGroup.remove(child);
     }
     this.state.cables.forEach(c => this.buildCable3D(c));
+    if (this.state.selectedCableId) this.selectCable?.(this.state.selectedCableId);
     this.updateInteractiveTargets?.();
     this.markDirty?.();
   };

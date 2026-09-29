@@ -850,13 +850,15 @@ async function run() {
         x: canvasRect.left + RS.ZOOM_STATE.panX + interactionPort.x * scale + interactionPort.width * scale / 2,
         y: canvasRect.top + RS.ZOOM_STATE.panY + interactionPort.y * scale + interactionPort.height * scale / 2
       };
-      window.dispatchEvent(new PointerEvent('pointermove', { clientX: point.x, clientY: point.y, bubbles: true }));
+      const hitSurface = document.elementFromPoint(point.x, point.y);
+      if (!hitSurface?.closest('#rack-viewport')) throw new Error('port interaction must occur inside the rack viewport');
+      hitSurface.dispatchEvent(new PointerEvent('pointermove', { clientX: point.x, clientY: point.y, pointerType: 'mouse', bubbles: true }));
       await new Promise(resolve => setTimeout(resolve, 40));
       const macroPortHover = {
         tooltipVisible: RS.dom.tooltip?.style.display === 'block',
         tooltipHasPortName: RS.dom.tooltip?.textContent.includes(interactionPort.name)
       };
-      window.dispatchEvent(new PointerEvent('pointerdown', { clientX: point.x, clientY: point.y, button: 0, bubbles: true, cancelable: true }));
+      hitSurface.dispatchEvent(new PointerEvent('pointerdown', { clientX: point.x, clientY: point.y, pointerType: 'mouse', button: 0, bubbles: true, cancelable: true }));
       const macroPortClick = {
         pendingInstanceId: RS.STATE.pendingConnection?.instanceId,
         pendingPortId: RS.STATE.pendingConnection?.portId

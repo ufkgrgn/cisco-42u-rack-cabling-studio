@@ -24,6 +24,9 @@ test('rack editor resize, placement guards, move, history and recovery', async (
     assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().heightU), 48);
     await page.locator('#studio-height').fill('20');
     await page.locator('[data-command="resize"]').click();
+    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().heightU), 20);
+    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().devices[0].topU), 20);
+    await page.locator('[data-command="undo"]').click();
     assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().heightU), 48);
     await page.locator('.mounted-device').first().dispatchEvent('click');
     await page.locator('#studio-position').fill('25');

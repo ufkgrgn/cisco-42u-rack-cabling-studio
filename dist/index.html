@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="css/catalog-modal.css">
   <link rel="stylesheet" href="css/catalog-inspector.css">
   <link rel="stylesheet" href="css/instrument-chrome.css">
+  <link rel="stylesheet" href="css/ui-consistency.css">
 </head>
 <body>
 
@@ -76,6 +77,7 @@
     <div class="compact-panel-actions" data-context="2d-only">
       <button type="button" class="hud-btn" id="btn-mobile-catalog" aria-controls="sidebar-left" aria-expanded="false">Donanım</button>
       <button type="button" class="hud-btn" id="btn-mobile-schedule" aria-controls="sidebar-right" aria-expanded="false">Bağlantılar</button>
+      <button type="button" class="hud-btn" id="btn-mobile-selection" aria-haspopup="dialog">Seçim</button>
     </div>
 
     <div class="hud-center-cluster">
@@ -160,6 +162,7 @@
       <div class="hud-tools-menu" id="hud-tools-menu">
         <button type="button" class="hud-btn" id="btn-tools-menu-toggle" aria-expanded="false" aria-controls="hud-tools-panel" title="Diğer araçlar">Araçlar</button>
         <div class="hud-tools-panel" id="hud-tools-panel" hidden>
+          <div class="tools-panel-heading"><strong>Araçlar ve ayarlar</strong><button type="button" id="btn-close-tools" aria-label="Araçlar panelini kapat" data-icon="X">Kapat</button></div>
           <div class="hud-tools-section" id="preset-btn-group">
             <span class="hud-tools-label">Şablonlar</span>
             <div class="preset-btn-wrap" data-preset="mdf">
@@ -173,7 +176,7 @@
             </div>
           </div>
           <div class="hud-tools-section">
-            <span class="hud-tools-label">Kabin</span>
+            <span class="hud-tools-label">Kabin <small>Seçili kabin</small></span>
             <div class="tools-slider-row" title="Kabin yüksekliği 12U–60U">
               <span>Yükseklik</span>
               <input type="range" id="rack-u-slider" min="12" max="60" value="42" step="2" aria-label="Kabin yüksekliği">
@@ -196,24 +199,28 @@
             <button class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
             <button class="hud-btn" data-shortcut-for="btn-view-mode-multi">Kabinleri yan yana göster</button>
             <button class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / arka yüz</button>
+            <button class="hud-btn" data-shortcut-for="btn-cable-tools">Kablo araçları</button>
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Araçlar</span>
             <button class="hud-btn" id="btn-snapshot-modal" title="Kabin anlık görüntüsü">Anlık görüntü</button>
             <button class="hud-btn" id="btn-3d-schedule-modal" title="Bağlantı listesi">Bağlantılar</button>
             <button class="hud-btn" id="btn-field-sheet" title="Yazdırılabilir saha kartı">Saha kartı</button>
-            <button class="hud-btn" id="btn-field-mode" title="Kütüphaneyi gizle, bağlantı listesini büyüt" aria-pressed="false">Saha görünümü</button>
+            <button class="hud-btn" id="btn-saved-views" title="Kamera ve kabin görünümlerini kaydet">Kayıtlı görünümler</button>
+            <button class="hud-btn" id="btn-circuit-trace" title="Kablo devresini izle ve panel eşlemelerini düzenle">Devre izi</button>
+            <button class="hud-btn" id="btn-field-mode" data-context="2d-only" title="Kütüphaneyi gizle, bağlantı listesini büyüt" aria-pressed="false">Saha görünümü</button>
             <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel donanım" style="display:none;">Donanım</button>
             <button class="hud-btn" id="btn-export-visio" title="Visio uyumlu SVG">Visio</button>
           </div>
           <div class="hud-tools-section">
             <span class="hud-tools-label">Proje</span>
-            <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON indir">Kaydet</button>
-            <button class="hud-btn" id="btn-import-json-3d" title="JSON yükle">Yükle</button>
+            <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON dosyasına kaydet">Dosyaya kaydet</button>
+            <button class="hud-btn" id="btn-import-json-3d" title="JSON proje dosyası aç">Dosya aç</button>
+            <button class="hud-btn" id="btn-inventory-import" title="Çevrim dışı envanter gözlemi yükle">Envanter karşılaştır</button>
             <input type="file" id="file-import-3d" accept=".json" style="display:none;">
           </div>
           <div class="hud-tools-section">
-            <span class="hud-tools-label">Tercihler</span>
+            <span class="hud-tools-label">Tercihler <small>Bu cihaz</small></span>
             <label class="theme-choice-label" for="btn-theme-toggle">Tema</label>
             <select class="hud-btn theme-choice" id="btn-theme-toggle" aria-label="Görünüm teması">
               <option value="light">Açık</option>
@@ -223,9 +230,13 @@
             </select>
             <button class="hud-btn" id="btn-network-compliance" title="Ağ standartları ve döngü koruması">Kurallar</button>
             <button class="hud-btn" id="btn-audio-toggle" title="Ses efektleri">Ses: Açık</button>
-            <button class="hud-btn" id="btn-show-dpad" title="3D yön düğmelerini göster">Yön düğmeleri</button>
-            <button class="hud-btn tools-danger" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Sıfırla</button>
+            <button class="hud-btn" id="btn-show-dpad" data-context="3d-only" title="3D yön düğmelerini göster">Yön düğmeleri</button>
           </div>
+          <details class="tools-advanced"><summary>Gelişmiş işlemler</summary><div class="hud-tools-section">
+            <button class="hud-btn" id="btn-project-checks" title="Proje veri denetimi">Proje denetimi</button>
+            <button class="hud-btn" id="btn-port-calibrator" title="Model port konumlarını yerel olarak kalibre et">Port kalibrasyonu</button>
+            <button class="hud-btn tools-danger" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Tüm kabinleri sıfırla</button>
+          </div></details>
         </div>
       </div>
 
@@ -295,10 +306,28 @@
     </div>
 
     <!-- FLOATING CABLE PALETTE BAR (BOTTOM CENTER) -->
+    <nav class="mobile-3d-controls" aria-label="3D kamera kontrolleri">
+      <button type="button" data-camera-view="iso" aria-pressed="true">İzo</button>
+      <button type="button" data-camera-view="front" aria-pressed="false">Ön</button>
+      <button type="button" data-camera-view="rear" aria-pressed="false">Arka</button>
+      <button type="button" data-camera-view="focus" aria-pressed="false">Odak</button>
+      <button type="button" data-camera-action="zoom-in" aria-label="3D yakınlaş">＋</button>
+      <button type="button" data-camera-action="zoom-out" aria-label="3D uzaklaş">−</button>
+      <details class="mobile-3d-more"><summary>Diğer</summary>
+        <div>
+          <button type="button" data-camera-view="top">Üst görünüm</button>
+          <button type="button" data-camera-action="door">Kapak</button>
+          <button type="button" data-camera-action="lighting">Işık</button>
+          <label>3D kalite <select id="mobile-3d-quality"><option value="eco">Ekonomi</option><option value="balanced">Dengeli</option><option value="quality">Yüksek</option></select></label>
+        </div>
+      </details>
+    </nav>
     <div class="cable-palette-bar" id="cable-palette-bar">
       <span class="ctrl-label">Kablo rengi</span>
       <span id="active-3d-cable-color">Mavi</span>
       <button type="button" class="hud-btn" id="btn-3d-colors" aria-controls="cable-palette-options" aria-expanded="false">Renk seç</button>
+      <span id="3d-cable-selection" role="status" hidden></span>
+      <button type="button" class="hud-btn" id="btn-3d-focus-cable" hidden>İki ucu göster</button>
       <div id="cable-palette-options" hidden></div>
     </div>
 
@@ -394,18 +423,18 @@
     <div id="nav-controller-3d">
       <div class="dpad-grid">
         <div></div>
-        <button class="dpad-btn" id="dpad-up" title="Yukarı Kaydır (Pan Up)">▲</button>
+        <button class="dpad-btn" id="dpad-up" title="Yukarı Kaydır (Pan Up)" aria-label="Yukarı kaydır"></button>
         <div></div>
-        <button class="dpad-btn" id="dpad-left" title="Sola Kaydır (Pan Left)">◀</button>
-        <button class="dpad-btn center" id="dpad-reset" title="Bakış Açısını Sıfırla">⟲</button>
-        <button class="dpad-btn" id="dpad-right" title="Sağa Kaydır (Pan Right)">▶</button>
+        <button class="dpad-btn" id="dpad-left" title="Sola Kaydır (Pan Left)" aria-label="Sola kaydır"></button>
+        <button class="dpad-btn center" id="dpad-reset" title="Bakış Açısını Sıfırla" aria-label="Bakış açısını sıfırla"></button>
+        <button class="dpad-btn" id="dpad-right" title="Sağa Kaydır (Pan Right)" aria-label="Sağa kaydır"></button>
         <div></div>
-        <button class="dpad-btn" id="dpad-down" title="Aşağı Kaydır (Pan Down)">▼</button>
+        <button class="dpad-btn" id="dpad-down" title="Aşağı Kaydır (Pan Down)" aria-label="Aşağı kaydır"></button>
         <div></div>
       </div>
       <div class="nav-zoom-group">
-        <button class="dpad-btn zoom" id="btn-nav-zoom-in" title="Yakınlaş (Zoom In)">➕</button>
-        <button class="dpad-btn zoom" id="btn-nav-zoom-out" title="Uzaklaş (Zoom Out)">➖</button>
+        <button class="dpad-btn zoom" id="btn-nav-zoom-in" title="Yakınlaş (Zoom In)" aria-label="Yakınlaş"></button>
+        <button class="dpad-btn zoom" id="btn-nav-zoom-out" title="Uzaklaş (Zoom Out)" aria-label="Uzaklaş"></button>
       </div>
     </div>
 
@@ -1665,6 +1694,11 @@
           <div class="schedule-title">Bağlantı Listesi</div>
           <div class="schedule-subtitle" id="cable-count-label">0 bağlantı</div>
         </div>
+        <div class="mobile-schedule-tabs" role="group" aria-label="Bağlantı paneli">
+          <button type="button" id="btn-mobile-schedule-list" aria-pressed="true">Liste</button>
+          <button type="button" id="btn-mobile-schedule-detail" aria-pressed="false">Detay</button>
+        </div>
+        <button type="button" class="mobile-schedule-close" id="btn-mobile-schedule-close" aria-label="Bağlantı panelini kapat">×</button>
         <button class="btn btn-quiet-danger" id="btn-clear-cables">Kabloları sil</button>
         <button class="sidebar-toggle-btn" id="btn-toggle-right-sidebar" title="Çizelgeyi Katla / Aç">
           <svg class="ui-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
@@ -1722,6 +1756,7 @@
   <script src="js/2d/cisco-catalyst-catalog.js" vite-ignore></script>
   <script src="js/2d/cisco-nexus-routers-catalog.js" vite-ignore></script>
   <script src="js/2d/cisco-master-catalog.js" vite-ignore></script>
+  <script src="js/2d/physical-port-layouts.js" vite-ignore></script>
   <script src="js/2d/state.js" vite-ignore></script>
   <script src="js/2d/render-scheduler.js" vite-ignore></script>
   <script src="js/2d/zoom-manager.js" vite-ignore></script>
@@ -1770,11 +1805,20 @@
   <script src="js/device-metadata-editor.js" vite-ignore></script>
   <script src="js/theme-controller.js" vite-ignore></script>
   <script src="js/ui-icons.js" vite-ignore></script>
+  <script src="js/ui-actions.js" vite-ignore></script>
+  <script src="js/ui-icon-controller.js" vite-ignore></script>
+  <script src="js/ui-interactions.js" vite-ignore></script>
   <script src="js/topbar-controller.js" vite-ignore></script>
   <script src="js/sidebar-controller.js" vite-ignore></script>
   <script src="js/studio-bridge.js" vite-ignore></script>
   <script src="js/command-palette.js" vite-ignore></script>
   <script src="js/field-sheet.js" vite-ignore></script>
   <script src="js/instrument-shell.js" vite-ignore></script>
+  <script src="js/mobile-workflow.js" vite-ignore></script>
+  <script src="js/port-calibrator.js" vite-ignore></script>
+  <script src="js/inventory-import.js" vite-ignore></script>
+  <script src="js/project-checks.js" vite-ignore></script>
+  <script src="js/circuit-trace.js" vite-ignore></script>
+  <script src="js/saved-views.js" vite-ignore></script>
 </body>
 </html>

@@ -17,10 +17,28 @@
     document.body.append(sidebarScrim);
 
     const isOverlaySidebar = () => window.matchMedia('(max-width: 1199px)').matches;
+    const isCompactDrawer = () => window.matchMedia('(max-width: 1023px)').matches;
+
+    function syncCompactDrawerAccess() {
+      const compact = isCompactDrawer();
+      if (sidebarLeft) {
+        const hidden = compact && sidebarLeft.classList.contains('collapsed');
+        if (hidden && sidebarLeft.contains(document.activeElement)) mobileCatalogButton?.focus();
+        sidebarLeft.inert = hidden;
+      }
+      if (sidebarRight) {
+        const hidden = compact && sidebarRight.classList.contains('collapsed');
+        if (hidden && sidebarRight.contains(document.activeElement)) mobileScheduleButton?.focus();
+        sidebarRight.inert = hidden;
+      }
+      const viewport = document.getElementById('rack-viewport');
+      if (viewport) viewport.inert = compact && (!sidebarLeft?.classList.contains('collapsed') || !sidebarRight?.classList.contains('collapsed'));
+    }
 
     function setLeftSidebarCollapsed(collapsed) {
       if (!sidebarLeft) return;
       sidebarLeft.classList.toggle('collapsed', collapsed);
+      syncCompactDrawerAccess();
       if (btnToggleLeft) {
         const iconSvg = window.getLucideIconSvg ? window.getLucideIconSvg(collapsed ? 'ChevronRight' : 'ChevronLeft', 14) : (collapsed ? '▶' : '◀');
         btnToggleLeft.innerHTML = iconSvg;
@@ -63,6 +81,8 @@
     function setRightSidebarCollapsed(collapsed, persist = true) {
       if (!sidebarRight) return;
       sidebarRight.classList.toggle('collapsed', collapsed);
+      if (!collapsed && isCompactDrawer()) setMobileScheduleView('list');
+      syncCompactDrawerAccess();
       if (collapsed) {
         sidebarRight.style.width = '44px';
         sidebarRight.style.minWidth = '44px';
@@ -91,6 +111,21 @@
     }
     window.setRightSidebarCollapsed = setRightSidebarCollapsed;
 
+    function setMobileScheduleView(view) {
+      if (!sidebarRight) return;
+      const detail = view === 'detail';
+      sidebarRight.classList.toggle('mobile-detail-open', detail);
+      document.getElementById('btn-mobile-schedule-list')?.setAttribute('aria-pressed', String(!detail));
+      document.getElementById('btn-mobile-schedule-detail')?.setAttribute('aria-pressed', String(detail));
+    }
+    document.getElementById('btn-mobile-schedule-list')?.addEventListener('click', () => setMobileScheduleView('list'));
+    document.getElementById('btn-mobile-schedule-detail')?.addEventListener('click', () => setMobileScheduleView('detail'));
+    document.getElementById('btn-mobile-schedule-close')?.addEventListener('click', () => setRightSidebarCollapsed(true));
+    document.getElementById('schedule-tbody')?.addEventListener('click', event => {
+      if (!isCompactDrawer() || event.target.closest('button, .role-select-trigger, .duct-select-trigger, .clickable-endpoint')) return;
+      if (event.target.closest('[data-cable-id]')) requestAnimationFrame(() => setMobileScheduleView('detail'));
+    });
+
     btnToggleRight?.addEventListener('click', () => {
       const isCollapsed = sidebarRight?.classList.contains('collapsed');
       setRightSidebarCollapsed(!isCollapsed);
@@ -116,6 +151,7 @@
     });
 
     window.addEventListener('resize', () => {
+      syncCompactDrawerAccess();
       document.body.classList.toggle('left-sidebar-open', isOverlaySidebar() && !sidebarLeft?.classList.contains('collapsed'));
       document.body.classList.toggle('right-sidebar-open', window.matchMedia('(max-width: 1023px)').matches && !sidebarRight?.classList.contains('collapsed'));
     }, { passive: true });
@@ -135,6 +171,7 @@
         }
       }
     } catch(e) {}
+    syncCompactDrawerAccess();
 
     // Right Sidebar Draggable Edge Resizer
     const resizerRight = document.getElementById('sidebar-right-resizer');

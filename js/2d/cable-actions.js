@@ -149,6 +149,7 @@
   }
 
   function highlightCable(cableId, force = null) {
+    if (cableId && !(STATE.cables || []).some(c => c.id === cableId)) cableId = null;
     if (force === true) STATE.highlightedCableId = cableId || null;
     else if (force === false) STATE.highlightedCableId = null;
     else STATE.highlightedCableId = (cableId && STATE.highlightedCableId !== cableId) ? cableId : null;
@@ -161,29 +162,60 @@
     });
     renderHighlightedCableInspector();
     RS.syncPixiCableSelection?.();
+    if (window.is3DMode && window.__STUDIO3D__?.selectCable) {
+      window.__STUDIO3D__.selectCable(STATE.highlightedCableId);
+    }
   }
 
   function renderHighlightedCableInspector() {
     if (!dom.inspectorInfo) return;
     const cable = (STATE.cables || []).find(c => c.id === STATE.highlightedCableId);
-    if (!cable) return;
+    if (!cable) {
+      dom.inspectorInfo.textContent = 'Bir porta veya kabloya geldiğinizde uçlar, rol ve metraj burada görünür.';
+      return;
+    }
     const rack = getActiveRack();
     const info = RS.SvgCablePathway?.getCableEndpointInfo;
     const from = info ? info(rack, cable.from) : { deviceName: 'Kaynak', portName: cable.from?.portId || '' };
     const to = info ? info(rack, cable.to) : { deviceName: 'Hedef', portName: cable.to?.portId || '' };
     const meters = cable.lengthMeters != null ? `${cable.lengthMeters} m` : '—';
     const color = cable.color || '#2563eb';
+    const describe = endpoint => {
+      const endpointRack = STATE.racks.find(r => r.id === endpoint?.rackId || r.devices.some(d => d.instanceId === endpoint?.instanceId));
+      const device = endpointRack?.devices.find(d => d.instanceId === endpoint?.instanceId);
+      return `${endpointRack?.name || 'Kabin'} · U${device?.topU ?? '?'} · `;
+    };
     dom.inspectorInfo.innerHTML = `
       <div class="inspector-kicker">Kablo izi</div>
       <div class="inspector-title">${escapeHtml(cable.name || cable.id || 'Kablo')}</div>
       <div class="inspector-ends">
-        <div><b>Kaynak:</b> ${escapeHtml(from.deviceName)} / ${escapeHtml(from.portName)}</div>
-        <div><b>Hedef:</b> ${escapeHtml(to.deviceName)} / ${escapeHtml(to.portName)}</div>
+        <div><b>Kaynak:</b> ${escapeHtml(describe(cable.from) + from.deviceName)} / ${escapeHtml(from.portName)}</div>
+        <div><b>Hedef:</b> ${escapeHtml(describe(cable.to) + to.deviceName)} / ${escapeHtml(to.portName)}</div>
         <div><b>Metraj:</b> <span class="inspector-meter">${escapeHtml(meters)}</span></div>
         <div><b>Renk:</b> <span class="swatch-dot" style="background:${escapeHtml(color)};vertical-align:middle;"></span> ${escapeHtml(color)}</div>
       </div>
+      <div class="inspector-actions">
+        <button type="button" data-cable-focus="from">Kaynağa git</button>
+        <button type="button" data-cable-focus="to">Hedefe git</button>
+        <button type="button" data-cable-focus="both">İki ucu göster</button>
+        <button type="button" data-cable-focus="trace">Devre izi</button>
+      </div>
     `;
   }
+
+  dom.inspectorInfo?.addEventListener('click', event => {
+    const action = event.target.closest('[data-cable-focus]')?.dataset.cableFocus;
+    const cable = STATE.cables.find(c => c.id === STATE.highlightedCableId);
+    if (!action || !cable) return;
+    if (action === 'trace') RS.CircuitTrace?.open(cable.id);
+    else if (action === 'both') {
+      const differentRacks = cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== cable.to.rackId;
+      if (differentRacks && STATE.viewMode !== 'multi') {
+        RS.setViewMode?.('multi', true);
+        requestAnimationFrame(() => RS.focusOnCable?.(cable.id));
+      } else RS.focusOnCable?.(cable.id);
+    } else RS.focusOnDevice?.(cable[action]?.instanceId);
+  });
 
   function addDirectCable(rackA, instA, portA, rackB, instB, portB, color, lengthMeters) {
     const cableId = getNextCableId();
@@ -193,6 +225,8 @@
       from: { rackId: rackA, instanceId: instA, portId: portA },
       to: { rackId: rackB, instanceId: instB, portId: portB },
       color: color || '#2563eb',
+      medium: '',
+      role: '',
       lengthMeters: lengthMeters || 1.5
     });
   }

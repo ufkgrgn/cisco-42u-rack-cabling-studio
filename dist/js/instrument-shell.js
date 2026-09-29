@@ -1,64 +1,11 @@
 /**
- * Quiet canvas chrome: empty-rack start, first-use hint, field mode,
+ * Quiet canvas chrome: first-use hint, field mode,
  * and the 2D connection list as the schedule surface.
  */
 (function () {
   'use strict';
 
-  const EMPTY_KEY = 'rack-studio-empty-start-dismissed';
   const HINT_KEY = 'rack_studio_viewport_hint_dismissed';
-
-  function activeRack() {
-    const RS = window.RackStudio;
-    return RS?.getActiveRack ? RS.getActiveRack() : RS?.STATE?.racks?.[0];
-  }
-
-  function rackIsEmpty() {
-    const rack = activeRack();
-    return !rack || !(rack.devices || []).length;
-  }
-
-  function ensureEmptyState() {
-    const canvas = document.getElementById('viewport-canvas');
-    if (!canvas || document.getElementById('rack-empty-state')) return;
-    const panel = document.createElement('div');
-    panel.id = 'rack-empty-state';
-    panel.className = 'rack-empty-state';
-    panel.hidden = true;
-    panel.innerHTML = `
-      <h2>Boş kabin</h2>
-      <p>Bir şablonla başlayın ya da kütüphaneden ilk cihazı yerleştirin.</p>
-      <div class="rack-empty-actions">
-        <button type="button" class="primary" data-start="mdf">MDF</button>
-        <button type="button" data-start="idf">IDF</button>
-        <button type="button" data-start="empty">Boş 42U</button>
-      </div>`;
-    canvas.appendChild(panel);
-    panel.addEventListener('click', (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const kind = btn.dataset.start;
-      if (kind === 'empty') {
-        try { sessionStorage.setItem(EMPTY_KEY, '1'); } catch (_) {}
-        syncEmptyState();
-        return;
-      }
-      const id = kind === 'idf' ? 'btn-3d-preset-idf' : 'btn-3d-preset-mdf';
-      document.getElementById(id)?.click();
-    });
-  }
-
-  function syncEmptyState() {
-    const panel = document.getElementById('rack-empty-state');
-    if (!panel) return;
-    let dismissed = false;
-    try { dismissed = sessionStorage.getItem(EMPTY_KEY) === '1'; } catch (_) {}
-    const show = rackIsEmpty() && !dismissed && !window.is3DMode;
-    panel.hidden = !show;
-    if (!rackIsEmpty()) {
-      try { sessionStorage.removeItem(EMPTY_KEY); } catch (_) {}
-    }
-  }
 
   function dismissHint() {
     const hint = document.getElementById('viewport-bottom-hint');
@@ -75,8 +22,8 @@
   }
 
   function focusSchedule() {
-    const side = document.getElementById('sidebar-right');
-    side?.classList.remove('collapsed');
+    window.setLeftSidebarCollapsed?.(true);
+    window.setRightSidebarCollapsed?.(false);
     document.getElementById('inspector-info')?.scrollIntoView({ block: 'nearest' });
   }
 
@@ -124,7 +71,6 @@
   }
 
   function refresh() {
-    syncEmptyState();
     if (typeof window.updateTelemetry === 'function') window.updateTelemetry();
   }
 
@@ -157,13 +103,12 @@
         compactViewTrigger?.focus();
       }
     });
-    ensureEmptyState();
     bindHintOnFirstUse();
     bindSchedule();
     bindFieldMode();
     bindCableTools();
     document.querySelectorAll('[data-shortcut-for]').forEach(button => {
-      button.addEventListener('click', () => document.getElementById(button.dataset.shortcutFor)?.click());
+      button.addEventListener('click', () => window.UIActions?.run(button.dataset.shortcutFor));
     });
     document.addEventListener('rackstudio:change', refresh);
     document.addEventListener('rackstudio:rackswitched', refresh);

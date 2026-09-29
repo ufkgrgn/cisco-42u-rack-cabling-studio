@@ -676,3 +676,5 @@
 .unified-header .rack-selector-btn { color: var(--text-main); }
 .unified-header .hud-btn-group .hud-btn.icon-only { min-width: 32px; }
 
+#3d-cable-selection:not([hidden]) { max-width: min(44vw, 480px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+#btn-3d-focus-cable[hidden], #3d-cable-selection[hidden] { display: none !important; }

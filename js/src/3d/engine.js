@@ -116,7 +116,7 @@ class Studio3D {
     this.controls.minDistance = 2.5;
     this.controls.maxDistance = 100;
     this.controls.target.set(0, midY, 0);
-    this.controls.addEventListener('change', () => { this.isDirty = true; });
+    this.controls.addEventListener('change', () => this.markDirty());
 
     // High-end multi-point studio & datacenter lighting
     this.lights.ambient = new THREE.AmbientLight(0xffffff, 1.4);
@@ -160,8 +160,8 @@ class Studio3D {
 
   setPerformanceMode(mode, persist = true) {
     const profiles = {
-      eco: { pixelRatio: 0.75, fps: 30, shadows: false, shadowSize: 256, ledMs: 500, damping: false },
-      balanced: { pixelRatio: 1, fps: 45, shadows: true, shadowSize: 512, ledMs: 200, damping: true },
+      eco: { pixelRatio: 0.75, fps: 30, shadows: false, shadowSize: 256, ledMs: Infinity, damping: false },
+      balanced: { pixelRatio: 1, fps: 45, shadows: true, shadowSize: 512, ledMs: 250, damping: true },
       quality: { pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5), fps: 60, shadows: true, shadowSize: 1024, ledMs: 100, damping: true }
     };
     const selectedMode = Object.hasOwn(profiles, mode) ? mode : 'balanced';
@@ -186,6 +186,7 @@ class Studio3D {
       this.state.autoSave();
       this.showToast(`3D kalite profili: ${selectedMode === 'eco' ? 'Ekonomi' : selectedMode === 'quality' ? 'Yüksek' : 'Dengeli'}`);
     }
+    this.markDirty();
     return selectedMode;
   }
 
@@ -215,6 +216,9 @@ class Studio3D {
 
   // --- INTERACTION & RAYCASTING ---
   initEvents() {
+    document.getElementById('btn-3d-focus-cable')?.addEventListener('click', () => {
+      this.focusCable(this.state.selectedCableId);
+    });
     const dom = this.renderer.domElement;
 
     window.addEventListener('resize', () => {
@@ -267,6 +271,7 @@ class Studio3D {
       if (isSpaceDown) dom.style.cursor = 'grab';
     });
     window.addEventListener('keydown', (e) => {
+      if (window.UIInteraction?.isSceneBlocked()) return;
       if ((e.code === 'Delete' || e.code === 'Backspace') && this.selectedDeviceId && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault();
         const dev = this.state.devices.find(d => d.id === this.selectedDeviceId);
@@ -367,6 +372,7 @@ class Studio3D {
   }
 
   handleHover(e) {
+    if (window.UIInteraction?.isSceneBlocked()) return;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const targets = (this.interactiveTargets && this.interactiveTargets.length) ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
     const intersects = this.raycaster.intersectObjects(targets, true);
@@ -453,6 +459,7 @@ class Studio3D {
   }
 
   handleClick(e) {
+    if (window.UIInteraction?.isSceneBlocked()) return;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const targets = (this.interactiveTargets && this.interactiveTargets.length) ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
     const intersects = this.raycaster.intersectObjects(targets, true);
@@ -492,6 +499,7 @@ class Studio3D {
 
       // 2. Cable click reserved for double click
       if (hit.object.userData && hit.object.userData.isCable) {
+        this.selectCable(hit.object.userData.cableId);
         sfx.click();
         return;
       }
@@ -514,6 +522,7 @@ class Studio3D {
   }
 
   handleDoubleClick(e) {
+    if (window.UIInteraction?.isSceneBlocked()) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -629,7 +638,7 @@ class Studio3D {
     else this.camera.position.set(targetX + distance * 0.22, targetY + distance * 0.07, distance * 0.98);
     this.camera.updateProjectionMatrix();
     this.controls.update();
-    this.isDirty = true;
+    this.markDirty();
   }
 
   applyVisualTheme(theme) {
@@ -638,7 +647,7 @@ class Studio3D {
       ? 0xe8edf1 : theme === 'blueprint' ? 0x101d2d : 0x111827;
     this.scene.background.setHex(background);
     if (this.scene.fog) this.scene.fog.color.setHex(background);
-    this.isDirty = true;
+    this.markDirty();
   }
 
   setCameraView(mode) {
@@ -651,8 +660,58 @@ class Studio3D {
     sfx.click();
   }
 
+  selectCable(cableId) {
+    if (this._selectedCableMesh?.material && this._selectedCableOriginalIntensity != null) {
+      this._selectedCableMesh.material.emissiveIntensity = this._selectedCableOriginalIntensity;
+    }
+    this._selectedCableMesh = null;
+    this.state.selectedCableId = this.state.cables.some(c => c.id === cableId) ? cableId : null;
+    if (window.RackStudio?.STATE) window.RackStudio.STATE.highlightedCableId = this.state.selectedCableId;
+    const cable = this.state.cables.find(c => c.id === this.state.selectedCableId);
+    const summary = document.getElementById('3d-cable-selection');
+    const focusButton = document.getElementById('btn-3d-focus-cable');
+    if (summary) {
+      summary.hidden = !cable;
+      summary.textContent = cable ? `${cable.name} · ${this.getCableEndpointLabel(cable)} · ${cable.lengthM} m` : '';
+    }
+    if (focusButton) focusButton.hidden = !cable;
+    if (cable) {
+      const mesh = this.cablesGroup?.getObjectByName(cable.id);
+      if (mesh?.material) {
+        this._selectedCableMesh = mesh;
+        this._selectedCableOriginalIntensity = mesh.material.emissiveIntensity;
+        mesh.material.emissiveIntensity = Math.max(0.35, this._selectedCableOriginalIntensity || 0);
+      }
+    }
+    this.markDirty();
+  }
+
+  focusCable(cableId) {
+    const cable = this.state.cables.find(c => c.id === cableId);
+    if (!cable || !this.controls) return false;
+    const endpoints = [cable.from, cable.to].map(endpoint => {
+      const device = this.state.devices.find(d => d.id === endpoint?.devId);
+      if (!device) return null;
+      return { x: this.getRackX(device.rackId), y: (device.startU - 1 + device.uHeight / 2) * U_HEIGHT + 0.3 };
+    });
+    if (endpoints.some(point => !point)) return false;
+    const centerX = (endpoints[0].x + endpoints[1].x) / 2;
+    const centerY = (endpoints[0].y + endpoints[1].y) / 2;
+    const width = Math.abs(endpoints[0].x - endpoints[1].x) + 4;
+    const height = Math.abs(endpoints[0].y - endpoints[1].y) + 2;
+    const verticalHalfAngle = THREE.MathUtils.degToRad(this.camera.fov / 2);
+    const horizontalHalfAngle = Math.atan(Math.tan(verticalHalfAngle) * this.camera.aspect);
+    const distance = Math.max(height / (2 * Math.tan(verticalHalfAngle)), width / (2 * Math.tan(horizontalHalfAngle))) * 1.3 + 2;
+    this.controls.target.set(centerX, centerY, 0);
+    this.camera.position.set(centerX, centerY, distance);
+    this.controls.update();
+    this.selectCable(cable.id);
+    return true;
+  }
+
   pause() {
     this.isPaused = true;
+    if (this._idleTimer) { clearTimeout(this._idleTimer); this._idleTimer = null; }
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
       this.animFrameId = null;
@@ -681,14 +740,22 @@ class Studio3D {
   // --- ANIMATION LOOP (Sustained 60 FPS) ---
   markDirty() {
     this.isDirty = true;
+    if (this._idleTimer && !this.isPaused) {
+      clearTimeout(this._idleTimer);
+      this._idleTimer = null;
+      this.animFrameId = requestAnimationFrame(() => this.animate());
+    }
   }
 
   animate() {
+    this.animFrameId = null;
     if (this.isPaused) return;
-    this.animFrameId = requestAnimationFrame(() => this.animate());
 
     const now = performance.now();
-    if (now - this.lastRenderTime < this.targetFrameInterval) return;
+    if (now - this.lastRenderTime < this.targetFrameInterval) {
+      this.animFrameId = requestAnimationFrame(() => this.animate());
+      return;
+    }
     this.lastRenderTime = now;
     this.frameCount++;
     if (now - this.lastTime >= 1000) {
@@ -702,8 +769,14 @@ class Studio3D {
     let ledChanged = false;
     if (now - this.lastLedUpdate >= this.ledUpdateInterval) {
       this.lastLedUpdate = now;
+      this.camera.updateMatrixWorld();
+      const visibleFrustum = new THREE.Frustum().setFromProjectionMatrix(
+        new THREE.Matrix4().multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
+      );
+      const ledPoint = new THREE.Vector3();
       this.ledObjects.forEach(led => {
-        if (!led.isPower) {
+        if (!led.isPower && led.mesh.visible && led.mesh.parent?.visible !== false &&
+            visibleFrustum.containsPoint(led.mesh.getWorldPosition(ledPoint))) {
           led.blinkTimer--;
           if (led.blinkTimer <= 0) {
             const isOn = led.mesh.material.color.getHex() === led.baseColor;
@@ -721,10 +794,17 @@ class Studio3D {
       this.isDirty = true;
     }
 
-    if (!this.isDirty) return;
+    if (!this.isDirty) {
+      const fpsEl = document.getElementById('fps-counter');
+      if (fpsEl) fpsEl.textContent = 'Sabit';
+      this._idleTimer = setTimeout(() => { this._idleTimer = null; this.animate(); },
+        Number.isFinite(this.ledUpdateInterval) ? this.ledUpdateInterval : 250);
+      return;
+    }
 
     this.renderer.render(this.scene, this.camera);
     this.isDirty = false;
+    this.animFrameId = requestAnimationFrame(() => this.animate());
   }
 }
 

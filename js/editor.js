@@ -12,6 +12,8 @@
     document.body.appendChild(bar);
     const field = id => bar.querySelector('#studio-' + id);
     let selected = null, restoring = false, queued = false, saveTimer, revision = 0, recoveryPending = true;
+    let writeQueue = Promise.resolve();
+    const persistenceTelemetry = { serializations: 0, serializationMs: 0, writes: 0, skippedWrites: 0, writeMs: 0 };
     let undo = [], redo = [], last = '';
     const database = new Promise(resolve => {
       try {
@@ -38,16 +40,24 @@
         bytes -= entry.length * 2;
       }
     }
-    const snapshot = () => JSON.stringify({
+    const snapshot = () => {
+      const started = performance.now();
+      const value = JSON.stringify({
       racks: state.racks,
       cables: state.cables,
       rackCounter: state.rackCounter,
       cableCounter: state.cableCounter,
       customCatalog: state.customCatalog || {},
+      portGeometryOverrides: api.exportPortGeometryOverrides?.() || {},
       activeRackId: state.activeRackId,
       viewMode: state.viewMode || 'single',
       cableRoutingMode: state.cableRoutingMode || 'structured'
-    });
+      });
+      persistenceTelemetry.serializations++;
+      persistenceTelemetry.serializationMs += performance.now() - started;
+      return value;
+    };
+    api.getPersistenceTelemetry = () => ({ ...persistenceTelemetry });
     const status = (message, error = false) => { field('save').textContent = message; field('save').classList.toggle('error', error); };
     const selection = () => {
       for (const rack of state.racks) {
@@ -71,20 +81,30 @@
       window.RackStudio?.syncPixiDeviceSelection?.();
       if (typeof renderMultiSelectPill === 'function') renderMultiSelectPill();
     }
-    async function save() {
+    function save() {
       clearTimeout(saveTimer);
       if (recoveryPending || !last) return;
       const value = last, savedRevision = revision;
-      try {
+      writeQueue = writeQueue.catch(() => {}).then(async () => {
+        if (savedRevision !== revision) { persistenceTelemetry.skippedWrites++; return; }
         const db = await database;
-        if (db) {
-          await databaseAction(db, 'readwrite', value);
-          try { localStorage.removeItem(KEY); } catch (_) { /* IndexedDB already committed. */ }
-        } else localStorage.setItem(KEY, value);
-        try { localStorage.setItem('cisco-rack-studio-project', value); } catch (_) {}
-        if (savedRevision === revision) status(db ? 'Yerel kayıt tamam' : 'Yerel kayıt tamam (sınırlı depolama)');
-      }
-      catch (_) { status('Yerel kayıt başarısız — JSON dışa aktarın', true); }
+        if (savedRevision !== revision) { persistenceTelemetry.skippedWrites++; return; }
+        const started = performance.now();
+        try {
+          if (db) await databaseAction(db, 'readwrite', value);
+          else localStorage.setItem(KEY, value);
+          persistenceTelemetry.writes++;
+          persistenceTelemetry.writeMs += performance.now() - started;
+          if (savedRevision === revision) {
+            try { localStorage.setItem('cisco-rack-studio-project', value); } catch (_) {}
+            if (db) try { localStorage.removeItem(KEY); } catch (_) {}
+            status(db ? 'Yerel kayıt tamam' : 'Yerel kayıt tamam (sınırlı depolama)');
+          }
+        } catch (_) {
+          if (savedRevision === revision) status('Yerel kayıt başarısız — JSON dışa aktarın', true);
+        }
+      });
+      return writeQueue;
     }
     function record() {
       queued = false;
@@ -97,7 +117,7 @@
         last = next;
         revision++;
         status('Kaydediliyor…');
-        try { localStorage.setItem(KEY, next); localStorage.setItem('cisco-rack-studio-project', next); } catch (_) {}
+        try { localStorage.setItem(KEY, next); } catch (_) {}
         clearTimeout(saveTimer);
         saveTimer = setTimeout(save, 350);
         sync();
@@ -494,8 +514,8 @@
         if (name === 'resize') {
           const rack = api.getActiveRack(), height = Number(field('height').value);
           if (!Number.isInteger(height) || height < 1 || height > 60) throw new Error('Kabin yüksekliği 1–60 U olmalı.');
-          if (rack.devices.some(d => d.topU > height)) throw new Error('Önce üst sınırın dışındaki cihazları taşıyın.');
-          rack.heightU = height; rebuild(rack); api.refresh(); api.fit(); record();
+          if (!api.resizeRackHeight(rack.id, height, { minHeight: 1 })) throw new Error('Cihazlar için yeterli U alanı yok.');
+          api.fit();
         } else if (name === 'move') move(Number(field('position').value), field('target').value);
         else if (name === 'duplicate') {
           const found = selection(), target = state.racks.find(r => r.id === field('target').value);
@@ -861,8 +881,8 @@
         const db = await database;
         const stored = db ? await databaseAction(db, 'readonly') : null;
         let legacy = null;
-        if (!stored) { try { legacy = localStorage.getItem(KEY); } catch (_) { /* May be disabled while IDB is available. */ } }
-        const saved = stored || legacy;
+        try { legacy = localStorage.getItem(KEY); } catch (_) { /* May be disabled while IDB is available. */ }
+        const saved = legacy || stored;
         // Never replace edits made while the database was opening.
         if (saved && revision === 0) {
           restore(saved);

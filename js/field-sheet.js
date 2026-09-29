@@ -4,17 +4,6 @@
 (function () {
   'use strict';
 
-  const COLOR_NAMES = {
-    '#2563eb': 'Cat6 mavi',
-    '#eab308': 'VoIP sarı',
-    '#22c55e': 'Yönetim yeşil',
-    '#ef4444': 'Uplink kırmızı',
-    '#06b6d4': 'OM4 aqua',
-    '#f97316': 'OS2 turuncu',
-    '#a855f7': 'SAN mor',
-    '#94a3b8': 'Konsol gri'
-  };
-
   let overlay = null;
 
   function escapeHtml(value) {
@@ -23,11 +12,6 @@
     return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
     }[ch]));
-  }
-
-  function colorName(hex) {
-    const key = String(hex || '').toLowerCase();
-    return COLOR_NAMES[key] || key || '—';
   }
 
   function rackOf(instanceId) {
@@ -69,6 +53,7 @@
                 <th>Kaynak</th>
                 <th>Hedef</th>
                 <th>Renk</th>
+                <th>Ortam / Rol</th>
                 <th>Metraj</th>
               </tr>
             </thead>
@@ -104,10 +89,11 @@
       return `<tr>
         <td>${escapeHtml(from.deviceName)}<br><span class="field-meta">${escapeHtml(from.portName)}</span></td>
         <td>${escapeHtml(to.deviceName)}<br><span class="field-meta">${escapeHtml(to.portName)}</span></td>
-        <td><span class="field-swatch" style="background:${escapeHtml(color)}"></span>${escapeHtml(colorName(color))}</td>
+        <td><span class="field-swatch" style="background:${escapeHtml(color)}"></span>${escapeHtml(color)}</td>
+        <td>${escapeHtml(cable.medium || 'Belirtilmedi')} / ${escapeHtml(cable.role || 'Belirtilmedi')}</td>
         <td class="field-meta">${escapeHtml(meters)}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="4">Bu kabinde kablo yok.</td></tr>';
+    }).join('') : '<tr><td colspan="5">Bu kabinde kablo yok.</td></tr>';
     overlay.hidden = false;
   }
 

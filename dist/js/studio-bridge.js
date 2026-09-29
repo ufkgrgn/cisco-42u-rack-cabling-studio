@@ -54,11 +54,11 @@
     if (!loader) {
       loader = document.createElement('div');
       loader.id = 'studio3d-loader-overlay';
-      loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,17,0.92);backdrop-filter:blur(8px);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#38bdf8;font-family:system-ui,-apple-system,sans-serif;';
+      loader.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-app);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-main);font-family:var(--font-sans);';
       loader.innerHTML = `
-        <div style="width:48px;height:48px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin3d 0.8s linear infinite;margin-bottom:16px;"></div>
-        <div style="font-size:1.1rem;font-weight:700;letter-spacing:0.5px;color:#f8fafc;margin-bottom:6px;">🎮 3D Datacenter Stüdyosu Yükleniyor...</div>
-        <div style="font-size:0.8rem;color:#94a3b8;">WebGL & Three.js motoru başlatılıyor</div>
+        <div style="width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent-strong);border-radius:50%;animation:spin3d 0.8s linear infinite;margin-bottom:16px;"></div>
+        <div style="font-size:1.1rem;font-weight:700;letter-spacing:0.5px;color:var(--text-main);margin-bottom:6px;">3D kabin görünümü yükleniyor...</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);">Sahne hazırlanıyor</div>
         <style>@keyframes spin3d { to { transform: rotate(360deg); } }</style>
       `;
       document.body.appendChild(loader);
@@ -176,6 +176,8 @@
           id: c.id,
           name: c.name || 'Kablo',
           role: c.role || '',
+          medium: c.medium || '',
+          note: c.note || '',
           ductSide: c.ductSide || 'auto',
           color: hex,
           lengthMeters: c.lengthM || 1.5,
@@ -183,13 +185,13 @@
             rackId: rackFrom,
             instanceId: c.from.devId,
             portId: pFrom,
-            face: 'front'
+            face: c.from.face || 'front'
           },
           to: {
             rackId: rackTo,
             instanceId: c.to.devId,
             portId: pTo,
-            face: 'front'
+            face: c.to.face || 'front'
           }
         });
       });
@@ -209,9 +211,11 @@
               ipAddress: d.ipAddress || '',
               macAddress: d.macAddress || '',
               serialNumber: d.serialNumber || '',
+              observed: d.observed || null,
+              passThroughPairs: d.passThroughPairs || [],
               panelLabel: d.panelLabel || '',
               portsConfig: d.portsConfig || {},
-              face: 'front'
+              face: d.face || 'front'
             }))
           }))
         : [{
@@ -228,14 +232,17 @@
               ipAddress: d.ipAddress || '',
               macAddress: d.macAddress || '',
               serialNumber: d.serialNumber || '',
+              observed: d.observed || null,
+              passThroughPairs: d.passThroughPairs || [],
               panelLabel: d.panelLabel || '',
               portsConfig: d.portsConfig || {},
-              face: 'front'
+              face: d.face || 'front'
             }))
           }];
 
       const legacyProj = {
         version: '3.0.0',
+        portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
         doorOpen: s.doorOpen === true,
         activeRackId: s.activeRackId || defaultRackId,
         racks: racksData,
@@ -268,6 +275,7 @@
       if (window.RackStudio && window.RackStudio.STATE && window.RackStudio.STATE.racks) {
         proj = {
           activeRackId: window.RackStudio.STATE.activeRackId,
+          portGeometryOverrides: window.RackStudio.exportPortGeometryOverrides?.() || {},
           doorOpen: window.RackStudio.STATE.doorOpen === true,
           racks: window.RackStudio.STATE.racks,
           cables: window.RackStudio.STATE.cables || []
@@ -378,7 +386,7 @@
     const from3d = window.__STUDIO3D__?.selectedDeviceId || null;
     return {
       deviceId: window.is3DMode ? (from3d || from2d) : (from2d || from3d),
-      cableId: RS?.STATE?.highlightedCableId || null
+      cableId: (window.is3DMode ? window.__STUDIO3D__?.state?.selectedCableId : null) || RS?.STATE?.highlightedCableId || null
     };
   }
 
@@ -388,7 +396,13 @@
     if (selection.deviceId && RS?.STATE) {
       RS.STATE.selectedDeviceId = selection.deviceId;
     }
-    if (window.is3DMode && selection.deviceId && window.__STUDIO3D__) {
+    if (window.is3DMode && window.__STUDIO3D__) {
+      if (selection.cableId) {
+        window.__STUDIO3D__.selectCable?.(selection.cableId);
+        window.__STUDIO3D__.focusCable?.(selection.cableId);
+        return;
+      }
+      if (!selection.deviceId) return;
       if (typeof window.__STUDIO3D__.focusDevice === 'function') {
         window.__STUDIO3D__.focusDevice(selection.deviceId);
       } else if (typeof window.__STUDIO3D__.selectDevice === 'function') {

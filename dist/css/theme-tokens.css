@@ -61,16 +61,16 @@
   --radius-flat: 2px;
   --radius-overlay: 8px;
 
-  --rack-body: #11141c;
-  --rack-post: #1c2230;
+  --rack-body: #30363b;
+  --rack-post: #22282c;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --chassis-catalyst: #2d3340;
-  --chassis-nexus: #141720;
-  --chassis-router: #2a303d;
-  --chassis-patch: #1a1e27;
+  --chassis-catalyst: #30383d;
+  --chassis-nexus: #262e33;
+  --chassis-router: #343c40;
+  --chassis-patch: #242b2e;
   --cisco-blue: #1f4e79;
   --cisco-beacon: #3d6f99;
   --silkscreen-text: #f1f5f9;
@@ -164,10 +164,10 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --chassis-catalyst: #f8fafc;
-  --chassis-nexus: #f0fdf4;
-  --chassis-router: #fff7ed;
-  --chassis-patch: #f8fafc;
+  --chassis-catalyst: #d7dcde;
+  --chassis-nexus: #c5cbce;
+  --chassis-router: #d2d8da;
+  --chassis-patch: #b7bec1;
   --cisco-blue: #1f4e79;
   --cisco-beacon: #1f4e79;
   --silkscreen-text: #0f172a;

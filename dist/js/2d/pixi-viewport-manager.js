@@ -219,7 +219,8 @@
 
   function calculatePixiResolution(width, height, interaction = interactionResolutionActive) {
     const profile = PIXI_PERFORMANCE_PROFILES[pixiPerformanceMode] || PIXI_PERFORMANCE_PROFILES.balanced;
-    const requested = interaction ? profile.interactionResolution : profile.resolution;
+    // Keep port textures stable while the camera moves. Quality changes are explicit.
+    const requested = profile.resolution;
     const pixelCap = Math.sqrt(profile.pixelBudget / Math.max(1, width * height));
     return Math.max(0.75, Math.round(Math.min(requested, pixelCap) * 4) / 4);
   }
@@ -582,14 +583,7 @@
   RS.updatePixiResolutionForZoom = () => applyPixiResolution(false, 'zoom-settled');
   RS.setPixiInteractionMode = (active, deferRender = false) => {
     interactionResolutionActive = !!active;
-    if (!deferRender) return applyPixiResolution(interactionResolutionActive, active ? 'interaction-start' : 'interaction-end');
-    if (!pixiApp || !lastWidth || !lastHeight) return currentRenderResolution;
-    const target = calculatePixiResolution(lastWidth, lastHeight, interactionResolutionActive);
-    if (Math.abs(target - currentRenderResolution) < 0.1) return currentRenderResolution;
-    pixiApp.renderer.resolution = target;
-    pixiApp.renderer.resize(lastWidth, lastHeight);
-    currentRenderResolution = target;
-    performanceTelemetry.resolutionChanges++;
+    if (!deferRender) renderPixi(active ? 'interaction-start' : 'interaction-end');
     return currentRenderResolution;
   };
   RS.setPixiPerformanceMode = mode => {

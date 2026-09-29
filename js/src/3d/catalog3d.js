@@ -461,11 +461,11 @@ import { inferSwitchUplinks } from './helpers.js';
 
   // Cable Colors (Hex & Names)
   const CABLE_COLORS = [
-    { name: 'Neon Mavi (Data)', hex: 0x00d2ff, css: '#00d2ff', type: 'copper' },
-    { name: 'Zümrüt Yeşil (PoE/VoIP)', hex: 0x10b981, css: '#10b981', type: 'copper' },
+    { name: 'Mavi (Veri)', hex: 0x00d2ff, css: '#00d2ff', type: 'copper' },
+    { name: 'Yeşil (PoE/VoIP)', hex: 0x10b981, css: '#10b981', type: 'copper' },
     { name: 'Sarı (Single-Mode Fiber)', hex: 0xfacc15, css: '#facc15', type: 'fiber' },
     { name: 'Turuncu (Multi-Mode OM3/OM4)', hex: 0xf97316, css: '#f97316', type: 'fiber' },
-    { name: 'Lazer Kırmızı (Kritik/Uplink)', hex: 0xef4444, css: '#ef4444', type: 'copper' },
+    { name: 'Kırmızı (Kritik/Uplink)', hex: 0xef4444, css: '#ef4444', type: 'copper' },
     { name: 'Mor (Yönetim/Management)', hex: 0xa855f7, css: '#a855f7', type: 'copper' },
     { name: 'Siyah (Güç / Power)', hex: 0x475569, css: '#475569', type: 'power' },
     { name: 'Bakır DAC (Twinax 10G/40G)', hex: 0x06b6d4, css: '#06b6d4', type: 'dac' }

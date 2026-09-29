@@ -77,9 +77,9 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       const badgeH = 72;
 
       // Silkscreen Badge Background & Border
-      ctx.fillStyle = isFifth ? 'rgba(14, 165, 233, 0.35)' : 'rgba(15, 23, 42, 0.95)';
-      ctx.strokeStyle = isFifth ? '#00e5ff' : '#64748b';
-      ctx.lineWidth = isFifth ? 4 : 2;
+      ctx.fillStyle = isFifth ? 'rgba(75, 94, 104, 0.45)' : 'rgba(28, 35, 40, 0.95)';
+      ctx.strokeStyle = isFifth ? '#788c96' : '#45535c';
+      ctx.lineWidth = isFifth ? 3 : 2;
       
       ctx.beginPath();
       if (ctx.roundRect) {
@@ -94,26 +94,26 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       
-      // "U" prefix in subtle cyan/muted
-      ctx.fillStyle = isFifth ? '#38bdf8' : '#94a3b8';
+      // "U" prefix in subtle steel tone
+      ctx.fillStyle = isFifth ? '#b8c5cc' : '#8596a0';
       ctx.font = '800 32px -apple-system, BlinkMacSystemFont, "Segoe UI", Consolas, monospace';
       ctx.fillText('U', badgeX + 24, badgeY + badgeH / 2);
 
       // Large bold number
-      ctx.fillStyle = isFifth ? '#00e5ff' : '#ffffff';
+      ctx.fillStyle = isFifth ? '#ffffff' : '#e2e8f0';
       ctx.font = '900 48px -apple-system, BlinkMacSystemFont, "Segoe UI", Consolas, monospace';
       ctx.fillText(String(actualU), badgeX + 64, badgeY + badgeH / 2);
 
-      // Multiples of 5 have an extra neon dot
+      // Multiples of 5 subtle indicator dot
       if (isFifth) {
-        ctx.fillStyle = '#00e5ff';
+        ctx.fillStyle = '#8fa3af';
         ctx.beginPath();
-        ctx.arc(badgeX + badgeW - 32, badgeY + badgeH / 2, 8, 0, Math.PI * 2);
+        ctx.arc(badgeX + badgeW - 32, badgeY + badgeH / 2, 7, 0, Math.PI * 2);
         ctx.fill();
       }
 
       // High-visibility horizontal U division line
-      ctx.strokeStyle = isFifth ? 'rgba(0, 229, 255, 0.6)' : '#334155';
+      ctx.strokeStyle = isFifth ? 'rgba(120, 140, 150, 0.5)' : '#2b363d';
       ctx.lineWidth = isFifth ? 4 : 2;
       ctx.beginPath();
       ctx.moveTo(12, yTop);
@@ -163,9 +163,9 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       bg.addColorStop(0.5, '#1b2230');
       bg.addColorStop(1, '#0f131a');
     } else if (visualKind === 'switch') {
-      bg.addColorStop(0, '#243248');
-      bg.addColorStop(0.5, '#32445e');
-      bg.addColorStop(1, '#1e293b');
+      bg.addColorStop(0, '#30383d');
+      bg.addColorStop(0.5, '#3c454a');
+      bg.addColorStop(1, '#252c30');
     } else if (visualKind === 'patch-panel') {
       bg.addColorStop(0, '#17120a');
       bg.addColorStop(0.5, '#292011');

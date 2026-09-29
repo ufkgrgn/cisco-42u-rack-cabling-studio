@@ -29,6 +29,8 @@
   let moveListenerAttached = false;
   let pointerMoveFrame = 0;
   let latestPointerMove = null;
+  let activeTouch = null;
+  let lastTouchEventAt = 0;
 
   let hoveredCableId = null;
   const groupHoveredCableIds = new Set();
@@ -252,12 +254,37 @@
     return !!target?.closest?.('.device-ear-handle, .u-label, .slot-label, #rack-u-action-menu');
   }
 
+  function isRackInteraction(e) {
+    if (window.UIInteraction?.isSceneBlocked()) return false;
+    const target = e?.target instanceof Element ? e.target : null;
+    if (!target || window.is3DMode || !target.closest('#rack-viewport')) return false;
+    if (document.body.classList.contains('left-sidebar-open') || document.body.classList.contains('right-sidebar-open')) return false;
+    if (document.querySelector('dialog[open], .modal.show, .modal.active')) return false;
+    return !target.closest('button, input, select, textarea, aside, .hud-tools-panel, .compact-view-panel, .viewport-controls-bar, .viewport-zoom-dock, .compact-panel-actions, #cable-quick-hud, #cable-context-menu, #device-floating-controls');
+  }
+
+  function clearSceneHover(canvas, e) {
+    if (isPointerOverCable) canvas.style.pointerEvents = 'none';
+    isPointerOverCable = false;
+    // Schedule rows own their hover while the pointer is inside the inspector.
+    // Clearing Pixi here would immediately undo the row's mouseenter highlight.
+    if (hoveredCableId && !e?.target?.closest?.('#sidebar-right')) setPixiHover(null);
+    const currentPortKey = RS.getHoveredDevicePortKey?.();
+    if (currentPortKey) {
+      RS.setHoveredDevicePortKey?.(null);
+      RS.restoreDevicePortTint?.(currentPortKey);
+      RS.dispatchDevicePortInteraction?.('leave');
+    }
+    if (dom?.tooltip) dom.tooltip.style.display = 'none';
+  }
+
   function attachHitDetection(canvasArg) {
     const pixiCanvas = canvasArg || PixiContext.pixiCanvas;
     if (!pixiCanvas) return;
 
     const onDblClick = (e) => {
       if (STATE?.cableRenderMode !== 'pixi') return;
+      if (!isRackInteraction(e) || Date.now() - lastTouchEventAt < 700) return;
       if (pointerOnDomChrome(e)) return;
       if (e.target?.closest?.('#cable-quick-hud, #cable-context-menu, .modal, input, button')) return;
       const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
@@ -293,6 +320,10 @@
           pointerMoveFrame = 0;
           const e = latestPointerMove;
           if (!e || !PixiContext.pixiApp || !PixiContext.pixiCanvas || STATE?.cableRenderMode !== 'pixi') return;
+          if ((e.pointerType && e.pointerType !== 'mouse' && e.pointerType !== 'pen') || !isRackInteraction(e)) {
+            clearSceneHover(canvas, e);
+            return;
+          }
 
           const target = e.target instanceof Element ? e.target : null;
           const inFloatingControls = !!target?.closest('#device-floating-controls, .device-controls-floating');
@@ -407,6 +438,14 @@
       }, { passive: true });
 
       window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'touch') {
+          lastTouchEventAt = Date.now();
+          if (isRackInteraction(e) && e.isPrimary) activeTouch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+          else if (!e.isPrimary) activeTouch = null;
+          clearSceneHover(PixiContext.pixiCanvas || pixiCanvas);
+          return;
+        }
+        if (!isRackInteraction(e)) return;
         if (RS.isSpacePressed) return;
         if (STATE?.cableRenderMode !== 'pixi' || e.button !== 0) return;
         if (pointerOnDomChrome(e)) return;
@@ -418,6 +457,7 @@
       });
 
       window.addEventListener('click', (e) => {
+        if (!isRackInteraction(e) || Date.now() - lastTouchEventAt < 700) return;
         if (RS.isSpacePressed) return;
         if (STATE?.cableRenderMode !== 'pixi') return;
         if (pointerOnDomChrome(e)) return;
@@ -430,6 +470,7 @@
       }, { capture: true });
 
       window.addEventListener('contextmenu', (e) => {
+        if (!isRackInteraction(e) || Date.now() - lastTouchEventAt < 700) return;
         if (RS.isSpacePressed) return;
         if (STATE?.cableRenderMode !== 'pixi' || !PixiContext.pixiApp || !PixiContext.pixiCanvas) return;
         if (pointerOnDomChrome(e)) return;
@@ -460,12 +501,39 @@
       }, { capture: true });
 
       window.addEventListener('dblclick', onDblClick, { capture: true });
+
+      window.addEventListener('pointermove', e => {
+        if (e.pointerType === 'touch' && activeTouch?.id === e.pointerId && Math.hypot(e.clientX - activeTouch.x, e.clientY - activeTouch.y) > 8) activeTouch.moved = true;
+      }, { passive: true });
+      window.addEventListener('pointercancel', e => {
+        if (activeTouch?.id === e.pointerId) activeTouch = null;
+      });
+      window.addEventListener('pointerup', e => {
+        if (e.pointerType !== 'touch' || activeTouch?.id !== e.pointerId) return;
+        const touch = activeTouch;
+        activeTouch = null;
+        lastTouchEventAt = Date.now();
+        if (touch.moved || RS.ZOOM_STATE?.hasMoved || !isRackInteraction(e) || STATE?.cableRenderMode !== 'pixi') return;
+        const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
+        if (port) {
+          RS.lastHandledPixiPortTime = Date.now();
+          RS.dispatchDevicePortInteraction?.('click', port);
+          return;
+        }
+        const cableId = STATE.pendingConnection ? null : hitCableAt(e.clientX, e.clientY);
+        if (cableId) handleCablePointerDown(cableId, e);
+      });
     }
 
     if (pixiCanvas._rsHitAttached) return;
     pixiCanvas._rsHitAttached = true;
 
     pixiCanvas.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' || !isRackInteraction(e)) {
+        pixiCanvas.style.pointerEvents = 'none';
+        isPointerOverCable = false;
+        return;
+      }
       if (RS.isSpacePressed || e.button !== 0) return;
       pixiCanvas.style.pointerEvents = 'none';
       isPointerOverCable = false;
@@ -486,6 +554,7 @@
     });
 
     pixiCanvas.addEventListener('click', (e) => {
+      if (!isRackInteraction(e) || Date.now() - lastTouchEventAt < 700) return;
       if (RS.isSpacePressed || RS.isDraggingDevice) return;
       if (STATE.multiSelectMode || e.shiftKey) return;
       const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);

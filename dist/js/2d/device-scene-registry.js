@@ -91,16 +91,19 @@
     const portEls = deviceEl.querySelectorAll('.port[data-port-id]');
     const safeWidth = Math.max(1, deviceRect.width);
     const safeHeight = Math.max(1, deviceRect.height);
+    const physical = RS.getPhysicalPortGeometry?.(catalogKey);
+    const physicalPorts = physical?.face === 'front' ? new Map(physical.ports.map(port => [String(port.id), port])) : null;
 
     portEls.forEach(portEl => {
       const rect = portEl.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
       stats.templatePortRectReads++;
+      const anchor = physicalPorts?.get(String(portEl.dataset.portId));
       ports.set(String(portEl.dataset.portId), Object.freeze({
-        nx: (rect.left + rect.width / 2 - deviceRect.left) / safeWidth,
-        ny: (rect.top + rect.height / 2 - deviceRect.top) / safeHeight,
-        nw: rect.width / safeWidth,
-        nh: rect.height / safeHeight,
+        nx: anchor?.x ?? (rect.left + rect.width / 2 - deviceRect.left) / safeWidth,
+        ny: anchor?.y ?? (rect.top + rect.height / 2 - deviceRect.top) / safeHeight,
+        nw: anchor?.width ?? rect.width / safeWidth,
+        nh: anchor?.height ?? rect.height / safeHeight,
         name: portEl.dataset.portName || '',
         type: portEl.dataset.portType || '',
         speed: portEl.dataset.portSpeed || ''
