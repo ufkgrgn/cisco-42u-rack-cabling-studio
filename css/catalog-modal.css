@@ -5,7 +5,7 @@
 /* Drawer Launcher Button */
 .cisco-catalog-launcher-bar {
   padding: 8px 10px;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--bg-panel);
   border-bottom: 1px solid rgba(56, 189, 248, 0.15);
 }
 
@@ -81,7 +81,7 @@
 
 /* Cisco Master Modal Container */
 .cisco-modal-container {
-  background: #0b1120;
+  background: var(--bg-app);
   border: 1px solid #0284c7;
   border-radius: 14px;
   width: 960px;
@@ -96,9 +96,9 @@
 }
 
 .cisco-modal-header {
-  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(90deg, var(--bg-app) 0%, var(--bg-panel) 100%);
   padding: 14px 20px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -155,8 +155,8 @@
 /* Toolbar & Filter Pills */
 .cisco-modal-toolbar {
   padding: 12px 20px;
-  background: #090d16;
-  border-bottom: 1px solid #1e293b;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -180,10 +180,10 @@
 .cisco-search-box input[type="search"] {
   width: 100%;
   padding: 8px 34px 8px 34px;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 13px;
   box-sizing: border-box;
   transition: all 0.15s ease;
@@ -258,7 +258,7 @@
   padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
-  background: #070a12;
+  background: var(--bg-app);
 }
 
 .cisco-cards-grid {
@@ -268,8 +268,8 @@
 }
 
 .cisco-card {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -280,7 +280,8 @@
 }
 
 .cisco-card:hover {
-  border-color: var(--accent);, 0 0 12px rgba(56, 189, 248, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(var(--accent-rgb,56,189,248),0.12);
   transform: translateY(-2px);
 }
 
@@ -503,9 +504,9 @@
 
 /* Modal Footer */
 .cisco-modal-footer {
-  background: #090d16;
+  background: var(--bg-inset);
   padding: 10px 20px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
