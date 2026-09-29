@@ -22,7 +22,7 @@
   border-radius: 5px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(30, 41, 59, 0.6);
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.18s ease;
   user-select: none;
@@ -88,7 +88,7 @@
 
 .catalog-tree-icon {
   font-size: 9px;
-  color: #94a3b8;
+  color: var(--text-muted);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-block;
   width: 12px;
@@ -116,7 +116,7 @@
 .catalog-tree-title {
   font-weight: 700;
   font-size: 11px;
-  color: #f1f5f9;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -251,10 +251,10 @@
 .catalog-detail-visual img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .catalog-detail-copy { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .catalog-detail-model { color: #67e8f9; font: 700 .7rem ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.catalog-detail-name, .catalog-detail-spec { color: #cbd5e1; font-size: .61rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-detail-name, .catalog-detail-spec { color: var(--text-main); font-size: .61rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .catalog-detail-spec { color: #7dd3fc; }
 .catalog-detail-mount { border: 1px solid rgba(56,189,248,.55); background: rgba(2,132,199,.25); color: #e0f2fe; border-radius: 6px; padding: 6px 8px; font-size: .65rem; cursor: pointer; }
-.catalog-detail-close { position: absolute; right: 4px; top: 2px; border: 0; background: transparent; color: #94a3b8; cursor: pointer; font-size: 16px; }
+.catalog-detail-close { position: absolute; right: 4px; top: 2px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 16px; }
 
 body.catalog-placement-mode .rack-slot:not(:has(.mounted-device)) { cursor: copy; }
 

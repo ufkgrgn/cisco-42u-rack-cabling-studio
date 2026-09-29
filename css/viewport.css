@@ -130,8 +130,8 @@
 }
 
 .color-swatch.selected {
-  border-color: var(--text-main, #ffffff);
-  box-shadow: 0 0 0 1px var(--bg-panel, #0f172a);
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 2px var(--bg-panel), 0 0 8px rgba(var(--accent-rgb, 56, 189, 248), 0.5);
   transform: scale(1.15);
 }
 

@@ -64,7 +64,7 @@
 }
 [data-device-renderer="pixi"] .dev-btn:hover {
   background: rgba(51, 65, 85, 0.95);
-  color: #f8fafc;
+  color: var(--text-main);
   transform: scale(1.1);
 }
 [data-device-renderer="pixi"] .dev-btn.del-device-btn:hover {
@@ -174,8 +174,8 @@
   align-items: center;
   justify-content: center;
   background: rgba(11, 15, 25, 0.94);
-  color: #f8fafc;
-  border: 1px solid #334155;
+  color: var(--text-main);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
   letter-spacing: 0.04em;
@@ -344,8 +344,8 @@
 .rack-header-meta {
   font-size: 10px;
   font-weight: 700;
-  color: #94a3b8;
-  background: rgba(15, 23, 42, 0.8);
+  color: var(--text-muted);
+  background: var(--bg-panel);
   padding: 1px 6px;
   border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -366,9 +366,9 @@
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(15, 23, 42, 0.85);
+  background: var(--bg-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  color: var(--text-main);
 }
 
 .rack-telemetry-badge.power {
@@ -427,7 +427,7 @@
 }
 
 .uplink-modal-card {
-  background: #090d16;
+  background: var(--bg-app);
   border: 1px solid rgba(56, 189, 248, 0.35);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 210, 255, 0.18);
   border-radius: 12px;
@@ -445,7 +445,7 @@
   justify-content: space-between;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--bg-panel);
 }
 
 .uplink-modal-header .header-badge {
@@ -472,7 +472,7 @@
 }
 
 .uplink-modal-header .close-btn:hover {
-  color: #f1f5f9;
+  color: var(--text-main);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -488,14 +488,14 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-panel);
   border: 1px solid rgba(56, 189, 248, 0.25);
   border-radius: 8px;
   padding: 10px 14px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 12px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-main);
 }
 
 .uplink-connection-strip .arrow {
@@ -507,7 +507,7 @@
 .uplink-modal-desc {
   font-size: 12.5px;
   line-height: 1.5;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -519,7 +519,7 @@
 }
 
 .uplink-choice-card {
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--bg-panel);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 14px;
@@ -560,14 +560,14 @@
 
 .uplink-choice-card .choice-tag.gray {
   background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
+  color: var(--text-muted);
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .uplink-choice-card .choice-title {
   font-size: 12.5px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-main);
   line-height: 1.35;
 }
 
@@ -590,7 +590,7 @@
 .uplink-modal-footer .btn-secondary {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
+  color: var(--text-main);
   border-radius: 6px;
   padding: 7px 14px;
   font-size: 12px;
@@ -626,7 +626,7 @@
 .inline-delete-popover {
   position: fixed;
   width: 230px;
-  background: rgba(15, 23, 42, 0.96);
+  background: var(--bg-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(239, 68, 68, 0.55);
@@ -654,7 +654,7 @@
 
 .inline-delete-msg {
   font-size: 11px;
-  color: #cbd5e1;
+  color: var(--text-main);
   line-height: 1.4;
   margin-bottom: 12px;
 }
@@ -673,7 +673,7 @@
 .inline-del-btn-cancel {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #cbd5e1;
+  color: var(--text-main);
   border-radius: 4px;
   padding: 4px 10px;
   font-size: 11px;
@@ -756,12 +756,12 @@
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-header-meta {
   color: #475569;
   background: #e2e8f0;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-telemetry-badge {
   background: #e2e8f0;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   color: #1e293b;
 }
 

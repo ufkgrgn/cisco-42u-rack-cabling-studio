@@ -43,7 +43,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,7 +86,7 @@
   letter-spacing: 0.3px;
   text-transform: uppercase;
   background: rgba(255, 255, 255, 0.12);
-  color: #f1f5f9;
+  color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   line-height: 1.2;
@@ -100,7 +100,7 @@
 .cable-role-tag.role-routed { background: #b91c1c; border-color: #f87171; color: #fff; }
 .cable-role-tag.role-fiber { background: #facc15; border-color: #fde047; color: #000; font-weight: 900; box-shadow: 0 0 6px rgba(250, 204, 21, 0.45); }
 .cable-role-tag.role-console { background: #00bceb; border-color: var(--accent); color: #000; font-weight: 900; }
-.cable-role-tag.role-standard { background: #334155; border-color: #475569; color: #cbd5e1; }
+.cable-role-tag.role-standard { background: #334155; border-color: #475569; color: var(--text-main); }
 
 .card-legend-right {
   display: inline-flex;
@@ -112,7 +112,7 @@
 .duct-select-trigger {
   background: rgba(30, 41, 59, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #cbd5e1;
+  color: var(--text-main);
   font-size: 9.5px;
   font-weight: 700;
   padding: 2px 7px;
@@ -136,7 +136,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: var(--text-main);
   background: rgba(15, 23, 42, 0.85);
   padding: 2px 6px;
   border-radius: 4px;
@@ -153,7 +153,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 3px 2px 1px 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -542,7 +542,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
+  color: var(--text-muted);
   transition: all 0.15s ease;
   white-space: nowrap;
   user-select: none;
@@ -585,13 +585,13 @@
 .role-select-trigger.standard {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .role-select-trigger.standard:hover {
   background: rgba(56, 189, 248, 0.15);
   border-color: var(--accent-blue);
-  color: #f1f5f9;
+  color: var(--text-main);
 }
 
 .role-tag {
@@ -612,7 +612,7 @@
 .role-select-trigger.poe .role-tag { background: #f59e0b; color: #000; }
 .role-select-trigger.mgmt .role-tag { background: #059669; color: #fff; }
 .role-select-trigger.routed .role-tag { background: #b91c1c; color: #fff; }
-.role-select-trigger.standard .role-tag { background: #334155; color: #cbd5e1; }
+.role-select-trigger.standard .role-tag { background: #334155; color: var(--text-main); }
 
 /* Light Theme Adaptations for Cable Schedule Cards */
 :is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card {
@@ -648,13 +648,13 @@
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .metraj-badge {
   background: #e2e8f0;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   color: #334155;
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .duct-select-trigger {
   background: #e2e8f0;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   color: #334155;
 }
 
@@ -663,6 +663,6 @@
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card:hover .card-legend-bar {
-  border-bottom-color: #e2e8f0;
+  border-bottom-color: var(--text-main);
 }
 

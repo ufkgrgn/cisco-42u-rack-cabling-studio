@@ -119,7 +119,7 @@
   height: 100%;
   max-width: 14px;
   background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 1.5px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   position: relative;
@@ -168,7 +168,7 @@
 
 .finger-cover-tag {
   font-size: 0.62rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-family: monospace;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -193,7 +193,7 @@
 
 .finger-toggle-btn {
   background: #1e293b;
-  color: #cbd5e1;
+  color: var(--text-main);
   border: 1px solid #475569;
   border-radius: 3px;
   padding: 2px 7px;
@@ -341,7 +341,7 @@
   right: 4px;
   display: none;
   gap: 4px;
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--bg-panel);
   padding: 2px 4px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
@@ -355,7 +355,7 @@
 .dev-btn {
   background: transparent;
   border: none;
-  color: #cbd5e1;
+  color: var(--text-main);
   cursor: pointer;
   font-size: 0.75rem;
   padding: 2px 4px;
@@ -396,7 +396,7 @@
   position: fixed;
   z-index: 99999;
   width: 320px;
-  background: rgba(15, 23, 42, 0.97);
+  background: var(--bg-panel);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(56, 189, 248, 0.4);
@@ -404,7 +404,7 @@
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.2);
   padding: 12px 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #f1f5f9;
+  color: var(--text-main);
   user-select: none;
   animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -433,13 +433,13 @@
 .autofill-pop-title {
   font-size: 12px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-main);
   letter-spacing: 0.3px;
 }
 
 .autofill-pop-subtitle {
   font-size: 10.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -449,7 +449,7 @@
 .autofill-pop-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 13px;
   padding: 2px 4px;
@@ -469,16 +469,16 @@
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
 .autofill-pop-select {
   width: 100%;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
   border-radius: 5px;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 11.5px;
   padding: 6px 8px;
   outline: none;
@@ -496,7 +496,7 @@
   gap: 7px;
   margin-bottom: 6px;
   font-size: 11px;
-  color: #cbd5e1;
+  color: var(--text-main);
   cursor: pointer;
 }
 
@@ -528,7 +528,7 @@
 .autofill-pop-btn-cancel {
   background: transparent;
   border: 1px solid #475569;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-size: 11px;
   font-weight: 500;
   padding: 5px 10px;
@@ -571,7 +571,7 @@
   bottom: 24px;
   right: 24px;
   z-index: 100000;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(56, 189, 248, 0.5);
@@ -582,7 +582,7 @@
   align-items: center;
   gap: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #f8fafc;
+  color: var(--text-main);
   animation: toastSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   transition: opacity 0.2s, transform 0.2s;
 }
@@ -605,7 +605,7 @@
 
 .autofill-toast-msg {
   font-size: 12px;
-  color: #e2e8f0;
+  color: var(--text-main);
 }
 
 .autofill-toast-undo {
@@ -629,7 +629,7 @@
 .autofill-toast-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 13px;
   padding: 2px 4px;
@@ -741,7 +741,7 @@
 :is([data-theme="light"], [data-theme="high-contrast"]) .finger-toggle-btn:hover {
   background: #cbd5e1;
   color: #0f172a;
-  border-color: #94a3b8;
+  border-color: var(--text-muted);
   box-shadow: 0 0 6px rgba(2, 132, 199, 0.3);
 }
 
@@ -789,7 +789,7 @@
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .autofill-pop-header {
-  border-bottom-color: #e2e8f0;
+  border-bottom-color: var(--text-main);
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .autofill-pop-title {

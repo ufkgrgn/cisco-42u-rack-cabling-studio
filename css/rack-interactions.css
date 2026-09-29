@@ -107,7 +107,7 @@
   font-weight: 700;
   cursor: pointer;
   padding: 4px 10px;
-  color: #94a3b8;
+  color: var(--text-muted);
   transition: all 0.15s;
   white-space: nowrap;
 }
@@ -133,7 +133,7 @@
 .preset-preview-popup {
   position: fixed;
   z-index: 20000;
-  background: #0f172a;
+  background: var(--bg-inset);
   border: 1px solid #1e3a5f;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(56,189,248,0.12);
@@ -459,7 +459,7 @@ body.multi-select-active #cables-pixi-canvas,
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-panel);
   border: 1px solid rgba(168, 85, 247, 0.5);
   backdrop-filter: blur(14px);
   padding: 8px 18px;
@@ -469,7 +469,7 @@ body.multi-select-active #cables-pixi-canvas,
   gap: 10px;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 24px rgba(168, 85, 247, 0.35);
   z-index: 99999;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 13px;
   font-weight: 500;
   transition: opacity 0.2s, transform 0.2s;
@@ -490,7 +490,7 @@ body.multi-select-active #cables-pixi-canvas,
 #studio-multiselect-pill .pill-btn {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #f8fafc;
+  color: var(--text-main);
   padding: 5px 11px;
   border-radius: 6px;
   cursor: pointer;
@@ -526,7 +526,7 @@ body.multi-select-active #cables-pixi-canvas,
 /* U-Rail Action Menu Popover */
 #rack-u-action-menu {
   position: fixed;
-  background: #0f172a;
+  background: var(--bg-inset);
   border: 1px solid #334155;
   border-radius: 8px;
   padding: 4px;
@@ -592,7 +592,7 @@ body.space-pan-active #viewport-canvas canvas {
   position: fixed;
   bottom: 24px;
   right: 28px;
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--bg-panel);
   border: 1px solid rgba(56, 189, 248, 0.55);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -603,7 +603,7 @@ body.space-pan-active #viewport-canvas canvas {
   gap: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.35);
   z-index: 99999;
-  color: #f8fafc;
+  color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -633,7 +633,7 @@ body.space-pan-active #viewport-canvas canvas {
 }
 
 #studio-pan-overlay-pill .pan-pill-sub {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 400;
   margin-left: 2px;
@@ -684,7 +684,7 @@ body.space-pan-active #viewport-canvas canvas {
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-ctrl-btn {
   background: #f1f5f9;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   color: #475569;
 }
 
@@ -707,7 +707,7 @@ body.space-pan-active #viewport-canvas canvas {
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-float-add-btn {
   background: #ffffff;
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   color: #334155;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
   opacity: 0.92;
@@ -716,14 +716,14 @@ body.space-pan-active #viewport-canvas canvas {
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-float-add-btn:hover {
   background: #f1f5f9;
   color: #0f172a;
-  border-color: #94a3b8;
+  border-color: var(--text-muted);
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
   opacity: 1;
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .rack-resize-handle {
   background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
-  border-color: #cbd5e1;
+  border-color: var(--text-main);
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1);
 }
 
