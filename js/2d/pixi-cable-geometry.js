@@ -276,8 +276,8 @@
       const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instA));
       const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackB?.devices?.find(d => d.instanceId === instB) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instB));
 
-      const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
-      const orgB = findDeviceOrganizer(rackB, devB, portIdB, devA);
+      const orgA = findDeviceOrganizer(rackA, devA);
+      const orgB = findDeviceOrganizer(rackB, devB);
 
       let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
       let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH);
@@ -373,8 +373,8 @@
       const rackA = (RS.getRackById ? RS.getRackById(hostRackId) : null) || (STATE.rackById?.get(hostRackId)) || STATE.racks?.find(r => r.id === hostRackId) || activeRack;
       const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || activeRack?.devices?.find(d => d.instanceId === instA));
       const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackA?.devices?.find(d => d.instanceId === instB) || activeRack?.devices?.find(d => d.instanceId === instB));
-      const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
-      const orgB = findDeviceOrganizer(rackA, devB, portIdB, devA);
+      const orgA = findDeviceOrganizer(rackA, devA);
+      const orgB = findDeviceOrganizer(rackA, devB);
 
       const bounds = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
       const rackCenterLine = (bounds.left + bounds.right) / 2;

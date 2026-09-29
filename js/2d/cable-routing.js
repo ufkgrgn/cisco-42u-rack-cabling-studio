@@ -225,7 +225,7 @@
     });
   }
 
-  function findDeviceOrganizer(activeRack, dev, portId, targetDev) {
+  function findDeviceOrganizer(activeRack, dev) {
     const orgs = getActiveOrganizers(activeRack);
     if (!orgs.length || !dev) return null;
     let devTop = Number(dev.topU);
@@ -245,23 +245,7 @@
     }
     const devBot = devTop - Number(dev.uHeight || 1) + 1;
 
-    // Directional preference towards target device
-    const targetTop = targetDev ? Number(targetDev.topU) : null;
-    if (targetTop !== null) {
-      if (targetTop > devTop) {
-        const directlyAbove = orgs.find(org => Number(org.topU) === devTop + 1);
-        if (directlyAbove) return directlyAbove;
-        const nearestAbove = orgs.filter(org => Number(org.topU) > devTop).sort((a, b) => Number(a.topU) - Number(b.topU))[0];
-        if (nearestAbove && Number(nearestAbove.topU) - devTop <= 3) return nearestAbove;
-      } else if (targetTop < devBot) {
-        const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
-        if (directlyBelow) return directlyBelow;
-        const nearestBelow = orgs.filter(org => Number(org.topU) < devBot).sort((a, b) => Number(b.topU) - Number(a.topU))[0];
-        if (nearestBelow && devBot - Number(nearestBelow.topU) <= 3) return nearestBelow;
-      }
-    }
-
-    // 1. Directly adjacent below
+    // 1. Directly adjacent below (always prefer organizer directly below)
     const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
     if (directlyBelow) return directlyBelow;
 
