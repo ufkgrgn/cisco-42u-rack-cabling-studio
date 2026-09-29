@@ -79,12 +79,6 @@
   min-width: 0;
 }
 
-.sidebar-right.collapsed .schedule-header {
-  padding: 8px;
-  padding-top: var(--chrome-offset, 62px);
-  justify-content: center;
-}
-
 .schedule-table-wrapper {
   flex: 1;
   overflow-y: auto;
