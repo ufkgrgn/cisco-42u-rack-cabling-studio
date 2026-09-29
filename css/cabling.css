@@ -191,7 +191,7 @@
   gap: 6px;
   background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(12px);
-  border: 1px solid #38bdf8;
+  border: 1px solid var(--accent);
   border-radius: 8px;
   padding: 5px 10px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.95), 0 0 16px rgba(2, 132, 199, 0.5);
@@ -269,12 +269,12 @@
 .cable-quick-hud .hud-btn-duct {
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.4);
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .cable-quick-hud .hud-btn-duct:hover {
   background: rgba(56, 189, 248, 0.25);
-  border-color: #38bdf8;
+  border-color: var(--accent);
   color: #ffffff;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
@@ -314,11 +314,11 @@
 
 .cable-context-menu .menu-item:hover {
   background: #1e293b;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .cable-context-menu .menu-item.active {
-  color: #38bdf8;
+  color: var(--accent);
   font-weight: 700;
   background: rgba(56, 189, 248, 0.15);
 }
@@ -618,7 +618,7 @@
 .bulk-color-hex-display {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10.5px;
-  color: #38bdf8;
+  color: var(--accent);
   background: rgba(15, 23, 42, 0.8);
   border: 1px solid rgba(56, 189, 248, 0.2);
   padding: 2px 5px;

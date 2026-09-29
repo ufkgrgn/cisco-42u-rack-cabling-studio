@@ -76,16 +76,16 @@
 
 .u-label .u-dot {
   font-size: 7px;
-  color: #38bdf8;
+  color: var(--accent);
   opacity: 0.65;
   transition: opacity 0.15s, transform 0.15s;
   pointer-events: none;
 }
 
 .u-label:hover {
-  color: #38bdf8 !important;
-  background: rgba(56, 189, 248, 0.2) !important;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4), inset 0 0 4px rgba(56, 189, 248, 0.2);
+  color: var(--accent) !important;
+  background: rgba(var(--accent-rgb,56,189,248),0.18) !important;
+  box-shadow: 0 0 8px rgba(var(--accent-rgb,56,189,248),0.35), inset 0 0 4px rgba(var(--accent-rgb,56,189,248),0.18);
   transform: scale(1.05);
 }
 
@@ -96,7 +96,7 @@
 
 .u-label:active {
   transform: scale(0.96);
-  background: rgba(56, 189, 248, 0.35) !important;
+  background: rgba(var(--accent-rgb,56,189,248),0.3) !important;
 }
 
 .rack-holes {
@@ -261,7 +261,7 @@
   min-width: 0;
   font-size: 0.62rem;
   font-weight: 900;
-  color: #38bdf8;
+  color: var(--accent);
   letter-spacing: 0.5px;
   line-height: 1.1;
   white-space: nowrap;

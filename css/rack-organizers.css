@@ -34,7 +34,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #38bdf8;
+  background: var(--accent);
   box-shadow: 0 0 5px rgba(56, 189, 248, 0.6);
 }
 
@@ -324,10 +324,8 @@
 }
 
 .dring-bracket:hover .dring-loop {
-  border-color: #38bdf8 !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 0 8px rgba(56, 189, 248, 0.4) !important;
+  border-color: var(--accent) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 8px rgba(var(--accent-rgb,56,189,248),0.4) !important;
 }
 
 .dring-mount-base,
@@ -370,9 +368,9 @@
 }
 
 .dev-btn.color-device-cables-btn:hover {
-  color: #38bdf8;
+  color: var(--accent);
   transform: scale(1.18);
-  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.6));
+  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb,56,189,248),0.6));
 }
 
 .dev-btn.clear-device-cables-btn:hover {
@@ -382,15 +380,15 @@
 }
 
 .dev-btn.autofill-device-btn {
-  color: #38bdf8;
+  color: var(--accent);
   font-size: 0.82rem;
   transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
 }
 
 .dev-btn.autofill-device-btn:hover {
-  color: #00e5ff;
+  color: var(--accent-strong);
   transform: scale(1.22);
-  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.75));
+  filter: drop-shadow(0 0 6px rgba(var(--accent-rgb,56,189,248),0.6));
 }
 
 /* Switch Auto-Fill Popover */
@@ -429,7 +427,7 @@
 
 .autofill-pop-icon {
   font-size: 16px;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .autofill-pop-title {
@@ -488,8 +486,8 @@
 }
 
 .autofill-pop-select:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 1px #38bdf8;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .autofill-pop-checkbox-row {
@@ -513,7 +511,7 @@
   border-radius: 5px;
   padding: 6px 8px;
   font-size: 11px;
-  color: #38bdf8;
+  color: var(--accent);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -591,7 +589,7 @@
 
 .autofill-toast-icon {
   font-size: 18px;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .autofill-toast-body {
@@ -601,7 +599,7 @@
 .autofill-toast-title {
   font-size: 11px;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--accent);
   letter-spacing: 0.4px;
 }
 
@@ -613,7 +611,7 @@
 .autofill-toast-undo {
   background: rgba(56, 189, 248, 0.15);
   border: 1px solid #0284c7;
-  color: #38bdf8;
+  color: var(--accent);
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;

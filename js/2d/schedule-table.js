@@ -491,8 +491,13 @@
     if (!toolbar) {
       toolbar = document.createElement('div');
       toolbar.id = 'schedule-toolbar';
-      const table = dom.scheduleTbody.closest('table');
-      if (table) table.before(toolbar);
+      const wrapper = document.querySelector('.schedule-table-wrapper');
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.insertBefore(toolbar, wrapper);
+      } else {
+        const table = dom.scheduleTbody.closest('table');
+        if (table) table.before(toolbar);
+      }
     }
 
     toolbar.innerHTML = `

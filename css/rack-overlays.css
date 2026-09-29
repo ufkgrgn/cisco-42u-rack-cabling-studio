@@ -35,11 +35,11 @@
   display: none;
   align-items: center;
   gap: 3px;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-panel);
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   z-index: 25;
   pointer-events: auto;
 }
@@ -49,10 +49,10 @@
   display: flex !important;
 }
 [data-device-renderer="pixi"] .dev-btn {
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 3px;
-  color: #cbd5e1;
+  color: var(--text-main);
   cursor: pointer;
   font-size: 0.75rem;
   padding: 2px 6px;
@@ -80,7 +80,7 @@
 [data-device-renderer="pixi"] .dev-btn.color-device-cables-btn:hover {
   background: rgba(56, 189, 248, 0.35);
   border-color: rgba(56, 189, 248, 0.7);
-  color: #38bdf8;
+  color: var(--accent);
 }
 [data-device-renderer="pixi"] .dev-btn.clear-device-cables-btn:hover {
   background: rgba(244, 63, 94, 0.35);
@@ -97,12 +97,12 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-panel);
   height: 26px;
   padding: 2px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), 0 0 8px rgba(56, 189, 248, 0.2);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   z-index: 30;
   pointer-events: auto;
   user-select: none;
@@ -110,10 +110,10 @@
   transform-origin: top right;
 }
 .device-controls-floating .dev-btn {
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 3px;
-  color: #cbd5e1;
+  color: var(--text-main);
   cursor: pointer;
   font-size: 0.75rem;
   height: 20px;
@@ -126,9 +126,10 @@
   transition: all 0.15s ease;
 }
 .device-controls-floating .dev-btn:hover {
-  background: rgba(51, 65, 85, 0.95);
-  color: #f8fafc;
-  transform: scale(1.1);
+  background: var(--bg-panel-light);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+  transform: scale(1.05);
 }
 .device-controls-floating .dev-btn.del-device-btn:hover {
   background: rgba(239, 68, 68, 0.35);
@@ -143,7 +144,7 @@
 .device-controls-floating .dev-btn.color-device-cables-btn:hover {
   background: rgba(56, 189, 248, 0.35);
   border-color: rgba(56, 189, 248, 0.7);
-  color: #38bdf8;
+  color: var(--accent);
 }
 .device-controls-floating .dev-btn.clear-device-cables-btn:hover {
   background: rgba(244, 63, 94, 0.35);
@@ -153,7 +154,7 @@
 .device-controls-floating .dev-btn.cfg-device-btn:hover {
   background: rgba(14, 165, 233, 0.35);
   border-color: rgba(14, 165, 233, 0.7);
-  color: #38bdf8;
+  color: var(--accent);
 }
 .device-controls-floating .dev-btn.finger-toggle-btn:hover {
   background: rgba(168, 85, 247, 0.35);
@@ -451,7 +452,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
   font-size: 12.5px;
   font-weight: 800;
-  color: #38bdf8;
+  color: var(--accent);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -553,7 +554,7 @@
 
 .uplink-choice-card .choice-tag.cyan {
   background: rgba(0, 210, 255, 0.2);
-  color: #38bdf8;
+  color: var(--accent);
   border: 1px solid rgba(0, 210, 255, 0.45);
 }
 

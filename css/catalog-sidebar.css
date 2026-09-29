@@ -27,8 +27,8 @@
 }
 
 .catalog-search-bar input[type="search"]:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb,56,189,248),0.18);
   outline: none;
 }
 
@@ -72,7 +72,7 @@
   cursor: pointer;
   font-size: 0.74rem;
   font-weight: 600;
-  color: #38bdf8;
+  color: var(--accent);
   padding: 6px 10px;
   background: rgba(56, 189, 248, 0.08);
   border: 1px dashed rgba(56, 189, 248, 0.35);
@@ -85,7 +85,7 @@
 
 .catalog-custom summary:hover {
   background: rgba(56, 189, 248, 0.16);
-  border-color: #38bdf8;
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -113,7 +113,7 @@
 .catalog-custom-title {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .catalog-custom-close {
@@ -226,21 +226,21 @@
 }
 
 .sidebar-left .device-card:hover {
-  border-color: #38bdf8;
+  border-color: var(--accent);
   background: rgba(22, 33, 52, 0.9);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transform: translateY(-1px);
 }
 
 .sidebar-left .device-card.active {
-  border-color: #00e5ff;
+  border-color: var(--accent-strong);
   background: rgba(14, 165, 233, 0.15);
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
 }
 
 .sidebar-left .device-card.dragging {
   opacity: 0.5;
-  border: 1px dashed #38bdf8;
+  border: 1px dashed var(--accent);
 }
 
 /* Header inside card */
@@ -262,7 +262,7 @@
 .hw-sku-tag {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.3px;
   line-height: 1.25;
@@ -291,7 +291,7 @@
   font-weight: 700;
   background: rgba(36, 48, 72, 0.7);
   border: 1px solid rgba(56, 189, 248, 0.25);
-  color: #38bdf8;
+  color: var(--accent);
   padding: 1px 5px;
   border-radius: 3px;
   flex-shrink: 0;

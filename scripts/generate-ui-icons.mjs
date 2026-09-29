@@ -42,7 +42,11 @@ const bindings = {
   'btn-hud-close': 'X', 'btn-close-tools': 'X', 'btn-zoom-fit': 'Scan',
   'btn-zoom-in': 'ZoomIn', 'btn-zoom-out': 'ZoomOut',
   'dpad-up': 'ArrowUp', 'dpad-down': 'ArrowDown', 'dpad-left': 'ArrowLeft', 'dpad-right': 'ArrowRight', 'dpad-reset': 'RotateCcw',
-  'btn-nav-zoom-in': 'ZoomIn', 'btn-nav-zoom-out': 'ZoomOut'
+  'btn-nav-zoom-in': 'ZoomIn', 'btn-nav-zoom-out': 'ZoomOut',
+  'btn-close-schedule': 'X', 'btn-close-cable-edit': 'X', 'btn-close-wizard': 'X',
+  'btn-close-device-edit': 'X', 'btn-close-port-edit': 'X', 'btn-close-add-rack': 'X',
+  'btn-close-cisco-catalog': 'X', 'cisco-search-clear': 'X', 'btn-dismiss-viewport-hint': 'X',
+  'btn-mobile-schedule-close': 'X', 'btn-close-snapshot-modal': 'X'
 };
 
 const extraShapes = {

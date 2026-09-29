@@ -33,7 +33,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--chrome-offset, 56px) 0 12px 0;
+  padding: var(--chrome-offset, 48px) 0 12px 0;
   gap: 4px;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -43,7 +43,8 @@
 
 .rail-btn {
   width: 38px;
-  height: 38px;
+  min-height: 42px;
+  height: auto;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
@@ -52,11 +53,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 1px;
   transition: all 0.15s ease;
   position: relative;
+  box-sizing: border-box;
 }
 
 .rail-btn:hover {
@@ -84,16 +86,20 @@
 }
 
 .rail-btn .rail-icon {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .rail-btn .rail-label {
-  font-size: 7px;
+  font-size: 7.5px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   line-height: 1;
+  margin-top: 1px;
 }
 
 .rail-btn .star-icon {
@@ -143,7 +149,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  padding-top: var(--chrome-offset, 56px);
+  padding-top: var(--chrome-offset, 48px);
   background: var(--glass-bg);
   border-bottom: 1px solid var(--border-subtle);
   min-height: 40px;
@@ -382,8 +388,8 @@ details.collapsible-section:not([open]) summary.section-title::after {
 }
 
 .device-card.active {
-  border-color: #00e5ff;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb,56,189,248),0.22);
   background: rgba(14, 165, 233, 0.15);
 }
 
@@ -519,7 +525,7 @@ details.collapsible-section:not([open]) summary.section-title::after {
 }
 .mini-led-green { background: #22c55e; box-shadow: 0 0 3px #22c55e; }
 .mini-led-amber { background: #f59e0b; box-shadow: 0 0 3px #f59e0b; }
-.mini-led-cyan  { background: #00e5ff; box-shadow: 0 0 3px #00e5ff; }
+.mini-led-cyan  { background: var(--accent-strong); box-shadow: 0 0 3px var(--accent-strong); }
 
 .mini-ports-row {
   display: flex;

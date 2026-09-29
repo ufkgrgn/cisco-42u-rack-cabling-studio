@@ -17,12 +17,12 @@
   transition: background 0.15s;
 }
 .rack-header-name-editable:hover {
-  background: rgba(56, 189, 248, 0.12);
-  outline: 1px dashed #38bdf8;
+  background: rgba(var(--accent-rgb,56,189,248),0.1);
+  outline: 1px dashed var(--accent);
 }
 .rack-header-name-editable[contenteditable="true"] {
-  background: rgba(56, 189, 248, 0.18);
-  outline: 1px solid #38bdf8;
+  background: rgba(var(--accent-rgb,56,189,248),0.15);
+  outline: 1px solid var(--accent);
   cursor: text;
   color: #f0f9ff;
   min-width: 80px;
@@ -73,7 +73,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   font-weight: 800;
-  color: #38bdf8;
+  color: var(--accent);
   letter-spacing: 0.5px;
   cursor: pointer;
   border-radius: 4px;
@@ -81,12 +81,12 @@
   transition: background 0.15s;
 }
 .rack-inline-name:hover {
-  background: rgba(56, 189, 248, 0.1);
-  outline: 1px dashed #38bdf8;
+  background: rgba(var(--accent-rgb,56,189,248),0.08);
+  outline: 1px dashed var(--accent);
 }
 .rack-inline-name[contenteditable="true"] {
-  background: rgba(56, 189, 248, 0.18);
-  outline: 1px solid #38bdf8;
+  background: rgba(var(--accent-rgb,56,189,248),0.15);
+  outline: 1px solid var(--accent);
   cursor: text;
   color: #f0f9ff;
   min-width: 120px;
@@ -112,9 +112,9 @@
   white-space: nowrap;
 }
 .rack-ctrl-btn:hover {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: #38bdf8;
-  color: #38bdf8;
+  background: rgba(var(--accent-rgb,56,189,248),0.08);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .rack-delete-btn {
   color: #f87171;
@@ -313,9 +313,9 @@
 
 /* Flash highlight ring for focused device */
 .device-focused {
-  outline: 2px solid #00e5ff !important;
+  outline: 2px solid var(--accent) !important;
   outline-offset: 2px;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.8) !important;
+  box-shadow: 0 0 16px rgba(var(--accent-rgb,56,189,248),0.6) !important;
   transition: box-shadow 0.3s ease, outline 0.3s ease;
 }
 
@@ -397,8 +397,8 @@
 .mounted-device.studio-lifted {
   transform: scale(1.015);
   z-index: 25 !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.6) !important;
-  outline: 2px solid #38bdf8 !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(var(--accent-rgb,56,189,248),0.5) !important;
+  outline: 2px solid var(--accent) !important;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
 }
 
@@ -552,7 +552,7 @@ body.multi-select-active #cables-pixi-canvas,
 }
 #rack-u-action-menu button:hover {
   background: #1e293b;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 /* ============================================================================
@@ -629,7 +629,7 @@ body.space-pan-active #viewport-canvas canvas {
 }
 
 #studio-pan-overlay-pill .pan-pill-text {
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 #studio-pan-overlay-pill .pan-pill-sub {

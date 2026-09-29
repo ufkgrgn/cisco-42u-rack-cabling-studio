@@ -258,9 +258,13 @@
     const btn = document.getElementById('btn-2d-face-toggle');
     if (btn) {
       btn.classList.toggle('active', nextFace === 'rear');
-      const textSpan = btn.querySelector('.btn-text');
-      if (textSpan) textSpan.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
-      else btn.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
+      let textSpan = btn.querySelector('.btn-text');
+      if (!textSpan) {
+        textSpan = document.createElement('span');
+        textSpan.className = 'btn-text';
+        btn.appendChild(textSpan);
+      }
+      textSpan.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
       btn.title = nextFace === 'rear' ? 'Kabin Arka Yüzü (Güç girişleri ve arka panel)' : 'Kabin Ön Yüzü (Portlar ve göstergeler)';
     }
 
