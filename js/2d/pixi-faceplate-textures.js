@@ -280,12 +280,9 @@
     }
 
     if (isTeal) {
-      // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil)
+      // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil - Clean Flat)
       paintMetal(ctx, w, h, '#1e2533', '#14b8a6');
-      const grad = ctx.createLinearGradient(0, 0, 78, 0);
-      grad.addColorStop(0, '#1a4b56');
-      grad.addColorStop(1, '#236173');
-      ctx.fillStyle = grad;
+      ctx.fillStyle = '#1e525e';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#0f2930';
       ctx.fillRect(78, 0, 1.5, h);

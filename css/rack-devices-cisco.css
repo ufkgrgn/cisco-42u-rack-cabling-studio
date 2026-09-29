@@ -4,7 +4,7 @@
 
 /* Cisco Managed Switch Chassis */
 .faceplate-switch {
-  background: linear-gradient(180deg, #1b2f4a 0%, #15253b 50%, #0e1a2b 100%);
+  background: #132235;
   border-left: 3.5px solid #00d2ff;
   border-top: 1px solid #335985;
   border-bottom: 1.5px solid #08101a;
@@ -32,7 +32,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 2px 4px;
-  background: linear-gradient(135deg, #252b37 0%, #2f3645 100%);
+  background: #28303e;
   border: 1px solid #475569;
   border-left: 2.5px solid #0284c7;
   border-radius: 2px;
@@ -142,7 +142,7 @@
 .cisco-integrated-bezel.bezel-cat1k,
 .cisco-integrated-bezel.bezel-compact,
 .cisco-integrated-bezel.bezel-cbs {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #f1f5f9;
   border-color: #cbd5e1;
   border-left: 2.5px solid #0284c7;
   color: #0f172a;
@@ -161,39 +161,39 @@
 }
 
 .cisco-integrated-bezel.bezel-cat9k {
-  background: linear-gradient(135deg, #2b3240 0%, #343c4c 100%);
+  background: #2e3645;
   border-color: #4a5568;
   border-left: 2.5px solid #0284c7;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cisco-integrated-bezel.bezel-cat3k {
-  background: linear-gradient(135deg, #183b42 0%, #204b54 100%);
+  background: #1b434b;
   border-color: #0d9488;
   border-left: 2.5px solid #14b8a6;
 }
 
 .cisco-integrated-bezel.bezel-cat2960x {
-  background: linear-gradient(135deg, #242c38 0%, #2c3543 100%);
+  background: #27303d;
   border-color: #3f4c5e;
   border-left: 2.5px solid #10b981;
 }
 
 .cisco-integrated-bezel.bezel-cat2960 {
-  background: linear-gradient(135deg, #232934 0%, #2b3341 100%);
+  background: #262d3a;
   border-color: #3b4555;
   border-left: 2.5px solid #0284c7;
 }
 
 .cisco-integrated-bezel.bezel-nexus {
-  background: linear-gradient(135deg, #141720 0%, #1a1e28 100%);
+  background: #161a24;
   border-color: #2b3345;
   border-left: 2.5px solid #a855f7;
   box-shadow: inset 0 1px 0 rgba(168, 85, 247, 0.2);
 }
 
 .cisco-integrated-bezel.bezel-isr {
-  background: linear-gradient(135deg, #282e3b 0%, #323948 100%);
+  background: #2c3341;
   border-color: #475569;
   border-left: 2.5px solid #f97316;
 }
@@ -347,7 +347,7 @@
    Light Theme Cisco Switch Styling (DOM fallback / measurement)
    ========================================================================== */
 :is([data-theme="light"], [data-theme="high-contrast"]) .faceplate-switch {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+  background: #f8fafc;
   border-left: 3.5px solid #0284c7;
   border-top: 1px solid #ffffff;
   border-bottom: 1.5px solid #cbd5e1;
@@ -359,7 +359,7 @@
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .cisco-integrated-bezel {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #f1f5f9;
   border: 1px solid #cbd5e1;
   border-left: 2.5px solid #0284c7;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);

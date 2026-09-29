@@ -1,6 +1,6 @@
 /* --- REALISTIC BRUSH PASS-THROUGH ORGANIZER (1U) --- */
 .brush-faceplate {
-  background: linear-gradient(180deg, #131720 0%, #0c0f16 50%, #07090e 100%) !important;
+  background: #0e1117 !important;
   border-top: 1px solid #232d3f !important;
   border-bottom: 2px solid #020305 !important;
   border-left: 4px solid #475569 !important;
@@ -118,7 +118,7 @@
   flex: 1;
   height: 100%;
   max-width: 14px;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background: linear-gradient(180deg, var(--rack-post) 0%, var(--bg-inset) 100%);
   border: 1px solid var(--border);
   border-radius: 1.5px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -141,7 +141,7 @@
 .finger-duct-cover {
   flex: 1;
   min-height: 32px;
-  background: linear-gradient(180deg, #1e2533 0%, #111622 40%, #0d121c 60%, #0a0d14 100%);
+  background: #11151e;
   border: 1.5px solid #2d3748;
   border-radius: 4px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.8);
@@ -155,7 +155,7 @@
 }
 
 .finger-duct-cover.open {
-  background: linear-gradient(180deg, #070a10 0%, #030508 100%);
+  background: #06090e;
   border-color: #3b82f6;
   box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.95), 0 0 8px rgba(59, 130, 246, 0.3);
 }
@@ -348,7 +348,7 @@
   z-index: 6;
 }
 
-.mounted-device:hover .device-controls {
+.mounted-device.studio-selected .device-controls {
   display: flex;
 }
 
@@ -654,7 +654,7 @@
    Light Theme Rack Organizers Styling
    ========================================================================== */
 :is([data-theme="light"], [data-theme="high-contrast"]) .brush-faceplate {
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
+  background: #f1f5f9 !important;
   border-top: 1px solid #ffffff !important;
   border-bottom: 2px solid #cbd5e1 !important;
   border-left: 4px solid #64748b !important;
