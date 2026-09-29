@@ -155,26 +155,31 @@
     return bounds;
   }
 
-  function getPortExitDir(dev, portId) {
+  function getPortBypassOffsetX(dev, portId, portY, trayY, dirX) {
     if (!dev) return 0;
     const cat = HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]);
-    const isSingleRowPatch = cat?.category === 'patch' && (dev.uHeight || 1) === 1;
-    if (isSingleRowPatch) return 0;
+    const isSingleRow = cat?.category === 'patch' && (dev.uHeight || 1) === 1;
+    if (isSingleRow) return 0;
+
     const pStr = String(portId || '').toLowerCase();
     const numMatch = pStr.match(/\d+/);
     if (!numMatch) return 0;
     const portNum = parseInt(numMatch[0], 10);
-    return (portNum % 2 !== 0) ? -1 : 1; // -1 for odd (Top row -> UP), 1 for even (Bottom row -> DOWN)
+    const isOdd = portNum % 2 !== 0;
+
+    const goingUp = trayY < portY;
+    // When going UP, bottom row (even numbers) must skirt around top row
+    // When going DOWN, top row (odd numbers) must skirt around bottom row
+    const needsBypass = goingUp ? !isOdd : isOdd;
+    if (!needsBypass) return 0;
+
+    return dirX * 3.5;
   }
 
-  function getCachedOrgY(org, fallbackY, otherY, canvasRect, stageW, stageH, exitDir = 0) {
+  function getCachedOrgY(org, fallbackY, otherY, canvasRect, stageW, stageH) {
     const telemetry = PixiContext.performanceTelemetry;
     const renderStats = PixiContext.renderStats;
-    if (!org || !org.instanceId) {
-      if (exitDir === -1) return fallbackY - 10;
-      if (exitDir === 1) return fallbackY + 10;
-      return fallbackY + (otherY >= fallbackY ? 14 : -14);
-    }
+    if (!org || !org.instanceId) return fallbackY + (otherY >= fallbackY ? 14 : -14);
     if (organizerWorldYCache.has(org.instanceId)) {
       if (telemetry) telemetry.organizerCacheHits++;
       return organizerWorldYCache.get(org.instanceId);
@@ -188,8 +193,6 @@
       organizerWorldYCache.set(org.instanceId, y);
       return y;
     }
-    if (exitDir === -1) return fallbackY - 10;
-    if (exitDir === 1) return fallbackY + 10;
     return fallbackY + (otherY >= fallbackY ? 14 : -14);
   }
 
@@ -275,11 +278,9 @@
 
       const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
       const orgB = findDeviceOrganizer(rackB, devB, portIdB, devA);
-      const exitDirA = getPortExitDir(devA, portIdA);
-      const exitDirB = getPortExitDir(devB, portIdB);
 
-      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH, exitDirA);
-      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH, exitDirB);
+      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
+      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH);
 
       const boundsA = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
       const boundsB = getRackRailBounds(rackB?.id, canvasRect, stageW, stageH);
@@ -308,10 +309,17 @@
 
       const dirY1 = actualTrayYA >= y1 ? 1 : -1;
       const dirX1 = channelXA >= x1 ? 1 : -1;
-      const r1 = Math.min(8, Math.abs(channelXA - x1) / 2, Math.abs(actualTrayYA - y1) / 2 || 4);
+      const bypassX1 = getPortBypassOffsetX(devA, portIdA, y1, actualTrayYA, dirX1);
+      const exitX1 = x1 + bypassX1;
 
+      const dirX2 = x2 >= channelXB ? 1 : -1;
+      const dirY2 = y2 >= actualTrayYB ? 1 : -1;
+      const bypassX2 = getPortBypassOffsetX(devB, portIdB, y2, actualTrayYB, -dirX2);
+      const exitX2 = x2 + bypassX2;
+
+      const r1 = Math.min(8, Math.abs(channelXA - exitX1) / 2, Math.abs(actualTrayYA - y1) / 2 || 4);
       const distRailYA = Math.abs(actualTrayYA - overheadTrayY);
-      const rRailA = Math.min(10, Math.abs(channelXA - x1) / 2, distRailYA / 2 || 6);
+      const rRailA = Math.min(10, Math.abs(channelXA - exitX1) / 2, distRailYA / 2 || 6);
 
       const dirX_top = channelXB >= channelXA ? 1 : -1;
       const distTopX = Math.abs(channelXB - channelXA);
@@ -320,15 +328,19 @@
       const distRailYB = Math.abs(actualTrayYB - overheadTrayY);
       const rTopB = Math.min(10, distTopX / 2 || 6, distRailYB / 2 || 6);
 
-      const dirX2 = x2 >= channelXB ? 1 : -1;
-      const rRailB = Math.min(10, Math.abs(x2 - channelXB) / 2, distRailYB / 2 || 6);
+      const rRailB = Math.min(10, Math.abs(exitX2 - channelXB) / 2, distRailYB / 2 || 6);
+      const r2 = Math.min(8, Math.abs(exitX2 - channelXB) / 2, Math.abs(y2 - actualTrayYB) / 2 || 4);
 
-      const dirY2 = y2 >= actualTrayYB ? 1 : -1;
-      const r2 = Math.min(8, Math.abs(x2 - channelXB) / 2, Math.abs(y2 - actualTrayYB) / 2 || 4);
+      const startSeg = bypassX1 === 0
+        ? `M ${x1} ${y1} L ${x1} ${actualTrayYA - dirY1 * r1} `
+        : `M ${x1} ${y1} Q ${x1} ${y1 + dirY1 * 3} ${exitX1} ${y1 + dirY1 * 4.5} L ${exitX1} ${actualTrayYA - dirY1 * r1} `;
 
-      pathD = `M ${x1} ${y1} ` +
-              `L ${x1} ${actualTrayYA - dirY1 * r1} ` +
-              `Q ${x1} ${actualTrayYA} ${x1 + dirX1 * r1} ${actualTrayYA} ` +
+      const endSeg = bypassX2 === 0
+        ? `L ${x2} ${y2}`
+        : `L ${exitX2} ${y2 - dirY2 * 4.5} Q ${x2} ${y2 - dirY2 * 3} ${x2} ${y2}`;
+
+      pathD = startSeg +
+              `Q ${exitX1} ${actualTrayYA} ${exitX1 + dirX1 * r1} ${actualTrayYA} ` +
               `L ${channelXA - dirX1 * rRailA} ${actualTrayYA} ` +
               `Q ${channelXA} ${actualTrayYA} ${channelXA} ${actualTrayYA - rRailA} ` +
               `L ${channelXA} ${overheadTrayY + rTopA} ` +
@@ -337,9 +349,9 @@
               `Q ${channelXB} ${overheadTrayY} ${channelXB} ${overheadTrayY + rTopB} ` +
               `L ${channelXB} ${actualTrayYB - rRailB} ` +
               `Q ${channelXB} ${actualTrayYB} ${channelXB + dirX2 * rRailB} ${actualTrayYB} ` +
-              `L ${x2 - dirX2 * r2} ${actualTrayYB} ` +
-              `Q ${x2} ${actualTrayYB} ${x2} ${actualTrayYB + dirY2 * r2} ` +
-              `L ${x2} ${y2}`;
+              `L ${exitX2 - dirX2 * r2} ${actualTrayYB} ` +
+              `Q ${exitX2} ${actualTrayYB} ${exitX2} ${actualTrayYB + dirY2 * r2} ` +
+              endSeg;
       if (cable.lengthMeters == null) {
         cable.lengthMeters = computeCableLength('interrack-structured', {
           x1, y1, x2, y2, channelXA, channelXB,
@@ -363,8 +375,6 @@
       const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackA?.devices?.find(d => d.instanceId === instB) || activeRack?.devices?.find(d => d.instanceId === instB));
       const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
       const orgB = findDeviceOrganizer(rackA, devB, portIdB, devA);
-      const exitDirA = getPortExitDir(devA, portIdA);
-      const exitDirB = getPortExitDir(devB, portIdB);
 
       const bounds = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
       const rackCenterLine = (bounds.left + bounds.right) / 2;
@@ -375,8 +385,8 @@
       const bundleIdx = isRight ? usageA.right++ : usageA.left++;
       const channelX = (isRight ? bounds.right : bounds.left) + svgRailOffset(bundleIdx, true);
 
-      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH, exitDirA);
-      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH, exitDirB);
+      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
+      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH);
 
       trayYA += svgTrayOffset(bundleIdx, true);
       trayYB += svgTrayOffset(bundleIdx, true);
@@ -386,33 +396,44 @@
       const dirX1 = isRight ? 1 : -1;
       const dirX2 = isRight ? -1 : 1;
 
-      const r1 = Math.min(8, Math.abs(channelX - x1) / 2, Math.abs(trayYA - y1) / 2 || 4);
-      const r2 = Math.min(8, Math.abs(channelX - x2) / 2, Math.abs(y2 - trayYB) / 2 || 4);
+      const bypassX1 = getPortBypassOffsetX(devA, portIdA, y1, trayYA, dirX1);
+      const exitX1 = x1 + bypassX1;
+      const bypassX2 = getPortBypassOffsetX(devB, portIdB, y2, trayYB, -dirX2);
+      const exitX2 = x2 + bypassX2;
+
+      const r1 = Math.min(8, Math.abs(channelX - exitX1) / 2, Math.abs(trayYA - y1) / 2 || 4);
+      const r2 = Math.min(8, Math.abs(channelX - exitX2) / 2, Math.abs(y2 - trayYB) / 2 || 4);
 
       const distRailY = Math.abs(trayYB - trayYA);
-      const rRail1 = Math.min(10, Math.abs(channelX - x1) / 2, distRailY / 2 || 6);
-      const rRail2 = Math.min(10, Math.abs(channelX - x2) / 2, distRailY / 2 || 6);
+      const rRail1 = Math.min(10, Math.abs(channelX - exitX1) / 2, distRailY / 2 || 6);
+      const rRail2 = Math.min(10, Math.abs(channelX - exitX2) / 2, distRailY / 2 || 6);
       const dirY_rail = trayYB >= trayYA ? 1 : -1;
 
+      const startSeg = bypassX1 === 0
+        ? `M ${x1} ${y1} L ${x1} ${trayYA - dirY1 * r1} `
+        : `M ${x1} ${y1} Q ${x1} ${y1 + dirY1 * 3} ${exitX1} ${y1 + dirY1 * 4.5} L ${exitX1} ${trayYA - dirY1 * r1} `;
+
+      const endSeg = bypassX2 === 0
+        ? `L ${x2} ${y2}`
+        : `L ${exitX2} ${y2 - dirY2 * 4.5} Q ${x2} ${y2 - dirY2 * 3} ${x2} ${y2}`;
+
       if (distRailY < 2) {
-        pathD = `M ${x1} ${y1} ` +
-                `L ${x1} ${trayYA - dirY1 * r1} ` +
-                `Q ${x1} ${trayYA} ${x1 + dirX1 * r1} ${trayYA} ` +
+        pathD = startSeg +
+                `Q ${exitX1} ${trayYA} ${exitX1 + dirX1 * r1} ${trayYA} ` +
                 `L ${channelX} ${trayYA} ` +
-                `L ${x2 - dirX2 * r2} ${trayYB} ` +
-                `Q ${x2} ${trayYB} ${x2} ${trayYB + dirY2 * r2} ` +
-                `L ${x2} ${y2}`;
+                `L ${exitX2 - dirX2 * r2} ${trayYB} ` +
+                `Q ${exitX2} ${trayYB} ${exitX2} ${trayYB + dirY2 * r2} ` +
+                endSeg;
       } else {
-        pathD = `M ${x1} ${y1} ` +
-                `L ${x1} ${trayYA - dirY1 * r1} ` +
-                `Q ${x1} ${trayYA} ${x1 + dirX1 * r1} ${trayYA} ` +
+        pathD = startSeg +
+                `Q ${exitX1} ${trayYA} ${exitX1 + dirX1 * r1} ${trayYA} ` +
                 `L ${channelX - dirX1 * rRail1} ${trayYA} ` +
                 `Q ${channelX} ${trayYA} ${channelX} ${trayYA + dirY_rail * rRail1} ` +
                 `L ${channelX} ${trayYB - dirY_rail * rRail2} ` +
                 `Q ${channelX} ${trayYB} ${channelX + dirX2 * rRail2} ${trayYB} ` +
-                `L ${x2 - dirX2 * r2} ${trayYB} ` +
-                `Q ${x2} ${trayYB} ${x2} ${trayYB + dirY2 * r2} ` +
-                `L ${x2} ${y2}`;
+                `L ${exitX2 - dirX2 * r2} ${trayYB} ` +
+                `Q ${exitX2} ${trayYB} ${exitX2} ${trayYB + dirY2 * r2} ` +
+                endSeg;
         if (cable.lengthMeters == null) {
           cable.lengthMeters = computeCableLength('structured', {
             x1, y1, x2, y2, channelX,
