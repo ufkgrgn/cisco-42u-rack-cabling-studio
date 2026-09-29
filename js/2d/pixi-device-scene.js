@@ -229,7 +229,7 @@
       sprite.tint = roleColor;
       return;
     }
-    sprite.tint = isOccupied ? 0x22c55e : 0xffffff;
+    sprite.tint = 0xffffff;
   }
 
   function updateDevicePortTints(targetInstanceId) {
@@ -284,6 +284,7 @@
     if (selected || hovered) {
       const color = multi ? 0xa855f7 : (isLight ? 0x0284c7 : 0x38bdf8);
       const alpha = hovered ? 0.75 : 1;
+      if (selected) graphics.rect(1, 1, w - 2, h - 2).stroke({ width: 2, color, alpha: 0.9 });
       const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
       const t = Math.max(1.5, Math.min(2.4, h * 0.08));
       const bars = [
@@ -336,8 +337,9 @@
   }
 
   function syncPixiDeviceSelection(options) {
-    const selectedId = STATE.selectedDeviceId || document.querySelector('.mounted-device.studio-selected')?.id;
+    const selectedId = document.querySelector('.mounted-device.studio-selected')?.id;
     if (selectedId) RS.showDeviceFloatingControls?.(selectedId);
+    else RS.hideDeviceFloatingControls?.(true);
     deviceContainers.forEach(entry => paintDeviceChrome(entry));
     if (!options || options.render !== false) PixiContext.renderPixi?.('device-selection');
   }
@@ -356,9 +358,6 @@
       const nextEl = document.getElementById(next);
       if (nextEl) nextEl.classList.add('pixi-hovered');
       if (deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
-      RS.showDeviceFloatingControls?.(next);
-    } else {
-      RS.hideDeviceFloatingControls?.();
     }
     PixiContext.renderPixi?.('device-hover');
     return true;
@@ -587,7 +586,7 @@
     devicePortVariantCounts.clear();
     devicePortHitGrid.clear();
     // Port silhouettes must not jump between LOD tiers during zoom.
-    const density = 0.82;
+    const density = 1;
     ports.forEach(port => {
       const key = `${port.instanceId}::${port.portId}`;
       const devEntry = deviceContainers.get(String(port.instanceId));

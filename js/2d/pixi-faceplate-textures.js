@@ -660,78 +660,69 @@
 
   function drawPort(ctx, style, x) {
     const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
-    const occupied = !!style.occupied;
     const isKeystone = !!style.keystone;
 
     if (isLight) {
-      let fill = '#ffffff';
-      let stroke = '#94a3b8';
-      let detail = '#64748b';
+      let fill = isKeystone ? '#fff7ed' : '#ffffff';
+      let stroke = isKeystone ? '#ea580c' : '#94a3b8';
+      let detail = isKeystone ? '#c2410c' : '#64748b';
 
-      if (style.shape === 'copper') {
-        fill = occupied ? (isKeystone ? '#ffedd5' : '#e0f2fe') : (isKeystone ? '#fff7ed' : '#f8fafc');
-        stroke = occupied ? (isKeystone ? '#ea580c' : '#0284c7') : (isKeystone ? '#f97316' : '#94a3b8');
-        detail = occupied ? (isKeystone ? '#c2410c' : '#0369a1') : '#d97706';
-      } else if (style.shape === 'optic') {
-        fill = occupied ? '#e0f2fe' : '#f8fafc';
-        stroke = occupied ? '#0284c7' : '#64748b';
+      if (style.shape === 'optic') {
+        fill = '#f8fafc';
+        stroke = '#0284c7';
         detail = '#0284c7';
       } else if (style.shape === 'lc' || style.shape === 'sc') {
-        fill = occupied ? '#ede9fe' : '#f5f3ff';
-        stroke = occupied ? '#7c3aed' : (style.shape === 'lc' ? '#8b5cf6' : '#a855f7');
-        detail = occupied ? '#6d28d9' : (style.shape === 'lc' ? '#a78bfa' : '#c084fc');
+        fill = '#f5f3ff';
+        stroke = style.shape === 'lc' ? '#8b5cf6' : '#a855f7';
+        detail = style.shape === 'lc' ? '#a78bfa' : '#c084fc';
       } else if (style.shape === 'power') {
-        fill = occupied ? '#dcfce7' : '#f0fdf4';
-        stroke = occupied ? '#16a34a' : '#22c55e';
+        fill = '#f0fdf4';
+        stroke = '#16a34a';
         detail = '#15803d';
       }
 
       ctx.fillStyle = fill;
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = isKeystone ? 1.4 : 1;
-      roundRect(ctx, x + 1, 2, PORT_CELL - 2, PORT_CELL - 4, 3);
+      ctx.lineWidth = 1;
+      roundRect(ctx, x + 1.5, 2.5, PORT_CELL - 3, PORT_CELL - 5, 1.5);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = detail;
       if (style.shape === 'copper') {
-        ctx.fillStyle = occupied ? (isKeystone ? '#fed7aa' : '#bae6fd') : '#e2e8f0';
-        roundRect(ctx, x + 3.5, 5, 11, 8.5, 1.5);
-        ctx.fill();
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = occupied ? stroke : '#d97706';
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(x + 3.5, 5.5, 13, 9);
+        ctx.fillStyle = '#d97706';
         [4.5, 7, 9.5, 12].forEach(pin => ctx.fillRect(x + pin, 6, 1.5, 3));
-        ctx.fillStyle = occupied ? stroke : '#64748b';
-        ctx.fillRect(x + 6, 11.5, 6, 1.5);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(x + 6, 11.5, 8, 2);
         if (isKeystone) {
           ctx.fillStyle = stroke;
-          ctx.fillRect(x + 3, 3, PORT_CELL - 6, 1.2);
+          ctx.fillRect(x + 2.5, 2.5, PORT_CELL - 5, 1.2);
         }
       } else if (style.shape === 'optic') {
-        ctx.fillStyle = occupied ? '#bae6fd' : '#e2e8f0';
-        roundRect(ctx, x + 4, 5, 12, 10, 2);
+        ctx.fillStyle = '#e2e8f0';
+        roundRect(ctx, x + 4, 5, 12, 10, 1.5);
         ctx.fill();
         ctx.strokeStyle = stroke;
         ctx.lineWidth = 0.8;
         ctx.stroke();
         ctx.fillStyle = stroke;
         ctx.fillRect(x + 6, 7, 8, 2);
-        ctx.fillStyle = occupied ? '#0284c7' : '#38bdf8';
+        ctx.fillStyle = '#38bdf8';
         ctx.fillRect(x + 7, 11, 6, 2);
       } else if (style.shape === 'lc') {
-        roundRect(ctx, x + 3, 5, 14, 10, 2);
+        roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
         ctx.fillStyle = stroke;
         ctx.fillRect(x + 9, 5, 1, 10);
-        ctx.fillStyle = occupied ? '#ddd6fe' : '#ffffff';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(x + 5, 8, 3, 4);
         ctx.fillRect(x + 12, 8, 3, 4);
       } else if (style.shape === 'sc') {
-        roundRect(ctx, x + 3, 5, 14, 10, 2);
+        roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        ctx.fillStyle = occupied ? '#ddd6fe' : '#ffffff';
+        ctx.fillStyle = '#ffffff';
         roundRect(ctx, x + 5, 7, 4, 6, 1);
         ctx.fill();
         roundRect(ctx, x + 11, 7, 4, 6, 1);
@@ -746,36 +737,36 @@
       return;
     }
 
-    const fill = occupied
-      ? (isKeystone ? '#201408' : '#08212a')
-      : (isKeystone ? '#18120d' : style.shape === 'power' ? '#101b17' : style.shape === 'optic' ? '#0b1324' : '#100f26');
-    const stroke = occupied
-      ? (isKeystone ? '#fb923c' : '#22d3ee')
-      : (isKeystone ? '#ea580c' : style.shape === 'copper' ? '#64748b' : style.shape === 'optic' ? '#60a5fa' : style.shape === 'power' ? '#4ade80' : style.shape === 'sc' ? '#c084fc' : '#a78bfa');
-    const detail = occupied
-      ? (isKeystone ? '#fdba74' : '#67e8f9')
-      : (isKeystone ? '#c2410c' : style.shape === 'copper' ? '#334155' : style.shape === 'power' ? '#166534' : '#818cf8');
+    const fill = isKeystone ? '#121722' : style.shape === 'power' ? '#0d1612' : style.shape === 'optic' ? '#0b1324' : '#0e131d';
+    const stroke = isKeystone ? '#ea580c' : style.shape === 'copper' ? '#2d3748' : style.shape === 'optic' ? '#38bdf8' : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : '#8b5cf6';
+    const detail = isKeystone ? '#c2410c' : style.shape === 'copper' ? '#475569' : style.shape === 'power' ? '#166534' : '#818cf8';
+
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = isKeystone ? 1.4 : 1;
-    roundRect(ctx, x + 1, 2, PORT_CELL - 2, PORT_CELL - 4, 3);
+    ctx.lineWidth = 1;
+    roundRect(ctx, x + 1.5, 2.5, PORT_CELL - 3, PORT_CELL - 5, 1.5);
     ctx.fill();
     ctx.stroke();
+
     ctx.fillStyle = detail;
     if (style.shape === 'copper') {
-      [4, 7, 10, 13].forEach(pin => ctx.fillRect(x + pin, 6, 2, 3));
-      ctx.fillRect(x + 5, 12, 10, 2);
+      ctx.fillStyle = '#060911';
+      ctx.fillRect(x + 3.5, 5.5, 13, 9);
+      ctx.fillStyle = '#ca8a04';
+      [4.5, 7, 9.5, 12].forEach(pin => ctx.fillRect(x + pin, 5.5, 1.5, 2.5));
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x + 6, 11, 8, 2.5);
       if (isKeystone) {
         ctx.fillStyle = stroke;
-        ctx.fillRect(x + 3, 3, PORT_CELL - 6, 1.2);
+        ctx.fillRect(x + 2.5, 2.5, PORT_CELL - 5, 1.2);
       }
     } else if (style.shape === 'optic') {
-      roundRect(ctx, x + 4, 5, 12, 10, 2);
+      roundRect(ctx, x + 4, 5, 12, 10, 1.5);
       ctx.fill();
       ctx.fillStyle = stroke;
       ctx.fillRect(x + 6, 7, 8, 2);
     } else if (style.shape === 'lc') {
-      roundRect(ctx, x + 3, 5, 14, 10, 2);
+      roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
       ctx.fillStyle = stroke;
       ctx.fillRect(x + 9, 5, 1, 10);
@@ -783,7 +774,7 @@
       ctx.fillRect(x + 5, 8, 3, 4);
       ctx.fillRect(x + 12, 8, 3, 4);
     } else if (style.shape === 'sc') {
-      roundRect(ctx, x + 3, 5, 14, 10, 2);
+      roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
       ctx.fillStyle = fill;
       roundRect(ctx, x + 5, 7, 4, 6, 1);

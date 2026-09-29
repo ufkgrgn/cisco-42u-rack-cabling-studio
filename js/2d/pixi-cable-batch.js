@@ -76,10 +76,23 @@
 
   function appendConnector(graphics, point, color, focused = false) {
     if (!point || !graphics) return;
-    const radius = focused ? 3.2 : 2.6;
-    graphics.circle(point.x, point.y, radius)
+    const w = focused ? 7.2 : 6.0;
+    const h = focused ? 8.2 : 7.0;
+    const x = point.x - w / 2;
+    const y = point.y - h / 2;
+
+    // RJ45 Micro-connector plug body
+    graphics.roundRect(x, y, w, h, 1.2)
       .fill(color)
-      .stroke({ width: focused ? 1.4 : 1.0, color: CABLE_VISUAL_STYLE.casingColor, alignment: 0.5 });
+      .stroke({
+        width: focused ? 1.4 : 0.9,
+        color: focused ? 0x38bdf8 : CABLE_VISUAL_STYLE.casingColor,
+        alignment: 0.5
+      });
+
+    // Latch clip / pin highlight
+    graphics.rect(point.x - 1, y + 1.2, 2, 2.2)
+      .fill({ color: 0xffffff, alpha: 0.4 });
   }
 
   function createStubBadge(display, group, color) {
