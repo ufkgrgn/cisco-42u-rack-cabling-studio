@@ -284,58 +284,158 @@
   color: var(--text-muted);
 }
 
-/* Custom Cable Context Menu */
+/* Custom Cable & Device Context Menu */
 .cable-context-menu {
   position: fixed;
   z-index: 10000;
   display: flex;
   flex-direction: column;
-  min-width: 170px;
-  background: var(--bg-inset);
+  min-width: 190px;
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-overlay, 8px);
   padding: 4px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35), 0 0 1px rgba(255, 255, 255, 0.08);
   user-select: none;
+  overflow: hidden;
 }
 
-.cable-context-menu .menu-item {
+.cable-context-menu .context-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+
+.cable-context-menu .context-menu-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+}
+
+.cable-context-menu .context-menu-section-title {
+  padding: 4px 8px 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.cable-context-menu .context-menu-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cable-context-menu .menu-item,
+.cable-context-menu .context-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
-  font-size: 0.74rem;
+  padding: 6px 8px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-main);
+  background: transparent;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
   transition: background 0.12s ease, color 0.12s ease;
 }
 
-.cable-context-menu .menu-item:hover {
-  background: #1e293b;
+.cable-context-menu .context-menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.cable-context-menu .menu-item:hover,
+.cable-context-menu .context-menu-item:hover {
+  background: var(--bg-panel-light, rgba(255, 255, 255, 0.06));
+  color: var(--text-main);
+}
+
+.cable-context-menu .menu-item:hover .context-menu-icon,
+.cable-context-menu .context-menu-item:hover .context-menu-icon {
   color: var(--accent);
 }
 
 .cable-context-menu .menu-item.active {
   color: var(--accent);
   font-weight: 700;
-  background: rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-.cable-context-menu .menu-item.danger {
-  color: #f87171;
+.cable-context-menu .menu-item.active .context-menu-icon {
+  color: var(--accent);
 }
 
-.cable-context-menu .menu-item.danger:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
+.cable-context-menu .menu-item.danger,
+.cable-context-menu .context-menu-item.danger {
+  color: var(--status-danger);
+}
+
+.cable-context-menu .menu-item.danger .context-menu-icon,
+.cable-context-menu .context-menu-item.danger .context-menu-icon {
+  color: var(--status-danger);
+}
+
+.cable-context-menu .menu-item.danger:hover,
+.cable-context-menu .context-menu-item.danger:hover {
+  background: color-mix(in srgb, var(--status-danger) 14%, transparent);
+  color: var(--status-danger);
 }
 
 .cable-context-menu .menu-divider {
   height: 1px;
-  background: #1e293b;
-  margin: 3px 0;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
+.cable-context-menu .context-swatches-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px 8px;
+}
+
+.cable-context-menu .context-color-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.cable-context-menu .context-color-swatch:hover {
+  transform: scale(1.18);
+  border-color: var(--text-main);
+}
+
+.cable-context-menu .context-color-swatch.selected {
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 1px var(--bg-elevated);
 }
 
 /* Optical Fiber Single-Mode OS2 Yellow Cabling */
