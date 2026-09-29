@@ -266,13 +266,16 @@
     try {
       if (typeof localStorage === 'undefined') return false;
       const raw = localStorage.getItem(AUTOSAVE_KEY);
+      // No key = first ever launch → caller should load demo preset
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      // Only restore if there's at least one device in any rack
-      if (!parsed || !Array.isArray(parsed.racks) || !parsed.racks.some(r => r.devices && r.devices.length > 0)) return false;
+      if (!parsed || !Array.isArray(parsed.racks) || !parsed.racks.length) return false;
+      // Restore even if all racks are empty — user intentionally cleared the cabinet
       loadCustomTopology(parsed);
       return true;
     } catch (_) {
+      // Corrupt autosave → fall through to demo preset
+      try { if (typeof localStorage !== 'undefined') localStorage.removeItem(AUTOSAVE_KEY); } catch (_2) {}
       return false;
     }
   }
