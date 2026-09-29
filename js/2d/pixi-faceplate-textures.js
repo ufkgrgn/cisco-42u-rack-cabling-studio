@@ -147,14 +147,10 @@
     if (isLight) {
       // Enterprise Light / Platinum Stencil Mode (Visio & NetBox Schema Standard)
       // Base Platinum Aluminum Chassis
-      paintMetal(ctx, w, h, '#f1f5f9', '#0284c7');
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.fillRect(0, 0, w, 1);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(0, h - 1, w, 1);
+      paintMetal(ctx, w, h, '#f8fafc', '#0284c7');
 
       // Determine series-specific bezel accents
-      let bezelBg = '#e2e8f0';
+      let bezelBg = '#f1f5f9';
       let edgeColor = '#0284c7';
       let modelColor = '#1e293b';
       let defaultModel = 'C9300';
@@ -178,11 +174,11 @@
 
       // Left Bezel
       ctx.fillStyle = bezelBg;
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
       ctx.fillStyle = edgeColor;
       ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
 
       // Cisco Logo
       ctx.fillStyle = '#005073';
@@ -207,12 +203,6 @@
       ctx.font = '700 9.5px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
 
-      // Clean top and bottom metallic bevels for the chassis body
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(79, 1, w - 80, 1.5);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(79, h - 2, w - 80, 1);
-
       // Status LEDs on bezel
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
@@ -223,29 +213,19 @@
       ctx.arc(68, 10, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Recessed light platinum / white chassis bay for ports on platinum chassis
-      ctx.fillStyle = '#ffffff';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
       return;
     }
 
     if (isWhite) {
       // 1. Cisco Catalyst 1000 & Compact Series (Clean White / Platinum Stencil Faceplate)
-      paintMetal(ctx, w, h, '#f1f5f9', '#0284c7');
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.fillRect(0, 0, w, 1);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(0, h - 1, w, 1);
+      paintMetal(ctx, w, h, '#0f172a', '#0284c7');
       // Left Bezel (Platinum Grey with Navy Cisco Logo)
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       // Cisco Logo
       ctx.fillStyle = '#005073';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
@@ -255,11 +235,6 @@
       ctx.fillStyle = '#1e293b';
       ctx.font = '700 9.5px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
-      // Clean top and bottom metallic bevels for the chassis body
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(79, 1, w - 80, 1.5);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(79, h - 2, w - 80, 1);
       // Status LEDs on bezel
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
@@ -269,23 +244,18 @@
       ctx.beginPath();
       ctx.arc(68, 10, 2, 0, Math.PI * 2);
       ctx.fill();
-      // Recessed dark chassis bay for ports on white chassis
-      ctx.fillStyle = '#0f172a';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isTeal) {
       // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil - Clean Flat)
-      paintMetal(ctx, w, h, '#1e2533', '#14b8a6');
+      paintMetal(ctx, w, h, '#131924', '#14b8a6');
       ctx.fillStyle = '#1e525e';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#14b8a6';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#0f2930';
-      ctx.fillRect(78, 0, 1.5, h);
+      ctx.fillRect(77.5, 0, 1, h);
       // Crisp White Cisco Logo
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
@@ -298,28 +268,21 @@
       // Mode button & LED cluster
       ctx.fillStyle = '#334155';
       ctx.beginPath();
-      ctx.arc(52, 10, 3, 0, Math.PI * 2);
+      ctx.arc(52, 10, 2.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#64748b';
-      ctx.stroke();
       paintLeds(ctx, 48, 22);
-      // Recessed modular port bay backing
-      ctx.fillStyle = '#0f141f';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#2d3b4e';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isNexus) {
       // 3. Cisco Nexus Series (Obsidian Black & Emerald Green Stencil)
-      paintMetal(ctx, w, h, '#0c0f14', '#10b981');
+      paintMetal(ctx, w, h, '#0d1117', '#10b981');
       ctx.fillStyle = '#06080b';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#1c2432';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#f8fafc';
       ctx.font = '800 8px Segoe UI, sans-serif';
       ctx.fillText('CISCO', 8, 12);
@@ -333,26 +296,21 @@
       ['#10b981', '#34d399', '#f59e0b'].forEach((color, i) => {
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(58 + i * 6, 22, 1.9, 0, Math.PI * 2);
+        ctx.arc(58 + i * 6, 22, 1.8, 0, Math.PI * 2);
         ctx.fill();
       });
-      // Recessed obsidian port bay
-      ctx.fillStyle = '#06080d';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#18202d';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isRouter) {
       // 4. Cisco ISR Routers (Two-Tone Slate & Router Orange)
-      paintMetal(ctx, w, h, '#1e2430', '#f97316');
-      ctx.fillStyle = '#11151f';
-      ctx.fillRect(0, 0, 78, h);
+      paintMetal(ctx, w, h, '#141923', '#ea580c');
+      ctx.fillStyle = '#0f141d';
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#334155';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#f8fafc';
       ctx.font = '800 8px Segoe UI, sans-serif';
       ctx.fillText('CISCO', 8, 12);
@@ -366,26 +324,21 @@
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
       paintLeds(ctx, 56, 22);
-      // Recessed router bay
-      ctx.fillStyle = '#121722';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#2b3648';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     // 5. Cisco Catalyst 9000 Series (Modern Dark Graphite & Blue Beacon)
-    const cat9kBg = isLight ? '#1e2634' : '#151b26';
-    const cat9kBezel = isLight ? '#141c28' : '#0d121c';
-    const cat9kDivider = isLight ? '#475569' : '#1e293b';
+    const cat9kBg = '#131924';
+    const cat9kBezel = '#0d121c';
+    const cat9kDivider = '#1e293b';
 
-    paintMetal(ctx, w, h, cat9kBg, '#0284c7');
+    paintMetal(ctx, w, h, cat9kBg, '#00bceb');
     ctx.fillStyle = cat9kBezel;
-    ctx.fillRect(0, 0, 78, h);
+    ctx.fillRect(0, 0, 77.5, h);
+    ctx.fillStyle = '#00bceb';
+    ctx.fillRect(0, 0, 3.5, h);
     ctx.fillStyle = cat9kDivider;
-    ctx.fillRect(78, 2, 1, h - 4);
+    ctx.fillRect(77.5, 0, 1, h);
     ctx.fillStyle = '#00bceb';
     ctx.font = '800 8.5px Segoe UI, sans-serif';
     ctx.fillText('CISCO', 8, 12);
@@ -395,22 +348,11 @@
     ctx.fillText(String(model).slice(0, 9), 8, 24);
     ctx.fillStyle = '#00e5ff';
     ctx.beginPath();
-    ctx.arc(62, 9, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(0, 229, 255, 0.35)';
-    ctx.beginPath();
-    ctx.arc(62, 9, 4.5, 0, Math.PI * 2);
+    ctx.arc(62, 9, 2.2, 0, Math.PI * 2);
     ctx.fill();
     paintLeds(ctx, 54, 22);
-    ctx.strokeStyle = '#64748b';
+    ctx.strokeStyle = '#475569';
     ctx.strokeRect(44.5, 6, 5, 5);
-    // Recessed port bays
-    ctx.fillStyle = isLight ? '#0e131d' : '#0d111a';
-    ctx.rect(80, 2, w - 84, h - 4);
-    ctx.fill();
-    ctx.strokeStyle = isLight ? '#334155' : '#222b3d';
-    ctx.lineWidth = 1;
-    ctx.stroke();
   }
 
   function drawPatch(ctx, w, h, spec, cat) {
@@ -516,11 +458,11 @@
     if (isLight) {
       paintMetal(ctx, w, h, '#f1f5f9', '#16a34a');
       ctx.fillStyle = '#f0fdf4';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
       ctx.fillStyle = '#16a34a';
       ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#15803d';
       ctx.font = '700 9px Segoe UI, sans-serif';
       ctx.fillText('230V', 8, 13);
@@ -528,17 +470,15 @@
       ctx.font = '9px ui-monospace, monospace';
       ctx.fillText('PDU 16A', 8, 24);
       paintLeds(ctx, 58, 16);
-      ctx.fillStyle = '#ffffff';
-      ctx.rect(80, 2, w - 84, h - 4);
-      ctx.fill();
-      ctx.strokeStyle = '#86efac';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
     paintMetal(ctx, w, h, '#17251d', '#22c55e');
     ctx.fillStyle = '#0d1a14';
-    ctx.fillRect(0, 0, 78, h);
+    ctx.fillRect(0, 0, 77.5, h);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(0, 0, 3.5, h);
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(77.5, 0, 1, h);
     ctx.fillStyle = '#22c55e';
     ctx.font = '700 9px Segoe UI, sans-serif';
     ctx.fillText('230V', 8, 13);
