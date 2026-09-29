@@ -18,7 +18,7 @@
   fill: none;
   pointer-events: none;
   stroke: #050810;
-  stroke-width: 5.6px;
+  stroke-width: 3.8px;
   stroke-linecap: round;
   stroke-linejoin: round;
   shape-rendering: geometricPrecision;
@@ -29,7 +29,7 @@
   fill: none;
   pointer-events: none;
   stroke: #060913;
-  stroke-width: 4.8px;
+  stroke-width: 3.8px;
   stroke-linecap: round;
   stroke-linejoin: round;
   shape-rendering: geometricPrecision;
@@ -37,12 +37,12 @@
 }
 
 .cable-casing.hovered {
-  stroke-width: 5.4px;
+  stroke-width: 4.4px;
   stroke: #020408;
 }
 
 .cable-casing.highlighted {
-  stroke-width: 5.8px;
+  stroke-width: 4.8px;
   stroke: #010206;
 }
 
@@ -51,7 +51,7 @@
   fill: none;
   cursor: pointer;
   pointer-events: stroke;
-  stroke-width: 2.6px;
+  stroke-width: 2.4px;
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: none !important;
@@ -61,13 +61,13 @@
 
 .cable-path:hover,
 .cable-path.hovered {
-  stroke-width: 3.2px;
-  filter: drop-shadow(0 0 1.2px currentColor) drop-shadow(0 0 3px currentColor) brightness(1.18) !important;
+  stroke-width: 2.8px;
+  filter: none !important;
 }
 
 .cable-path.highlighted {
-  stroke-width: 3.5px;
-  filter: drop-shadow(0 0 1.5px currentColor) drop-shadow(0 0 4.2px currentColor) brightness(1.24) !important;
+  stroke-width: 3.0px;
+  filter: none !important;
   animation: cable-neon-pulse 1.2s infinite alternate ease-in-out;
 }
 
@@ -93,7 +93,7 @@
 .cable-boot:hover,
 .cable-boot.hovered {
   stroke-width: 1.8px;
-  filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 4px currentColor) brightness(1.2) !important;
+  filter: none !important;
 }
 
 .cable-boot-pin {
@@ -464,12 +464,12 @@
 
 /* Optical Fiber Single-Mode OS2 Yellow Cabling */
 .cable-path.cable-fiber {
-  filter: drop-shadow(0 0 2.5px rgba(250, 204, 21, 0.45));
+  filter: none;
 }
 
 .cable-path.cable-fiber:hover,
 .cable-path.cable-fiber.highlighted {
-  filter: drop-shadow(0 0 1.2px currentColor) drop-shadow(0 0 3.5px currentColor) brightness(1.2) saturate(1.2) !important;
+  filter: none !important;
   stroke: #fde047 !important;
 }
 

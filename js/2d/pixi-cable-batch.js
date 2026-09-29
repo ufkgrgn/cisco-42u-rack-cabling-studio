@@ -12,11 +12,11 @@
   const STATE = RS.STATE;
 
   const CABLE_VISUAL_STYLE = Object.freeze({
-    casingWidth: 4.8,
-    coreWidth: 2.6,
-    highlightWidth: 0.8,
-    highlightAlpha: 0.18,
-    casingColor: 0x060913,
+    casingWidth: 3.8,
+    coreWidth: 2.4,
+    highlightWidth: 0,
+    highlightAlpha: 0,
+    casingColor: 0x070a12,
     highlightColor: 0xffffff,
     railSpacing: 3.2,
     traySpacing: 2.8
@@ -76,12 +76,10 @@
 
   function appendConnector(graphics, point, color, focused = false) {
     if (!point || !graphics) return;
-    const radius = focused ? 3.8 : 3.4;
-    const pinRadius = focused ? 1.4 : 1.2;
+    const radius = focused ? 3.2 : 2.6;
     graphics.circle(point.x, point.y, radius)
-      .fill(0x090d16)
-      .stroke({ width: focused ? 1.8 : 1.6, color, alignment: 0.5 });
-    graphics.circle(point.x, point.y, pinRadius).fill(color);
+      .fill(color)
+      .stroke({ width: focused ? 1.4 : 1.0, color: CABLE_VISUAL_STYLE.casingColor, alignment: 0.5 });
   }
 
   function createStubBadge(display, group, color) {
@@ -175,13 +173,10 @@
     parseSvgPathD(highlight, display.pathD);
     display.endpoints.forEach(point => appendConnector(boots, point, color, true));
 
-    glow.stroke({ width: selectedOnly ? 9 : 8, color, alpha: selectedOnly ? 0.72 : 0.62, cap: 'round', join: 'round' });
-    glow.blendMode = 'add';
-    casing.stroke({ width: selectedOnly ? 5.8 : 5.4, color: CABLE_VISUAL_STYLE.casingColor, alpha: 1, cap: 'round', join: 'round' });
-    core.stroke({ width: selectedOnly ? 3.5 : 3.2, color, alpha: 1, cap: 'round', join: 'round' });
-    highlight.stroke({ width: 0.9, color: CABLE_VISUAL_STYLE.highlightColor, alpha: 0.35, cap: 'round', join: 'round' });
+    casing.stroke({ width: selectedOnly ? 5.0 : 4.6, color: CABLE_VISUAL_STYLE.casingColor, alpha: 1, cap: 'round', join: 'round' });
+    core.stroke({ width: selectedOnly ? 3.2 : 2.8, color, alpha: 1, cap: 'round', join: 'round' });
 
-    variant.addChild(glow, casing, core, highlight, boots);
+    variant.addChild(casing, core, boots);
     display.focusVariants.set(key, variant);
     if (telemetry) telemetry.focusVariantCacheMisses++;
     return variant;
@@ -216,7 +211,7 @@
     // 2. Colored core (2.6px display.colorNum)
     // 3. 3D cylindrical highlight (0.8px #ffffff alpha 0.18)
     displays.forEach(display => {
-      // 1. Casing
+      // 1. Casing (subtle 3.8px separation outline)
       parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.casingWidth,
@@ -226,22 +221,12 @@
         join: 'round'
       });
 
-      // 2. Core
+      // 2. Core (clean 2.4px flat wire)
       parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.coreWidth,
         color: display.colorNum,
         alpha: 1,
-        cap: 'round',
-        join: 'round'
-      });
-
-      // 3. Highlight
-      parseSvgPathD(casing, display);
-      casing.stroke({
-        width: CABLE_VISUAL_STYLE.highlightWidth,
-        color: CABLE_VISUAL_STYLE.highlightColor,
-        alpha: CABLE_VISUAL_STYLE.highlightAlpha,
         cap: 'round',
         join: 'round'
       });
@@ -341,15 +326,6 @@
         width: CABLE_VISUAL_STYLE.coreWidth,
         color: display.colorNum,
         alpha: 1,
-        cap: 'round',
-        join: 'round'
-      });
-
-      parseSvgPathD(rackGroup.casing, display.pathD);
-      rackGroup.casing.stroke({
-        width: CABLE_VISUAL_STYLE.highlightWidth,
-        color: CABLE_VISUAL_STYLE.highlightColor,
-        alpha: CABLE_VISUAL_STYLE.highlightAlpha,
         cap: 'round',
         join: 'round'
       });
