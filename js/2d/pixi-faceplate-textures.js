@@ -225,7 +225,7 @@
 
       // Recessed light platinum / white chassis bay for ports on platinum chassis
       ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1;
@@ -271,7 +271,7 @@
       ctx.fill();
       // Recessed dark chassis bay for ports on white chassis
       ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1;
@@ -305,7 +305,7 @@
       paintLeds(ctx, 48, 22);
       // Recessed modular port bay backing
       ctx.fillStyle = '#0f141f';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#2d3b4e';
       ctx.lineWidth = 1;
@@ -338,7 +338,7 @@
       });
       // Recessed obsidian port bay
       ctx.fillStyle = '#06080d';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#18202d';
       ctx.lineWidth = 1;
@@ -368,7 +368,7 @@
       paintLeds(ctx, 56, 22);
       // Recessed router bay
       ctx.fillStyle = '#121722';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#2b3648';
       ctx.lineWidth = 1;
@@ -406,7 +406,7 @@
     ctx.strokeRect(44.5, 6, 5, 5);
     // Recessed port bays
     ctx.fillStyle = isLight ? '#0e131d' : '#0d111a';
-    roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+    ctx.rect(80, 2, w - 84, h - 4);
     ctx.fill();
     ctx.strokeStyle = isLight ? '#334155' : '#222b3d';
     ctx.lineWidth = 1;
@@ -424,9 +424,9 @@
         ctx.fillStyle = '#faf5ff';
         ctx.fillRect(0, 0, 78, h);
         ctx.fillStyle = '#7c3aed';
-        ctx.fillRect(0, 0, 3.5, h);
+        ctx.fillRect(0, 0, 3, h);
         ctx.fillStyle = '#cbd5e1';
-        ctx.fillRect(78, 2, 1, h - 4);
+        ctx.fillRect(77.5, 0, 1, h);
         ctx.fillStyle = '#6b21a8';
         ctx.font = '800 8.5px Segoe UI, sans-serif';
         ctx.fillText('FIBER ODF', 8, 12);
@@ -434,14 +434,6 @@
         ctx.font = '700 9px ui-monospace, monospace';
         const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
         ctx.fillText(badge, 8, 24);
-        
-        // Recessed fiber tray
-        ctx.fillStyle = '#f1f5f9';
-        roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
-        ctx.fill();
-        ctx.strokeStyle = '#c4b5fd';
-        ctx.lineWidth = 1;
-        ctx.stroke();
         return;
       }
       // Fiber ODF Panel (Dark / Modern Violet Accent)
@@ -449,7 +441,7 @@
       ctx.fillStyle = '#0a0c12';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#261b3d';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#c084fc';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
       ctx.fillText('FIBER ODF', 8, 12);
@@ -457,18 +449,10 @@
       ctx.font = '700 9px ui-monospace, monospace';
       const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
       ctx.fillText(badge, 8, 24);
-
-      // Recessed dark fiber tray
-      ctx.fillStyle = '#06070a';
-      roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
-    // Copper Patch Panel (Sleek Datacenter Matte Black & Subtle Keystone Accent)
+    // Copper Patch Panel (Sleek Datacenter Matte Black & Subtle Keystone Accent - Sharp & Flat)
     const isCat6A = /cat6a/i.test(name) || /patch-cat6-24/i.test(spec.catalogKey || '');
     const portsCount = cat?.ports?.length || 24;
 
@@ -477,17 +461,16 @@
       ctx.fillStyle = '#fff7ed';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#ea580c';
-      ctx.fillRect(0, 0, 3.5, h);
+      ctx.fillRect(0, 0, 3, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
 
       ctx.fillStyle = '#c2410c';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
       ctx.fillText(isCat6A ? 'CAT6A UTP' : 'CAT6 PANEL', 8, 12);
 
       ctx.fillStyle = '#ea580c';
-      roundRect(ctx, 8, 16, 38, 11, 2);
-      ctx.fill();
+      ctx.fillRect(8, 16, 38, 10);
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 7px Segoe UI, sans-serif';
       ctx.fillText('PATCH', 11, 24);
@@ -495,28 +478,20 @@
       ctx.fillStyle = '#ea580c';
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(`${portsCount}P`, 50, 24);
-
-      // Recessed light anodized keystone tray
-      ctx.fillStyle = '#f1f5f9';
-      roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
-      ctx.fill();
-      ctx.strokeStyle = '#fdba74';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
-    // Dark Mode: Precision Matte Anodized Aluminum Faceplate
+    // Dark Mode: Precision Matte Anodized Aluminum Faceplate (Crisp & Flat)
     paintMetal(ctx, w, h, '#11141c', '#f97316');
     // Safety orange indicator edge
     ctx.fillStyle = '#f97316';
-    ctx.fillRect(0, 0, 3.5, h);
+    ctx.fillRect(0, 0, 3, h);
 
     // Left Bezel: Distinctive Dark Identity
     ctx.fillStyle = '#0b0d14';
-    ctx.fillRect(3.5, 0, 74.5, h);
+    ctx.fillRect(3, 0, 74.5, h);
     ctx.fillStyle = '#ea580c';
-    ctx.fillRect(77.5, 2, 1, h - 4);
+    ctx.fillRect(77.5, 0, 1, h);
 
     // Patch Panel Title
     ctx.fillStyle = '#f97316';
@@ -525,8 +500,7 @@
 
     // Badge pill: Orange background with white text
     ctx.fillStyle = '#ea580c';
-    roundRect(ctx, 8, 16, 38, 11, 2);
-    ctx.fill();
+    ctx.fillRect(8, 16, 38, 10);
     ctx.fillStyle = '#ffffff';
     ctx.font = '800 7px Segoe UI, sans-serif';
     ctx.fillText('PATCH', 11, 24);
@@ -535,19 +509,6 @@
     ctx.fillStyle = '#fb923c';
     ctx.font = '700 9px ui-monospace, monospace';
     ctx.fillText(`${portsCount}P`, 50, 24);
-
-    // Recessed dark matte Keystone socket bay behind ports
-    ctx.fillStyle = '#07090e';
-    roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Subtle inner bevel shadow for depth
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(80.5, 4.5, w - 85, h - 9);
   }
 
   function drawPdu(ctx, w, h) {
@@ -568,7 +529,7 @@
       ctx.fillText('PDU 16A', 8, 24);
       paintLeds(ctx, 58, 16);
       ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
+      ctx.rect(80, 2, w - 84, h - 4);
       ctx.fill();
       ctx.strokeStyle = '#86efac';
       ctx.lineWidth = 1;
