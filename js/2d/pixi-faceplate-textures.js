@@ -423,10 +423,10 @@
 
     if (fiber) {
       if (isLight) {
-        paintMetal(ctx, w, h, '#f1f5f9', '#9333ea');
+        paintMetal(ctx, w, h, '#f8fafc', '#7c3aed');
         ctx.fillStyle = '#faf5ff';
         ctx.fillRect(0, 0, 78, h);
-        ctx.fillStyle = '#9333ea';
+        ctx.fillStyle = '#7c3aed';
         ctx.fillRect(0, 0, 3.5, h);
         ctx.fillStyle = '#cbd5e1';
         ctx.fillRect(78, 2, 1, h - 4);
@@ -437,21 +437,19 @@
         ctx.font = '700 9px ui-monospace, monospace';
         const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
         ctx.fillText(badge, 8, 24);
-        ctx.fillStyle = '#e9d5ff';
-        ctx.fillRect(80, 2, w - 82, 3.5);
-        ctx.fillStyle = '#9333ea';
-        ctx.fillRect(80, 2, w - 82, 1);
-        ctx.fillStyle = '#faf5ff';
-        roundRect(ctx, 80, 6, w - 84, 20, 2);
+        
+        // Recessed fiber tray
+        ctx.fillStyle = '#f1f5f9';
+        roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
         ctx.fill();
-        ctx.strokeStyle = '#d8b4fe';
+        ctx.strokeStyle = '#c4b5fd';
         ctx.lineWidth = 1;
         ctx.stroke();
         return;
       }
-      // Fiber ODF Panel (Violet / Purple Accent)
-      paintMetal(ctx, w, h, '#111420', '#a855f7');
-      ctx.fillStyle = '#0c0f18';
+      // Fiber ODF Panel (Dark / Modern Violet Accent)
+      paintMetal(ctx, w, h, '#0f1118', '#a855f7');
+      ctx.fillStyle = '#0a0c12';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#261b3d';
       ctx.fillRect(78, 2, 1, h - 4);
@@ -462,19 +460,23 @@
       ctx.font = '700 9px ui-monospace, monospace';
       const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
       ctx.fillText(badge, 8, 24);
-      ctx.fillStyle = '#3b1c61';
-      ctx.fillRect(80, 2, w - 82, 3.5);
-      ctx.fillStyle = '#c084fc';
-      ctx.fillRect(80, 2, w - 82, 1);
+
+      // Recessed dark fiber tray
+      ctx.fillStyle = '#06070a';
+      roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
       return;
     }
 
-    // Copper Patch Panel (Prominent Safety Orange Theme & Keystone Identity)
+    // Copper Patch Panel (Sleek Datacenter Matte Black & Subtle Keystone Accent)
     const isCat6A = /cat6a/i.test(name) || /patch-cat6-24/i.test(spec.catalogKey || '');
     const portsCount = cat?.ports?.length || 24;
 
     if (isLight) {
-      paintMetal(ctx, w, h, '#f1f5f9', '#ea580c');
+      paintMetal(ctx, w, h, '#f8fafc', '#ea580c');
       ctx.fillStyle = '#fff7ed';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#ea580c';
@@ -497,14 +499,9 @@
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(`${portsCount}P`, 50, 24);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(80, 1.5, w - 84, 3.5);
-      ctx.fillStyle = '#ea580c';
-      ctx.fillRect(80, 1.5, w - 84, 0.8);
-      ctx.fillRect(80, 4.2, w - 84, 0.8);
-
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 6, w - 84, 20, 2);
+      // Recessed light anodized keystone tray
+      ctx.fillStyle = '#f1f5f9';
+      roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
       ctx.fill();
       ctx.strokeStyle = '#fdba74';
       ctx.lineWidth = 1;
@@ -512,16 +509,17 @@
       return;
     }
 
-    paintMetal(ctx, w, h, '#141720', '#f97316');
-    // 4px bold safety orange left edge
+    // Dark Mode: Precision Matte Anodized Aluminum Faceplate
+    paintMetal(ctx, w, h, '#11141c', '#f97316');
+    // Safety orange indicator edge
     ctx.fillStyle = '#f97316';
-    ctx.fillRect(0, 0, 4, h);
+    ctx.fillRect(0, 0, 3.5, h);
 
-    // Left Bezel: Distinctive Orange Identity
-    ctx.fillStyle = '#1c1712';
-    ctx.fillRect(4, 0, 74, h);
+    // Left Bezel: Distinctive Dark Identity
+    ctx.fillStyle = '#0b0d14';
+    ctx.fillRect(3.5, 0, 74.5, h);
     ctx.fillStyle = '#ea580c';
-    ctx.fillRect(77, 2, 1, h - 4);
+    ctx.fillRect(77.5, 2, 1, h - 4);
 
     // Patch Panel Title
     ctx.fillStyle = '#f97316';
@@ -541,20 +539,18 @@
     ctx.font = '700 9px ui-monospace, monospace';
     ctx.fillText(`${portsCount}P`, 50, 24);
 
-    // Top Designation / Label Strip (The signature write-on identification bar)
-    ctx.fillStyle = '#fff7ed';
-    ctx.fillRect(80, 1.5, w - 84, 3.5);
-    ctx.fillStyle = '#ea580c';
-    ctx.fillRect(80, 1.5, w - 84, 0.8);
-    ctx.fillRect(80, 4.2, w - 84, 0.8);
-
-    // Recessed dark Keystone socket tray behind ports (centered at y=16 in 32px 1U)
-    ctx.fillStyle = '#0c0f16';
-    roundRect(ctx, 80, 6, w - 84, 20, 2);
+    // Recessed dark matte Keystone socket bay behind ports
+    ctx.fillStyle = '#07090e';
+    roundRect(ctx, 80, 4, w - 84, h - 8, 2.5);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.45)';
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
     ctx.lineWidth = 1;
     ctx.stroke();
+
+    // Subtle inner bevel shadow for depth
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(80.5, 4.5, w - 85, h - 9);
   }
 
   function drawPdu(ctx, w, h) {
