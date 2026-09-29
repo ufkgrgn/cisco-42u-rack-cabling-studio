@@ -155,10 +155,26 @@
     return bounds;
   }
 
-  function getCachedOrgY(org, fallbackY, otherY, canvasRect, stageW, stageH) {
+  function getPortExitDir(dev, portId) {
+    if (!dev) return 0;
+    const cat = HARDWARE_CATALOG[dev.catalogKey] || (RS.catalog && RS.catalog[dev.catalogKey]);
+    const isSingleRowPatch = cat?.category === 'patch' && (dev.uHeight || 1) === 1;
+    if (isSingleRowPatch) return 0;
+    const pStr = String(portId || '').toLowerCase();
+    const numMatch = pStr.match(/\d+/);
+    if (!numMatch) return 0;
+    const portNum = parseInt(numMatch[0], 10);
+    return (portNum % 2 !== 0) ? -1 : 1; // -1 for odd (Top row -> UP), 1 for even (Bottom row -> DOWN)
+  }
+
+  function getCachedOrgY(org, fallbackY, otherY, canvasRect, stageW, stageH, exitDir = 0) {
     const telemetry = PixiContext.performanceTelemetry;
     const renderStats = PixiContext.renderStats;
-    if (!org || !org.instanceId) return fallbackY + (otherY >= fallbackY ? 14 : -14);
+    if (!org || !org.instanceId) {
+      if (exitDir === -1) return fallbackY - 10;
+      if (exitDir === 1) return fallbackY + 10;
+      return fallbackY + (otherY >= fallbackY ? 14 : -14);
+    }
     if (organizerWorldYCache.has(org.instanceId)) {
       if (telemetry) telemetry.organizerCacheHits++;
       return organizerWorldYCache.get(org.instanceId);
@@ -172,6 +188,8 @@
       organizerWorldYCache.set(org.instanceId, y);
       return y;
     }
+    if (exitDir === -1) return fallbackY - 10;
+    if (exitDir === 1) return fallbackY + 10;
     return fallbackY + (otherY >= fallbackY ? 14 : -14);
   }
 
@@ -255,11 +273,13 @@
       const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instA));
       const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackB?.devices?.find(d => d.instanceId === instB) || STATE.racks?.flatMap(r => r.devices).find(d => d.instanceId === instB));
 
-      const orgA = findDeviceOrganizer(rackA, devA);
-      const orgB = findDeviceOrganizer(rackB, devB);
+      const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
+      const orgB = findDeviceOrganizer(rackB, devB, portIdB, devA);
+      const exitDirA = getPortExitDir(devA, portIdA);
+      const exitDirB = getPortExitDir(devB, portIdB);
 
-      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
-      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH);
+      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH, exitDirA);
+      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH, exitDirB);
 
       const boundsA = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
       const boundsB = getRackRailBounds(rackB?.id, canvasRect, stageW, stageH);
@@ -341,8 +361,10 @@
       const rackA = (RS.getRackById ? RS.getRackById(hostRackId) : null) || (STATE.rackById?.get(hostRackId)) || STATE.racks?.find(r => r.id === hostRackId) || activeRack;
       const devA = RS.getDeviceById ? RS.getDeviceById(instA) : (rackA?.devices?.find(d => d.instanceId === instA) || activeRack?.devices?.find(d => d.instanceId === instA));
       const devB = RS.getDeviceById ? RS.getDeviceById(instB) : (rackA?.devices?.find(d => d.instanceId === instB) || activeRack?.devices?.find(d => d.instanceId === instB));
-      const orgA = findDeviceOrganizer(rackA, devA);
-      const orgB = findDeviceOrganizer(rackA, devB);
+      const orgA = findDeviceOrganizer(rackA, devA, portIdA, devB);
+      const orgB = findDeviceOrganizer(rackA, devB, portIdB, devA);
+      const exitDirA = getPortExitDir(devA, portIdA);
+      const exitDirB = getPortExitDir(devB, portIdB);
 
       const bounds = getRackRailBounds(rackA?.id, canvasRect, stageW, stageH);
       const rackCenterLine = (bounds.left + bounds.right) / 2;
@@ -353,8 +375,8 @@
       const bundleIdx = isRight ? usageA.right++ : usageA.left++;
       const channelX = (isRight ? bounds.right : bounds.left) + svgRailOffset(bundleIdx, true);
 
-      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH);
-      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH);
+      let trayYA = getCachedOrgY(orgA, y1, y2, canvasRect, stageW, stageH, exitDirA);
+      let trayYB = getCachedOrgY(orgB, y2, y1, canvasRect, stageW, stageH, exitDirB);
 
       trayYA += svgTrayOffset(bundleIdx, true);
       trayYB += svgTrayOffset(bundleIdx, true);

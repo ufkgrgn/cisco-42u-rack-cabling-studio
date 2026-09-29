@@ -225,7 +225,7 @@
     });
   }
 
-  function findDeviceOrganizer(activeRack, dev) {
+  function findDeviceOrganizer(activeRack, dev, portId, targetDev) {
     const orgs = getActiveOrganizers(activeRack);
     if (!orgs.length || !dev) return null;
     let devTop = Number(dev.topU);
@@ -244,6 +244,40 @@
       }
     }
     const devBot = devTop - Number(dev.uHeight || 1) + 1;
+    const cat = HARDWARE_CATALOG[dev.catalogKey];
+    const isSingleRowPatch = cat?.category === 'patch' && (dev.uHeight || 1) === 1;
+
+    // Dual-row switch / device split exit: odd ports exit UP, even ports exit DOWN
+    if (!isSingleRowPatch && portId) {
+      const pStr = String(portId).toLowerCase();
+      const numMatch = pStr.match(/\d+/);
+      const portNum = numMatch ? parseInt(numMatch[0], 10) : 1;
+      const isOdd = portNum % 2 !== 0;
+
+      if (isOdd) {
+        const directlyAbove = orgs.find(org => Number(org.topU) === devTop + 1);
+        if (directlyAbove) return directlyAbove;
+        const nearestAbove = orgs.filter(org => Number(org.topU) > devTop).sort((a, b) => Number(a.topU) - Number(b.topU))[0];
+        if (nearestAbove && Number(nearestAbove.topU) - devTop <= 3) return nearestAbove;
+      } else {
+        const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
+        if (directlyBelow) return directlyBelow;
+        const nearestBelow = orgs.filter(org => Number(org.topU) < devBot).sort((a, b) => Number(b.topU) - Number(a.topU))[0];
+        if (nearestBelow && devBot - Number(nearestBelow.topU) <= 3) return nearestBelow;
+      }
+    }
+
+    // Directional preference towards target device
+    const targetTop = targetDev ? Number(targetDev.topU) : null;
+    if (targetTop !== null) {
+      if (targetTop > devTop) {
+        const directlyAbove = orgs.find(org => Number(org.topU) === devTop + 1);
+        if (directlyAbove) return directlyAbove;
+      } else if (targetTop < devBot) {
+        const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
+        if (directlyBelow) return directlyBelow;
+      }
+    }
 
     // 1. Directly adjacent below
     const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
