@@ -56,8 +56,16 @@
     bindHeaderActionEvents();
     bindRoutingSelectorEvents();
     bindGlobalEvents();
+    // Auto-save on every change event
+    document.addEventListener('rackstudio:change', () => {
+      if (RS.autosaveTopology && !STATE.isBatchLoading) RS.autosaveTopology();
+    });
     bindZoomAndPanEvents();
-    loadMdfPreset();
+    // Restore autosaved session; fall back to MDF demo preset on first launch
+    const _restored = RS.loadAutosaveTopology ? RS.loadAutosaveTopology() : false;
+    if (!_restored) {
+      loadMdfPreset();
+    }
 
     requestAnimationFrame(() => {
       fitRackToScreen(false);

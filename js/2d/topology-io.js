@@ -241,9 +241,54 @@
     return true;
   }
 
+
+  const AUTOSAVE_KEY = 'rackstudio_2d_autosave';
+
+  function autosaveTopology() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const data = {
+        version: '4.0-studio',
+        customCatalog: STATE.customCatalog,
+        portGeometryOverrides: RS.exportPortGeometryOverrides?.() || {},
+        timestamp: new Date().toISOString(),
+        activeRackId: STATE.activeRackId,
+        viewMode: STATE.viewMode || 'single',
+        cableRoutingMode: STATE.cableRoutingMode || 'structured',
+        racks: STATE.racks,
+        cables: STATE.cables
+      };
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    } catch (_) { /* storage full or blocked */ }
+  }
+
+  function loadAutosaveTopology() {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      // Only restore if there's at least one device in any rack
+      if (!parsed || !Array.isArray(parsed.racks) || !parsed.racks.some(r => r.devices && r.devices.length > 0)) return false;
+      loadCustomTopology(parsed);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearAutosaveTopology() {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(AUTOSAVE_KEY);
+    } catch (_) {}
+  }
+
   RS.exportVisioSvg = exportVisioSvg;
   RS.exportJson = exportJson;
   RS.validateTopology = validateTopology;
   RS.refresh = refresh;
   RS.loadCustomTopology = loadCustomTopology;
+  RS.autosaveTopology = autosaveTopology;
+  RS.loadAutosaveTopology = loadAutosaveTopology;
+  RS.clearAutosaveTopology = clearAutosaveTopology;
 })();
