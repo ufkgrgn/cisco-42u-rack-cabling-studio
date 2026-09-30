@@ -22,7 +22,7 @@
         x: left + Math.floor(slot / 2) * stride,
         y: slot % 2 ? 0.64 : 0.36,
         width: Math.min(isUplink ? 0.025 : 0.027, stride * 0.72 || 0.025),
-        height: 0.16,
+        height: 0.24,
         face: 'front'
       });
     });
@@ -58,7 +58,7 @@
         x: 0.25 + index * (0.68 / 23),
         y: 0.5,
         width: 0.021,
-        height: 0.19,
+        height: 0.27,
         face: 'front'
       })))
     });

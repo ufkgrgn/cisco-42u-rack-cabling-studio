@@ -811,3 +811,18 @@
   color: #334155;
 }
 
+/* Semantic LOD transitions for organizer text */
+.brush-tag,
+.finger-duct-tag,
+.blank-panel-label,
+.blank-faceplate-label {
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-lod="macro"] .brush-tag,
+[data-lod="macro"] .finger-duct-tag,
+[data-lod="macro"] .blank-panel-label,
+[data-lod="macro"] .blank-faceplate-label {
+  opacity: 0;
+}
+

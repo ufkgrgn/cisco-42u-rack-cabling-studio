@@ -258,6 +258,7 @@
     const btn = document.getElementById('btn-2d-face-toggle');
     if (btn) {
       btn.classList.toggle('active', nextFace === 'rear');
+      btn.setAttribute('aria-pressed', String(nextFace === 'rear'));
       let textSpan = btn.querySelector('.btn-text');
       if (!textSpan) {
         textSpan = document.createElement('span');

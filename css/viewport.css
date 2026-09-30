@@ -277,15 +277,16 @@
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  /* The complete rack is a retained scene. Keep its transform on the
-     compositor instead of repainting thousands of DOM/SVG descendants. */
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
   image-rendering: -webkit-optimize-contrast;
+}
+
+.rack-stage.zooming-active,
+.rack-stage.panning-active,
+.rack-stage.focusing-active {
+  will-change: transform;
 }
 
 .device-label, .u-marker, .u-number, .port-label, .device-title, .rack-rail, .device-chassis, .u-label, .bezel-logo, .bezel-model {

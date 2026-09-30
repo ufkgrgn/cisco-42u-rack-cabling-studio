@@ -16,7 +16,7 @@
     sidebarScrim.setAttribute('aria-label', 'Donanım kataloğunu kapat');
     document.body.append(sidebarScrim);
 
-    const isOverlaySidebar = () => window.matchMedia('(max-width: 1199px)').matches;
+    const isOverlaySidebar = () => window.matchMedia('(max-width: 1399px)').matches;
     const isCompactDrawer = () => window.matchMedia('(max-width: 1023px)').matches;
 
     function syncCompactDrawerAccess() {

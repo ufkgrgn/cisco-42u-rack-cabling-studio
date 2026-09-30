@@ -247,10 +247,10 @@
 }
 
 .cisco-pill.active {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: var(--border-strong, #474e57);
+  border-color: var(--border-strong, #5a626d);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Cards Grid */

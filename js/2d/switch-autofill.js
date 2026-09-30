@@ -20,6 +20,36 @@
   const renderAllCables = () => RS.renderAllCables && RS.renderAllCables();
   const getNextCableId = () => (RS.getNextCableId ? RS.getNextCableId() : 'cable-' + Date.now());
 
+  function bindDevicePopover(popover, triggerBtn, label) {
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-label', label);
+    triggerBtn.setAttribute('aria-expanded', 'true');
+    const close = (restoreFocus = false) => {
+      document.removeEventListener('click', onOutside);
+      document.removeEventListener('keydown', onKeydown, true);
+      triggerBtn.setAttribute('aria-expanded', 'false');
+      popover.remove();
+      if (restoreFocus && triggerBtn.isConnected) triggerBtn.focus();
+    };
+    const onOutside = event => {
+      if (!popover.contains(event.target) && !triggerBtn.contains(event.target)) close();
+    };
+    const onKeydown = event => {
+      if (event.key === 'Escape' && popover.isConnected) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close(true);
+      }
+    };
+    popover.closePopover = close;
+    document.addEventListener('keydown', onKeydown, true);
+    setTimeout(() => {
+      if (popover.isConnected) document.addEventListener('click', onOutside);
+    }, 0);
+    popover.querySelector('button:not([disabled]), select, input')?.focus();
+    return close;
+  }
+
   function bulkColorizeSwitchCables(instanceId, newColor) {
     if (!instanceId || !newColor) return 0;
     const targetCables = (STATE.cables || []).filter(c =>
@@ -54,7 +84,10 @@
   }
 
   function openSwitchBulkColorPopover(triggerBtn, instanceId) {
-    document.querySelectorAll('.switch-bulk-color-popover, .role-picker-popover').forEach(p => p.remove());
+    document.querySelectorAll('.switch-autofill-popover, .switch-bulk-color-popover, .role-picker-popover').forEach(p => {
+      if (p.closePopover) p.closePopover();
+      else p.remove();
+    });
 
     const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
     const dev = allDevices.find(d => d.instanceId === instanceId);
@@ -114,6 +147,7 @@
     `;
 
     document.body.appendChild(popover);
+    const closePopover = bindDevicePopover(popover, triggerBtn, 'Kablo renkleri');
 
     // Positioning
     const rect = triggerBtn.getBoundingClientRect();
@@ -135,7 +169,7 @@
     // Events
     popover.querySelector('.bulk-color-close').addEventListener('click', (e) => {
       e.stopPropagation();
-      popover.remove();
+      closePopover(true);
     });
 
     popover.querySelectorAll('.bulk-color-swatch').forEach(btn => {
@@ -143,7 +177,7 @@
         e.stopPropagation();
         const color = btn.dataset.color;
         bulkColorizeSwitchCables(instanceId, color);
-        popover.remove();
+        closePopover(true);
       });
     });
 
@@ -161,17 +195,10 @@
       applyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         bulkColorizeSwitchCables(instanceId, customInput.value);
-        popover.remove();
+        closePopover(true);
       });
     }
 
-    const outsideClick = (e) => {
-      if (!popover.contains(e.target) && e.target !== triggerBtn) {
-        popover.remove();
-        document.removeEventListener('click', outsideClick);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', outsideClick), 0);
   }
 
   // --- SWITCH-BASED SMART AUTO-FILL (SEQUENTIAL DOMINO PATCHING) ---
@@ -238,7 +265,10 @@
   }
 
   function openSwitchAutoFillPopover(triggerBtn, instanceId) {
-    document.querySelectorAll('.switch-autofill-popover, .switch-bulk-color-popover, .role-picker-popover').forEach(p => p.remove());
+    document.querySelectorAll('.switch-autofill-popover, .switch-bulk-color-popover, .role-picker-popover').forEach(p => {
+      if (p.closePopover) p.closePopover();
+      else p.remove();
+    });
 
     const allDevices = STATE.racks ? STATE.racks.flatMap(r => r.devices || []) : [];
     const dev = allDevices.find(d => d.instanceId === instanceId);
@@ -334,16 +364,6 @@
       pop.style.left = `${Math.round(left)}px`;
     };
 
-    const setupOutsideClick = (pop) => {
-      const outsideClick = (e) => {
-        if (!pop.contains(e.target) && e.target !== triggerBtn) {
-          pop.remove();
-          document.removeEventListener('click', outsideClick);
-        }
-      };
-      setTimeout(() => document.addEventListener('click', outsideClick), 0);
-    };
-
     if (candidates.length === 0) {
       popover.innerHTML = `
         <div class="autofill-pop-header">
@@ -364,9 +384,9 @@
       `;
       document.body.appendChild(popover);
       positionPopover(popover);
-      popover.querySelector('.autofill-pop-close').addEventListener('click', () => popover.remove());
-      popover.querySelector('.autofill-pop-btn-cancel').addEventListener('click', () => popover.remove());
-      setupOutsideClick(popover);
+      const closePopover = bindDevicePopover(popover, triggerBtn, 'Otomatik kablolama');
+      popover.querySelector('.autofill-pop-close').addEventListener('click', () => closePopover(true));
+      popover.querySelector('.autofill-pop-btn-cancel').addEventListener('click', () => closePopover(true));
       return;
     }
 
@@ -424,6 +444,7 @@
 
     document.body.appendChild(popover);
     positionPopover(popover);
+    const closePopover = bindDevicePopover(popover, triggerBtn, 'Otomatik kablolama');
 
     const targetSelect = popover.querySelector('#autofill-target-select');
     const excludeUplinksCb = popover.querySelector('#autofill-exclude-uplinks');
@@ -527,7 +548,7 @@
       const res = calculatePairs();
       if (!res || !res.pairs || res.pairs.length === 0) return;
 
-      popover.remove();
+      closePopover();
       runSequentialAutoPatch({
         rackId: rack.id,
         srcDev: dev,
@@ -537,9 +558,8 @@
       });
     });
 
-    popover.querySelector('.autofill-pop-close').addEventListener('click', () => popover.remove());
-    popover.querySelector('.autofill-pop-btn-cancel').addEventListener('click', () => popover.remove());
-    setupOutsideClick(popover);
+    popover.querySelector('.autofill-pop-close').addEventListener('click', () => closePopover(true));
+    popover.querySelector('.autofill-pop-btn-cancel').addEventListener('click', () => closePopover(true));
   }
 
   function runSequentialAutoPatch(options) {

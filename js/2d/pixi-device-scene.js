@@ -129,7 +129,9 @@
     if (!rect?.width || !rect?.height) return null;
     const point = PixiContext.clientToRenderer ? PixiContext.clientToRenderer(clientX, clientY, rect, hitTestPoint) : hitTestPoint;
     const scale = Math.max(0.05, Number(RS.ZOOM_STATE?.scale) || 1);
-    const tolerance = Math.max(2, (scale < 0.35 ? 8 : 2.5) / scale);
+    const isConnecting = !!STATE.pendingConnection;
+    const baseTolerance = (scale < 0.35 ? 8 : 2.5) / scale;
+    const tolerance = isConnecting ? Math.max(6 / scale, baseTolerance * 1.5) : Math.max(2, baseTolerance);
     const cellRadius = Math.ceil(tolerance / DEVICE_PORT_HIT_CELL_SIZE);
     const centerX = Math.floor(point.x / DEVICE_PORT_HIT_CELL_SIZE);
     const centerY = Math.floor(point.y / DEVICE_PORT_HIT_CELL_SIZE);
@@ -146,7 +148,7 @@
           const dx = point.x - portX;
           const dy = point.y - portY;
           const distance = dx * dx + dy * dy;
-          const radius = Math.max(tolerance, Math.max(port.width, port.height) * 0.65);
+          const radius = Math.max(tolerance, Math.max(port.width, port.height) * (isConnecting ? 0.95 : 0.65));
           if (distance > radius * radius || distance >= bestDistance) continue;
           best = port;
           bestDistance = distance;
@@ -220,13 +222,21 @@
   function applyPortTint(sprite, key, port, isOccupied) {
     const pending = STATE.pendingConnection;
     const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
-    if (isSelected || key === hoveredDevicePortKey) {
-      sprite.tint = 0x67e8f9;
+    if (isSelected) {
+      sprite.tint = 0x38bdf8;
+      return;
+    }
+    if (key === hoveredDevicePortKey) {
+      sprite.tint = pending ? 0x00f0ff : 0x67e8f9;
       return;
     }
     const roleColor = port ? getDevicePortRoleColor(port.instanceId, port.portId) : null;
     if (roleColor !== null) {
       sprite.tint = roleColor;
+      return;
+    }
+    if (isOccupied) {
+      sprite.tint = 0x22c55e;
       return;
     }
     sprite.tint = 0xffffff;

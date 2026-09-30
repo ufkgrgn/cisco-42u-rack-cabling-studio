@@ -383,7 +383,7 @@
       const iconCables = window.getLucideIconSvg ? window.getLucideIconSvg('Unplug', 12) : '';
       const iconDevices = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '';
       const iconDuplicate = window.getLucideIconSvg ? window.getLucideIconSvg('Copy', 12) : '';
-      const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '✕';
+      const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('X', 12) : '✕';
 
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
@@ -500,7 +500,7 @@
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (RS.deleteRack) RS.deleteRack(activeRack.id);
+            if (RS.deleteRack) RS.deleteRack(activeRack.id, delBtn);
           });
         }
         const dupBtn = sHdr.querySelector('.rack-hdr-duplicate');
@@ -580,7 +580,7 @@
         const iconCables = window.getLucideIconSvg ? window.getLucideIconSvg('Unplug', 12) : '';
         const iconDevices = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '';
         const iconDuplicate = window.getLucideIconSvg ? window.getLucideIconSvg('Copy', 12) : '';
-        const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '✕';
+        const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('X', 12) : '✕';
         headerPlate.innerHTML = `
           <div class="rack-header-top-tier">
             <span class="rack-header-title">
@@ -692,7 +692,7 @@
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (RS.deleteRack) RS.deleteRack(rack.id);
+            if (RS.deleteRack) RS.deleteRack(rack.id, delBtn);
           });
         }
 

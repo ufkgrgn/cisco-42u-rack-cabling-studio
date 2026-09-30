@@ -54,6 +54,8 @@
     }
     dom.btnViewModeSingle?.classList.toggle('active', STATE.viewMode === 'single');
     dom.btnViewModeMulti?.classList.toggle('active', STATE.viewMode === 'multi');
+    dom.btnViewModeSingle?.setAttribute('aria-pressed', String(STATE.viewMode === 'single'));
+    dom.btnViewModeMulti?.setAttribute('aria-pressed', String(STATE.viewMode === 'multi'));
     renderRackRailsAndSlots(handleSlotClick);
     bindCatalogEvents();
     bindColorSwatchEvents();
@@ -265,6 +267,8 @@
     }
     dom.btnViewModeSingle?.classList.toggle('active', mode === 'single');
     dom.btnViewModeMulti?.classList.toggle('active', mode === 'multi');
+    dom.btnViewModeSingle?.setAttribute('aria-pressed', String(mode === 'single'));
+    dom.btnViewModeMulti?.setAttribute('aria-pressed', String(mode === 'multi'));
     renderRackRailsAndSlots(handleSlotClick);
     renderMountedDevices();
     renderAllCables();

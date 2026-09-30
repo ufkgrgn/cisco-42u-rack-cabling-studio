@@ -204,8 +204,8 @@
   transform: translateX(-50%);
   width: 140px;
   height: 14px;
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid #334155;
+  background: linear-gradient(180deg, var(--rack-post) 0%, var(--bg-inset) 100%);
+  border: 1px solid var(--border);
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   cursor: ns-resize;
@@ -295,16 +295,17 @@
   max-width: 210px;
 }
 .multi-rack-stage .rack-action-label {
-  display: none;
+  display: inline;
 }
 .multi-rack-stage .rack-action-btn {
-  width: 24px;
-  min-width: 24px;
+  width: auto;
+  min-width: 0;
   height: 22px;
-  padding: 0;
+  padding: 2px 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 3px;
 }
 .multi-rack-stage .rack-action-icon {
   font-size: 11px;

@@ -368,12 +368,16 @@
     toolsToggle?.addEventListener('click', (e) => {
       e.stopPropagation();
       setToolsOpen(toolsPanel?.hidden !== false);
+      if (!toolsPanel.hidden) toolsPanel.querySelector('button:not([disabled])')?.focus();
     });
     document.addEventListener('click', (e) => {
       if (!toolsMenu?.contains(e.target)) setToolsOpen(false);
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') setToolsOpen(false);
+      if (e.key === 'Escape' && !toolsPanel?.hidden) {
+        setToolsOpen(false);
+        toolsToggle?.focus();
+      }
     });
     toolsPanel?.addEventListener('click', (e) => {
       const btn = e.target.closest('button');

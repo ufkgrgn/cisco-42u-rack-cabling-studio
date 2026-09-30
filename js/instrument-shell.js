@@ -84,6 +84,7 @@
       compactViewPanel.querySelectorAll('[data-shortcut-for]').forEach(button => {
         button.setAttribute('aria-pressed', String(document.getElementById(button.dataset.shortcutFor)?.classList.contains('active') || false));
       });
+      if (!compactViewPanel.hidden) compactViewPanel.querySelector('button:not([disabled])')?.focus();
     });
     compactViewPanel?.addEventListener('click', event => {
       if (!event.target.closest('[data-shortcut-for]')) return;

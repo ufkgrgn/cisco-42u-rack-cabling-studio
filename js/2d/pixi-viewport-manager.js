@@ -47,10 +47,12 @@
     batchDisplayCount: 0
   };
 
+  const getDeviceDpr = () => (typeof window !== 'undefined' && window.devicePixelRatio ? Math.min(2, Math.max(1, window.devicePixelRatio)) : 1);
+
   const PIXI_PERFORMANCE_PROFILES = Object.freeze({
-    eco: Object.freeze({ resolution: 1, interactionResolution: 0.75, pixelBudget: 4_000_000 }),
-    balanced: Object.freeze({ resolution: 1.5, interactionResolution: 1, pixelBudget: 8_000_000 }),
-    quality: Object.freeze({ resolution: 2, interactionResolution: 1.25, pixelBudget: 12_000_000 })
+    eco: Object.freeze({ resolution: 1, interactionResolution: 1, pixelBudget: 16_000_000 }),
+    balanced: Object.freeze({ resolution: Math.min(1.5, getDeviceDpr()), interactionResolution: 1, pixelBudget: 24_000_000 }),
+    quality: Object.freeze({ resolution: Math.min(2, getDeviceDpr()), interactionResolution: Math.min(1.5, getDeviceDpr()), pixelBudget: 36_000_000 })
   });
 
   let pixiPerformanceMode = 'balanced';
@@ -219,10 +221,9 @@
 
   function calculatePixiResolution(width, height, interaction = interactionResolutionActive) {
     const profile = PIXI_PERFORMANCE_PROFILES[pixiPerformanceMode] || PIXI_PERFORMANCE_PROFILES.balanced;
-    // Keep port textures stable while the camera moves. Quality changes are explicit.
-    const requested = profile.resolution;
+    const requested = interaction ? profile.interactionResolution : profile.resolution;
     const pixelCap = Math.sqrt(profile.pixelBudget / Math.max(1, width * height));
-    return Math.max(0.75, Math.round(Math.min(requested, pixelCap) * 4) / 4);
+    return Math.max(1, Math.round(Math.min(requested, pixelCap) * 4) / 4);
   }
 
   function renderPixi(reason = 'unspecified') {

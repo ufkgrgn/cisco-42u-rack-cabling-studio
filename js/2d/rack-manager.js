@@ -289,9 +289,10 @@
     }
   }
 
-  function deleteRack(rackId) {
+  function deleteRack(rackId, targetBtn = null) {
     if (RS.STATE.racks.length <= 1) {
-      alert("En az bir kabin bulunmalıdır!");
+      if (RS.showToast) RS.showToast('En az bir kabin bulunmalıdır!', 'warn');
+      else alert('En az bir kabin bulunmalıdır!');
       return;
     }
     const rackToDelete = RS.STATE.racks.find(r => r.id === rackId);
@@ -302,15 +303,7 @@
       ? RS.STATE.cables.filter(c => c.from.rackId === rackId || c.to.rackId === rackId).length
       : 0;
 
-    let confirmMsg = `"${rackToDelete.name}" kabinini silmek istediğinize emin misiniz?`;
-    if (deviceCount > 0 || cableCount > 0) {
-      const parts = [];
-      if (deviceCount > 0) parts.push(`${deviceCount} cihaz`);
-      if (cableCount > 0) parts.push(`${cableCount} kablo bağlantısı`);
-      confirmMsg += `\n\n⚠️ Bu kabinde ${parts.join(' ve ')} bulunmaktadır. Bunların tamamı silinecektir.`;
-    }
-
-    if (confirm(confirmMsg)) {
+    const performDelete = () => {
       const shouldRefit = !!RS.ZOOM_STATE?.isFit;
       // Remove cables attached to this rack
       RS.STATE.cables = RS.STATE.cables.filter(c => c.from.rackId !== rackId && c.to.rackId !== rackId);
@@ -339,6 +332,7 @@
       }
       renderRackTabs();
       if (RS.renderScheduleTable) RS.renderScheduleTable();
+      if (RS.showToast) RS.showToast(`"${rackToDelete.name}" kabini silindi`, 'info');
       document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
       requestAnimationFrame(() => {
         if (shouldRefit || switchingToSingle) RS.fitRackToScreen?.(false);
@@ -347,6 +341,24 @@
           RS.renderAllCables?.();
         });
       });
+    };
+
+    let msg = `<strong>${RS.escapeHtml(rackToDelete.name)}</strong> kabini kaldırılacaktır.`;
+    if (deviceCount > 0 || cableCount > 0) {
+      const parts = [];
+      if (deviceCount > 0) parts.push(`<strong>${deviceCount} cihaz</strong>`);
+      if (cableCount > 0) parts.push(`<strong>${cableCount} kablo</strong>`);
+      msg = `<strong>${RS.escapeHtml(rackToDelete.name)}</strong> kabinindeki ${parts.join(' ve ')} dahil tüm yapı kalıcı olarak silinecektir.`;
+    }
+
+    if (targetBtn && RS.showInlineDeleteConfirm) {
+      RS.showInlineDeleteConfirm(targetBtn, rackToDelete.name, {
+        title: 'Kabini sil?',
+        msg,
+        confirmText: 'Kabini sil'
+      }, performDelete);
+    } else if (confirm(`"${rackToDelete.name}" kabinini silmek istediğinize emin misiniz?`)) {
+      performDelete();
     }
   }
 

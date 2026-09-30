@@ -10,7 +10,6 @@
   let lastTransitionValue = null;
   let lastTransformValue = null;
   let lastZoomBadgeValue = null;
-  let pixiResolutionRefreshTimer = null;
   const CAMERA_FRAME_INTERVAL_MS = 1000 / 60;
   const cameraPerformanceTelemetry = {
     panFrameCommits: 0,
@@ -32,19 +31,6 @@
     cameraPerformanceTelemetry.totalRackSyncDurationMs = 0;
     cameraPerformanceTelemetry.totalPixiSyncDurationMs = 0;
     cameraPerformanceTelemetry.commitDurations.length = 0;
-  }
-
-  function schedulePixiResolutionRefresh(scale, delay = 220) {
-    if (pixiResolutionRefreshTimer) clearTimeout(pixiResolutionRefreshTimer);
-    pixiResolutionRefreshTimer = setTimeout(() => {
-      pixiResolutionRefreshTimer = null;
-      if (RS.ZOOM_STATE?.isPanning || RS.ZOOM_STATE?.isFocusing || RS.dom?.rackStage?.classList.contains('zooming-active')) {
-        schedulePixiResolutionRefresh(RS.ZOOM_STATE?.scale || scale, delay);
-        return;
-      }
-      RS.setPixiInteractionMode?.(false);
-      RS.updatePixiResolutionForZoom?.(scale);
-    }, delay);
   }
 
   function ensureStageTransitionListener() {
@@ -90,18 +76,17 @@
       RS.dom.zoomBadge.textContent = zoomBadgeValue;
       lastZoomBadgeValue = zoomBadgeValue;
     }
-    // Resize the Pixi backing buffer once the gesture/animation settles so
-    // high zoom stays sharp without reallocating GPU surfaces on every frame.
-    if (lastDispatchedScale !== RS.ZOOM_STATE.scale) {
-      schedulePixiResolutionRefresh(RS.ZOOM_STATE.scale);
-      lastDispatchedScale = RS.ZOOM_STATE.scale;
-    }
 
-    // Dynamic 2D Level of Detail (LOD) tiering
-    const currentLod = RS.ZOOM_STATE.scale < 0.35 ? 'macro' : 'detail';
+    // Dynamic 2D Level of Detail (LOD) tiering with smooth crossfade
+    let currentLod = 'detail';
+    if (RS.ZOOM_STATE.scale < 0.48) {
+      currentLod = 'macro';
+    } else if (RS.ZOOM_STATE.scale < 0.72) {
+      currentLod = 'medium';
+    }
     if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
       RS.dom.rackStage.setAttribute('data-lod', currentLod);
-      RS.syncPixiDeviceSceneLOD?.(currentLod);
+      RS.syncPixiDeviceSceneLOD?.(currentLod === 'macro' ? 'macro' : 'detail');
     }
     const commitDuration = performance.now() - commitStarted;
     cameraPerformanceTelemetry.transformCommits++;
@@ -151,7 +136,6 @@
       RS.ZOOM_STATE.scale = parseFloat(targetScale.toFixed(3));
       RS.ZOOM_STATE.panX = Math.round(targetPanX);
       RS.ZOOM_STATE.panY = Math.round(targetPanY);
-      RS.ZOOM_STATE.isFit = true;
       updateStageTransform(false);
       scheduleViewportContentRefresh(0);
     }
@@ -193,7 +177,6 @@
       RS.ZOOM_STATE.panX = nextPanX;
       RS.ZOOM_STATE.panY = nextPanY;
       RS.ZOOM_STATE.scale = parseFloat(nextScale.toFixed(3));
-      RS.ZOOM_STATE.isFit = false;
       updateStageTransform(false);
       scheduleViewportContentRefresh(120);
     }
@@ -302,7 +285,7 @@
         activeCameraAnimId = 0;
         RS.ZOOM_STATE.isFocusing = false;
         RS.dom?.rackStage?.classList.remove('focusing-active');
-        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
+        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE, true, 'focus-complete');
         scheduleViewportContentRefresh(80);
         options.onComplete?.();
       }
@@ -373,7 +356,7 @@
         applyPendingPan();
       }
       RS.ZOOM_STATE.isPanning = false;
-      RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
+      RS.syncPixiViewportCamera?.(RS.ZOOM_STATE, true, 'pan-end');
       canvas.classList.remove('panning');
       if (panCleanupTimer) {
         clearTimeout(panCleanupTimer);
@@ -416,11 +399,24 @@
       wheelCleanupTimer = setTimeout(() => {
         RS.dom?.rackStage?.classList.remove('zooming-active');
         canvas.classList.remove('zooming');
-        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE);
+        RS.updatePixiResolutionForZoom?.(RS.ZOOM_STATE.scale);
+        RS.syncPixiViewportCamera?.(RS.ZOOM_STATE, true, 'zoom-settled');
         cachedCanvasRect = null;
         wheelCleanupTimer = 0;
       }, 150);
     }, { passive: false });
+
+    // A floating menu disables rack pointer targets, but wheel zoom must still
+    // reach the canvas when the pointer is over the exposed viewport area.
+    document.addEventListener('wheel', (e) => {
+      if (!e.isTrusted || getComputedStyle(canvas).pointerEvents !== 'none') return;
+      if (e.target.closest('.instrument-overlay, .hud-tools-panel, .cable-context-menu, .device-context-menu')) return;
+      const rect = canvas.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX >= rect.right || e.clientY < rect.top || e.clientY >= rect.bottom) return;
+      e.preventDefault();
+      if (typeof cancelCameraAnimation === 'function') cancelCameraAnimation();
+      setZoom(RS.ZOOM_STATE.scale * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX, e.clientY, false);
+    }, { capture: true, passive: false });
 
     let panOriginClientX = 0;
     let panOriginClientY = 0;

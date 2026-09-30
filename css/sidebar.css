@@ -185,8 +185,8 @@
 
 .drawer-hint {
   padding: 4px 10px;
-  background: rgba(15, 23, 42, 0.6);
-  border-bottom: 1px solid #1a2333;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
   font-size: 0.65rem;
   color: var(--text-muted);
   display: flex;
@@ -245,28 +245,28 @@
   width: 5px;
 }
 .sidebar-left::-webkit-scrollbar-track {
-  background: rgba(11, 15, 25, 0.5);
+  background: var(--bg-inset);
 }
 .sidebar-left::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.3);
+  background: var(--border-strong);
   border-radius: 4px;
 }
 .sidebar-left::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-blue);
+  background: var(--text-muted);
 }
 
 .sidebar-collapse-tools {
   display: flex;
   gap: 6px;
   padding: 8px 14px;
-  background: rgba(11, 15, 25, 0.5);
+  background: var(--bg-panel);
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .sidebar-tool-btn {
   flex: 1;
-  background: rgba(36, 48, 72, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   color: var(--text-muted);
   border-radius: 4px;
   padding: 4px 6px;
@@ -277,9 +277,9 @@
   white-space: nowrap;
 }
 .sidebar-tool-btn:hover {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: var(--accent-blue);
-  color: #fff;
+  background: var(--bg-panel-light);
+  border-color: var(--border-strong);
+  color: var(--text-main);
 }
 
 .panel-section {
@@ -301,8 +301,8 @@ details.collapsible-section summary.section-title {
   justify-content: space-between;
   align-items: center;
   user-select: none;
-  background: #090e18;
-  border-bottom: 1px solid #1a2333;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
   font-size: 0.68rem;
   transition: background 0.15s ease, color 0.15s ease;
   position: sticky;
@@ -313,15 +313,15 @@ details.collapsible-section summary.section-title::-webkit-details-marker {
   display: none;
 }
 details.collapsible-section summary.section-title:hover {
-  background: rgba(56, 189, 248, 0.12);
-  color: #fff;
+  background: var(--bg-panel-light);
+  color: var(--text-main);
 }
 
 details.collapsible-section summary.section-title::after {
   content: '▾';
   font-size: 0.85rem;
   transition: transform 0.2s ease;
-  color: var(--accent-blue);
+  color: var(--text-muted);
   margin-left: 6px;
 }
 details.collapsible-section:not([open]) summary.section-title::after {
@@ -332,9 +332,9 @@ details.collapsible-section:not([open]) summary.section-title::after {
   font-size: 0.65rem;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  color: var(--accent-blue);
+  background: var(--bg-panel-light);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   font-weight: 700;
   margin-left: auto;
   margin-right: 8px;

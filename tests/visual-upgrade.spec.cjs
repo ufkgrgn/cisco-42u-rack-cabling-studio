@@ -406,6 +406,7 @@ test('circuit trace stops at unknown panel wiring and continues after explicit m
   expect(before.hops.filter(hop => hop.type === 'cable')).toHaveLength(1);
   expect(before.stops.join(' ')).toContain('tanımlı değil');
   await page.evaluate(() => window.RackStudio.CircuitTrace.open('A'));
+  await page.locator('.circuit-trace-editor summary').click();
   await page.locator('#trace-port-a').selectOption('pt1');
   await page.locator('#trace-port-b').selectOption('pt2');
   await page.getByRole('button', { name: 'Eşle' }).click();
@@ -617,4 +618,248 @@ test('phone 3D view exposes camera presets and zoom', async ({ browser }) => {
   await page.locator('.mobile-3d-controls [data-camera-action="zoom-in"]').click();
   expect(await page.evaluate(() => window.__STUDIO3D__.camera.position.z)).toBeLessThan(before);
   await page.close();
+});
+
+test('2D panels clear the header and menus block rack pointer targets', async ({ browser }) => {
+  for (const width of [1200, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 800 } });
+    await page.goto(baseUrl);
+    await page.waitForFunction(() => window.RackStudio?.toggleActiveFace && window.setToolsOpen);
+    await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
+    await page.waitForTimeout(250);
+    const initial = await page.evaluate(() => {
+      const header = document.querySelector('.unified-header').getBoundingClientRect();
+      const left = document.querySelector('.sidebar-left').getBoundingClientRect();
+      const right = document.querySelector('.sidebar-right').getBoundingClientRect();
+      const card = document.querySelector('.sidebar-left .device-card');
+      return {
+        headerBottom: header.bottom, leftTop: left.top, rightTop: right.top,
+        leftWidth: left.width, viewportWidth: document.querySelector('#rack-viewport').clientWidth,
+        cardBackground: getComputedStyle(card).backgroundColor,
+        panelBackground: getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim(),
+        railUsesLucide: !!document.querySelector('.rail-btn .rail-icon svg.ui-icon')
+      };
+    });
+    expect(initial.leftTop).toBe(initial.headerBottom);
+    expect(initial.rightTop).toBe(initial.headerBottom);
+    expect(initial.railUsesLucide).toBe(true);
+    expect(initial.cardBackground).toBe('rgb(28, 27, 25)');
+    if (width === 1200) {
+      expect(initial.leftWidth).toBe(44);
+      expect(initial.viewportWidth).toBeGreaterThan(700);
+      await page.evaluate(() => window.setLeftSidebarCollapsed(false));
+      await expect.poll(() => page.locator('.sidebar-left').evaluate(el => el.getBoundingClientRect().left)).toBe(0);
+      await page.evaluate(() => window.setLeftSidebarCollapsed(true));
+    }
+    await page.evaluate(() => document.querySelector('#btn-2d-face-toggle').click());
+    await expect(page.locator('#btn-2d-face-toggle')).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => window.RackStudio.STATE.activeFace)).toBe('rear');
+    await page.evaluate(() => window.setToolsOpen(true));
+    expect(await page.locator('#rack-viewport').evaluate(el => getComputedStyle(el).pointerEvents)).toBe('none');
+    const beforeWheel = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
+    await page.mouse.move(Math.min(width / 2, 700), 400);
+    await page.mouse.wheel(0, -300);
+    await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.scale)).toBeGreaterThan(beforeWheel);
+    await page.evaluate(() => window.setToolsOpen(false));
+    const openCanvasZoom = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.scale)).toBeLessThan(openCanvasZoom);
+    await page.close();
+  }
+});
+test('2D device actions keep fixed screen size and ports retain readable proportions', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const deviceId = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    RS.refresh();
+    const id = RS.STATE.racks[0].devices[0].instanceId;
+    document.getElementById(id).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    return id;
+  });
+  const toolbar = page.locator('#device-floating-controls');
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar.locator('button[aria-label]')).toHaveCount(3);
+  const initial = await toolbar.boundingBox();
+  await page.evaluate(() => {
+    window.RackStudio.ZOOM_STATE.scale = 0.2;
+    window.RackStudio.updateDeviceFloatingControlsPosition(window.RackStudio.getActiveFloatingDeviceId());
+  });
+  const zoomed = await toolbar.boundingBox();
+  expect(Math.abs(initial.width - zoomed.width)).toBeLessThan(1);
+  expect(Math.abs(initial.height - zoomed.height)).toBeLessThan(1);
+  expect(await toolbar.evaluate(el => getComputedStyle(el).transform)).toBe('none');
+  const port = await page.evaluate(() => window.RackStudio.HARDWARE_CATALOG['patch-cat6-24'].portGeometry.ports[0]);
+  expect(port.height).toBeGreaterThanOrEqual(0.25);
+  await page.close();
+});
+
+test('2D action popovers and toolbar menus manage focus and rack hover', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    RS.refresh();
+    document.getElementById(RS.STATE.racks[0].devices[0].instanceId).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+  const action = page.locator('#device-floating-controls .autofill-device-btn');
+  await expect(page.locator('#device-floating-controls')).toHaveAttribute('role', 'group');
+  await action.click();
+  const popover = page.locator('.switch-autofill-popover');
+  await expect(popover).toBeVisible();
+  await expect(action).toHaveAttribute('aria-expanded', 'true');
+  expect(await page.locator('#rack-viewport').evaluate(el => getComputedStyle(el).pointerEvents)).toBe('none');
+  await page.keyboard.press('Escape');
+  await expect(popover).toHaveCount(0);
+  await expect(action).toHaveAttribute('aria-expanded', 'false');
+  expect(await action.evaluate(el => el === document.activeElement)).toBe(true);
+  await page.locator('#btn-tools-menu-toggle').click();
+  await expect(page.locator('#btn-tools-menu-toggle')).toHaveAttribute('aria-expanded', 'true');
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('btn-close-tools');
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('btn-tools-menu-toggle');
+  await page.close();
+});
+
+test('2D device actions belong to the selected device, never hover alone', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  const id = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    RS.loadCustomTopology({ racks: [{ id: 'rack-1', name: 'Pilot', heightU: 42, devices: [] }], cables: [] });
+    RS.mountDeviceAt('patch-cat6-24', 38);
+    RS.refresh();
+    return RS.STATE.racks[0].devices[0].instanceId;
+  });
+  const deviceBox = await page.locator(`#${id}`).boundingBox();
+  await page.mouse.move(deviceBox.x + deviceBox.width / 2, deviceBox.y + deviceBox.height / 2);
+  await expect(page.locator('#device-floating-controls')).toBeHidden();
+  await expect(page.locator(`#${id} > .device-controls`)).toHaveCount(0);
+  await expect(page.locator(`#${id} .device-controls:visible`)).toHaveCount(0);
+  await page.evaluate(id => window.RackStudio.setPixiDeviceHover(id), id);
+  await expect(page.locator('#device-floating-controls')).toBeHidden();
+  await expect(page.locator(`#${id} .device-controls:visible`)).toHaveCount(0);
+  await page.evaluate(id => document.getElementById(id).dispatchEvent(new MouseEvent('click', { bubbles: true })), id);
+  const toolbar = page.locator('#device-floating-controls');
+  await expect(toolbar).toBeVisible();
+  await expect(page.locator(`#${id} .device-controls:visible`)).toHaveCount(0);
+  await expect(toolbar).toContainText('U38');
+  const bounds = await page.evaluate(id => {
+    const device = document.getElementById(id).getBoundingClientRect();
+    const actions = document.getElementById('device-floating-controls');
+    const bar = actions.getBoundingClientRect();
+    const side = actions.dataset.side;
+    const anchor = side === 'left' || side === 'right'
+      ? bar.top + parseFloat(actions.style.getPropertyValue('--device-anchor-y'))
+      : bar.left + parseFloat(actions.style.getPropertyValue('--device-anchor-x'));
+    const deviceCenter = side === 'left' || side === 'right'
+      ? device.top + device.height / 2 : device.left + device.width / 2;
+    return { deviceCenter, anchor, side, barBottom: bar.bottom, barTop: bar.top, barLeft: bar.left, barRight: bar.right, deviceTop: device.top, deviceBottom: device.bottom, deviceLeft: device.left, deviceRight: device.right };
+  }, id);
+  expect(Math.abs(bounds.anchor - bounds.deviceCenter)).toBeLessThan(3);
+  expect(bounds.side === 'left' ? bounds.barRight <= bounds.deviceLeft
+    : bounds.side === 'right' ? bounds.barLeft >= bounds.deviceRight
+      : bounds.side === 'above' ? bounds.barBottom <= bounds.deviceTop
+        : bounds.barTop >= bounds.deviceBottom).toBe(true);
+  await page.evaluate(id => document.getElementById(id).dispatchEvent(new MouseEvent('click', { bubbles: true })), id);
+  await expect(toolbar).toBeHidden();
+  await page.close();
+});
+
+test('cable inspector actions focus endpoints and open circuit trace', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(baseUrl);
+  await page.waitForFunction(() => window.RackStudio?.STATE?.cables?.length > 0);
+  const cableId = await page.evaluate(() => {
+    const RS = window.RackStudio;
+    const calls = [];
+    const focusDevice = RS.focusOnDevice;
+    const focusCable = RS.focusOnCable;
+    RS.focusOnDevice = id => { calls.push(['device', id]); return focusDevice(id); };
+    RS.focusOnCable = id => { calls.push(['cable', id]); return focusCable(id); };
+    window.__inspectorFocusCalls = calls;
+    const id = RS.STATE.cables[0].id;
+    RS.highlightCable(id, true);
+    return id;
+  });
+  const cable = await page.evaluate(id => window.RackStudio.STATE.cables.find(item => item.id === id), cableId);
+  await page.locator('[data-cable-focus="from"]').click();
+  await expect.poll(() => page.evaluate(() => window.__inspectorFocusCalls.at(-1))).toEqual(['device', cable.from.instanceId]);
+  await page.locator('[data-cable-focus="to"]').click();
+  await expect.poll(() => page.evaluate(() => window.__inspectorFocusCalls.at(-1))).toEqual(['device', cable.to.instanceId]);
+  await page.locator('[data-cable-focus="both"]').click();
+  await expect.poll(() => page.evaluate(() => window.__inspectorFocusCalls.at(-1))).toEqual(['cable', cableId]);
+  await page.locator('[data-cable-focus="trace"]').click();
+  await expect(page.locator('#circuit-trace-dialog')).toBeVisible();
+  await expect(page.locator('#trace-cable')).toHaveValue(cableId);
+  await page.close();
+});
+
+test('cable detail and circuit trace fit desktop tablet and phone', async ({ browser }) => {
+  for (const width of [1440, 768, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 800 } });
+    await page.goto(baseUrl);
+    await page.waitForFunction(() => window.RackStudio?.STATE?.cables?.length > 0);
+    await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.highlightCable(RS.STATE.cables[0].id, true);
+      RS.CircuitTrace.open(RS.STATE.cables[0].id);
+    });
+    const dialog = page.locator('#circuit-trace-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.circuit-trace-editor')).not.toHaveAttribute('open');
+    const bounds = await dialog.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(-1);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width + 1);
+    expect(bounds.height).toBeLessThanOrEqual(800 * 0.83);
+    if (width === 390) expect(bounds.y + bounds.height).toBeGreaterThanOrEqual(799);
+    await dialog.locator('.circuit-trace-editor summary').click();
+    await expect(dialog.locator('.circuit-trace-editor')).toHaveAttribute('open');
+    await dialog.locator('[data-trace-action="close"]').click();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator('#inspector-info .inspector-route')).toHaveCount(1);
+    await expect(page.locator('#inspector-info .inspector-actions button')).toHaveCount(4);
+    await page.close();
+  }
+});
+
+test('2D context menus stay compact and usable across viewport sizes', async ({ browser }) => {
+  for (const width of [1440, 768, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 800 } });
+    await page.goto(baseUrl);
+    await page.waitForFunction(() => window.RackStudio?.STATE?.cables?.length > 0);
+    await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.showCableContextMenu(RS.STATE.cables[0].id, innerWidth - 2, innerHeight - 2);
+    });
+    const menu = page.locator('#cable-context-menu');
+    await expect(menu).toBeVisible();
+    const rect = await menu.boundingBox();
+    expect(rect.x).toBeGreaterThanOrEqual(-1);
+    expect(rect.y).toBeGreaterThanOrEqual(-1);
+    expect(rect.x + rect.width).toBeLessThanOrEqual(width + 1);
+    expect(rect.y + rect.height).toBeLessThanOrEqual(801);
+    expect(rect.width).toBeLessThanOrEqual(width <= 600 ? width : 291);
+    await expect(menu.locator('.context-color-swatch')).toHaveCount(8);
+    await menu.locator('#ctx-duct-left').click();
+    await expect(menu).toHaveCount(0);
+    const duct = await page.evaluate(() => window.RackStudio.STATE.cables[0].ductSide);
+    expect(duct).toBe('left');
+    await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.showDeviceContextMenu(RS.STATE.cables[0].from.instanceId, innerWidth - 2, innerHeight - 2);
+    });
+    const deviceMenu = page.locator('.device-context-menu.cable-context-menu');
+    await expect(deviceMenu).toBeVisible();
+    const deviceRect = await deviceMenu.boundingBox();
+    expect(deviceRect.x).toBeGreaterThanOrEqual(-1);
+    expect(deviceRect.y + deviceRect.height).toBeLessThanOrEqual(801);
+    await deviceMenu.locator('#ctx-dev-cancel').click();
+    await expect(deviceMenu).toHaveCount(0);
+    await page.close();
+  }
 });

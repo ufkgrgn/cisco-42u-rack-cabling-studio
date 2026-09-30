@@ -159,11 +159,15 @@
     const iconTrash = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 13) : '';
     const iconEdit = window.getLucideIconSvg ? window.getLucideIconSvg('Pencil', 13) : '';
     const iconPalette = window.getLucideIconSvg ? window.getLucideIconSvg('Palette', 13) : '';
+    const iconArrowUp = window.getLucideIconSvg ? window.getLucideIconSvg('ArrowUp', 13) : '↑';
+    const iconArrowDown = window.getLucideIconSvg ? window.getLucideIconSvg('ArrowDown', 13) : '↓';
     const iconClose = window.getLucideIconSvg ? window.getLucideIconSvg('X', 13) : '';
 
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu';
     menu.id = 'cable-context-menu';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-label', 'Kablo işlemleri');
     menu.style.left = '0px';
     menu.style.top = '0px';
     menu.style.visibility = 'hidden';
@@ -188,13 +192,23 @@
           <span>Sağ Dikey Tava</span>
         </button>
         <div class="menu-divider"></div>
+        <div class="context-menu-section-title">Katman Sırası</div>
+        <button class="context-menu-item menu-item" id="ctx-bring-front">
+          <span class="context-menu-icon">${iconArrowUp}</span>
+          <span>En öne getir</span>
+        </button>
+        <button class="context-menu-item menu-item" id="ctx-send-back">
+          <span class="context-menu-icon">${iconArrowDown}</span>
+          <span>En arkaya gönder</span>
+        </button>
+        <div class="menu-divider"></div>
         <button class="context-menu-item menu-item" id="ctx-rename">
           <span class="context-menu-icon">${iconEdit}</span>
           <span>Yeniden adlandır</span>
         </button>
         <button class="context-menu-item menu-item" id="ctx-change-color">
           <span class="context-menu-icon">${iconPalette}</span>
-          <span>Renk değiştir</span>
+          <span>Sonraki renk</span>
         </button>
         <div id="ctx-color-swatches" class="context-swatches-row"></div>
         <div class="menu-divider"></div>
@@ -234,6 +248,20 @@
       setDuct('right');
     });
 
+    menu.querySelector('#ctx-bring-front')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+      RS.bringCableToFront?.(cableId);
+      highlightCable(cableId, true);
+    });
+
+    menu.querySelector('#ctx-send-back')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+      RS.sendCableToBack?.(cableId);
+      highlightCable(cableId, true);
+    });
+
     menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
       e.stopPropagation();
       disconnectCable(cableId);
@@ -249,12 +277,15 @@
     const swatchContainer = menu.querySelector('#ctx-color-swatches');
     if (swatchContainer) {
       CABLE_COLORS.forEach(clr => {
-        const swatch = document.createElement('span');
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
         swatch.className = 'context-color-swatch';
         swatch.dataset.color = clr;
         swatch.style.background = clr;
         if (clr === cable.color) swatch.classList.add('selected');
         swatch.title = clr;
+        swatch.setAttribute('aria-label', `${clr} kablo rengi`);
+        swatch.setAttribute('aria-pressed', String(clr === cable.color));
         swatch.addEventListener('mouseenter', () => {
           previewCableId = cableId;
           if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, clr);
@@ -382,6 +413,8 @@
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu device-context-menu';
     menu.id = 'device-context-menu';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-label', 'Cihaz işlemleri');
     menu.style.left = '0px';
     menu.style.top = '0px';
     menu.style.visibility = 'hidden';

@@ -61,8 +61,13 @@
   --radius-flat: 2px;
   --radius-overlay: 8px;
 
-  --rack-body: #30363b;
-  --rack-post: #22282c;
+  --rack-body: #121315;
+  --rack-post: #191a1d;
+  --rack-frame-border: #222428;
+  --rack-divider: #1d1f23;
+  --rack-hole-bg: #0b0c0e;
+  --rack-hole-border: #33353a;
+  --rack-u-label: #9ea2a8;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

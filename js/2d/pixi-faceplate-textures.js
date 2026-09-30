@@ -72,16 +72,16 @@
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry[counter]++;
   }
 
-  function makeTexture(width, height, draw, label) {
+  function makeTexture(width, height, draw, label, scaleFactor = 4) {
     const canvas = document.createElement('canvas');
-    canvas.width = width * 2;
-    canvas.height = height * 2;
+    canvas.width = Math.round(width * scaleFactor);
+    canvas.height = Math.round(height * scaleFactor);
     const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
+    ctx.scale(scaleFactor, scaleFactor);
     draw(ctx, width, height);
     const PIXI = window.PIXI;
     if (PIXI.ImageSource) {
-      const source = new PIXI.ImageSource({ resource: canvas, resolution: 2 });
+      const source = new PIXI.ImageSource({ resource: canvas, resolution: scaleFactor });
       return new PIXI.Texture({ source, label });
     }
     const texture = PIXI.Texture.from(canvas);
@@ -661,44 +661,44 @@
   function drawPort(ctx, style, x) {
     const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
     const isKeystone = !!style.keystone;
+    const isOccupied = !!style.occupied;
 
     if (isLight) {
-      let fill = isKeystone ? '#fff7ed' : '#ffffff';
-      let stroke = isKeystone ? '#ea580c' : '#94a3b8';
-      let detail = isKeystone ? '#c2410c' : '#64748b';
+      let fill = isKeystone ? '#ffffff' : '#ffffff';
+      let stroke = isKeystone ? (isOccupied ? '#ea580c' : '#64748b') : (isOccupied ? '#0284c7' : '#64748b');
+      let detail = isKeystone ? '#64748b' : '#64748b';
 
       if (style.shape === 'optic') {
         fill = '#f8fafc';
-        stroke = '#0284c7';
+        stroke = isOccupied ? '#0284c7' : '#64748b';
         detail = '#0284c7';
       } else if (style.shape === 'lc' || style.shape === 'sc') {
-        fill = '#f5f3ff';
-        stroke = style.shape === 'lc' ? '#8b5cf6' : '#a855f7';
-        detail = style.shape === 'lc' ? '#a78bfa' : '#c084fc';
+        fill = '#faf5ff';
+        stroke = isOccupied ? (style.shape === 'lc' ? '#8b5cf6' : '#a855f7') : '#64748b';
+        detail = '#a78bfa';
       } else if (style.shape === 'power') {
         fill = '#f0fdf4';
-        stroke = '#16a34a';
+        stroke = isOccupied ? '#16a34a' : '#64748b';
         detail = '#15803d';
       }
 
       ctx.fillStyle = fill;
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.1;
       roundRect(ctx, x + 2, 2, 16, 16, 1.5);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = detail;
       if (style.shape === 'copper') {
         ctx.fillStyle = '#e2e8f0';
         ctx.fillRect(x + 4, 5, 12, 10);
-        ctx.fillStyle = '#d97706';
-        [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 3));
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = isOccupied ? '#d97706' : '#94a3b8';
+        [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 2.5));
+        ctx.fillStyle = '#64748b';
         ctx.fillRect(x + 7, 11.5, 6, 2.5);
         if (isKeystone) {
-          ctx.fillStyle = stroke;
-          ctx.fillRect(x + 3, 2.5, 14, 1.2);
+          ctx.fillStyle = isOccupied ? '#ea580c' : '#94a3b8';
+          ctx.fillRect(x + 3, 2.5, 14, 1.5);
         }
       } else if (style.shape === 'optic') {
         ctx.fillStyle = '#e2e8f0';
@@ -707,28 +707,46 @@
         ctx.strokeStyle = stroke;
         ctx.lineWidth = 0.8;
         ctx.stroke();
-        ctx.fillStyle = stroke;
+        ctx.fillStyle = isOccupied ? '#0284c7' : '#64748b';
         ctx.fillRect(x + 6, 7, 8, 2);
-        ctx.fillStyle = '#38bdf8';
+        ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
         ctx.fillRect(x + 7, 11, 6, 2);
       } else if (style.shape === 'lc') {
+        // Recessed optical cavity
+        ctx.fillStyle = '#0f172a';
         roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        ctx.fillStyle = stroke;
-        ctx.fillRect(x + 9, 5, 1, 10);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x + 5, 8, 3, 4);
-        ctx.fillRect(x + 12, 8, 3, 4);
+        // Center dividing latch
+        ctx.fillStyle = isOccupied ? stroke : '#64748b';
+        ctx.fillRect(x + 9.5, 5, 1, 10);
+        // Left & Right ceramic ferrule sleeves
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 4.5, 7, 4, 6);
+        ctx.fillRect(x + 11.5, 7, 4, 6);
+        // High-contrast optical core dots
+        ctx.fillStyle = isOccupied ? '#38bdf8' : '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.fill();
       } else if (style.shape === 'sc') {
+        ctx.fillStyle = '#0f172a';
         roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        roundRect(ctx, x + 5, 7, 4, 6, 1);
+        ctx.fillStyle = isOccupied ? stroke : '#64748b';
+        ctx.fillRect(x + 9.5, 5, 1, 10);
+        ctx.fillStyle = '#334155';
+        roundRect(ctx, x + 4.5, 7, 4, 6, 1);
         ctx.fill();
-        roundRect(ctx, x + 11, 7, 4, 6, 1);
+        roundRect(ctx, x + 11.5, 7, 4, 6, 1);
+        ctx.fill();
+        ctx.fillStyle = isOccupied ? '#38bdf8' : '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
         ctx.fill();
       } else if (style.shape === 'power') {
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = '#334155';
         ctx.beginPath();
         ctx.arc(x + 7, 10, 2.2, 0, Math.PI * 2);
         ctx.arc(x + 13, 10, 2.2, 0, Math.PI * 2);
@@ -737,54 +755,82 @@
       return;
     }
 
-    const fill = isKeystone ? '#121722' : style.shape === 'power' ? '#0d1612' : style.shape === 'optic' ? '#0b1324' : '#0e131d';
-    const stroke = isKeystone ? '#ea580c' : style.shape === 'copper' ? '#2d3748' : style.shape === 'optic' ? '#38bdf8' : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : '#8b5cf6';
-    const detail = isKeystone ? '#c2410c' : style.shape === 'copper' ? '#475569' : style.shape === 'power' ? '#166534' : '#818cf8';
+    // --- DARK THEME: Crisp High-Definition Hardware Sockets (Clear Geometric Definition without Screaming Noise) ---
+    const fill = isKeystone ? (isOccupied ? '#141c2c' : '#0e141f') : style.shape === 'power' ? '#0e1814' : style.shape === 'optic' ? (isOccupied ? '#111929' : '#0c111c') : (isOccupied ? '#151d2c' : '#0f1622');
+    const stroke = isKeystone ? (isOccupied ? '#f97316' : '#334155') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'optic' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : (isOccupied ? '#a855f7' : '#475569');
+    const detail = isKeystone ? (isOccupied ? '#ea580c' : '#475569') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#475569') : style.shape === 'power' ? '#166534' : '#818cf8';
 
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.1;
     roundRect(ctx, x + 2, 2, 16, 16, 1.5);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = detail;
     if (style.shape === 'copper') {
-      ctx.fillStyle = '#060911';
+      // Recessed dark socket cavity with crisp top highlight
+      ctx.fillStyle = '#05080e';
       ctx.fillRect(x + 4, 5, 12, 10);
-      ctx.fillStyle = '#ca8a04';
-      [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 3));
-      ctx.fillStyle = '#1e293b';
+      // Precision copper/steel pins - clear and visible, beautifully refined
+      ctx.fillStyle = isOccupied ? '#f59e0b' : '#64748b';
+      [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 2.5));
+      // RJ45 lower socket latch
+      ctx.fillStyle = isOccupied ? '#253348' : '#1e293b';
       ctx.fillRect(x + 7, 11.5, 6, 2.5);
       if (isKeystone) {
-        ctx.fillStyle = stroke;
-        ctx.fillRect(x + 3, 2.5, 14, 1.2);
+        ctx.fillStyle = isOccupied ? '#f97316' : '#475569';
+        ctx.fillRect(x + 3, 2.5, 14, 1.4);
       }
     } else if (style.shape === 'optic') {
+      ctx.fillStyle = '#05080e';
       roundRect(ctx, x + 4, 5, 12, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = stroke;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      ctx.fillStyle = isOccupied ? stroke : '#475569';
       ctx.fillRect(x + 6, 7, 8, 2);
+      ctx.fillStyle = isOccupied ? '#38bdf8' : '#334155';
+      ctx.fillRect(x + 7, 11, 6, 2);
     } else if (style.shape === 'lc') {
+      // Deep optical cavity
+      ctx.fillStyle = '#04060a';
       roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = stroke;
-      ctx.fillRect(x + 9, 5, 1, 10);
-      ctx.fillStyle = fill;
-      ctx.fillRect(x + 5, 8, 3, 4);
-      ctx.fillRect(x + 12, 8, 3, 4);
+      // Center latch divider
+      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillRect(x + 9.5, 5, 1, 10);
+      // Left & Right ceramic ferrule sleeves
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x + 4.5, 7, 4, 6);
+      ctx.fillRect(x + 11.5, 7, 4, 6);
+      // Optical ferrule ceramic core dots (crisp high visibility)
+      ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.fill();
     } else if (style.shape === 'sc') {
+      ctx.fillStyle = '#04060a';
       roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = fill;
-      roundRect(ctx, x + 5, 7, 4, 6, 1);
+      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillRect(x + 9.5, 5, 1, 10);
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, x + 4.5, 7, 4, 6, 1);
       ctx.fill();
-      roundRect(ctx, x + 11, 7, 4, 6, 1);
+      roundRect(ctx, x + 11.5, 7, 4, 6, 1);
+      ctx.fill();
+      ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
       ctx.fill();
     } else if (style.shape === 'power') {
+      ctx.fillStyle = '#22c55e';
       ctx.beginPath();
-      ctx.arc(x + 7, 10, 2.4, 0, Math.PI * 2);
-      ctx.arc(x + 13, 10, 2.4, 0, Math.PI * 2);
+      ctx.arc(x + 7, 10, 2.2, 0, Math.PI * 2);
+      ctx.arc(x + 13, 10, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
   }
