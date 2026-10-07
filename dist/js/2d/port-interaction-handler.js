@@ -139,7 +139,10 @@
       }
     };
 
-    if (action === 'hover') handlePortHover({ currentTarget: target, target });
+    if (action === 'hover') {
+      if (RS.StudioView?.isOverview()) return false;
+      handlePortHover({ currentTarget: target, target });
+    }
     else if (action === 'click') {
       if (STATE.multiSelectMode) {
         if (target.dataset.instanceId && RS.toggleMultiSelect) {
@@ -150,6 +153,7 @@
       handlePortClick({ currentTarget: target, target, stopPropagation() {} });
     }
     else if (action === 'dblclick') {
+      if (RS.StudioView?.isOverview()) return true;
       const instanceId = target.dataset.instanceId;
       const portId = target.dataset.portId;
       const portType = target.dataset.portType;
@@ -364,6 +368,11 @@
     STATE.selectedDeviceId = instanceId;
     document.querySelectorAll('.mounted-device.studio-selected').forEach(el => el.classList.remove('studio-selected'));
     document.getElementById(instanceId)?.classList.add('studio-selected');
+    RS.syncPixiDeviceSelection?.();
+
+    if (STATE.studioWorkMode === 'layout') {
+      return;
+    }
 
     // Find which rack this device belongs to (important for multi-rack mode)
     const devRack = STATE.racks.find(r => r.devices.some(d => d.instanceId === instanceId)) || getActiveRack();
@@ -448,11 +457,12 @@
         }
       }
 
+      const commandEnvelope = RS.ProjectCommands.begin();
       const cableId = getNextCableId();
 
       // Find source and target devices
-      const sourceDev = STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId);
-      const targetDev = devRack.devices?.find(d => d.instanceId === instanceId);
+      const sourceDev = structuredClone(STATE.racks?.find(r => r.id === source.rackId)?.devices?.find(d => d.instanceId === source.instanceId));
+      const targetDev = structuredClone(devRack.devices?.find(d => d.instanceId === instanceId));
 
       const sourceCat = sourceDev ? resolveCatalogItem(sourceDev.catalogKey) : null;
       const targetCat = targetDev ? resolveCatalogItem(targetDev.catalogKey) : null;
@@ -646,30 +656,24 @@
           lengthMeters: calculateCableLengthMeters(source.instanceId, instanceId, isInterRack)
         };
 
-        // Sync to 3D engine if active
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
-          try {
-            const pIdxSrc = parseInt(String(source.portId).replace(/\D+/g, ''), 10) || 1;
-            const pIdxTgt = parseInt(String(portId).replace(/\D+/g, ''), 10) || 1;
-            const dev3DSrc = sourceDev?.id || sourceDev?.instanceId;
-            const dev3DTgt = targetDev?.id || targetDev?.instanceId;
-            if (isSourceConfigured && !isTargetConfigured && dev3DTgt) {
-              window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
-            } else if (!isSourceConfigured && isTargetConfigured && dev3DSrc) {
-              window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
-            } else if (detectedUplink && userApproved) {
-              if (dev3DSrc) window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
-              if (dev3DTgt) window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
-            } else if (detectedFiber && dev3DSrc && dev3DTgt) {
-              window.__STUDIO3D__.updatePortConfig(dev3DSrc, pIdxSrc, sourceDev.portsConfig[source.portId]);
-              window.__STUDIO3D__.updatePortConfig(dev3DTgt, pIdxTgt, targetDev.portsConfig[portId]);
-            }
-          } catch (e) {
-            console.warn('3D port sync warning:', e);
+        try {
+          const configs = new Map();
+          for (const device of [sourceDev, targetDev].filter(Boolean)) {
+            if (device.portsConfig) configs.set(device.instanceId, {
+              deviceId: device.instanceId,
+              portsConfig: { ...configs.get(device.instanceId)?.portsConfig, ...device.portsConfig }
+            });
           }
+          RS.ProjectCommands.execute({ ...commandEnvelope, type: 'ConnectCable', payload: {
+            cable: newCable,
+            portConfigs: [...configs.values()]
+          } });
+        } catch (error) {
+          const rect = portEl.getBoundingClientRect();
+          showConnectionErrorToast(rect.left + rect.width / 2, rect.top, error.message);
+          cancelPendingConnection();
+          return;
         }
-
-        STATE.cables.push(newCable);
         cancelPendingConnection();
 
         if (window.SoundFX) {

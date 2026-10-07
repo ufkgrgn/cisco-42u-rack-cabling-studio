@@ -89,6 +89,7 @@
     svgContent += `  </g>\n`;
 
     svgContent += `  <!-- LAYER 3: CABLING RUN SCHEDULE & CONNECTIONS -->\n  <g v:groupContext="layer" v:layerMember="Patch_Cables" transform="translate(40, 20)">\n`;
+    if (RS.PixiContext?.cablesDeferred) RS.prepareCableGeometryForExport?.();
     const displays = RS.PixiContext?.cableDisplays;
     if (displays && displays.size > 0) {
       for (const [cableId, display] of displays) {
@@ -118,7 +119,7 @@
   }
 
   function exportJson() {
-    const exportData = {
+    const exportData = RS.ProjectDocument ? RS.ProjectDocument.capture(STATE) : {
       version: '4.0-studio',
       customCatalog: STATE.customCatalog,
       portGeometryOverrides: RS.exportPortGeometryOverrides?.() || {},
@@ -141,13 +142,19 @@
   function isBuiltinKey(key) {
     const builtinKeys = RS.BUILTIN_KEYS || BUILTIN_KEYS;
     if (builtinKeys && builtinKeys.has(key)) return true;
+    if (Object.prototype.hasOwnProperty.call(STATE.customCatalog || {}, key)) return false;
     if (HARDWARE_CATALOG && HARDWARE_CATALOG[key]) return true;
     if (RS.resolveCatalogItem && RS.resolveCatalogItem(key)) return true;
     if (window.CISCO_MASTER_CATALOG && window.CISCO_MASTER_CATALOG.some(m => m.id === key)) return true;
     return false;
   }
 
-  function validateTopology(data) {
+  function validateTopology(data, pinned = {}) {
+    if (data?.schemaVersion !== undefined) {
+      if (!RS.ProjectDocument) throw new Error('Proje modeli yüklenmedi.');
+      const doc = RS.ProjectDocument.normalize(data);
+      return validateTopology(doc.topology, RS.CatalogSources?.definitions(doc) || {});
+    }
     if (!data || typeof data !== 'object') throw new Error('Geçersiz proje.');
     const customCatalog = JSON.parse(JSON.stringify(data.customCatalog || {}));
     const portGeometryOverrides = RS.validatePortGeometryOverrides?.(data.portGeometryOverrides || {}) || {};
@@ -163,7 +170,7 @@
     if (Array.isArray(window.CISCO_MASTER_CATALOG)) {
       window.CISCO_MASTER_CATALOG.forEach(m => { if (!catalog[m.id]) catalog[m.id] = m; });
     }
-    Object.assign(catalog, customCatalog);
+    Object.assign(catalog, RS.CatalogSources?.available || {}, customCatalog, pinned);
     const legacy = !Array.isArray(data.racks);
     const sourceRacks = legacy ? [{id:'rack-1', name:'MDF - Dağıtım Kabini', heightU:data.heightU || 42, devices:data.devices}] : data.racks;
     if (!sourceRacks.length || sourceRacks.length > 1000) throw new Error('Proje en az bir kabin içermeli.');
@@ -174,7 +181,7 @@
       rackIds.add(source.id);
       const units = Array(heightU + 1).fill(null);
       const devices = source.devices.map(dev => {
-        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : (catalog[dev.catalogKey] || (RS.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) || null);
+        const cat = Object.hasOwn(catalog, dev.catalogKey) ? catalog[dev.catalogKey] : (catalog[RS.CATALOG_ALIAS_MAP?.[dev.catalogKey]] || (!RS.CatalogSources && RS.resolveCatalogItem && RS.resolveCatalogItem(dev.catalogKey)) || null);
         if (!cat || !validId(dev.instanceId) || deviceIds.has(dev.instanceId) || !Number.isInteger(dev.topU) || dev.topU > heightU || dev.topU - cat.u < 0 || (dev.uHeight !== undefined && dev.uHeight !== cat.u)) throw new Error('Geçersiz cihaz veya U konumu.');
         for(let u = dev.topU - cat.u + 1; u <= dev.topU; u++) { if(units[u]) throw new Error('Cihaz yerleşimleri çakışıyor.'); units[u] = dev.instanceId; }
         deviceIds.add(dev.instanceId); deviceMap.set(dev.instanceId, {rackId:source.id, cat});
@@ -196,6 +203,9 @@
       });
       if(c.color && !/^#[0-9a-f]{6}$/i.test(c.color)) throw new Error('Geçersiz kablo rengi.');
       if(c.lengthMeters !== undefined && (!Number.isFinite(c.lengthMeters) || c.lengthMeters < 0)) throw new Error('Geçersiz kablo uzunluğu.');
+      for (const key of ['estimatedLengthMeters', 'measuredLengthMeters', 'purchaseLengthMeters']) {
+        if (c[key] != null && (!Number.isFinite(c[key]) || c[key] < 0)) throw new Error('Geçersiz kablo metrajı: ' + key);
+      }
       return {...c, from:endpoints[0], to:endpoints[1]};
     });
     return {
@@ -222,23 +232,73 @@
     document.dispatchEvent(new CustomEvent('rackstudio:change', {bubbles:true}));
   }
 
-  function loadCustomTopology(data) {
-    const next = validateTopology(data);
+  function loadCustomTopology(data, options = {}) {
+    let projectDocument = RS.ProjectDocument?.normalize(data);
+    if (projectDocument && RS.CatalogSources) projectDocument = RS.CatalogSources.pin(projectDocument,true);
+    const next = validateTopology(projectDocument || data);
     for (const key of Object.keys(HARDWARE_CATALOG)) {
-      if (!isBuiltinKey(key)) delete HARDWARE_CATALOG[key];
+      if (RS.CatalogSources ? !RS.BUILTIN_KEYS.has(key) : !isBuiltinKey(key)) delete HARDWARE_CATALOG[key];
     }
-    Object.assign(HARDWARE_CATALOG, next.customCatalog);
+    RS.CatalogSources?.restoreBase();
+    Object.assign(HARDWARE_CATALOG, next.customCatalog, projectDocument ? RS.CatalogSources?.definitions(projectDocument) || {} : {});
     RS.applyPortGeometryOverrides?.(next.portGeometryOverrides);
     Object.assign(STATE, next);
+    if (projectDocument) STATE.projectDocument = projectDocument;
     if (RS.rebuildStateIndexes) RS.rebuildStateIndexes();
-    if (next.viewMode && RS.setViewMode) {
+    if (options.render !== false && next.viewMode && RS.setViewMode) {
       RS.setViewMode(next.viewMode, true);
     }
     STATE.rackCounter = Math.max(0, ...STATE.racks.map(r => Number(r.id.match(/\d+$/)?.[0]) || 0));
     STATE.cableCounter = Math.max(0, ...STATE.cables.map(c => Number(c.id.match(/\d+$/)?.[0]) || 0));
     cancelPendingConnection(); STATE.highlightedCableId = null;
-    refresh();
+    if (options.render !== false) refresh();
     return true;
+  }
+
+
+  const AUTOSAVE_KEY = 'rackstudio_2d_autosave';
+
+  function autosaveTopology() {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const data = RS.ProjectDocument ? RS.ProjectDocument.capture(STATE) : {
+        version: '4.0-studio',
+        customCatalog: STATE.customCatalog,
+        portGeometryOverrides: RS.exportPortGeometryOverrides?.() || {},
+        timestamp: new Date().toISOString(),
+        activeRackId: STATE.activeRackId,
+        viewMode: STATE.viewMode || 'single',
+        cableRoutingMode: STATE.cableRoutingMode || 'structured',
+        racks: STATE.racks,
+        cables: STATE.cables
+      };
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+    } catch (_) { /* storage full or blocked */ }
+  }
+
+  function loadAutosaveTopology() {
+    try {
+      if (typeof localStorage === 'undefined') return false;
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      // No key = first ever launch → caller should load demo preset
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      const topology = parsed?.schemaVersion !== undefined ? RS.ProjectDocument?.normalize(parsed).topology : parsed;
+      if (!topology || !Array.isArray(topology.racks) || !topology.racks.length) return false;
+      // Restore even if all racks are empty — user intentionally cleared the cabinet
+      loadCustomTopology(parsed);
+      return true;
+    } catch (_) {
+      // Corrupt autosave → fall through to demo preset
+      // Keep the original bytes available for recovery; never delete an unreadable project.
+      return false;
+    }
+  }
+
+  function clearAutosaveTopology() {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(AUTOSAVE_KEY);
+    } catch (_) {}
   }
 
   RS.exportVisioSvg = exportVisioSvg;
@@ -246,4 +306,7 @@
   RS.validateTopology = validateTopology;
   RS.refresh = refresh;
   RS.loadCustomTopology = loadCustomTopology;
+  RS.autosaveTopology = autosaveTopology;
+  RS.loadAutosaveTopology = loadAutosaveTopology;
+  RS.clearAutosaveTopology = clearAutosaveTopology;
 })();

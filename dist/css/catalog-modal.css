@@ -5,7 +5,7 @@
 /* Drawer Launcher Button */
 .cisco-catalog-launcher-bar {
   padding: 8px 10px;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--bg-panel);
   border-bottom: 1px solid rgba(56, 189, 248, 0.15);
 }
 
@@ -28,7 +28,7 @@
 
 .btn-cisco-master-catalog:hover {
   background: linear-gradient(135deg, rgba(2, 132, 199, 0.45) 0%, rgba(14, 165, 233, 0.15) 100%);
-  border-color: #38bdf8;
+  border-color: var(--accent);
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
   transform: translateY(-1px);
 }
@@ -54,15 +54,15 @@
 
 .cisco-launcher-count {
   font-size: 0.65rem;
-  background: rgba(14, 165, 233, 0.2);
-  color: #38bdf8;
+  background: rgba(var(--accent-rgb, 14, 165, 233), 0.15);
+  color: var(--accent);
   padding: 1px 6px;
   border-radius: 10px;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(var(--accent-rgb, 56, 189, 248), 0.25);
 }
 
 .cisco-launcher-arrow {
-  color: #38bdf8;
+  color: var(--accent);
   font-size: 0.75rem;
   transition: transform 0.2s ease;
 }
@@ -74,14 +74,14 @@
 /* Activity Rail Cisco Button */
 .sidebar-activity-rail .rail-btn.rail-cisco-btn:hover,
 .sidebar-activity-rail .rail-btn.rail-cisco-btn.active {
-  color: #38bdf8;
-  border-left-color: #38bdf8;
+  color: var(--accent);
+  border-left-color: var(--accent);
   background: rgba(2, 132, 199, 0.15);
 }
 
 /* Cisco Master Modal Container */
 .cisco-modal-container {
-  background: #0b1120;
+  background: var(--bg-app);
   border: 1px solid #0284c7;
   border-radius: 14px;
   width: 960px;
@@ -96,9 +96,9 @@
 }
 
 .cisco-modal-header {
-  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(90deg, var(--bg-app) 0%, var(--bg-panel) 100%);
   padding: 14px 20px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -144,7 +144,7 @@
 
 .cisco-models-total-badge {
   background: rgba(14, 165, 233, 0.15);
-  color: #38bdf8;
+  color: var(--accent);
   border: 1px solid rgba(56, 189, 248, 0.35);
   padding: 4px 10px;
   border-radius: 12px;
@@ -155,8 +155,8 @@
 /* Toolbar & Filter Pills */
 .cisco-modal-toolbar {
   padding: 12px 20px;
-  background: #090d16;
-  border-bottom: 1px solid #1e293b;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -180,17 +180,17 @@
 .cisco-search-box input[type="search"] {
   width: 100%;
   padding: 8px 34px 8px 34px;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 13px;
   box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
 .cisco-search-box input[type="search"]:focus {
-  border-color: #38bdf8;
+  border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
   outline: none;
 }
@@ -247,10 +247,10 @@
 }
 
 .cisco-pill.active {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: var(--border-strong, #474e57);
+  border-color: var(--border-strong, #5a626d);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Cards Grid */
@@ -258,7 +258,7 @@
   padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
-  background: #070a12;
+  background: var(--bg-app);
 }
 
 .cisco-cards-grid {
@@ -268,8 +268,8 @@
 }
 
 .cisco-card {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -280,8 +280,8 @@
 }
 
 .cisco-card:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(var(--accent-rgb,56,189,248),0.12);
   transform: translateY(-2px);
 }
 
@@ -311,7 +311,7 @@
 .cisco-card-tag {
   font-size: 11px;
   font-family: monospace;
-  color: #38bdf8;
+  color: var(--accent);
   margin-top: 2px;
 }
 
@@ -377,7 +377,7 @@
   font-family: monospace;
   font-weight: 800;
   font-size: 9px;
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .cisco-card-bezel .mini-bezel-ports-preview {
@@ -391,7 +391,7 @@
   width: 4px;
   height: 4px;
   border-radius: 1px;
-  background: #38bdf8;
+  background: var(--accent);
 }
 .cisco-card-bezel .dot-port.sfp {
   background: #eab308;
@@ -413,7 +413,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .spec-chip.poe {
-  color: #38bdf8;
+  color: var(--accent);
   background: rgba(2, 132, 199, 0.15);
   border-color: rgba(56, 189, 248, 0.25);
 }
@@ -504,9 +504,9 @@
 
 /* Modal Footer */
 .cisco-modal-footer {
-  background: #090d16;
+  background: var(--bg-inset);
   padding: 10px 20px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -518,7 +518,7 @@
   color: #64748b;
 }
 .cisco-footer-hint b {
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 /* Light Theme Adaptations for Cisco Catalog Modal */

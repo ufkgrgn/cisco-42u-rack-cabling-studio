@@ -72,16 +72,16 @@
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry[counter]++;
   }
 
-  function makeTexture(width, height, draw, label) {
+  function makeTexture(width, height, draw, label, scaleFactor = 4) {
     const canvas = document.createElement('canvas');
-    canvas.width = width * 2;
-    canvas.height = height * 2;
+    canvas.width = Math.round(width * scaleFactor);
+    canvas.height = Math.round(height * scaleFactor);
     const ctx = canvas.getContext('2d');
-    ctx.scale(2, 2);
+    ctx.scale(scaleFactor, scaleFactor);
     draw(ctx, width, height);
     const PIXI = window.PIXI;
     if (PIXI.ImageSource) {
-      const source = new PIXI.ImageSource({ resource: canvas, resolution: 2 });
+      const source = new PIXI.ImageSource({ resource: canvas, resolution: scaleFactor });
       return new PIXI.Texture({ source, label });
     }
     const texture = PIXI.Texture.from(canvas);
@@ -147,14 +147,10 @@
     if (isLight) {
       // Enterprise Light / Platinum Stencil Mode (Visio & NetBox Schema Standard)
       // Base Platinum Aluminum Chassis
-      paintMetal(ctx, w, h, '#f1f5f9', '#0284c7');
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.fillRect(0, 0, w, 1);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(0, h - 1, w, 1);
+      paintMetal(ctx, w, h, '#f8fafc', '#0284c7');
 
       // Determine series-specific bezel accents
-      let bezelBg = '#e2e8f0';
+      let bezelBg = '#f1f5f9';
       let edgeColor = '#0284c7';
       let modelColor = '#1e293b';
       let defaultModel = 'C9300';
@@ -178,11 +174,11 @@
 
       // Left Bezel
       ctx.fillStyle = bezelBg;
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
       ctx.fillStyle = edgeColor;
       ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
 
       // Cisco Logo
       ctx.fillStyle = '#005073';
@@ -207,12 +203,6 @@
       ctx.font = '700 9.5px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
 
-      // Clean top and bottom metallic bevels for the chassis body
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(79, 1, w - 80, 1.5);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(79, h - 2, w - 80, 1);
-
       // Status LEDs on bezel
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
@@ -223,29 +213,19 @@
       ctx.arc(68, 10, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Recessed light platinum / white chassis bay for ports on platinum chassis
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
       return;
     }
 
     if (isWhite) {
       // 1. Cisco Catalyst 1000 & Compact Series (Clean White / Platinum Stencil Faceplate)
-      paintMetal(ctx, w, h, '#f1f5f9', '#0284c7');
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-      ctx.fillRect(0, 0, w, 1);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(0, h - 1, w, 1);
+      paintMetal(ctx, w, h, '#0f172a', '#0284c7');
       // Left Bezel (Platinum Grey with Navy Cisco Logo)
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       // Cisco Logo
       ctx.fillStyle = '#005073';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
@@ -255,11 +235,6 @@
       ctx.fillStyle = '#1e293b';
       ctx.font = '700 9.5px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
-      // Clean top and bottom metallic bevels for the chassis body
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(79, 1, w - 80, 1.5);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(79, h - 2, w - 80, 1);
       // Status LEDs on bezel
       ctx.fillStyle = '#16a34a';
       ctx.beginPath();
@@ -269,26 +244,18 @@
       ctx.beginPath();
       ctx.arc(68, 10, 2, 0, Math.PI * 2);
       ctx.fill();
-      // Recessed dark chassis bay for ports on white chassis
-      ctx.fillStyle = '#0f172a';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isTeal) {
-      // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil)
-      paintMetal(ctx, w, h, '#1e2533', '#14b8a6');
-      const grad = ctx.createLinearGradient(0, 0, 78, 0);
-      grad.addColorStop(0, '#1a4b56');
-      grad.addColorStop(1, '#236173');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 78, h);
+      // 2. Cisco Catalyst 2960 / 3750 Series (Classic Cisco Teal/Green Bezel Stencil - Clean Flat)
+      paintMetal(ctx, w, h, '#131924', '#14b8a6');
+      ctx.fillStyle = '#1e525e';
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#14b8a6';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#0f2930';
-      ctx.fillRect(78, 0, 1.5, h);
+      ctx.fillRect(77.5, 0, 1, h);
       // Crisp White Cisco Logo
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
@@ -301,28 +268,21 @@
       // Mode button & LED cluster
       ctx.fillStyle = '#334155';
       ctx.beginPath();
-      ctx.arc(52, 10, 3, 0, Math.PI * 2);
+      ctx.arc(52, 10, 2.5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#64748b';
-      ctx.stroke();
       paintLeds(ctx, 48, 22);
-      // Recessed modular port bay backing
-      ctx.fillStyle = '#0f141f';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#2d3b4e';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isNexus) {
       // 3. Cisco Nexus Series (Obsidian Black & Emerald Green Stencil)
-      paintMetal(ctx, w, h, '#0c0f14', '#10b981');
+      paintMetal(ctx, w, h, '#0d1117', '#10b981');
       ctx.fillStyle = '#06080b';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#1c2432';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#f8fafc';
       ctx.font = '800 8px Segoe UI, sans-serif';
       ctx.fillText('CISCO', 8, 12);
@@ -336,26 +296,21 @@
       ['#10b981', '#34d399', '#f59e0b'].forEach((color, i) => {
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(58 + i * 6, 22, 1.9, 0, Math.PI * 2);
+        ctx.arc(58 + i * 6, 22, 1.8, 0, Math.PI * 2);
         ctx.fill();
       });
-      // Recessed obsidian port bay
-      ctx.fillStyle = '#06080d';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#18202d';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     if (isRouter) {
       // 4. Cisco ISR Routers (Two-Tone Slate & Router Orange)
-      paintMetal(ctx, w, h, '#1e2430', '#f97316');
-      ctx.fillStyle = '#11151f';
-      ctx.fillRect(0, 0, 78, h);
+      paintMetal(ctx, w, h, '#141923', '#ea580c');
+      ctx.fillStyle = '#0f141d';
+      ctx.fillRect(0, 0, 77.5, h);
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#334155';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#f8fafc';
       ctx.font = '800 8px Segoe UI, sans-serif';
       ctx.fillText('CISCO', 8, 12);
@@ -369,26 +324,21 @@
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(String(model).slice(0, 9), 8, 24);
       paintLeds(ctx, 56, 22);
-      // Recessed router bay
-      ctx.fillStyle = '#121722';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#2b3648';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
     // 5. Cisco Catalyst 9000 Series (Modern Dark Graphite & Blue Beacon)
-    const cat9kBg = isLight ? '#1e2634' : '#151b26';
-    const cat9kBezel = isLight ? '#141c28' : '#0d121c';
-    const cat9kDivider = isLight ? '#475569' : '#1e293b';
+    const cat9kBg = '#131924';
+    const cat9kBezel = '#0d121c';
+    const cat9kDivider = '#1e293b';
 
-    paintMetal(ctx, w, h, cat9kBg, '#0284c7');
+    paintMetal(ctx, w, h, cat9kBg, '#00bceb');
     ctx.fillStyle = cat9kBezel;
-    ctx.fillRect(0, 0, 78, h);
+    ctx.fillRect(0, 0, 77.5, h);
+    ctx.fillStyle = '#00bceb';
+    ctx.fillRect(0, 0, 3.5, h);
     ctx.fillStyle = cat9kDivider;
-    ctx.fillRect(78, 2, 1, h - 4);
+    ctx.fillRect(77.5, 0, 1, h);
     ctx.fillStyle = '#00bceb';
     ctx.font = '800 8.5px Segoe UI, sans-serif';
     ctx.fillText('CISCO', 8, 12);
@@ -398,22 +348,11 @@
     ctx.fillText(String(model).slice(0, 9), 8, 24);
     ctx.fillStyle = '#00e5ff';
     ctx.beginPath();
-    ctx.arc(62, 9, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(0, 229, 255, 0.35)';
-    ctx.beginPath();
-    ctx.arc(62, 9, 4.5, 0, Math.PI * 2);
+    ctx.arc(62, 9, 2.2, 0, Math.PI * 2);
     ctx.fill();
     paintLeds(ctx, 54, 22);
-    ctx.strokeStyle = '#64748b';
+    ctx.strokeStyle = '#475569';
     ctx.strokeRect(44.5, 6, 5, 5);
-    // Recessed port bays
-    ctx.fillStyle = isLight ? '#0e131d' : '#0d111a';
-    roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-    ctx.fill();
-    ctx.strokeStyle = isLight ? '#334155' : '#222b3d';
-    ctx.lineWidth = 1;
-    ctx.stroke();
   }
 
   function drawPatch(ctx, w, h, spec, cat) {
@@ -423,13 +362,13 @@
 
     if (fiber) {
       if (isLight) {
-        paintMetal(ctx, w, h, '#f1f5f9', '#9333ea');
+        paintMetal(ctx, w, h, '#f8fafc', '#7c3aed');
         ctx.fillStyle = '#faf5ff';
         ctx.fillRect(0, 0, 78, h);
-        ctx.fillStyle = '#9333ea';
-        ctx.fillRect(0, 0, 3.5, h);
+        ctx.fillStyle = '#7c3aed';
+        ctx.fillRect(0, 0, 3, h);
         ctx.fillStyle = '#cbd5e1';
-        ctx.fillRect(78, 2, 1, h - 4);
+        ctx.fillRect(77.5, 0, 1, h);
         ctx.fillStyle = '#6b21a8';
         ctx.font = '800 8.5px Segoe UI, sans-serif';
         ctx.fillText('FIBER ODF', 8, 12);
@@ -437,24 +376,14 @@
         ctx.font = '700 9px ui-monospace, monospace';
         const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
         ctx.fillText(badge, 8, 24);
-        ctx.fillStyle = '#e9d5ff';
-        ctx.fillRect(80, 2, w - 82, 3.5);
-        ctx.fillStyle = '#9333ea';
-        ctx.fillRect(80, 2, w - 82, 1);
-        ctx.fillStyle = '#faf5ff';
-        roundRect(ctx, 80, 6, w - 84, 20, 2);
-        ctx.fill();
-        ctx.strokeStyle = '#d8b4fe';
-        ctx.lineWidth = 1;
-        ctx.stroke();
         return;
       }
-      // Fiber ODF Panel (Violet / Purple Accent)
-      paintMetal(ctx, w, h, '#111420', '#a855f7');
-      ctx.fillStyle = '#0c0f18';
+      // Fiber ODF Panel (Dark / Modern Violet Accent)
+      paintMetal(ctx, w, h, '#0f1118', '#a855f7');
+      ctx.fillStyle = '#0a0c12';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#261b3d';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#c084fc';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
       ctx.fillText('FIBER ODF', 8, 12);
@@ -462,33 +391,28 @@
       ctx.font = '700 9px ui-monospace, monospace';
       const badge = /sc/i.test(name) ? 'SC DUPLEX' : 'LC DUPLEX';
       ctx.fillText(badge, 8, 24);
-      ctx.fillStyle = '#3b1c61';
-      ctx.fillRect(80, 2, w - 82, 3.5);
-      ctx.fillStyle = '#c084fc';
-      ctx.fillRect(80, 2, w - 82, 1);
       return;
     }
 
-    // Copper Patch Panel (Prominent Safety Orange Theme & Keystone Identity)
+    // Copper Patch Panel (Sleek Datacenter Matte Black & Subtle Keystone Accent - Sharp & Flat)
     const isCat6A = /cat6a/i.test(name) || /patch-cat6-24/i.test(spec.catalogKey || '');
     const portsCount = cat?.ports?.length || 24;
 
     if (isLight) {
-      paintMetal(ctx, w, h, '#f1f5f9', '#ea580c');
+      paintMetal(ctx, w, h, '#f8fafc', '#ea580c');
       ctx.fillStyle = '#fff7ed';
       ctx.fillRect(0, 0, 78, h);
       ctx.fillStyle = '#ea580c';
-      ctx.fillRect(0, 0, 3.5, h);
+      ctx.fillRect(0, 0, 3, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
 
       ctx.fillStyle = '#c2410c';
       ctx.font = '800 8.5px Segoe UI, sans-serif';
       ctx.fillText(isCat6A ? 'CAT6A UTP' : 'CAT6 PANEL', 8, 12);
 
       ctx.fillStyle = '#ea580c';
-      roundRect(ctx, 8, 16, 38, 11, 2);
-      ctx.fill();
+      ctx.fillRect(8, 16, 38, 10);
       ctx.fillStyle = '#ffffff';
       ctx.font = '800 7px Segoe UI, sans-serif';
       ctx.fillText('PATCH', 11, 24);
@@ -496,32 +420,20 @@
       ctx.fillStyle = '#ea580c';
       ctx.font = '700 9px ui-monospace, monospace';
       ctx.fillText(`${portsCount}P`, 50, 24);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(80, 1.5, w - 84, 3.5);
-      ctx.fillStyle = '#ea580c';
-      ctx.fillRect(80, 1.5, w - 84, 0.8);
-      ctx.fillRect(80, 4.2, w - 84, 0.8);
-
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 6, w - 84, 20, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fdba74';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
 
-    paintMetal(ctx, w, h, '#141720', '#f97316');
-    // 4px bold safety orange left edge
+    // Dark Mode: Precision Matte Anodized Aluminum Faceplate (Crisp & Flat)
+    paintMetal(ctx, w, h, '#11141c', '#f97316');
+    // Safety orange indicator edge
     ctx.fillStyle = '#f97316';
-    ctx.fillRect(0, 0, 4, h);
+    ctx.fillRect(0, 0, 3, h);
 
-    // Left Bezel: Distinctive Orange Identity
-    ctx.fillStyle = '#1c1712';
-    ctx.fillRect(4, 0, 74, h);
+    // Left Bezel: Distinctive Dark Identity
+    ctx.fillStyle = '#0b0d14';
+    ctx.fillRect(3, 0, 74.5, h);
     ctx.fillStyle = '#ea580c';
-    ctx.fillRect(77, 2, 1, h - 4);
+    ctx.fillRect(77.5, 0, 1, h);
 
     // Patch Panel Title
     ctx.fillStyle = '#f97316';
@@ -530,8 +442,7 @@
 
     // Badge pill: Orange background with white text
     ctx.fillStyle = '#ea580c';
-    roundRect(ctx, 8, 16, 38, 11, 2);
-    ctx.fill();
+    ctx.fillRect(8, 16, 38, 10);
     ctx.fillStyle = '#ffffff';
     ctx.font = '800 7px Segoe UI, sans-serif';
     ctx.fillText('PATCH', 11, 24);
@@ -540,21 +451,6 @@
     ctx.fillStyle = '#fb923c';
     ctx.font = '700 9px ui-monospace, monospace';
     ctx.fillText(`${portsCount}P`, 50, 24);
-
-    // Top Designation / Label Strip (The signature write-on identification bar)
-    ctx.fillStyle = '#fff7ed';
-    ctx.fillRect(80, 1.5, w - 84, 3.5);
-    ctx.fillStyle = '#ea580c';
-    ctx.fillRect(80, 1.5, w - 84, 0.8);
-    ctx.fillRect(80, 4.2, w - 84, 0.8);
-
-    // Recessed dark Keystone socket tray behind ports (centered at y=16 in 32px 1U)
-    ctx.fillStyle = '#0c0f16';
-    roundRect(ctx, 80, 6, w - 84, 20, 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.45)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
   }
 
   function drawPdu(ctx, w, h) {
@@ -562,11 +458,11 @@
     if (isLight) {
       paintMetal(ctx, w, h, '#f1f5f9', '#16a34a');
       ctx.fillStyle = '#f0fdf4';
-      ctx.fillRect(0, 0, 78, h);
+      ctx.fillRect(0, 0, 77.5, h);
       ctx.fillStyle = '#16a34a';
       ctx.fillRect(0, 0, 3.5, h);
       ctx.fillStyle = '#cbd5e1';
-      ctx.fillRect(78, 2, 1, h - 4);
+      ctx.fillRect(77.5, 0, 1, h);
       ctx.fillStyle = '#15803d';
       ctx.font = '700 9px Segoe UI, sans-serif';
       ctx.fillText('230V', 8, 13);
@@ -574,17 +470,15 @@
       ctx.font = '9px ui-monospace, monospace';
       ctx.fillText('PDU 16A', 8, 24);
       paintLeds(ctx, 58, 16);
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 80, 2.5, w - 84, h - 5, 2);
-      ctx.fill();
-      ctx.strokeStyle = '#86efac';
-      ctx.lineWidth = 1;
-      ctx.stroke();
       return;
     }
     paintMetal(ctx, w, h, '#17251d', '#22c55e');
     ctx.fillStyle = '#0d1a14';
-    ctx.fillRect(0, 0, 78, h);
+    ctx.fillRect(0, 0, 77.5, h);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(0, 0, 3.5, h);
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(77.5, 0, 1, h);
     ctx.fillStyle = '#22c55e';
     ctx.font = '700 9px Segoe UI, sans-serif';
     ctx.fillText('230V', 8, 13);
@@ -766,84 +660,120 @@
 
   function drawPort(ctx, style, x) {
     const isLight = ['light', 'high-contrast'].includes(document.documentElement.getAttribute('data-theme'));
-    const occupied = !!style.occupied;
     const isKeystone = !!style.keystone;
+    const isOccupied = !!style.occupied;
 
     if (isLight) {
-      let fill = '#ffffff';
-      let stroke = '#94a3b8';
-      let detail = '#64748b';
+      let fill = isKeystone ? '#ffffff' : '#ffffff';
+      let stroke = isKeystone ? (isOccupied ? '#ea580c' : '#64748b') : (isOccupied ? '#0284c7' : '#64748b');
 
-      if (style.shape === 'copper') {
-        fill = occupied ? (isKeystone ? '#ffedd5' : '#e0f2fe') : (isKeystone ? '#fff7ed' : '#f8fafc');
-        stroke = occupied ? (isKeystone ? '#ea580c' : '#0284c7') : (isKeystone ? '#f97316' : '#94a3b8');
-        detail = occupied ? (isKeystone ? '#c2410c' : '#0369a1') : '#d97706';
-      } else if (style.shape === 'optic') {
-        fill = occupied ? '#e0f2fe' : '#f8fafc';
-        stroke = occupied ? '#0284c7' : '#64748b';
-        detail = '#0284c7';
+      if (style.shape === 'optic') {
+        fill = '#f8fafc';
+        stroke = isOccupied ? '#0284c7' : '#64748b';
       } else if (style.shape === 'lc' || style.shape === 'sc') {
-        fill = occupied ? '#ede9fe' : '#f5f3ff';
-        stroke = occupied ? '#7c3aed' : (style.shape === 'lc' ? '#8b5cf6' : '#a855f7');
-        detail = occupied ? '#6d28d9' : (style.shape === 'lc' ? '#a78bfa' : '#c084fc');
+        fill = '#faf5ff';
+        stroke = isOccupied ? (style.shape === 'lc' ? '#8b5cf6' : '#a855f7') : '#64748b';
       } else if (style.shape === 'power') {
-        fill = occupied ? '#dcfce7' : '#f0fdf4';
-        stroke = occupied ? '#16a34a' : '#22c55e';
-        detail = '#15803d';
+        fill = '#f0fdf4';
+        stroke = isOccupied ? '#16a34a' : '#64748b';
       }
 
       ctx.fillStyle = fill;
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = isKeystone ? 1.4 : 1;
-      roundRect(ctx, x + 1, 2, PORT_CELL - 2, PORT_CELL - 4, 3);
+      ctx.lineWidth = 1.0;
+      roundRect(ctx, x + 2, 2, 16, 16, 1.5);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = detail;
+      // Top rim highlight & bottom bevel
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fillRect(x + 3, 2.5, 14, 1);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(x + 3, 17, 14, 1);
+
       if (style.shape === 'copper') {
-        ctx.fillStyle = occupied ? (isKeystone ? '#fed7aa' : '#bae6fd') : '#e2e8f0';
-        roundRect(ctx, x + 3.5, 5, 11, 8.5, 1.5);
+        // Dark recessed socket cavity
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 4, 4.5, 12, 11, 1);
         ctx.fill();
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = occupied ? stroke : '#d97706';
-        [4.5, 7, 9.5, 12].forEach(pin => ctx.fillRect(x + pin, 6, 1.5, 3));
-        ctx.fillStyle = occupied ? stroke : '#64748b';
-        ctx.fillRect(x + 6, 11.5, 6, 1.5);
+
+        // 6 precision gold/brass contact wire pins
+        const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+        ctx.fillStyle = pinColor;
+        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
+
+        // RJ45 lower socket latch notch
+        ctx.fillStyle = isOccupied ? '#334155' : '#1e293b';
+        roundRect(ctx, x + 7, 11.5, 6, 3.5, 0.8);
+        ctx.fill();
+        ctx.fillStyle = isOccupied ? '#475569' : '#334155';
+        ctx.fillRect(x + 8.5, 13, 3, 2);
+
+        // Micro status LED
+        ctx.fillStyle = isOccupied ? '#16a34a' : '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+
         if (isKeystone) {
-          ctx.fillStyle = stroke;
-          ctx.fillRect(x + 3, 3, PORT_CELL - 6, 1.2);
+          ctx.fillStyle = isOccupied ? '#ea580c' : '#94a3b8';
+          ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
         }
       } else if (style.shape === 'optic') {
-        ctx.fillStyle = occupied ? '#bae6fd' : '#e2e8f0';
-        roundRect(ctx, x + 4, 5, 12, 10, 2);
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
         ctx.fill();
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = stroke;
-        ctx.fillRect(x + 6, 7, 8, 2);
-        ctx.fillStyle = occupied ? '#0284c7' : '#38bdf8';
-        ctx.fillRect(x + 7, 11, 6, 2);
+        ctx.fillStyle = isOccupied ? '#475569' : '#94a3b8';
+        ctx.fillRect(x + 5, 9.2, 10, 1.6);
+        // Optical twin bores
+        ctx.fillStyle = '#020617';
+        roundRect(ctx, x + 5.2, 5.2, 3.8, 3.4, 0.8);
+        ctx.fill();
+        roundRect(ctx, x + 11.0, 5.2, 3.8, 3.4, 0.8);
+        ctx.fill();
+        if (isOccupied) {
+          ctx.fillStyle = '#0284c7';
+          ctx.beginPath();
+          ctx.arc(x + 7.1, 6.9, 1.1, 0, Math.PI * 2);
+          ctx.arc(x + 12.9, 6.9, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = isOccupied ? '#0284c7' : '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
       } else if (style.shape === 'lc') {
-        roundRect(ctx, x + 3, 5, 14, 10, 2);
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        ctx.fillStyle = stroke;
-        ctx.fillRect(x + 9, 5, 1, 10);
-        ctx.fillStyle = occupied ? '#ddd6fe' : '#ffffff';
-        ctx.fillRect(x + 5, 8, 3, 4);
-        ctx.fillRect(x + 12, 8, 3, 4);
+        ctx.fillStyle = isOccupied ? stroke : '#64748b';
+        ctx.fillRect(x + 9.5, 5, 1, 10);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 4.5, 7, 4, 6);
+        ctx.fillRect(x + 11.5, 7, 4, 6);
+        ctx.fillStyle = isOccupied ? '#38bdf8' : '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.fill();
       } else if (style.shape === 'sc') {
-        roundRect(ctx, x + 3, 5, 14, 10, 2);
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        ctx.fillStyle = occupied ? '#ddd6fe' : '#ffffff';
-        roundRect(ctx, x + 5, 7, 4, 6, 1);
+        ctx.fillStyle = isOccupied ? stroke : '#64748b';
+        ctx.fillRect(x + 9.5, 5, 1, 10);
+        ctx.fillStyle = '#334155';
+        roundRect(ctx, x + 4.5, 7, 4, 6, 1);
         ctx.fill();
-        roundRect(ctx, x + 11, 7, 4, 6, 1);
+        roundRect(ctx, x + 11.5, 7, 4, 6, 1);
+        ctx.fill();
+        ctx.fillStyle = isOccupied ? '#38bdf8' : '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
         ctx.fill();
       } else if (style.shape === 'power') {
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = '#334155';
         ctx.beginPath();
         ctx.arc(x + 7, 10, 2.2, 0, Math.PI * 2);
         ctx.arc(x + 13, 10, 2.2, 0, Math.PI * 2);
@@ -852,54 +782,121 @@
       return;
     }
 
-    const fill = occupied
-      ? (isKeystone ? '#201408' : '#08212a')
-      : (isKeystone ? '#18120d' : style.shape === 'power' ? '#101b17' : style.shape === 'optic' ? '#0b1324' : '#100f26');
-    const stroke = occupied
-      ? (isKeystone ? '#fb923c' : '#22d3ee')
-      : (isKeystone ? '#ea580c' : style.shape === 'copper' ? '#64748b' : style.shape === 'optic' ? '#60a5fa' : style.shape === 'power' ? '#4ade80' : style.shape === 'sc' ? '#c084fc' : '#a78bfa');
-    const detail = occupied
-      ? (isKeystone ? '#fdba74' : '#67e8f9')
-      : (isKeystone ? '#c2410c' : style.shape === 'copper' ? '#334155' : style.shape === 'power' ? '#166534' : '#818cf8');
+    // --- DARK THEME: Crisp High-Definition Hardware Sockets ---
+    const fill = isKeystone ? (isOccupied ? '#141c2c' : '#0e141f') : style.shape === 'power' ? '#0e1814' : style.shape === 'optic' ? (isOccupied ? '#111929' : '#0c111c') : (isOccupied ? '#151d2c' : '#0f1622');
+    const stroke = isKeystone ? (isOccupied ? '#f97316' : '#334155') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'optic' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : (isOccupied ? '#a855f7' : '#475569');
+
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = isKeystone ? 1.4 : 1;
-    roundRect(ctx, x + 1, 2, PORT_CELL - 2, PORT_CELL - 4, 3);
+    ctx.lineWidth = 1.0;
+    roundRect(ctx, x + 2, 2, 16, 16, 1.5);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = detail;
+
+    // Stamped metal rim highlight & shadow
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillRect(x + 3, 2.5, 14, 1);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(x + 3, 17, 14, 1);
+
     if (style.shape === 'copper') {
-      [4, 7, 10, 13].forEach(pin => ctx.fillRect(x + pin, 6, 2, 3));
-      ctx.fillRect(x + 5, 12, 10, 2);
+      // Recessed dark socket cavity
+      ctx.fillStyle = '#050811';
+      roundRect(ctx, x + 4, 4.5, 12, 11, 1);
+      ctx.fill();
+      ctx.fillStyle = '#020409';
+      ctx.fillRect(x + 4.5, 4.5, 11, 1);
+
+      // 6 precision gold/brass contact wire pins
+      const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+      ctx.fillStyle = pinColor;
+      [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
+      if (isOccupied) {
+        ctx.fillStyle = '#fef08a';
+        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 0.7));
+      }
+
+      // RJ45 lower socket latch notch
+      ctx.fillStyle = isOccupied ? '#1e293b' : '#0a0f1d';
+      roundRect(ctx, x + 7, 11.5, 6, 3.5, 0.8);
+      ctx.fill();
+      ctx.fillStyle = isOccupied ? '#27354a' : '#141d2e';
+      ctx.fillRect(x + 8.5, 13, 3, 2);
+
+      // Micro status link LED
+      ctx.fillStyle = isOccupied ? '#22c55e' : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+      ctx.fill();
+      if (isOccupied) {
+        ctx.fillStyle = '#86efac';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       if (isKeystone) {
-        ctx.fillStyle = stroke;
-        ctx.fillRect(x + 3, 3, PORT_CELL - 6, 1.2);
+        ctx.fillStyle = isOccupied ? '#f97316' : '#475569';
+        ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
       }
     } else if (style.shape === 'optic') {
-      roundRect(ctx, x + 4, 5, 12, 10, 2);
+      ctx.fillStyle = '#050811';
+      roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
       ctx.fill();
-      ctx.fillStyle = stroke;
-      ctx.fillRect(x + 6, 7, 8, 2);
+      ctx.fillStyle = isOccupied ? '#475569' : '#334155';
+      ctx.fillRect(x + 5, 9.2, 10, 1.6);
+      // Optical twin bores
+      ctx.fillStyle = '#020617';
+      roundRect(ctx, x + 5.2, 5.2, 3.8, 3.4, 0.8);
+      ctx.fill();
+      roundRect(ctx, x + 11.0, 5.2, 3.8, 3.4, 0.8);
+      ctx.fill();
+      if (isOccupied) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(x + 7.1, 6.9, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 12.9, 6.9, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = isOccupied ? '#00d2ff' : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
+      ctx.fill();
     } else if (style.shape === 'lc') {
-      roundRect(ctx, x + 3, 5, 14, 10, 2);
+      ctx.fillStyle = '#04060a';
+      roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = stroke;
-      ctx.fillRect(x + 9, 5, 1, 10);
-      ctx.fillStyle = fill;
-      ctx.fillRect(x + 5, 8, 3, 4);
-      ctx.fillRect(x + 12, 8, 3, 4);
+      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillRect(x + 9.5, 5, 1, 10);
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x + 4.5, 7, 4, 6);
+      ctx.fillRect(x + 11.5, 7, 4, 6);
+      ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.fill();
     } else if (style.shape === 'sc') {
-      roundRect(ctx, x + 3, 5, 14, 10, 2);
+      ctx.fillStyle = '#04060a';
+      roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = fill;
-      roundRect(ctx, x + 5, 7, 4, 6, 1);
+      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillRect(x + 9.5, 5, 1, 10);
+      ctx.fillStyle = '#1e293b';
+      roundRect(ctx, x + 4.5, 7, 4, 6, 1);
       ctx.fill();
-      roundRect(ctx, x + 11, 7, 4, 6, 1);
+      roundRect(ctx, x + 11.5, 7, 4, 6, 1);
+      ctx.fill();
+      ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
       ctx.fill();
     } else if (style.shape === 'power') {
+      ctx.fillStyle = '#22c55e';
       ctx.beginPath();
-      ctx.arc(x + 7, 10, 2.4, 0, Math.PI * 2);
-      ctx.arc(x + 13, 10, 2.4, 0, Math.PI * 2);
+      ctx.arc(x + 7, 10, 2.2, 0, Math.PI * 2);
+      ctx.arc(x + 13, 10, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
   }

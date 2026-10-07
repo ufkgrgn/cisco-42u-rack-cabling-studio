@@ -49,6 +49,8 @@ const assert = require('node:assert/strict');
     await page.evaluate(() => {
       try { localStorage.clear(); } catch (_) {}
       window.RackStudio.setCableRenderMode('svg');
+      // This benchmark measures visible cabling; placement intentionally defers it.
+      window.RackStudio.setStudioWorkMode('cabling');
     });
     const targetRackCount = parseInt(process.env.BENCH_RACKS || '10', 10);
     const renderAllRacks = process.env.BENCH_VISIBLE_ALL === '1';
@@ -184,8 +186,17 @@ const assert = require('node:assert/strict');
       const styledCables=api.STATE.cables.filter(cable=>cable.id.startsWith('bench-bulk-mutation-')).slice(0,8);
       styledCables.forEach(cable=>{cable.color='#22c55e';});
       const styleStart=performance.now();
+      const stylePhaseMs={};
+      const styleProbes=[[api.PixiDeviceScene,'syncPixiDeviceSceneLOD'],[api.PixiCabinScene,'syncPixiCabinScenes'],[api.PixiCableBatch,'rebuildBatchedStyleGroups'],[api.PixiContext,'renderPixi']];
+      const restoreStyleProbes=styleProbes.map(([owner,key])=>{
+        const original=owner?.[key];
+        if(typeof original!=='function') return ()=>{};
+        owner[key]=function(...args){const start=performance.now();try{return original.apply(this,args);}finally{stylePhaseMs[key]=(stylePhaseMs[key]||0)+performance.now()-start;}};
+        return ()=>{owner[key]=original;};
+      });
       api.renderAllCables();
       const retainedStyleMutationMs=performance.now()-styleStart;
+      restoreStyleProbes.forEach(restore=>restore());
       const styleAfter=api.getPixiCableInteractionState();
       const virtualization=api.getRackVirtualizationState?.() || null;
       let cullingProbe=null;
@@ -309,6 +320,7 @@ const assert = require('node:assert/strict');
         removalAvoidedFullBatchRebuilds:removalAfter.performance.avoidedFullRemovalBatchRebuilds-removalBefore.performance.avoidedFullRemovalBatchRebuilds,
         removalRenderSubmits:removalAfter.performance.totalRenders-removalBefore.performance.totalRenders,
         retainedStyleMutationMs,
+        stylePhaseMs,
         styleCableCount:styledCables.length,
         styleDomRectReads:styleAfter.renderStats.domRectReads-styleBefore.renderStats.domRectReads,
         styleFullGeometryPasses:styleAfter.performance.fullGeometryPasses-styleBefore.performance.fullGeometryPasses,
@@ -316,6 +328,7 @@ const assert = require('node:assert/strict');
         styleIncrementalPasses:styleAfter.performance.incrementalStylePasses-styleBefore.performance.incrementalStylePasses,
         styleCablesProcessed:styleAfter.performance.incrementalStyleCables-styleBefore.performance.incrementalStyleCables,
         stylePartialBatchRebuilds:styleAfter.performance.partialColorBatchRebuilds-styleBefore.performance.partialColorBatchRebuilds,
+        styleBatchCablesProcessed:styleAfter.performance.partialColorBatchCablesProcessed-styleBefore.performance.partialColorBatchCablesProcessed,
         styleAvoidedFullBatchRebuilds:styleAfter.performance.avoidedFullStyleBatchRebuilds-styleBefore.performance.avoidedFullStyleBatchRebuilds,
         styleRenderSubmits:styleAfter.performance.totalRenders-styleBefore.performance.totalRenders,
         nativeRackVirtualization:virtualization?.enabled ?? false,
@@ -413,7 +426,7 @@ const assert = require('node:assert/strict');
     assert.ok(results.removalPartialBatchCablesProcessed <= results.activeRackCableCount + 20, `removal rebuilt ${results.removalPartialBatchCablesProcessed} displays outside the affected rack budget`);
     assert.equal(results.removalAvoidedFullBatchRebuilds,1);
     assert.equal(results.removalRenderSubmits,1);
-    assert.ok(results.retainedStyleMutationMs <= 30, `retained cable style regression: ${results.retainedStyleMutationMs}ms`);
+    assert.ok(results.retainedStyleMutationMs <= 30, `retained cable style regression: ${results.retainedStyleMutationMs}ms; phases=${JSON.stringify(results.stylePhaseMs)}`);
     assert.equal(results.styleCableCount,8);
     assert.equal(results.styleDomRectReads,0);
     assert.equal(results.styleFullGeometryPasses,0);
@@ -421,6 +434,7 @@ const assert = require('node:assert/strict');
     assert.equal(results.styleIncrementalPasses,1);
     assert.equal(results.styleCablesProcessed,8);
     assert.ok(results.stylePartialBatchRebuilds >= 2);
+    assert.ok(results.styleBatchCablesProcessed <= 64, `style update rebuilt ${results.styleBatchCablesProcessed} cables instead of the affected groups`);
     assert.equal(results.styleAvoidedFullBatchRebuilds,1);
     assert.equal(results.styleRenderSubmits,1);
     assert.deepEqual(errors,[]);

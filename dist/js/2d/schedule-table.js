@@ -291,6 +291,8 @@
       });
     }
 
+    const fieldHost=tr.querySelector('td');
+    if(fieldHost){const fieldButton=document.createElement('button');fieldButton.type='button';fieldButton.className='field-record-trigger';fieldButton.textContent='Saha kaydı';fieldButton.addEventListener('click',e=>{e.stopPropagation();RS.FieldWorkflowUI?.open({kind:'cable',id:c.id});});fieldHost.append(fieldButton);}
     dom.scheduleTbody.appendChild(tr);
   }
 
@@ -491,8 +493,13 @@
     if (!toolbar) {
       toolbar = document.createElement('div');
       toolbar.id = 'schedule-toolbar';
-      const table = dom.scheduleTbody.closest('table');
-      if (table) table.before(toolbar);
+      const wrapper = document.querySelector('.schedule-table-wrapper');
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.insertBefore(toolbar, wrapper);
+      } else {
+        const table = dom.scheduleTbody.closest('table');
+        if (table) table.before(toolbar);
+      }
     }
 
     toolbar.innerHTML = `

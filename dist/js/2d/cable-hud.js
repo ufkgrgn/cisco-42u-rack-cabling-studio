@@ -155,41 +155,71 @@
     if (!cable) return;
 
     const currentDuct = cable.ductSide || 'auto';
+    const iconRoute = window.getLucideIconSvg ? window.getLucideIconSvg('Route', 13) : '';
+    const iconTrash = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 13) : '';
+    const iconEdit = window.getLucideIconSvg ? window.getLucideIconSvg('Pencil', 13) : '';
+    const iconPalette = window.getLucideIconSvg ? window.getLucideIconSvg('Palette', 13) : '';
+    const iconArrowUp = window.getLucideIconSvg ? window.getLucideIconSvg('ArrowUp', 13) : '↑';
+    const iconArrowDown = window.getLucideIconSvg ? window.getLucideIconSvg('ArrowDown', 13) : '↓';
+    const iconClose = window.getLucideIconSvg ? window.getLucideIconSvg('X', 13) : '';
 
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu';
     menu.id = 'cable-context-menu';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-label', 'Kablo işlemleri');
     menu.style.left = '0px';
     menu.style.top = '0px';
     menu.style.visibility = 'hidden';
 
     menu.innerHTML = `
-      <div style="padding: 4px 8px; font-size: 0.7rem; color: #94a3b8; font-weight: 700; border-bottom: 1px solid #1e293b;">
-        <span style="color:${cable.color};">●</span> ${escapeHtml(cable.name || cable.id)} (${cable.lengthMeters || 1.5}m)
+      <div class="context-menu-header">
+        <span class="context-menu-title" title="${escapeHtml(cable.name || cable.id)}"><span style="color:${cable.color}; flex-shrink:0;">●</span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(formatCompactHudName(cable.name || cable.id, cable.id))}</span></span>
+        <span class="context-menu-badge">${Number(cable.lengthMeters || 1.5).toFixed(1)}m</span>
       </div>
-      <div class="menu-item ${currentDuct === 'auto' ? 'active' : ''}" id="ctx-duct-auto">
-        Kanal: Otomatik
-      </div>
-      <div class="menu-item ${currentDuct === 'left' ? 'active' : ''}" id="ctx-duct-left">
-        Kanal: Sol
-      </div>
-      <div class="menu-item ${currentDuct === 'right' ? 'active' : ''}" id="ctx-duct-right">
-        Kanal: Sağ
-      </div>
-      <div class="menu-divider"></div>
-      <div class="menu-item danger" id="ctx-disconnect">
-        Kabloyu sök
-      </div>
-      <div class="menu-item" id="ctx-rename">
-        Yeniden adlandır
-      </div>
-      <div class="menu-item" id="ctx-change-color">
-        Renk değiştir
-      </div>
-      <div id="ctx-color-swatches" style="display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;"></div>
-      <div class="menu-divider"></div>
-      <div class="menu-item" id="ctx-cancel">
-        Kapat
+      <div class="context-menu-body">
+        <div class="context-menu-section-title">Kanal Güzergahı</div>
+        <button class="context-menu-item menu-item ${currentDuct === 'auto' ? 'active' : ''}" id="ctx-duct-auto">
+          <span class="context-menu-icon">${iconRoute}</span>
+          <span>Otomatik (Dengeli)</span>
+        </button>
+        <button class="context-menu-item menu-item ${currentDuct === 'left' ? 'active' : ''}" id="ctx-duct-left">
+          <span class="context-menu-icon">${iconRoute}</span>
+          <span>Sol Dikey Tava</span>
+        </button>
+        <button class="context-menu-item menu-item ${currentDuct === 'right' ? 'active' : ''}" id="ctx-duct-right">
+          <span class="context-menu-icon">${iconRoute}</span>
+          <span>Sağ Dikey Tava</span>
+        </button>
+        <div class="menu-divider"></div>
+        <div class="context-menu-section-title">Katman Sırası</div>
+        <button class="context-menu-item menu-item" id="ctx-bring-front">
+          <span class="context-menu-icon">${iconArrowUp}</span>
+          <span>En öne getir</span>
+        </button>
+        <button class="context-menu-item menu-item" id="ctx-send-back">
+          <span class="context-menu-icon">${iconArrowDown}</span>
+          <span>En arkaya gönder</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="context-menu-item menu-item" id="ctx-rename">
+          <span class="context-menu-icon">${iconEdit}</span>
+          <span>Yeniden adlandır</span>
+        </button>
+        <button class="context-menu-item menu-item" id="ctx-change-color">
+          <span class="context-menu-icon">${iconPalette}</span>
+          <span>Sonraki renk</span>
+        </button>
+        <div id="ctx-color-swatches" class="context-swatches-row"></div>
+        <div class="menu-divider"></div>
+        <button class="context-menu-item menu-item danger" id="ctx-disconnect">
+          <span class="context-menu-icon">${iconTrash}</span>
+          <span>Kabloyu sök</span>
+        </button>
+        <button class="context-menu-item menu-item" id="ctx-cancel">
+          <span class="context-menu-icon">${iconClose}</span>
+          <span>Kapat</span>
+        </button>
       </div>
     `;
 
@@ -218,6 +248,20 @@
       setDuct('right');
     });
 
+    menu.querySelector('#ctx-bring-front')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+      RS.bringCableToFront?.(cableId);
+      highlightCable(cableId, true);
+    });
+
+    menu.querySelector('#ctx-send-back')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideCableContextMenu();
+      RS.sendCableToBack?.(cableId);
+      highlightCable(cableId, true);
+    });
+
     menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
       e.stopPropagation();
       disconnectCable(cableId);
@@ -233,11 +277,15 @@
     const swatchContainer = menu.querySelector('#ctx-color-swatches');
     if (swatchContainer) {
       CABLE_COLORS.forEach(clr => {
-        const swatch = document.createElement('span');
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
         swatch.className = 'context-color-swatch';
         swatch.dataset.color = clr;
-        swatch.style.cssText = `display:inline-block;width:16px;height:16px;border-radius:50%;background:${clr};cursor:pointer;border:2px solid ${clr === cable.color ? '#fff' : 'transparent'};box-sizing:border-box;transition:transform 0.1s;`;
+        swatch.style.background = clr;
+        if (clr === cable.color) swatch.classList.add('selected');
         swatch.title = clr;
+        swatch.setAttribute('aria-label', `${clr} kablo rengi`);
+        swatch.setAttribute('aria-pressed', String(clr === cable.color));
         swatch.addEventListener('mouseenter', () => {
           previewCableId = cableId;
           if (RS.setPixiCablePreviewColor) RS.setPixiCablePreviewColor(cableId, clr);
@@ -354,37 +402,50 @@
     const connPorts = cat.ports ? cat.ports.filter(p => p.type !== 'power').length : 0;
     const hasFree = connPorts > devCables.length;
 
+    const iconPlug = window.getLucideIconSvg ? window.getLucideIconSvg('Plug', 13) : '';
+    const iconPalette = window.getLucideIconSvg ? window.getLucideIconSvg('Palette', 13) : '';
+    const iconUnplug = window.getLucideIconSvg ? window.getLucideIconSvg('Unplug', 13) : '';
+    const iconDoor = window.getLucideIconSvg ? window.getLucideIconSvg('DoorOpen', 13) : '';
+    const iconSettings = window.getLucideIconSvg ? window.getLucideIconSvg('Settings2', 13) : '';
+    const iconTrash = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 13) : '';
+    const iconClose = window.getLucideIconSvg ? window.getLucideIconSvg('X', 13) : '';
+
     const menu = document.createElement('div');
     menu.className = 'cable-context-menu device-context-menu';
     menu.id = 'device-context-menu';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-label', 'Cihaz işlemleri');
+    menu.style.left = '0px';
+    menu.style.top = '0px';
+    menu.style.visibility = 'hidden';
 
     let html = `
       <div class="context-menu-header">
-        <span>${escapeHtml(devName)}</span>
-        <span style="font-size:10px; color:#94a3b8; background:#1e293b; padding:1px 4px; border-radius:3px;">U${dev?.topU || ''}</span>
+        <span class="context-menu-title" title="${escapeHtml(devName)}"><span>${escapeHtml(devName)}</span></span>
+        <span class="context-menu-badge">U${dev?.topU || ''}</span>
       </div>
-      <div class="context-menu-body" style="padding:4px 0;">
+      <div class="context-menu-body">
     `;
 
     if (hasFree && (cat.category === 'switch' || cat.category === 'fiber-switch' || cat.category === 'compact' || isPatch || cat.category === 'router')) {
-      html += `<button class="context-menu-item" id="ctx-dev-autofill">Boş portları bağla</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-autofill"><span class="context-menu-icon">${iconPlug}</span><span>Boş portları bağla</span></button>`;
     }
     if (hasCables) {
-      html += `<button class="context-menu-item" id="ctx-dev-color">Kabloları renklendir</button>`;
-      html += `<button class="context-menu-item" id="ctx-dev-clear">Kabloları sök (${devCables.length})</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-color"><span class="context-menu-icon">${iconPalette}</span><span>Kabloları renklendir</span></button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-clear"><span class="context-menu-icon">${iconUnplug}</span><span>Kabloları sök (${devCables.length})</span></button>`;
     }
     if (isFinger) {
-      html += `<button class="context-menu-item" id="ctx-dev-toggle-cover">Kanal kapağı</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-toggle-cover"><span class="context-menu-icon">${iconDoor}</span><span>Kanal kapağı</span></button>`;
     }
     if (cat.category !== 'blank') {
-      html += `<button class="context-menu-item" id="ctx-dev-config">Cihaz bilgisi</button>`;
+      html += `<button class="context-menu-item" id="ctx-dev-config"><span class="context-menu-icon">${iconSettings}</span><span>Cihaz bilgisi</span></button>`;
     }
 
     const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
     html += `
-        <div style="height:1px; background:#334155; margin:4px 0;"></div>
-        <button class="context-menu-item danger" id="ctx-dev-delete">${delTitle}</button>
-        <button class="context-menu-item" id="ctx-dev-cancel">İptal</button>
+        <div class="menu-divider"></div>
+        <button class="context-menu-item danger" id="ctx-dev-delete"><span class="context-menu-icon">${iconTrash}</span><span>${delTitle}</span></button>
+        <button class="context-menu-item" id="ctx-dev-cancel"><span class="context-menu-icon">${iconClose}</span><span>Kapat</span></button>
       </div>
     `;
 
@@ -392,22 +453,13 @@
     document.body.appendChild(menu);
     deviceContextMenuEl = menu;
 
-    menu.querySelectorAll('.context-menu-item').forEach(btn => {
-      btn.addEventListener('mouseenter', () => { btn.style.background = '#1e293b'; });
-      btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
-    });
-
     const menuRect = menu.getBoundingClientRect();
-    const left = Math.max(10, Math.min(window.innerWidth - menuRect.width - 10, clientX));
-    const top = Math.max(10, Math.min(window.innerHeight - menuRect.height - 10, clientY));
-    menu.style.position = 'fixed';
+    const viewportMargin = 10;
+    const left = Math.max(viewportMargin, Math.min(window.innerWidth - menuRect.width - viewportMargin, clientX));
+    const top = Math.max(viewportMargin, Math.min(window.innerHeight - menuRect.height - viewportMargin, clientY));
     menu.style.left = `${left}px`;
     menu.style.top = `${top}px`;
-    menu.style.zIndex = '1000';
-    menu.style.background = '#0f172a';
-    menu.style.border = '1px solid #334155';
-    menu.style.borderRadius = '6px';
-    menu.style.boxShadow = '0 8px 24px rgba(0,0,0,0.7)';
+    menu.style.visibility = 'visible';
 
     menu.querySelector('#ctx-dev-delete')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -467,6 +519,7 @@
     window.__CABLE_INTERACTIONS_BOUND__ = true;
 
     document.addEventListener('click', (e) => {
+      if(e.target.closest('#hud-tools-menu,#btn-mobile-selection,.workflow-selection-panel,.workflow-selection-dialog,#mobile-workflow-dialog'))return;
       if (Date.now() - lastHudOpenTime < 250) {
         return;
       }
@@ -589,11 +642,8 @@
     const viewportHost = document.getElementById('viewport-canvas');
     if (!viewportHost) return;
     const scale = Number(RS.ZOOM_STATE?.scale) || 1;
-    if (scale < 0.28) {
-      deviceFloatingControlsEl.style.display = 'none';
-      return;
-    }
     const vRect = viewportHost.getBoundingClientRect();
+    const region = document.getElementById('rack-viewport')?.getBoundingClientRect() || vRect;
     const devEl = document.getElementById(instanceId);
     let dRect = devEl ? devEl.getBoundingClientRect() : null;
 
@@ -611,14 +661,33 @@
     }
 
     if (dRect && dRect.width > 0) {
-      const pillScale = Math.max(0.35, Math.min(1.15, scale));
-      const top = Math.round(dRect.top - vRect.top + 3 * scale);
-      const right = Math.round(vRect.right - dRect.right + 14 * scale);
+      const width = deviceFloatingControlsEl.offsetWidth;
+      const height = deviceFloatingControlsEl.offsetHeight;
+      const anchorX = dRect.left + dRect.width / 2;
+      const anchorY = dRect.top + dRect.height / 2;
+      const roomLeft = dRect.left - region.left;
+      const roomRight = region.right - dRect.right;
+      let side, left, top;
+      if (roomLeft >= width + 12 || roomRight >= width + 12) {
+        side = roomLeft >= width + 12 ? 'left' : 'right';
+        left = side === 'left' ? dRect.left - width - 8 : dRect.right + 8;
+        top = Math.max(region.top + 4, Math.min(region.bottom - height - 4, anchorY - height / 2));
+      } else {
+        side = dRect.top - region.top >= height + 12 ? 'above' : 'below';
+        left = Math.max(region.left + 4, Math.min(region.right - width - 4, anchorX - width / 2));
+        const preferredTop = side === 'above' ? dRect.top - height - 8 : dRect.bottom + 8;
+        top = Math.max(region.top + 4, Math.min(region.bottom - height - 4, preferredTop));
+      }
       deviceFloatingControlsEl.style.top = `${top}px`;
-      deviceFloatingControlsEl.style.right = `${right}px`;
-      deviceFloatingControlsEl.style.transform = `scale(${pillScale})`;
-      deviceFloatingControlsEl.style.transformOrigin = 'top right';
+      deviceFloatingControlsEl.style.left = `${Math.round(left)}px`;
+      deviceFloatingControlsEl.style.right = 'auto';
+      deviceFloatingControlsEl.style.setProperty('--device-anchor-x', `${Math.max(12, Math.min(width - 12, anchorX - left))}px`);
+      deviceFloatingControlsEl.style.setProperty('--device-anchor-y', `${Math.max(10, Math.min(height - 10, anchorY - top))}px`);
+      deviceFloatingControlsEl.dataset.side = side;
+      deviceFloatingControlsEl.style.transform = 'none';
       deviceFloatingControlsEl.style.display = 'flex';
+    } else {
+      deviceFloatingControlsEl.style.display = 'none';
     }
   }
 
@@ -657,8 +726,9 @@
       deviceFloatingControlsEl = document.createElement('div');
       deviceFloatingControlsEl.id = 'device-floating-controls';
       deviceFloatingControlsEl.className = 'device-controls-floating';
-      const host = document.getElementById('viewport-canvas') || document.body;
-      host.appendChild(deviceFloatingControlsEl);
+      deviceFloatingControlsEl.setAttribute('role', 'group');
+      deviceFloatingControlsEl.setAttribute('aria-label', 'Cihaz işlemleri');
+      document.body.appendChild(deviceFloatingControlsEl);
 
       deviceFloatingControlsEl.addEventListener('mouseenter', () => {
         if (floatingControlsHideTimer) {
@@ -666,33 +736,33 @@
           floatingControlsHideTimer = null;
         }
       });
-      deviceFloatingControlsEl.addEventListener('mouseleave', (e) => {
-        if (!isPointerOverActiveDevice(e.clientX, e.clientY)) {
-          hideDeviceFloatingControls();
-        }
-      });
     }
 
     activeFloatingDeviceId = instanceId;
     deviceFloatingControlsEl.dataset.instanceId = instanceId;
+    const rack = (STATE.racks || []).find(item => (item.devices || []).some(itemDev => itemDev.instanceId === instanceId));
+    const deviceName = dev.hostname || dev.panelLabel || dev.name || cat.modelTag || cat.name || 'Cihaz';
+    const location = `${rack?.name || 'Kabin'} · U${dev.topU || dev.uSlot || '?'}`;
+    deviceFloatingControlsEl.setAttribute('aria-label', `${deviceName}, ${location} işlemleri`);
 
+    const actionIcon = (name, fallback) => window.getLucideIconSvg?.(name, 14) || fallback;
     let btns = '';
     if (hasFree && (isSwitch || isPatch || cat.category === 'router')) {
-      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${instanceId}" title="Boş portları akıllıca bağla (Auto-Fill)">Bağla</button>`;
+      btns += `<button type="button" class="dev-btn autofill-device-btn" data-instance-id="${instanceId}" title="Boş portları bağla" aria-label="Boş portları bağla" aria-haspopup="dialog" aria-expanded="false">${actionIcon('Plug', 'Bağla')}</button>`;
     }
     if (hasCables) {
-      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${instanceId}" title="Cihazın tüm kablolarını renklendir">Renk</button>`;
-      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları temizle / sök">Sök</button>`;
+      btns += `<button type="button" class="dev-btn color-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları renklendir" aria-label="Kabloları renklendir" aria-haspopup="dialog" aria-expanded="false">${actionIcon('Palette', 'Renk')}</button>`;
+      btns += `<button type="button" class="dev-btn clear-device-cables-btn" data-instance-id="${instanceId}" title="Kabloları sök" aria-label="Kabloları sök">${actionIcon('Unplug', 'Sök')}</button>`;
     }
     if (isFinger) {
-      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${instanceId}" title="Kanal Kapağını Aç/Kapat">Kapak</button>`;
+      btns += `<button type="button" class="dev-btn finger-toggle-btn" data-instance-id="${instanceId}" title="Kanal kapağını aç/kapat" aria-label="Kanal kapağını aç/kapat">${actionIcon('PanelTop', 'Kapak')}</button>`;
     }
     if (!isOrg && !isBlank) {
-      btns += `<button type="button" class="dev-btn cfg-device-btn" data-instance-id="${instanceId}" title="Cihaz Ayarları & Bilgileri">Ayar</button>`;
+      btns += `<button type="button" class="dev-btn cfg-device-btn" data-instance-id="${instanceId}" title="Cihaz ayarları ve bilgileri" aria-label="Cihaz ayarları ve bilgileri">${actionIcon('Settings2', 'Ayar')}</button>`;
     }
     const delTitle = isBlank ? 'Kör Paneli Kaldır' : (isOrg ? 'Düzenleyiciyi Kaldır' : (isPatch ? 'Paneli Kaldır' : 'Cihazı Kaldır'));
-    btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${instanceId}" title="${delTitle}">✕</button>`;
-    deviceFloatingControlsEl.innerHTML = btns;
+    btns += `<button type="button" class="dev-btn del-device-btn" data-instance-id="${instanceId}" title="${delTitle}" aria-label="${delTitle}">${actionIcon('X', '✕')}</button>`;
+    deviceFloatingControlsEl.innerHTML = `<span class="device-controls-identity" title="${escapeHtml(deviceName)} · ${escapeHtml(location)}"><strong>${escapeHtml(deviceName)}</strong><small>${escapeHtml(location)}</small></span><span class="device-controls-actions">${btns}</span>`;
 
     deviceFloatingControlsEl.querySelectorAll('.dev-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {

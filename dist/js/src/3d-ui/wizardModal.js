@@ -20,6 +20,7 @@ export function initWizardModal(studio) {
           const depthMm = parseInt(document.getElementById('wiz-depth').value) || 450;
           const portsCount = parseInt(document.getElementById('wiz-ports').value) || 0;
           const portType = document.getElementById('wiz-port-type').value;
+          if (!Number.isInteger(portsCount) || portsCount < 0 || portsCount > 256) { studio.showToast('Port sayısı 0–256 arasında olmalı.'); return; }
 
           const customId = 'custom-' + Math.random().toString(36).substr(2, 7);
           const newItem = {
@@ -34,11 +35,18 @@ export function initWizardModal(studio) {
             portsCount: portsCount,
             portType: portType,
             uplinks: 0,
+            ports: Array.from({ length: portsCount }, (_, index) => ({ id: 'p' + (index + 1), name: 'Port ' + (index + 1), type: portType })),
             desc: `${uHeight}U Özel Tasarım ${manufacturer} ${name}`
           };
 
-          window.CATALOG_3D.unshift(newItem);
-          renderCatalog();
+          try {
+            const api = window.RackStudio, command = api.ProjectCommands.begin();
+            const topology = api.ProjectDocument.capture(api.STATE).topology;
+            topology.customCatalog = { ...topology.customCatalog, [customId]: newItem };
+            api.ProjectCommands.execute({ ...command, type: 'ApplyTopology', payload: { topology } });
+            studio.loadTopologyFromProject(api.ProjectDocument.capture(api.STATE));
+          } catch (error) { studio.showToast(error.message); return; }
+          window.renderCatalog?.();
           wizardModal.style.display = 'none';
           studio.showToast(`Yeni Donanım Eklendi: ${name}`);
         });

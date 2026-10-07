@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr" data-device-renderer="pixi" data-theme="light">
+<html lang="tr" data-device-renderer="pixi" data-theme="light" data-studio-mode="layout" data-studio-overview="true">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,11 +31,22 @@
   <link rel="stylesheet" href="css/schedule-cards.css">
   <link rel="stylesheet" href="css/schedule-role-picker.css">
   <link rel="stylesheet" href="css/editor.css">
+  <link rel="stylesheet" href="css/project-manager.css">
+  <link rel="stylesheet" href="css/revision-manager.css">
+  <link rel="stylesheet" href="css/workflow-views.css">
+  <link rel="stylesheet" href="css/onboarding.css">
+  <link rel="stylesheet" href="css/field-observations.css">
+  <link rel="stylesheet" href="css/field-workflow.css">
+  <link rel="stylesheet" href="css/delivery-center.css">
+  <link rel="stylesheet" href="css/engineering.css">
+  <link rel="manifest" href="field-manifest.webmanifest">
   <link rel="stylesheet" href="css/catalog-sidebar.css">
   <link rel="stylesheet" href="css/catalog-modal.css">
   <link rel="stylesheet" href="css/catalog-inspector.css">
   <link rel="stylesheet" href="css/instrument-chrome.css">
   <link rel="stylesheet" href="css/ui-consistency.css">
+  <link rel="stylesheet" href="css/studio-view-mode.css">
+  <link rel="stylesheet" href="css/product-surfaces.css">
 </head>
 <body>
 
@@ -108,6 +119,13 @@
       </div>
 
       <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
+        <div class="segmented-control studio-work-mode-switch" id="studio-work-mode-switch" role="group" aria-label="Çalışma Modu">
+          <button type="button" class="segmented-btn active" aria-pressed="true" id="btn-mode-layout" title="Kabin Yerleşimi Modu (Cihaz montajı ve U planlaması)">Kabin yerleşimi</button>
+          <button type="button" class="segmented-btn" aria-pressed="false" id="btn-mode-cabling" title="Kablolama Modu (Portlar ve kablo yönetimi)">Kablo ayrıntıları</button>
+        </div>
+        <button class="hud-btn active" id="btn-toggle-cables" title="Kabloları Gizle / Göster (C)" aria-pressed="true">
+          <span class="btn-text">Kablolar</span>
+        </button>
         <div class="rack-view-mode-switch" id="rack-view-mode-switch" role="group" aria-label="Kabin görünüm modu">
           <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek kabin">
             <span class="rack-view-mode-text">Tek</span>
@@ -124,6 +142,9 @@
       <button type="button" class="hud-btn" id="btn-compact-view" aria-controls="compact-view-panel" aria-expanded="false">Görünüm</button>
       <div class="compact-view-panel" id="compact-view-panel" hidden>
         <div id="compact-view-2d">
+          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-layout">Kabin yerleşimi</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-cabling">Kablo ayrıntıları</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-toggle-cables">Kablolar (C)</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-multi">Yan yana</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / Arka yüz</button>
@@ -163,6 +184,8 @@
         <button type="button" class="hud-btn" id="btn-tools-menu-toggle" aria-expanded="false" aria-controls="hud-tools-panel" title="Diğer araçlar">Araçlar</button>
         <div class="hud-tools-panel" id="hud-tools-panel" hidden>
           <div class="tools-panel-heading"><strong>Araçlar ve ayarlar</strong><button type="button" id="btn-close-tools" aria-label="Araçlar panelini kapat" data-icon="X">Kapat</button></div>
+          <div class="hud-tools-section"><label class="workflow-mode-control" for="workflow-mode">Çalışma görünümü<select id="workflow-mode" aria-label="Çalışma görünümü"><option value="design">Tasarım</option><option value="field">Saha</option><option value="presentation">Sunum</option></select></label></div>
+          <div class="hud-tools-section"><button type="button" class="hud-btn" id="btn-workflow-selection" aria-haspopup="dialog">Seçim bilgileri</button></div>
           <div class="hud-tools-section" id="preset-btn-group">
             <span class="hud-tools-label">Şablonlar</span>
             <div class="preset-btn-wrap" data-preset="mdf">
@@ -207,8 +230,9 @@
             <button class="hud-btn" id="btn-3d-schedule-modal" title="Bağlantı listesi">Bağlantılar</button>
             <button class="hud-btn" id="btn-field-sheet" title="Yazdırılabilir saha kartı">Saha kartı</button>
             <button class="hud-btn" id="btn-saved-views" title="Kamera ve kabin görünümlerini kaydet">Kayıtlı görünümler</button>
+            <button class="hud-btn" id="btn-onboarding" title="Ayrı örnek projede ilk kullanım">İlk kullanım</button>
             <button class="hud-btn" id="btn-circuit-trace" title="Kablo devresini izle ve panel eşlemelerini düzenle">Devre izi</button>
-            <button class="hud-btn" id="btn-field-mode" data-context="2d-only" title="Kütüphaneyi gizle, bağlantı listesini büyüt" aria-pressed="false">Saha görünümü</button>
+            <button class="hud-btn" id="btn-field-mode" title="Saha çalışma görünümüne geç" aria-pressed="false">Saha görünümü</button>
             <button class="hud-btn" id="btn-3d-wizard-modal" title="Özel donanım" style="display:none;">Donanım</button>
             <button class="hud-btn" id="btn-export-visio" title="Visio uyumlu SVG">Visio</button>
           </div>
@@ -217,6 +241,11 @@
             <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON dosyasına kaydet">Dosyaya kaydet</button>
             <button class="hud-btn" id="btn-import-json-3d" title="JSON proje dosyası aç">Dosya aç</button>
             <button class="hud-btn" id="btn-inventory-import" title="Çevrim dışı envanter gözlemi yükle">Envanter karşılaştır</button>
+            <button class="hud-btn" id="btn-field-observations" title="Kaynaklar ve plan/gözlem farkları">Gözlem geçmişi</button>
+            <button class="hud-btn" id="btn-delivery-center" title="Dondurulmuş rapor, malzeme, etiket ve teslim paketi">Teslim merkezi</button>
+            <button class="hud-btn" id="btn-field-workflow" title="Uygulama, etiketleme, test ve kanıt ekleri">Saha iş akışı</button>
+            <button class="hud-btn" id="btn-field-qr" title="QR üret, kamera/fotoğraf veya elle aç">Saha QR kodu</button>
+            <button class="hud-btn" id="btn-field-offline" title="Yerel uygulama önbelleğini hazırla ve doğrula">Çevrimdışı saha</button>
             <input type="file" id="file-import-3d" accept=".json" style="display:none;">
           </div>
           <div class="hud-tools-section">
@@ -234,6 +263,8 @@
           </div>
           <details class="tools-advanced"><summary>Gelişmiş işlemler</summary><div class="hud-tools-section">
             <button class="hud-btn" id="btn-project-checks" title="Proje veri denetimi">Proje denetimi</button>
+            <button class="hud-btn" id="btn-engineering-center" title="Kaynaklı katalog, modül, fiber ve güç planı">Mühendislik</button>
+            <button class="hud-btn" id="btn-scenario-center" title="İki fiziksel plan alternatifini karşılaştır">What-if</button>
             <button class="hud-btn" id="btn-port-calibrator" title="Model port konumlarını yerel olarak kalibre et">Port kalibrasyonu</button>
             <button class="hud-btn tools-danger" id="btn-2d-clear-action" title="Tüm kabinleri ve kabloları sıfırla">Tüm kabinleri sıfırla</button>
           </div></details>
@@ -666,7 +697,7 @@
   </div>
 
   <!-- ==================== MODERN MODAL: YENİ KABİN EKLE (MULTI-RACK) ==================== -->
-  <div class="modal-backdrop" id="modal-add-rack">
+  <div class="modal-backdrop" id="modal-add-rack" style="display:none;">
     <div class="modal-content">
       <div class="modal-header">
         <h3>Yeni kabin</h3>
@@ -1723,6 +1754,7 @@
   </div>
 
   <!-- Status Bar Footer -->
+  <p id="workflow-status" role="status" hidden></p>
   <footer class="status-bar">
     <div class="status-badge">
       <span class="status-indicator is-ready" id="status-mode-dot"></span>
@@ -1756,9 +1788,14 @@
   <script src="js/2d/cisco-catalyst-catalog.js" vite-ignore></script>
   <script src="js/2d/cisco-nexus-routers-catalog.js" vite-ignore></script>
   <script src="js/2d/cisco-master-catalog.js" vite-ignore></script>
+  <script src="js/catalog-source-pack.js" vite-ignore></script>
   <script src="js/2d/physical-port-layouts.js" vite-ignore></script>
+  <script src="js/catalog-sources.js" vite-ignore></script>
+  <script src="js/engineering-compatibility.js" vite-ignore></script>
   <script src="js/2d/state.js" vite-ignore></script>
   <script src="js/2d/render-scheduler.js" vite-ignore></script>
+  <script src="js/2d/device-layout-presentation.js" vite-ignore></script>
+  <script src="js/2d/studio-view-mode.js" vite-ignore></script>
   <script src="js/2d/zoom-manager.js" vite-ignore></script>
   <script src="js/2d/zoom-camera-focus.js" vite-ignore></script>
   <script src="js/2d/rack-manager.js" vite-ignore></script>
@@ -1779,6 +1816,7 @@
   <script src="js/2d/pixi-cable-geometry.js" vite-ignore></script>
   <script src="js/2d/pixi-faceplate-textures.js" vite-ignore></script>
   <script src="js/2d/pixi-cabin-scene.js" vite-ignore></script>
+  <script src="js/2d/pixi-device-chassis.js" vite-ignore></script>
   <script src="js/2d/pixi-device-scene.js" vite-ignore></script>
   <script src="js/2d/pixi-spatial-index.js" vite-ignore></script>
   <script src="js/2d/pixi-cable-batch.js" vite-ignore></script>
@@ -1788,7 +1826,20 @@
   <script src="js/2d/cabling-engine.js" vite-ignore></script>
   <script src="js/2d/schedule-role-picker.js" vite-ignore></script>
   <script src="js/2d/schedule-table.js" vite-ignore></script>
+  <script src="js/2d/project-records.js" vite-ignore></script>
+  <script src="js/2d/project-document.js" vite-ignore></script>
   <script src="js/2d/topology-io.js" vite-ignore></script>
+  <script src="js/2d/project-adapters.js" vite-ignore></script>
+  <script src="js/2d/project-commands.js" vite-ignore></script>
+  <script src="js/2d/project-storage-idb.js" vite-ignore></script>
+  <script src="js/2d/project-repository.js" vite-ignore></script>
+  <script src="js/2d/project-archive.js" vite-ignore></script>
+  <script src="js/project-recovery-ui.js" vite-ignore></script>
+  <script src="js/2d/project-management.js" vite-ignore></script>
+  <script src="js/project-manager.js" vite-ignore></script>
+  <script src="js/2d/project-diff.js" vite-ignore></script>
+  <script src="js/2d/project-revisions.js" vite-ignore></script>
+  <script src="js/revision-controller.js" vite-ignore></script>
   <script src="js/2d/presets.js" vite-ignore></script>
   <script src="js/2d/preset-preview.js" vite-ignore></script>
   <script src="js/2d/snapshot-manager.js" vite-ignore></script>
@@ -1814,11 +1865,48 @@
   <script src="js/command-palette.js" vite-ignore></script>
   <script src="js/field-sheet.js" vite-ignore></script>
   <script src="js/instrument-shell.js" vite-ignore></script>
+  <script src="js/2d/layout-overview.js" vite-ignore></script>
+  <script src="js/workflow-views.js" vite-ignore></script>
+  <script src="js/workflow-selection.js" vite-ignore></script>
   <script src="js/mobile-workflow.js" vite-ignore></script>
   <script src="js/port-calibrator.js" vite-ignore></script>
   <script src="js/inventory-import.js" vite-ignore></script>
+  <script src="js/field-observations.js" vite-ignore></script>
+  <script src="js/field-observation-controller.js" vite-ignore></script>
+  <script src="js/field-evidence.js" vite-ignore></script>
+  <script src="js/field-events.js" vite-ignore></script>
+  <script src="js/field-controller.js" vite-ignore></script>
+  <script src="js/vendor/field-qrcode.js" vite-ignore></script>
+  <script src="js/vendor/jsqr.js" vite-ignore></script>
+  <script src="js/field-qr.js" vite-ignore></script>
+  <script src="js/field-qr-controller.js" vite-ignore></script>
+  <script src="js/field-offline.js" vite-ignore></script>
+  <script src="js/vendor/pdfmake.min.js" vite-ignore></script>
+  <script src="js/vendor/vfs_fonts.js" vite-ignore></script>
+  <script src="js/vendor/fflate.js" vite-ignore></script>
+  <script src="js/vendor/delivery-notices.js" vite-ignore></script>
+  <script src="js/report-model.js" vite-ignore></script>
+  <script src="js/bom-engine.js" vite-ignore></script>
+  <script src="js/label-model.js" vite-ignore></script>
+  <script src="js/report-output.js" vite-ignore></script>
+  <script src="js/report-pdf.js" vite-ignore></script>
+  <script src="js/label-output.js" vite-ignore></script>
+  <script src="js/handover-package.js" vite-ignore></script>
+  <script src="js/handover-repository.js" vite-ignore></script>
+  <script src="js/report-controller.js" vite-ignore></script>
+
   <script src="js/project-checks.js" vite-ignore></script>
+  <script src="js/power-budget.js" vite-ignore></script>
+  <script src="js/physical-paths.js" vite-ignore></script>
+  <script src="js/engineering-issues.js" vite-ignore></script>
+  <script src="js/engineering-changes.js" vite-ignore></script>
+  <script src="js/scenario-engine.js" vite-ignore></script>
+  <script src="js/engineering-controller.js" vite-ignore></script>
+  <script src="js/scenario-controller.js" vite-ignore></script>
   <script src="js/circuit-trace.js" vite-ignore></script>
+  <script src="js/workspace-state.js" vite-ignore></script>
   <script src="js/saved-views.js" vite-ignore></script>
+  <script src="js/onboarding-example.js" vite-ignore></script>
+  <script src="js/onboarding-controller.js" vite-ignore></script>
 </body>
 </html>

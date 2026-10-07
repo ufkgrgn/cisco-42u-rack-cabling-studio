@@ -110,6 +110,10 @@
       uHeight: cat.u
     };
     targetRack.devices.push(devObj);
+    if (RS.CatalogSources?.validSource(cat.provenance?.source) && RS.ProjectDocument) {
+      const pinned = RS.CatalogSources.pin(RS.ProjectDocument.capture(STATE),true);
+      STATE.projectDocument.catalogContext = pinned.catalogContext;
+    }
     if (STATE.deviceById) STATE.deviceById.set(instanceId, devObj);
     if (window.SoundFX && !silent && !STATE.isBatchLoading && !window.SoundFX.isBatchMuted) {
       window.SoundFX.playDeviceMount();

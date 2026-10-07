@@ -48,15 +48,15 @@
         });
       }
     });
-    const btnDoor2 = document.getElementById("btn-door-toggle");
-    if (btnDoor2) {
-      btnDoor2.classList.toggle("active", studio.state.doorOpen);
-      btnDoor2.textContent = studio.state.doorOpen ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
-      btnDoor2.addEventListener("click", () => {
+    const btnDoor = document.getElementById("btn-door-toggle");
+    if (btnDoor) {
+      btnDoor.classList.toggle("active", studio.state.doorOpen);
+      btnDoor.textContent = studio.state.doorOpen ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
+      btnDoor.addEventListener("click", () => {
         const next = !studio.state.doorOpen;
         studio.setDoorOpen(next);
-        btnDoor2.classList.toggle("active", next);
-        btnDoor2.textContent = next ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
+        btnDoor.classList.toggle("active", next);
+        btnDoor.textContent = next ? "Kapak: A\xE7\u0131k" : "Kapak: Kapal\u0131";
         studio.showToast(next ? "Kabin Cam Kapa\u011F\u0131 A\xE7\u0131ld\u0131" : "Kabin Cam Kapa\u011F\u0131 Kapat\u0131ld\u0131");
       });
     }
@@ -243,6 +243,7 @@
         renderCatalog2(searchInput2 ? searchInput2.value : "");
       });
     });
+    window.renderCatalog = renderCatalog2;
     renderCatalog2();
     const tabBtnCatalog = document.getElementById("tab-btn-catalog");
     const tabBtnInstalled = document.getElementById("tab-btn-installed");
@@ -297,7 +298,7 @@
             <span style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(2,132,199,0.25);border:1px solid #0284c7;color:#38bdf8;font-weight:700;">${rackObj.name}</span>
             <span class="installed-cables-badge" title="Ba\u011Fl\u0131 Kablo Say\u0131s\u0131">\u{1F50C} ${cableCount}</span>
           </div>
-          <div class="installed-card-sub">${dev.manufacturer || "Cisco"} \xB7 ${dev.uHeight}U \xB7 ${dev.powerWatts !== void 0 ? dev.powerWatts : 150}W \xB7 ${dev.category || "Donan\u0131m"}</div>
+          <div class="installed-card-sub">${dev.manufacturer || "Cisco"} \xB7 ${dev.uHeight}U \xB7 ${typeof dev.powerWatts === "number" ? dev.powerWatts + " W \xB7 plan/kaynak t\xFCr\xFCn\xFC m\xFChendislikte incele" : "G\xFC\xE7 bilinmiyor"} \xB7 ${dev.category || "Donan\u0131m"}</div>
           ${metaHtml}
           <div class="installed-card-actions">
             <button class="btn-inst-action btn-inst-edit" title="Donan\u0131m bilgilerini yap\u0131land\u0131r">D\xFCzenle</button>
@@ -328,7 +329,7 @@
         });
         card.querySelector(".btn-inst-dismount").addEventListener("click", (e) => {
           e.stopPropagation();
-          studio.removeDevice(dev.id);
+          if (studio.removeDevice(dev.id) === false) return;
           studio.showToast(`\u{1F5D1}\uFE0F "${dev.name}" kabinden s\xF6k\xFCld\xFC.`);
           renderInstalledDevicesList2();
           renderCatalog2(searchInput2 ? searchInput2.value : "");
@@ -346,12 +347,13 @@
       btnDismountAll.addEventListener("click", () => {
         if (studio.state.devices.length === 0) return;
         if (confirm("Kabindeki T\xDCM cihazlar\u0131 s\xF6kmek istedi\u011Finize emin misiniz?")) {
-          studio.state.devices = [];
-          studio.state.cables = [];
-          studio.rebuildAllDevices();
-          studio.rebuildAllCables();
-          studio.state.pushSnapshot();
-          studio.state.autoSave();
+          if (studio.runProjectEdit(() => {
+            studio.state.devices = [];
+            studio.state.cables = [];
+            studio.rebuildAllDevices();
+            studio.rebuildAllCables();
+            return true;
+          }) === false) return;
           studio.deselectDevice();
           renderInstalledDevicesList2();
           renderCatalog2(searchInput2 ? searchInput2.value : "");
@@ -429,7 +431,7 @@
         if (activeContextDevId2) {
           const dev = studio.state.devices.find((d) => d.id === activeContextDevId2);
           if (confirm(`"${dev ? dev.name : "Bu cihaz"}" kabinden s\xF6k\xFCls\xFCn m\xFC? (Ba\u011Fl\u0131 kablolar da s\xF6k\xFClecektir)`)) {
-            studio.removeDevice(activeContextDevId2);
+            if (studio.removeDevice(activeContextDevId2) === false) return;
             devContext.style.display = "none";
             studio.showToast("Cihaz kabinden s\xF6k\xFCld\xFC.");
             renderCatalog(searchInput ? searchInput.value : "");
@@ -437,53 +439,11 @@
         }
       });
     }
-    const btnDevEditConfig = document.getElementById("btn-dev-edit-config");
-    const modalDeviceEdit = document.getElementById("modal-device-edit");
-    const btnCloseDeviceEdit = document.getElementById("btn-close-device-edit");
-    const btnCancelDeviceEdit = document.getElementById("btn-cancel-device-edit");
-    const btnSaveDeviceEdit = document.getElementById("btn-save-device-edit");
-    const devEditHostname = document.getElementById("dev-edit-hostname");
-    const devEditIp = document.getElementById("dev-edit-ip");
-    const devEditMac = document.getElementById("dev-edit-mac");
-    const devEditSerial = document.getElementById("dev-edit-serial");
-    const devEditPanelLabel = document.getElementById("dev-edit-panel-label");
-    const modalDevEditTitle = document.getElementById("modal-dev-edit-title");
-    if (btnDevEditConfig && modalDeviceEdit) {
-      btnDevEditConfig.addEventListener("click", () => {
-        if (!activeContextDevId2) return;
-        const dev = studio.state.devices.find((d) => d.id === activeContextDevId2);
-        if (!dev) return;
-        devContext.style.display = "none";
-        window.DeviceMetadataEditor?.open3D(dev.id);
-      });
-      const closeDevEdit = () => {
-        modalDeviceEdit.style.display = "none";
-        modalDeviceEdit.dataset.source = "";
-      };
-      if (btnCloseDeviceEdit) btnCloseDeviceEdit.addEventListener("click", closeDevEdit);
-      if (btnCancelDeviceEdit) btnCancelDeviceEdit.addEventListener("click", closeDevEdit);
-      if (btnSaveDeviceEdit) {
-        btnSaveDeviceEdit.addEventListener("click", () => {
-          if (!activeContextDevId2) return;
-          const newHostname = devEditHostname ? devEditHostname.value.trim() : "";
-          const newIp = devEditIp ? devEditIp.value.trim() : "";
-          const newMac = devEditMac ? devEditMac.value.trim() : "";
-          const newSerial = devEditSerial ? devEditSerial.value.trim() : "";
-          const newPanelLabel = devEditPanelLabel ? devEditPanelLabel.value.trim() : "";
-          studio.updateDeviceMetadata(activeContextDevId2, {
-            name: newHostname,
-            ipAddress: newIp,
-            macAddress: newMac,
-            serialNumber: newSerial,
-            panelLabel: newPanelLabel
-          });
-          renderInstalledDevicesList();
-          if (typeof window.sync3Dto2D === "function") window.sync3Dto2D();
-          modalDeviceEdit.dataset.source = "";
-          modalDeviceEdit.style.display = "none";
-        });
-      }
-    }
+    document.getElementById("btn-dev-edit-config")?.addEventListener("click", () => {
+      if (!activeContextDevId2) return;
+      devContext.style.display = "none";
+      window.DeviceMetadataEditor?.open3D(activeContextDevId2);
+    });
   }
 
   // js/src/3d-ui/cableModals.js
@@ -694,6 +654,10 @@
           const depthMm = parseInt(document.getElementById("wiz-depth").value) || 450;
           const portsCount = parseInt(document.getElementById("wiz-ports").value) || 0;
           const portType = document.getElementById("wiz-port-type").value;
+          if (!Number.isInteger(portsCount) || portsCount < 0 || portsCount > 256) {
+            studio.showToast("Port say\u0131s\u0131 0\u2013256 aras\u0131nda olmal\u0131.");
+            return;
+          }
           const customId = "custom-" + Math.random().toString(36).substr(2, 7);
           const newItem = {
             id: customId,
@@ -707,14 +671,132 @@
             portsCount,
             portType,
             uplinks: 0,
+            ports: Array.from({ length: portsCount }, (_, index) => ({ id: "p" + (index + 1), name: "Port " + (index + 1), type: portType })),
             desc: `${uHeight}U \xD6zel Tasar\u0131m ${manufacturer} ${name}`
           };
-          window.CATALOG_3D.unshift(newItem);
-          renderCatalog();
+          try {
+            const api = window.RackStudio, command = api.ProjectCommands.begin();
+            const topology = api.ProjectDocument.capture(api.STATE).topology;
+            topology.customCatalog = { ...topology.customCatalog, [customId]: newItem };
+            api.ProjectCommands.execute({ ...command, type: "ApplyTopology", payload: { topology } });
+            studio.loadTopologyFromProject(api.ProjectDocument.capture(api.STATE));
+          } catch (error) {
+            studio.showToast(error.message);
+            return;
+          }
+          window.renderCatalog?.();
           wizardModal.style.display = "none";
           studio.showToast(`Yeni Donan\u0131m Eklendi: ${name}`);
         });
       }
+    }
+  }
+
+  // js/src/3d-ui/project-file-controls.js
+  function parseStudioProject(text) {
+    const api = window.RackStudio;
+    if (typeof text !== "string" || new TextEncoder().encode(text).length > api.ProjectDocument.MAX_BYTES) throw new Error("Proje JSON dosyas\u0131 32 MB s\u0131n\u0131r\u0131n\u0131 a\u015F\u0131yor.");
+    const data = JSON.parse(text);
+    if (data?.version === "3.1.0-3D" && data.schemaVersion === void 0) {
+      api.ProjectDocument.normalize({ racks: [], cables: [], nativeImport: data });
+      if (!Array.isArray(data.devices) || !Array.isArray(data.cables)) throw new Error("Ge\xE7ersiz eski 3D proje.");
+      const racks = data.racks || [{ id: "rack-1", name: "\u0130\xE7e aktar\u0131lan 3D kabin", heightU: data.rackHeightU || 42 }];
+      const base = api.ProjectDocument.normalize({ racks: racks.map((r) => ({ ...r, devices: [] })), cables: [], customCatalog: data.customCatalog || {} });
+      base.metadata.migratedFrom = data.version;
+      base.extensions.native3DImport = data;
+      const devices = data.devices.map((device, index) => {
+        if (base.topology.customCatalog[device.catalogId]) return device;
+        const canonical = api.resolveCatalogItem(device.catalogId);
+        const source = window.CATALOG_3D?.find((item) => item.id === device.catalogId) || canonical;
+        if (!source) throw new Error("Eski 3D katalog modeli \xE7\xF6z\xFCmlenemedi: " + device.catalogId);
+        const knownPorts = device.portDefinitions?.length ? device.portDefinitions : canonical?.ports;
+        if (canonical && canonical.u === device.uHeight && knownPorts?.every((port) => canonical.ports.some((p) => p.id === port.id))) return device;
+        const id = "legacy3d-model-" + index;
+        const count = device.portsCount ?? source.portsCount ?? 0;
+        if (!Number.isInteger(count) || count < 0 || count > 256) throw new Error("Eski 3D port say\u0131s\u0131 ge\xE7ersiz.");
+        const ports = device.portDefinitions?.length ? device.portDefinitions : source.ports || Array.from({ length: count }, (_, i) => ({ id: "p" + (i + 1), name: "Port " + (i + 1), type: device.portType || source.portType || "rj45" }));
+        base.topology.customCatalog[id] = {
+          ...source,
+          id,
+          u: device.uHeight ?? source.u,
+          ports,
+          name: source.name || device.name || id,
+          legacyCatalogId: device.catalogId
+        };
+        return { ...device, catalogId: id };
+      });
+      return api.ProjectAdapters.from3D({ ...data, devices, racks }, base);
+    }
+    return api.ProjectDocument.parse(text);
+  }
+  function initProjectFileControls(studio) {
+    const api = window.RackStudio;
+    document.getElementById("btn-export-json-3d")?.addEventListener("click", () => {
+      try {
+        if (!studio.state.autoSave()) throw new Error(studio.state.lastSaveError);
+        api.flushProjectChanges();
+        const doc = api.ProjectDocument.capture(api.STATE);
+        const url = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2)], { type: "application/json" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `rack-studio-project-${doc.projectId}.json`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1e3);
+        studio.showToast("Tam proje JSON dosyas\u0131 d\u0131\u015Fa aktar\u0131ld\u0131.");
+      } catch (error) {
+        studio.showToast(error.message);
+      }
+    });
+    const input = document.getElementById("file-import-3d");
+    const trigger = document.getElementById("btn-import-json-3d");
+    trigger?.addEventListener("click", () => input?.click());
+    let reading = false;
+    input?.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file || reading) return;
+      reading = true;
+      if (trigger) trigger.disabled = true;
+      try {
+        if (file.size > api.ProjectDocument.MAX_BYTES) throw new Error("Proje JSON dosyas\u0131 32 MB s\u0131n\u0131r\u0131n\u0131 a\u015F\u0131yor.");
+        if (!studio.state.autoSave()) throw new Error(studio.state.lastSaveError);
+        const expected = api.ProjectCommands.begin();
+        const doc = parseStudioProject(await file.text());
+        api.validateTopology(doc);
+        const result = await api.importProjectDocument(doc, expected);
+        studio.loadTopologyFromProject(api.ProjectDocument.capture(api.STATE));
+        window.renderCatalog?.();
+        window.renderInstalledDevicesList?.();
+        studio.showToast(result.copied ? "Dosya ayr\u0131 proje kopyas\u0131 olarak a\xE7\u0131ld\u0131; mevcut kay\u0131t korundu." : "Tam proje a\xE7\u0131ld\u0131.");
+      } catch (error) {
+        studio.showToast("Proje a\xE7\u0131lamad\u0131: " + error.message);
+      } finally {
+        reading = false;
+        input.value = "";
+        if (trigger) trigger.disabled = false;
+      }
+    });
+  }
+
+  // js/src/3d-ui/workflow-selection.js
+  function initWorkflowSelection(studio) {
+    for (const [method, kind] of [["selectDevice", "device"], ["deselectDevice", "device"], ["selectCable", "cable"]]) {
+      const original = studio[method];
+      studio[method] = function(...args) {
+        const result = original.apply(this, args);
+        document.dispatchEvent(new CustomEvent("rackstudio:selection", { detail: { kind, id: method === "deselectDevice" ? null : args[0], source: "3d" } }));
+        return result;
+      };
+    }
+    for (const method of ["addDevice", "removeDevice", "moveDevice", "connectPorts", "removeCable"]) {
+      const original = studio[method];
+      if (!original) continue;
+      studio[method] = function(...args) {
+        if (window.RackStudio.WorkflowViews?.canEdit() === false) {
+          this.showToast("D\xFCzenlemek i\xE7in Tasar\u0131m veya Saha g\xF6r\xFCn\xFCm\xFCne ge\xE7in.");
+          return false;
+        }
+        return original.apply(this, args);
+      };
     }
   }
 
@@ -727,6 +809,7 @@
       if (window.__STUDIO3D__) return;
       const studio = new window.Studio3D(container);
       window.__STUDIO3D__ = studio;
+      initWorkflowSelection(studio);
       initCameraControls(studio);
       initCatalogDrawer(studio);
       initDeviceHud(studio);
@@ -736,9 +819,14 @@
       if (btnPresetMdf) {
         btnPresetMdf.addEventListener("click", () => {
           if (confirm("MDF Omurga \u015Eablonunu y\xFCklemek istiyor musunuz? Mevcut tasar\u0131m s\u0131f\u0131rlanacakt\u0131r.")) {
-            studio.loadPresetMDF();
+            try {
+              if (studio.loadPresetMDF() === false) return;
+            } catch (error) {
+              studio.showToast(error.message);
+              return;
+            }
             studio.showToast("MDF Da\u011F\u0131t\u0131m \u015Eablonu Y\xFCklendi.");
-            renderCatalog(searchInput ? searchInput.value : "");
+            window.renderCatalog?.();
           }
         });
       }
@@ -746,16 +834,24 @@
       if (btnPresetIdf) {
         btnPresetIdf.addEventListener("click", () => {
           if (confirm("IDF Kat Kenar \u015Eablonunu y\xFCklemek istiyor musunuz?")) {
-            studio.state.devices = [];
-            studio.state.cables = [];
-            studio.mountDevice("patch-cat6-48p", 38);
-            studio.mountDevice("cisco-c9300-48p", 36);
-            studio.mountDevice("cable-manager-1u", 35);
-            studio.mountDevice("patch-cat6-48p", 33);
-            studio.mountDevice("cisco-c9300-48p", 31);
-            studio.mountDevice("pdu-1u-8c13", 2);
+            try {
+              if (studio.runProjectEdit(() => {
+                studio.state.devices = [];
+                studio.state.cables = [];
+                if (!studio.mountDevice("patch-cat6-48p", 38)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                if (!studio.mountDevice("cisco-c9300-48p", 36)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                if (!studio.mountDevice("cable-manager-1u", 35)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                if (!studio.mountDevice("patch-cat6-48p", 33)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                if (!studio.mountDevice("cisco-c9300-48p", 31)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                if (!studio.mountDevice("pdu-1u-8c13", 2)) throw new Error("\u015Eablon i\xE7in yeterli kabin alan\u0131 yok.");
+                return true;
+              }) === false) return;
+            } catch (error) {
+              studio.showToast(error.message);
+              return;
+            }
             studio.showToast("IDF Kat Kabini \u015Eablonu Y\xFCklendi.");
-            renderCatalog(searchInput ? searchInput.value : "");
+            window.renderCatalog?.();
           }
         });
       }
@@ -763,9 +859,14 @@
       if (btnPresetSite) {
         btnPresetSite.addEventListener("click", () => {
           if (confirm("T\xFCm Saha Topolojisini y\xFCklemek istiyor musunuz? (3D kabinde MDF \u015Fablonu y\xFCklenecektir)")) {
-            studio.loadPresetMDF();
+            try {
+              if (studio.loadPresetMDF() === false) return;
+            } catch (error) {
+              studio.showToast(error.message);
+              return;
+            }
             studio.showToast("Saha Topolojisi Y\xFCklendi. \xC7oklu kabin i\xE7in 2D moduna ge\xE7ebilirsiniz.");
-            renderCatalog(searchInput ? searchInput.value : "");
+            window.renderCatalog?.();
           }
         });
       }
@@ -778,7 +879,7 @@
             studio.rebuildAllDevices();
             studio.rebuildAllCables();
             studio.showToast("Geri Al\u0131nd\u0131 (Undo)");
-            renderCatalog(searchInput ? searchInput.value : "");
+            window.renderCatalog?.();
           }
         });
       }
@@ -789,59 +890,11 @@
             studio.rebuildAllDevices();
             studio.rebuildAllCables();
             studio.showToast("Yinelendi (Redo)");
-            renderCatalog(searchInput ? searchInput.value : "");
+            window.renderCatalog?.();
           }
         });
       }
-      const btnExportJson = document.getElementById("btn-export-json-3d");
-      const btnImportJson = document.getElementById("btn-import-json-3d");
-      const fileImport = document.getElementById("file-import-3d");
-      if (btnExportJson) {
-        btnExportJson.addEventListener("click", () => {
-          const payload = {
-            version: "3.1.0-3D",
-            timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-            rackHeightU: studio.state.rackHeightU,
-            devices: studio.state.devices,
-            cables: studio.state.cables
-          };
-          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `cisco-rack-studio-3d-${Date.now()}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-          studio.showToast("3D Topoloji JSON Olarak Kaydedildi.");
-        });
-      }
-      if (btnImportJson && fileImport) {
-        btnImportJson.addEventListener("click", () => fileImport.click());
-        fileImport.addEventListener("change", (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            try {
-              const data = JSON.parse(evt.target.result);
-              if (data.devices) {
-                studio.state.rackHeightU = data.rackHeightU || 42;
-                studio.state.devices = data.devices || [];
-                studio.state.cables = data.cables || [];
-                studio.buildRack(studio.state.rackHeightU);
-                studio.rebuildAllDevices();
-                studio.rebuildAllCables();
-                studio.state.pushSnapshot();
-                renderCatalog(searchInput ? searchInput.value : "");
-                studio.showToast("3D Topoloji Ba\u015Far\u0131yla Y\xFCklendi!");
-              }
-            } catch (err) {
-              alert("Ge\xE7ersiz JSON Dosyas\u0131!");
-            }
-          };
-          reader.readAsText(file);
-        });
-      }
+      initProjectFileControls(studio);
       window.addEventListener("keydown", (e) => {
         if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
         const wrapper3D = document.getElementById("studio3d-wrapper");
@@ -866,7 +919,7 @@
           document.getElementById("cam-focus")?.click();
         } else if (e.key.toLowerCase() === "d") {
           e.preventDefault();
-          btnDoor && btnDoor.click();
+          document.getElementById("btn-door-toggle")?.click();
         }
       });
     }

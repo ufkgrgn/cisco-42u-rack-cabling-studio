@@ -110,6 +110,10 @@
       uHeight: cat.u
     };
     targetRack.devices.push(devObj);
+    if (RS.CatalogSources?.validSource(cat.provenance?.source) && RS.ProjectDocument) {
+      const pinned = RS.CatalogSources.pin(RS.ProjectDocument.capture(STATE),true);
+      STATE.projectDocument.catalogContext = pinned.catalogContext;
+    }
     if (STATE.deviceById) STATE.deviceById.set(instanceId, devObj);
     if (window.SoundFX && !silent && !STATE.isBatchLoading && !window.SoundFX.isBatchMuted) {
       window.SoundFX.playDeviceMount();
@@ -354,18 +358,21 @@
 
     document.body.appendChild(popover);
 
-    const rect = targetBtn.getBoundingClientRect();
-    const popoverWidth = 240;
-    const popoverHeight = 110;
+    const rect = (targetBtn && typeof targetBtn.getBoundingClientRect === 'function')
+      ? targetBtn.getBoundingClientRect()
+      : { left: Math.round(window.innerWidth / 2 - 140), top: 120, width: 0, height: 0, right: Math.round(window.innerWidth / 2), bottom: 120 };
 
-    let left = rect.left - popoverWidth - 8;
+    const popoverWidth = Math.max(270, popover.offsetWidth || 280);
+    const popoverHeight = Math.max(110, popover.offsetHeight || 120);
+
+    let left = rect.left - popoverWidth - 10;
     let top = rect.top + (rect.height / 2) - (popoverHeight / 2);
-    if (left < 10 || top < 20) {
-      left = Math.min(Math.max(10, rect.left - popoverWidth / 2 + rect.width / 2), window.innerWidth - popoverWidth - 10);
-      top = rect.bottom + 6;
+    if (left < 12 || top < 24) {
+      left = Math.min(Math.max(12, rect.left - popoverWidth / 2 + rect.width / 2), window.innerWidth - popoverWidth - 16);
+      top = rect.bottom + 8;
     }
-    if (top + popoverHeight > window.innerHeight - 10) {
-      top = Math.max(10, rect.top - popoverHeight - 6);
+    if (top + popoverHeight > window.innerHeight - 12) {
+      top = Math.max(12, rect.top - popoverHeight - 8);
     }
 
     popover.style.left = `${Math.round(left)}px`;
@@ -470,9 +477,9 @@
 
     const choiceCardsHtml = isSwitchToSwitch
       ? `
-        <div class="uplink-choice-card recommended" id="opt-uplink-recommend" style="border-color: rgba(124, 58, 237, 0.65); background: linear-gradient(180deg, rgba(124, 58, 237, 0.16) 0%, rgba(15, 23, 42, 0.9) 100%);">
-          <span class="choice-tag" style="background: rgba(124, 58, 237, 0.25); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.5);">ÖNERİLEN OMURGA STANDARDI</span>
-          <div class="choice-title" style="color:#c084fc;">✨ 802.1Q TRUNK Olarak Yapılandır</div>
+        <div class="uplink-choice-card recommended trunk-mode" id="opt-uplink-recommend">
+          <span class="choice-tag purple">ÖNERİLEN OMURGA STANDARDI</span>
+          <div class="choice-title">✨ 802.1Q TRUNK Olarak Yapılandır</div>
           <div class="choice-desc">
             Tüm VLAN trafiği güvenle taşınır, STP / Loop koruması aktif tutulur, omurga portu rozeti atanır ve mor/neon kablo rengi uygulanır.
           </div>
@@ -488,7 +495,7 @@
       : `
         <div class="uplink-choice-card recommended" id="opt-uplink-recommend">
           <span class="choice-tag cyan">ÖNERİLEN STANDART</span>
-          <div class="choice-title" style="color:${roleColor};">✨ Otomatik ${roleName} Ata</div>
+          <div class="choice-title">✨ Otomatik ${roleName} Ata</div>
           <div class="choice-desc">
             802.1Q omurga port rozeti atanır, kablo ${roleName === 'UPLINK' ? 'Neon Cyan' : 'Mor'} rengine bürünür ve port konfigürasyonu kaydedilir.
           </div>
@@ -506,7 +513,7 @@
       ? `
         <button type="button" class="btn-secondary" id="btn-uplink-cancel">İptal</button>
         <button type="button" class="btn-secondary" id="btn-uplink-standard">Standart Access Olarak Bağla</button>
-        <button type="button" class="btn-primary" id="btn-uplink-approve" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); border-color: #a855f7; box-shadow: 0 2px 14px rgba(124, 58, 237, 0.5);">✨ 802.1Q TRUNK Olarak Yapılandır</button>
+        <button type="button" class="btn-primary purple" id="btn-uplink-approve">✨ 802.1Q TRUNK Olarak Yapılandır</button>
       `
       : `
         <button type="button" class="btn-secondary" id="btn-uplink-cancel">İptal</button>
@@ -516,8 +523,8 @@
 
     backdrop.innerHTML = `
       <div class="uplink-modal-card" role="dialog" aria-modal="true">
-        <div class="uplink-modal-header" style="${isSwitchToSwitch ? 'background: rgba(45, 20, 60, 0.6);' : ''}">
-          <div class="header-badge" style="${isSwitchToSwitch ? 'color: #c084fc;' : ''}">
+        <div class="uplink-modal-header ${isSwitchToSwitch ? 'switch-to-switch' : ''}">
+          <div class="header-badge">
             ${headerBadgeHtml}
           </div>
           <button type="button" class="close-btn" title="Kapat (İptal)">✕</button>
@@ -525,7 +532,7 @@
         <div class="uplink-modal-body">
           <div class="uplink-connection-strip">
             <span>${escapeHtml(options.srcDeviceName)} (${escapeHtml(options.srcPortName)})</span>
-            <span class="arrow" style="${isSwitchToSwitch ? 'color: #c084fc;' : ''}">➔</span>
+            <span class="arrow ${isSwitchToSwitch ? 'purple' : ''}">➔</span>
             <span>${escapeHtml(options.tgtDeviceName)} (${escapeHtml(options.tgtPortName)})</span>
           </div>
           <p class="uplink-modal-desc">

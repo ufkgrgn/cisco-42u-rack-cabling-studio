@@ -7,7 +7,8 @@ const { pathToFileURL } = require('node:url');
 test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  const fileUrl = pathToFileURL(path.resolve(__dirname, '../dist/index.html')).href;
+  page.on('console', message => { if (message.type() === 'error') console.error(message.text()); });
+  const fileUrl = pathToFileURL(path.resolve(__dirname, '../index.html')).href;
   await page.goto(fileUrl);
   await page.waitForLoadState('domcontentloaded');
 
@@ -34,8 +35,8 @@ test('2D <-> 3D Bidirectional Topology & Cable Synchronization', async () => {
     const cable1 = {
       id: 'cable-test-1',
       name: 'Cat6 Test Cable',
-      from: { rackId: 'rack-1', instanceId: dev1.instanceId, portId: 'p1', face: 'rear' },
-      to: { rackId: 'rack-1', instanceId: dev2.instanceId, portId: 'p1', face: 'front' },
+      from: { rackId: 'rack-1', instanceId: dev1.instanceId, portId: RS.resolveCatalogItem(dev1.catalogKey).ports[0].id, face: 'rear' },
+      to: { rackId: 'rack-1', instanceId: dev2.instanceId, portId: RS.resolveCatalogItem(dev2.catalogKey).ports[0].id, face: 'front' },
       note: 'review-note',
       color: '#2563eb',
       lengthMeters: 1.5

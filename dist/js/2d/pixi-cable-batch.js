@@ -12,11 +12,11 @@
   const STATE = RS.STATE;
 
   const CABLE_VISUAL_STYLE = Object.freeze({
-    casingWidth: 4.8,
-    coreWidth: 2.6,
-    highlightWidth: 0.8,
-    highlightAlpha: 0.18,
-    casingColor: 0x060913,
+    casingWidth: 3.8,
+    coreWidth: 2.4,
+    highlightWidth: 0,
+    highlightAlpha: 0,
+    casingColor: 0x070a12,
     highlightColor: 0xffffff,
     railSpacing: 3.2,
     traySpacing: 2.8
@@ -76,12 +76,23 @@
 
   function appendConnector(graphics, point, color, focused = false) {
     if (!point || !graphics) return;
-    const radius = focused ? 3.8 : 3.4;
-    const pinRadius = focused ? 1.4 : 1.2;
-    graphics.circle(point.x, point.y, radius)
-      .fill(0x090d16)
-      .stroke({ width: focused ? 1.8 : 1.6, color, alignment: 0.5 });
-    graphics.circle(point.x, point.y, pinRadius).fill(color);
+    const w = focused ? 7.2 : 6.0;
+    const h = focused ? 8.2 : 7.0;
+    const x = point.x - w / 2;
+    const y = point.y - h / 2;
+
+    // RJ45 Micro-connector plug body
+    graphics.roundRect(x, y, w, h, 1.2)
+      .fill(color)
+      .stroke({
+        width: focused ? 1.4 : 0.9,
+        color: focused ? 0x38bdf8 : CABLE_VISUAL_STYLE.casingColor,
+        alignment: 0.5
+      });
+
+    // Latch clip / pin highlight
+    graphics.rect(point.x - 1, y + 1.2, 2, 2.2)
+      .fill({ color: 0xffffff, alpha: 0.4 });
   }
 
   function createStubBadge(display, group, color) {
@@ -175,19 +186,16 @@
     parseSvgPathD(highlight, display.pathD);
     display.endpoints.forEach(point => appendConnector(boots, point, color, true));
 
-    glow.stroke({ width: selectedOnly ? 9 : 8, color, alpha: selectedOnly ? 0.72 : 0.62, cap: 'round', join: 'round' });
-    glow.blendMode = 'add';
-    casing.stroke({ width: selectedOnly ? 5.8 : 5.4, color: CABLE_VISUAL_STYLE.casingColor, alpha: 1, cap: 'round', join: 'round' });
-    core.stroke({ width: selectedOnly ? 3.5 : 3.2, color, alpha: 1, cap: 'round', join: 'round' });
-    highlight.stroke({ width: 0.9, color: CABLE_VISUAL_STYLE.highlightColor, alpha: 0.35, cap: 'round', join: 'round' });
+    casing.stroke({ width: selectedOnly ? 5.0 : 4.6, color: CABLE_VISUAL_STYLE.casingColor, alpha: 1, cap: 'round', join: 'round' });
+    core.stroke({ width: selectedOnly ? 3.2 : 2.8, color, alpha: 1, cap: 'round', join: 'round' });
 
-    variant.addChild(glow, casing, core, highlight, boots);
+    variant.addChild(casing, core, boots);
     display.focusVariants.set(key, variant);
     if (telemetry) telemetry.focusVariantCacheMisses++;
     return variant;
   }
 
-  function buildRetainedRackBatch(rackKey, displays, cableIndex = -1, connectorIndex = -1) {
+  function buildRetainedRackBatch(rackKey, displays, cableIndex = -1, connectorIndex = -1, detached = false) {
     const cablesContainer = PixiContext.getCablesContainer?.();
     const connectorsContainer = PixiContext.getConnectorsContainer?.();
     const rackGroup = { displays: [...displays], byColor: new Map() };
@@ -204,6 +212,25 @@
     } : null;
     cableBatch.__worldBounds = connectorBatch.__worldBounds = bounds;
 
+    // Retain small ordered groups so recoloring a few cables does not retessellate a whole rack.
+    if (displays.length > 32) {
+      const partitions = [];
+      for (let i = 0; i < displays.length; i += 32) {
+        const part = buildRetainedRackBatch(rackKey, displays.slice(i, i + 32), -1, -1, true);
+        cableBatch.addChild(part.cableBatch);
+        connectorBatch.addChild(part.connectorBatch);
+        partitions.push(part);
+      }
+      if (!detached) {
+        if (cableIndex >= 0) cablesContainer?.addChildAt(cableBatch, Math.min(cableIndex, cablesContainer.children.length));
+        else cablesContainer?.addChild(cableBatch);
+        if (connectorIndex >= 0) connectorsContainer?.addChildAt(connectorBatch, Math.min(connectorIndex, connectorsContainer.children.length));
+        else connectorsContainer?.addChild(connectorBatch);
+      }
+      const tail = partitions[partitions.length - 1];
+      return { displays, byColor: new Map(), cableBatch, connectorBatch, partitions, casing: tail.casing, connectors: tail.connectors, badges: tail.badges };
+    }
+
     const casing = new window.PIXI.Graphics();
     casing.eventMode = 'none';
     const connectors = new window.PIXI.Graphics();
@@ -216,7 +243,7 @@
     // 2. Colored core (2.6px display.colorNum)
     // 3. 3D cylindrical highlight (0.8px #ffffff alpha 0.18)
     displays.forEach(display => {
-      // 1. Casing
+      // 1. Casing (subtle 3.8px separation outline)
       parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.casingWidth,
@@ -226,22 +253,12 @@
         join: 'round'
       });
 
-      // 2. Core
+      // 2. Core (clean 2.4px flat wire)
       parseSvgPathD(casing, display);
       casing.stroke({
         width: CABLE_VISUAL_STYLE.coreWidth,
         color: display.colorNum,
         alpha: 1,
-        cap: 'round',
-        join: 'round'
-      });
-
-      // 3. Highlight
-      parseSvgPathD(casing, display);
-      casing.stroke({
-        width: CABLE_VISUAL_STYLE.highlightWidth,
-        color: CABLE_VISUAL_STYLE.highlightColor,
-        alpha: CABLE_VISUAL_STYLE.highlightAlpha,
         cap: 'round',
         join: 'round'
       });
@@ -255,10 +272,12 @@
     connectorBatch.addChild(connectors);
     badges.forEach(badge => connectorBatch.addChild(badge));
 
-    if (cableIndex >= 0 && cablesContainer?.addChildAt) cablesContainer.addChildAt(cableBatch, Math.min(cableIndex, cablesContainer.children.length));
-    else cablesContainer?.addChild(cableBatch);
-    if (connectorIndex >= 0 && connectorsContainer?.addChildAt) connectorsContainer.addChildAt(connectorBatch, Math.min(connectorIndex, connectorsContainer.children.length));
-    else connectorsContainer?.addChild(connectorBatch);
+    if (!detached) {
+      if (cableIndex >= 0 && cablesContainer?.addChildAt) cablesContainer.addChildAt(cableBatch, Math.min(cableIndex, cablesContainer.children.length));
+      else cablesContainer?.addChild(cableBatch);
+      if (connectorIndex >= 0 && connectorsContainer?.addChildAt) connectorsContainer.addChildAt(connectorBatch, Math.min(connectorIndex, connectorsContainer.children.length));
+      else connectorsContainer?.addChild(connectorBatch);
+    }
 
     rackGroup.cableBatch = cableBatch;
     rackGroup.connectorBatch = connectorBatch;
@@ -345,19 +364,11 @@
         join: 'round'
       });
 
-      parseSvgPathD(rackGroup.casing, display.pathD);
-      rackGroup.casing.stroke({
-        width: CABLE_VISUAL_STYLE.highlightWidth,
-        color: CABLE_VISUAL_STYLE.highlightColor,
-        alpha: CABLE_VISUAL_STYLE.highlightAlpha,
-        cap: 'round',
-        join: 'round'
-      });
-
       if (rackGroup.connectors) {
         display.endpoints.forEach(point => appendConnector(rackGroup.connectors, point, display.colorNum, false));
       }
       rackGroup.displays.push(display);
+      if (rackGroup.partitions) rackGroup.partitions[rackGroup.partitions.length - 1].displays.push(display);
 
       const bounds = rackGroup.cableBatch.__worldBounds;
       if (bounds) {
@@ -396,6 +407,34 @@
     let processedDisplays = 0;
     for (const rackKey of rackKeys) {
       const previous = batchedRackGroups.get(rackKey);
+      if (previous.partitions) {
+        const retained = [];
+        for (const part of previous.partitions) {
+          const displays = part.displays.filter(display => cableDisplays.has(display.id));
+          if (displays.length === part.displays.length) { retained.push(part); continue; }
+          const index = retained.length;
+          previous.cableBatch.removeChild(part.cableBatch);
+          previous.connectorBatch.removeChild(part.connectorBatch);
+          part.cableBatch.destroy({ children: true });
+          part.connectorBatch.destroy({ children: true });
+          processedDisplays += displays.length;
+          if (displays.length) {
+            const replacement = buildRetainedRackBatch(rackKey, displays, -1, -1, true);
+            previous.cableBatch.addChildAt(replacement.cableBatch, index);
+            previous.connectorBatch.addChildAt(replacement.connectorBatch, index);
+            retained.push(replacement);
+          }
+        }
+        if (retained.length) {
+          previous.partitions = retained;
+          previous.displays = retained.flatMap(part => part.displays);
+          const tail = retained[retained.length - 1];
+          previous.casing = tail.casing;
+          previous.connectors = tail.connectors;
+          previous.badges = tail.badges;
+          continue;
+        }
+      }
       const cableIndex = cablesContainer?.getChildIndex ? cablesContainer.getChildIndex(previous.cableBatch) : -1;
       const connectorIndex = connectorsContainer?.getChildIndex ? connectorsContainer.getChildIndex(previous.connectorBatch) : -1;
       previous.cableBatch.parent?.removeChild(previous.cableBatch);
@@ -445,10 +484,35 @@
       affectedByRack.get(rackKey).add(display.colorNum);
     }
 
-    const success = rebuildBatchedRackGroups(affectedRackKeys);
+    let processed = 0;
+    for (const rackKey of affectedRackKeys) {
+      const group = batchedRackGroups.get(rackKey);
+      if (!group.partitions) {
+        if (!rebuildBatchedRackGroups(new Set([rackKey]))) return false;
+        processed += group.displays.length;
+        continue;
+      }
+      group.partitions = group.partitions.map((part, index) => {
+        if (!part.displays.some(display => previousColorsByCableId.has(display.id))) return part;
+        const replacement = buildRetainedRackBatch(rackKey, part.displays, -1, -1, true);
+        group.cableBatch.removeChild(part.cableBatch);
+        group.connectorBatch.removeChild(part.connectorBatch);
+        part.cableBatch.destroy({ children: true });
+        part.connectorBatch.destroy({ children: true });
+        group.cableBatch.addChildAt(replacement.cableBatch, index);
+        group.connectorBatch.addChildAt(replacement.connectorBatch, index);
+        processed += part.displays.length;
+        return replacement;
+      });
+      const tail = group.partitions[group.partitions.length - 1];
+      group.casing = tail.casing;
+      group.connectors = tail.connectors;
+      group.badges = tail.badges;
+    }
+    const success = true;
     if (success && telemetry) {
       telemetry.partialColorBatchRebuilds += Array.from(affectedByRack.values()).reduce((sum, colors) => sum + colors.size, 0);
-      telemetry.partialColorBatchCablesProcessed += Array.from(affectedRackKeys).reduce((sum, key) => sum + (batchedRackGroups.get(key)?.displays?.length || 0), 0);
+      telemetry.partialColorBatchCablesProcessed += processed;
       telemetry.avoidedFullStyleBatchRebuilds++;
     }
     return success;

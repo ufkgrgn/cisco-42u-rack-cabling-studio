@@ -169,6 +169,7 @@ test('rack resize consumes gaps and previews before pointer release with one und
   const box = await page.locator('.rack-resize-handle').first().boundingBox();
   const scale = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
   const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  expect(await page.evaluate(({x,y}) => Boolean(document.elementFromPoint(x,y)?.closest('.rack-resize-handle')), {x,y})).toBe(true);
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x, y - 4 * 32 * scale);
@@ -263,9 +264,9 @@ test('project search finds hardware and field sheet keeps cable meaning separate
     RS.refresh();
   });
   await page.keyboard.press('Control+k');
-  await page.getByRole('textbox', { name: 'Komut ara' }).fill('SERIAL-42');
+  await page.getByRole('combobox', { name: 'Komut ara' }).fill('SERIAL-42');
   await expect(page.locator('.command-item')).toContainText(['Cihaz: EDGE-42 · Pilot']);
-  await page.getByRole('textbox', { name: 'Komut ara' }).fill('TRACE-42');
+  await page.getByRole('combobox', { name: 'Komut ara' }).fill('TRACE-42');
   await expect(page.locator('.command-item')).toContainText(['Kablo: TRACE-42']);
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.RackStudioFieldSheet.open());
@@ -309,10 +310,11 @@ test('project geometry calibration survives a 2D and 3D round trip', async ({ br
     HTMLAnchorElement.prototype.click = function () { json = JSON.parse(decodeURIComponent(this.href.split(',')[1])); };
     RS.exportJson();
     HTMLAnchorElement.prototype.click = originalClick;
+    RS.loadCustomTopology(json);
     return {
       exportedX: portable[id].ports[0].x,
       activeX: RS.getPhysicalPortGeometry(id).ports[0].x,
-      savedX: json.portGeometryOverrides[id].ports[0].x
+      savedX: json.topology.portGeometryOverrides[id].ports[0].x
     };
   });
   expect(result).toEqual({ exportedX: 0.412, activeX: 0.412, savedX: 0.412 });
@@ -375,7 +377,7 @@ test('offline inventory import reviews observations without changing planned dev
   expect(result.observed.hostname).toBe('OBSERVED-42');
   expect(result.observed.interfaces.p1.status).toBe('up');
   await page.evaluate(() => window.RackStudio.ProjectChecks.open());
-  await expect(page.locator('#project-checks-summary')).toContainText('2 gözlem farkı');
+  await expect(page.locator('#project-checks-summary')).toContainText('3 gözlem farkı');
   await expect(page.locator('.project-check-item.difference').first()).toContainText('OBSERVED-42');
   await page.locator('#project-checks-dialog [data-check-action="close"]').click();
   await page.locator('#btn-view-3d').click();

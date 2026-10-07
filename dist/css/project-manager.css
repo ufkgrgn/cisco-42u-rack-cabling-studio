@@ -1,0 +1,178 @@
+.project-manager {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(1080px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+  padding: var(--space-5, 20px);
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.project-manager::backdrop {
+  background: rgba(7, 12, 20, 0.65);
+  backdrop-filter: blur(5px);
+}
+.project-manager h2,
+.project-manager h3 {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.pm-header,
+.pm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pm-header {
+  justify-content: space-between;
+  margin-bottom: 14px;
+  position: sticky;
+  top: -22px;
+  background: var(--bg-panel, #121924);
+  z-index: 5;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--border, #243242);
+}
+.pm-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  gap: 20px;
+}
+.pm-section {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border, #243242);
+  border-radius: 12px;
+  background: var(--bg-card, #16202c);
+}
+.pm-section + .pm-section {
+  margin-top: 14px;
+}
+.project-manager label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 10px;
+  min-width: 0;
+}
+.project-manager input,
+.project-manager select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-panel, #121924);
+  border: 1px solid var(--border, #283749);
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+}
+.project-manager button {
+  padding: 7px 12px;
+  border: 1px solid var(--border, #283749);
+  border-radius: 7px;
+  background: var(--bg-panel, #121924);
+  color: var(--text-main, #f1f5f9);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.project-manager button:hover {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.08);
+}
+.project-manager button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.project-manager :focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: 2px;
+}
+.pm-card {
+  border-top: 1px solid var(--border, #243242);
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.pm-card p {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.pm-card small,
+.pm-dates {
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+}
+.pm-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+.pm-location {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr) minmax(0, 2fr) auto;
+  gap: 8px;
+  margin: 8px 0;
+  align-items: center;
+}
+.pm-location label {
+  margin: 0;
+}
+.pm-tree ul {
+  padding-left: 18px;
+  list-style: none;
+  border-left: 1px solid var(--border, #243242);
+}
+.pm-tree li {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.pm-status {
+  min-height: 24px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.pm-status[data-error="true"] {
+  color: var(--danger, #ef4444);
+}
+@media (max-width: 760px) {
+  .pm-layout {
+    grid-template-columns: 1fr;
+  }
+  .project-manager {
+    padding: 14px;
+  }
+  .pm-header {
+    top: -14px;
+  }
+}
+@media (max-width: 430px) {
+  .pm-fields {
+    grid-template-columns: 1fr;
+  }
+  .pm-location {
+    grid-template-columns: 1fr 1fr;
+    padding: 8px;
+    border: 1px solid var(--border, #243242);
+    border-radius: 8px;
+  }
+  .pm-location button {
+    align-self: end;
+  }
+}

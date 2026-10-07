@@ -54,10 +54,10 @@
     dialog.id = 'circuit-trace-dialog';
     dialog.className = 'circuit-trace-dialog';
     dialog.setAttribute('aria-label', 'Devre izi');
-    dialog.innerHTML = `<div class="circuit-trace-head"><h2>Devre izi</h2><button type="button" data-trace-action="close">Kapat</button></div>
-      <label>Kablo <select id="trace-cable"></select></label><div class="circuit-trace-hops"></div>
-      <h3>Panel iç geçişi</h3><p>İki farklı port arasındaki fiziksel çapraz bağlantıyı yalnızca doğruladığınızda kaydedin.</p>
-      <label>Panel <select id="trace-panel"></select></label><div class="circuit-trace-pair"><label>Port A <select id="trace-port-a"></select></label><label>Port B <select id="trace-port-b"></select></label><button type="button" data-trace-action="add">Eşle</button></div><div class="circuit-trace-pairs"></div>`;
+    dialog.innerHTML = `<div class="circuit-trace-head"><div><span class="inspector-kicker">Bağlantı rotası</span><h2>Devre izi</h2></div><button type="button" data-trace-action="close" aria-label="Devre izini kapat">Kapat</button></div>
+      <label class="trace-cable-picker">Kablo <select id="trace-cable"></select></label><div class="circuit-trace-hops" aria-live="polite"></div>
+      <details class="circuit-trace-editor"><summary>Panel iç geçişlerini düzenle</summary><p>Yalnızca sahada doğruladığınız iki port arasındaki fiziksel geçişi kaydedin.</p>
+      <label>Panel <select id="trace-panel"></select></label><div class="circuit-trace-pair"><label>Port A <select id="trace-port-a"></select></label><label>Port B <select id="trace-port-b"></select></label><button type="button" data-trace-action="add">Eşle</button></div><div class="circuit-trace-pairs"></div></details>`;
     document.body.append(dialog);
     dialog.addEventListener('click', event => {
       event.stopPropagation();
@@ -86,7 +86,7 @@
     const map = devices();
     for (const hop of result.hops) {
       const row = document.createElement('div');
-      row.className = 'circuit-trace-hop';
+      row.className = `circuit-trace-hop circuit-trace-hop-${hop.type}`;
       if (hop.type === 'cable') {
         const from = map.get(hop.cable.from.instanceId)?.device;
         const to = map.get(hop.cable.to.instanceId)?.device;

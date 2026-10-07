@@ -7,6 +7,7 @@
   --bg-app: #141311;
   --bg-panel: #1c1b19;
   --bg-elevated: #242320;
+  --bg-card: #242320;
   --bg-panel-light: #2e2c29;
   --bg-inset: #0e0d0c;
   --border: #3f3c37;
@@ -51,21 +52,57 @@
   --scrollbar-track: transparent;
   --scrollbar-thumb: rgba(168, 161, 148, 0.35);
 
+  /* Spacing Scale */
+  --space-0-5: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
   --control-h: 32px;
+
+  /* Corner Radius Scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
   --radius-flat: 2px;
   --radius-overlay: 8px;
 
-  --rack-body: #30363b;
-  --rack-post: #22282c;
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography Scale */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+
+  /* Shadows & Depth */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.7);
+
+  --rack-body: #121315;
+  --rack-post: #191a1d;
+  --rack-frame-border: #222428;
+  --rack-divider: #1d1f23;
+  --rack-hole-bg: #0b0c0e;
+  --rack-hole-border: #33353a;
+  --rack-u-label: #9ea2a8;
 
   --chassis-catalyst: #30383d;
   --chassis-nexus: #262e33;
@@ -98,6 +135,7 @@
   --bg-app: #f3f0e8;
   --bg-panel: #faf8f3;
   --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
   --bg-panel-light: #e7e2d6;
   --bg-inset: #e7e2d6;
   --border: #d4cec2;
@@ -141,15 +179,45 @@
   --scrollbar-track: transparent;
   --scrollbar-thumb: rgba(111, 106, 96, 0.4);
 
+  --space-0-5: 2px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
   --control-h: 32px;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
   --radius-flat: 2px;
   --radius-overlay: 8px;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.14);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.25);
 
   --rack-body: #343a3f;
   --rack-post: #252b30;
@@ -160,9 +228,6 @@
   --rack-u-label: #e4e8e8;
   --rack-u-label-hover: #1f4e79;
   --rack-slot-hover: rgba(31, 78, 121, 0.08);
-
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --chassis-catalyst: #d7dcde;
   --chassis-nexus: #c5cbce;
@@ -199,6 +264,7 @@ html {
   --bg-app: #101b29;
   --bg-panel: #172538;
   --bg-elevated: #203148;
+  --bg-card: #203148;
   --bg-panel-light: #2a3d55;
   --bg-inset: #0d1928;
   --border: #40536a;
@@ -229,6 +295,12 @@ html {
   --dock-divider: var(--border);
   --bg-dark: var(--bg-app);
   --border-color: var(--border);
+
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.75);
 }
 
 [data-theme="high-contrast"] {
@@ -236,6 +308,7 @@ html {
   --bg-app: #fff;
   --bg-panel: #fff;
   --bg-elevated: #fff;
+  --bg-card: #fff;
   --bg-panel-light: #f0f0f0;
   --bg-inset: #f3f3f3;
   --border: #282828;
@@ -269,6 +342,12 @@ html {
   --dock-divider: var(--border);
   --bg-dark: var(--bg-app);
   --border-color: var(--border);
+
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-modal: 0 0 0 2px #000;
 }
 
 :root {

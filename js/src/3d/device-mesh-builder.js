@@ -35,8 +35,10 @@ export function registerDeviceMeshMethods(Studio3D) {
 
   Studio3D.prototype.mountDevice = function(catalogId, targetU, targetRackId, options = {}) {
     const cat3D = (window.CATALOG_3D || CATALOG).find(c => c.id === catalogId);
-    const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catalogId];
-    const item = cat3D || cat2D;
+    const canonicalId = window.RackStudio?.CATALOG_ALIAS_MAP?.[catalogId] || catalogId;
+    const cat2D = window.RackStudio?.resolveCatalogItem?.(canonicalId) || window.RackStudio?.catalog?.[canonicalId];
+    // Mount against the same U and stable ports that the canonical validator uses.
+    const item = cat2D ? { ...cat3D, ...cat2D } : cat3D;
     if (!item) return false;
 
     const rackId = targetRackId || this.state.activeRackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
@@ -77,13 +79,14 @@ export function registerDeviceMeshMethods(Studio3D) {
       row: port.row
     })) : [];
 
-    const powerWatts = typeof item.powerWatts === 'number' ? item.powerWatts : (['organizer', 'accessory', 'blank', 'patch', 'fiber'].includes(item.category) ? 0 : 150);
-    const heatBtu = typeof item.heatBtu === 'number' ? item.heatBtu : Math.round(powerWatts * 3.412142);
+    const demand = item.powerPlan?.consumption, api = window.RackStudio;
+    const powerWatts = api?.CatalogSources?.validSource(demand?.source) && api.EngineeringCompatibility.finite(demand?.watts) ? demand.watts : null;
+    const heatBtu = null;
 
     const devData = {
       id: instanceId,
       rackId: rackId,
-      catalogId: item.id || catalogId,
+      catalogId: canonicalId,
       name: item.name,
       hostname: item.name,
       ipAddress: '',
@@ -159,7 +162,7 @@ export function registerDeviceMeshMethods(Studio3D) {
     }
 
     const collision = this.state.devices.find(d => {
-      if (d.id === instanceId) return false;
+      if (d.id === instanceId || d.rackId !== dev.rackId) return false;
       const dEnd = d.startU + d.uHeight - 1;
       const newEnd = newU + dev.uHeight - 1;
       return !(newEnd < d.startU || newU > dEnd);
@@ -271,6 +274,14 @@ export function registerDeviceMeshMethods(Studio3D) {
 
   Studio3D.prototype.loadTopologyFromProject = function(projectData) {
     if (!projectData) return;
+    const api = window.RackStudio;
+    if (api?.ProjectDocument) {
+      const document = api.CatalogSources ? api.CatalogSources.pin(api.ProjectDocument.normalize(projectData),true) : api.ProjectDocument.normalize(projectData);
+      const validated = api.validateTopology(document);
+      document.topology = { ...document.topology, ...validated };
+      this.state.projectDocument = document;
+      projectData = document.topology;
+    }
     if (projectData.portGeometryOverrides) {
       window.RackStudio?.applyPortGeometryOverrides?.(projectData.portGeometryOverrides);
     }
@@ -290,12 +301,12 @@ export function registerDeviceMeshMethods(Studio3D) {
     this.state.activeRackId = projectData.activeRackId || this.state.racks[0].id;
     this.state.rackHeightU = this.state.racks[0].heightU || 42;
 
-    const loadedDevices = [];
+    const loadedDevices = [], projectCatalog = api?.CatalogSources?.map(this.state.projectDocument) || {};
     rawRacks.forEach(r => {
       const rackId = r.id || 'rack-1';
       (r.devices || []).forEach(d => {
         const catId = d.catalogKey || d.catalogId;
-        const catResolver = (window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(catId) : null;
+        const catResolver = projectCatalog[catId] || ((window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(catId) : null);
         const cat3D = (window.CATALOG_3D || []).find(c => c.id === catId);
         const cat2D = window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[catId];
         const catMaster = Array.isArray(window.CISCO_MASTER_CATALOG) ? window.CISCO_MASTER_CATALOG.find(m => m.id === catId) : null;
@@ -309,18 +320,20 @@ export function registerDeviceMeshMethods(Studio3D) {
         })) : [];
         const uH = d.uHeight || cat.u || 1;
         const startU = d.startU !== undefined ? d.startU : (d.topU !== undefined ? d.topU - uH + 1 : 1);
-        const powerWatts = typeof cat.powerWatts === 'number' ? cat.powerWatts : (['organizer', 'accessory', 'blank', 'patch', 'fiber'].includes(cat.category) ? 0 : 150);
-        const heatBtu = typeof cat.heatBtu === 'number' ? cat.heatBtu : Math.round(powerWatts * 3.412142);
+        const demand = d.powerPlan?.consumption;
+        const powerWatts = api?.CatalogSources?.validSource(demand?.source) && api.EngineeringCompatibility.finite(demand?.watts) ? demand.watts : null;
+        const heatBtu = null; // Input consumption alone does not establish heat dissipation.
 
         loadedDevices.push({
           id: d.instanceId || d.id || ('dev-' + Math.random().toString(36).substr(2, 9)),
           rackId: d.rackId || rackId,
           catalogId: catId,
           name: d.name || cat.name || 'Donanım',
-          hostname: d.hostname || d.name || cat.name || 'Donanım',
+          hostname: d.hostname ?? d.name ?? cat.name ?? 'Donanım',
           ipAddress: d.ipAddress || '',
           macAddress: d.macAddress || '',
           serialNumber: d.serialNumber || '',
+          assetTag: d.assetTag || '',
           panelLabel: d.panelLabel || '',
           face: d.face || 'front',
           manufacturer: cat.manufacturer || cat.logo || (cat.category === 'patch' || cat.category === 'fiber' ? 'Panel' : 'Cisco'),
@@ -389,8 +402,8 @@ export function registerDeviceMeshMethods(Studio3D) {
         role: c.role || '',
         medium: c.medium || '',
         ductSide: c.ductSide || 'auto',
-        color: typeof c.color === 'number' ? c.color : (parseInt((c.color || '#00d2ff').replace('#', ''), 16) || 0x00d2ff),
-        lengthM: c.lengthMeters || c.lengthM || 1.5,
+        color: typeof c.color === 'number' ? c.color : parseInt((c.color || '#00d2ff').replace('#', ''), 16),
+        lengthM: c.lengthMeters ?? c.lengthM ?? 1.5,
         from: { rackId: fromRack, devId: fromDev, portIdx: fromP || 1, portId: (c.from && c.from.portId) || undefined, face: (c.from && c.from.face) || 'front' },
         to: { rackId: toRack, devId: toDev, portIdx: toP || 1, portId: (c.to && c.to.portId) || undefined, face: (c.to && c.to.face) || 'front' }
       };
@@ -770,6 +783,7 @@ export function registerDeviceMeshMethods(Studio3D) {
     if (config.hostname !== undefined) dev.hostname = config.hostname.trim();
     if (config.ipAddress !== undefined) dev.ipAddress = config.ipAddress.trim();
     if (config.macAddress !== undefined) dev.macAddress = config.macAddress.trim();
+    for (const key of ['serialNumber', 'panelLabel', 'assetTag']) if (config[key] !== undefined) dev[key] = String(config[key]).trim();
 
     this.rebuildAllDevices();
     this.rebuildAllCables();
@@ -782,7 +796,7 @@ export function registerDeviceMeshMethods(Studio3D) {
   Studio3D.prototype.updateDeviceMetadata = function(instanceId, metadata) {
     return this.updateDeviceConfig(instanceId, {
       name: String(metadata.name || '').trim(),
-      hostname: String(metadata.name || '').trim(),
+      hostname: String(metadata.hostname ?? metadata.name ?? '').trim(),
       ipAddress: String(metadata.ipAddress || '').trim(),
       macAddress: String(metadata.macAddress || '').trim(),
       serialNumber: String(metadata.serialNumber || '').trim(),

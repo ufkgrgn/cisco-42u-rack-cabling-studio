@@ -105,7 +105,7 @@ export function registerCableMeshMethods(Studio3D) {
     const defaultName = `${rolePrefix}${fromLabel} ➔ ${toLabel}`;
     const defaultNote = (masterCfg && (masterCfg.description || masterCfg.note)) || '';
 
-    const cableColor = colorHex || (masterCfg && masterCfg.autoCableColor !== false && masterCfg.color) || CABLE_COLORS[this.state.cableColorIdx].hex;
+    const cableColor = colorHex ?? ((masterCfg && masterCfg.autoCableColor !== false && masterCfg.color) || CABLE_COLORS[this.state.cableColorIdx].hex);
 
     const cableData = {
       id: cableId,
@@ -133,12 +133,17 @@ export function registerCableMeshMethods(Studio3D) {
     const dev = this.state.devices.find(d => d.id === devId);
     if (!dev) return false;
     if (!dev.portsConfig) dev.portsConfig = {};
-    const numIdx = typeof portIdx === 'number' ? portIdx : (parseInt(portIdx, 10) || 1);
-    if (!config || (config.role === 'access' && !config.ciscoName && !config.vlan && !config.description)) {
-      delete dev.portsConfig[numIdx];
-      delete dev.portsConfig['p' + numIdx];
+    const definitions = dev.portDefinitions || [];
+    const numIdx = typeof portIdx === 'number' ? portIdx : definitions.findIndex(p => p.id === portIdx) + 1;
+    const port = definitions[numIdx - 1];
+    if (!port || !Number.isInteger(numIdx)) return false;
+    const aliases = [...new Set([port.id, port.name, String(numIdx), 'p' + numIdx].filter(Boolean))];
+    const previous = aliases.map(key => dev.portsConfig[key]).find(Boolean) || {};
+    if (!config) {
+      for (const key of aliases) delete dev.portsConfig[key];
     } else {
-      dev.portsConfig[numIdx] = {
+      const value = {
+        ...previous, ...config,
         role: config.role || 'trunk',
         isTrunk: config.role === 'trunk' || config.isTrunk === true,
         color: config.color || '#a855f7',
@@ -147,6 +152,9 @@ export function registerCableMeshMethods(Studio3D) {
         description: config.description || config.note || '',
         autoCableColor: config.autoCableColor !== false
       };
+      for (const key of aliases) if (Object.hasOwn(dev.portsConfig, key)) dev.portsConfig[key] = value;
+      dev.portsConfig[port.id] = value;
+      dev.portsConfig[numIdx] = value;
     }
     this.rebuildAllDevices();
     this.state.pushSnapshot();
@@ -383,7 +391,7 @@ export function registerCableMeshMethods(Studio3D) {
     const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5);
     const curveLen = curve.getLength();
     const calcMeters = parseFloat((curveLen * 0.44 + 0.5).toFixed(2));
-    if (!cable.lengthM || isInterRack) {
+    if (cable.lengthM == null) {
       cable.lengthM = calcMeters;
     }
     

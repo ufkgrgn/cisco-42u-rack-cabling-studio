@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "projectId": "d99a4320-5bde-4b31-a076-e7231f43a821",
+  "revision": 7,
+  "metadata": { "name": "Saha doğrulama örneği", "customer": "Pilot", "owner": "Yerel teknisyen", "createdAt": "2026-10-06T08:00:00Z" },
+  "locations": [{ "id": "site-1", "kind": "site", "name": "Merkez" }, { "id": "room-1", "kind": "room", "name": "Sistem odası", "parentId": "site-1" }],
+  "topology": {
+    "activeRackId": "rack-1", "viewMode": "single", "cableRoutingMode": "structured", "doorOpen": false,
+    "portGeometryOverrides": {},
+    "customCatalog": { "pilot-switch": { "id": "pilot-switch", "name": "Pilot Switch", "category": "switch", "u": 1, "sourceVersion": "fixture-1", "ports": [{ "id": "p1", "name": "GE1", "type": "rj45" }, { "id": "p2", "name": "GE2", "type": "rj45" }] } },
+    "racks": [{ "id": "rack-1", "name": "Pilot", "heightU": 18, "locationId": "room-1", "vendorNote": "Kabin ek alanı", "devices": [
+      { "instanceId": "device-1", "catalogKey": "pilot-switch", "uHeight": 1, "topU": 16, "name": "EDGE-1", "hostname": "edge-1", "ipAddress": "192.0.2.1", "macAddress": "00:11:22:33:44:55", "serialNumber": "SERIAL-1", "assetTag": "ASSET-1", "face": "rear", "vendorNote": { "original": true }, "portsConfig": { "p1": { "description": "Yönetim", "vlan": "99" } }, "observed": { "source": "inventory.csv", "hostname": "observed-edge", "collectedAt": "2026-10-06T08:00:00Z" }, "passThroughPairs": [{ "from": "p1", "to": "p2" }] },
+      { "instanceId": "device-2", "catalogKey": "pilot-switch", "uHeight": 1, "topU": 12, "name": "EDGE-2", "assetTag": "ASSET-2", "face": "front" }
+    ] }],
+    "cables": [{ "id": "cable-1", "name": "Pilot bağlantı", "color": "#2563eb", "lengthMeters": 0, "estimatedLengthMeters": 3, "measuredLengthMeters": 0, "purchaseLengthMeters": 4, "role": "management", "medium": "Cat6A", "note": "Ölçüm sınır değeri", "vendorNote": "Kablo ek alanı", "from": { "rackId": "rack-1", "instanceId": "device-1", "portId": "p1", "face": "rear", "label": "A" }, "to": { "rackId": "rack-1", "instanceId": "device-2", "portId": "p2", "face": "front" } }]
+  },
+  "catalogContext": { "models": { "pilot-switch": { "version": "fixture-1", "source": "Yerel fixture" } } },
+  "observations": [{ "id": "observation-1", "entityRef": { "kind": "device", "id": "device-1" }, "source": { "system": "csv", "filename": "inventory.csv" }, "raw": { "hostname": "observed-edge" }, "collectedAt": "2026-10-06T08:00:00Z" }],
+  "fieldEvents": [{ "id": "event-1", "kind": "test", "result": "unknown", "expectedRevision": 7, "evidenceIds": ["photo-1"], "entityRef": { "kind": "cable", "id": "cable-1" }, "recordedAt": "2026-10-06T08:00:00Z" }],
+  "evidenceRefs": [{ "id": "photo-1", "projectId": "d99a4320-5bde-4b31-a076-e7231f43a821", "blobId": "blob-1", "filename": "panel.png", "mime": "image/png", "bytes": 32, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+  "handoverRecords": [{ "id": "handover-1", "revision": 7, "status": "draft" }],
+  "integrationMappings": [{ "id": "mapping-1", "sourceSystem": "netbox", "sourceInstance": "pilot", "externalId": "42", "entityRef": { "kind": "device", "id": "device-1" } }],
+  "extensions": { "vendor": { "retained": true } },
+  "futureV1Hint": { "retain": "root field" }
+}

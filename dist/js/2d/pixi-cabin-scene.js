@@ -87,24 +87,24 @@
       const isEven = (u % 2 === 0);
       const fillColor = isLight
         ? (isEven ? 0xe6ecf2 : 0xdfe5ee)
-        : (isEven ? 0x0a0e17 : 0x0e1422);
+        : (isEven ? 0x121315 : 0x16171a);
 
       // 32px slot stripe
       g.rect(0, slotY, slotWidth, 32).fill(fillColor);
 
       // Subtle horizontal divider line (bottom of each U slot)
-      const dividerColor = isLight ? 0xc0cbd9 : 0x1e293b;
-      const dividerAlpha = isLight ? 0.9 : 0.75;
+      const dividerColor = isLight ? 0xc0cbd9 : 0x1d1f23;
+      const dividerAlpha = isLight ? 0.9 : 0.85;
       g.rect(0, slotY + 31, slotWidth, 1).fill({ color: dividerColor, alpha: dividerAlpha });
 
       // Subtle center reference line
-      const centerColor = isLight ? 0x94a3b8 : 0x151f30;
-      const centerAlpha = isLight ? 0.35 : 0.35;
+      const centerColor = isLight ? 0x94a3b8 : 0x17181c;
+      const centerAlpha = isLight ? 0.35 : 0.45;
       g.rect(14, slotY + 16, slotWidth - 28, 1).fill({ color: centerColor, alpha: centerAlpha });
     }
 
     // Rail boundary guide lines
-    const railLineColor = isLight ? 0x94a3b8 : 0x334155;
+    const railLineColor = isLight ? 0x94a3b8 : 0x282a2e;
     g.rect(0, 0, 1, totalHeight).fill({ color: railLineColor, alpha: 0.95 });
     g.rect(slotWidth - 1, 0, 1, totalHeight).fill({ color: railLineColor, alpha: 0.95 });
   }

@@ -223,35 +223,36 @@
 
 /* MODAL DIALOGS */
 .studio-modal {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: fixed !important;
+  inset: 0 !important;
   width: 100vw;
   height: 100vh;
   background: rgba(3, 7, 18, 0.75);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: 10000;
 }
 
 .studio-modal-card {
   width: 650px;
   max-width: 90vw;
   max-height: 85vh;
-  background: #0f172a;
-  border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 229, 255, 0.2);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  font-family: var(--font-sans);
 }
 
 .modal-header {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -259,7 +260,7 @@
 
 .modal-header h2 {
   font-size: 16px;
-  color: var(--neon-cyan);
+  color: var(--text-main);
   font-weight: 800;
 }
 

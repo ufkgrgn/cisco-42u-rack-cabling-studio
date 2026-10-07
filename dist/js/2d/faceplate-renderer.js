@@ -149,7 +149,10 @@
         const devCables = (STATE.cables || []).filter(c => c.from?.instanceId === dev.instanceId || c.to?.instanceId === dev.instanceId);
         const hasCables = devCables.length > 0;
         const occupiedCount = devCables.length;
-        const controlsHtml = renderDeviceControlsHtml(cat, dev, occupiedCount, hasCables);
+        // Pixi uses the single, selection-bound floating toolbar. Do not leave
+        // an invisible second set of action targets inside the device DOM.
+        const isPixiRenderer = STATE.cableRenderMode === 'pixi' || document.documentElement.dataset.deviceRenderer === 'pixi';
+        const controlsHtml = isPixiRenderer ? '' : renderDeviceControlsHtml(cat, dev, occupiedCount, hasCables);
 
         if (devEl && devEl.dataset.renderKey === renderKey && !needsPortMeasure) {
           devEl.dataset.instanceId = dev.instanceId;
@@ -157,10 +160,11 @@
           devEl.dataset.category = cat.category || '';
           devEl.dataset.rackId = rack.id;
           if (devEl.parentElement !== slotEl) slotEl.appendChild(devEl);
-          const existingControls = devEl.querySelector('.device-controls');
+          const existingControls = devEl.querySelector(':scope > .device-controls');
           if (existingControls) {
-            existingControls.outerHTML = controlsHtml;
-          } else {
+            if (controlsHtml) existingControls.outerHTML = controlsHtml;
+            else existingControls.remove();
+          } else if (controlsHtml) {
             devEl.insertAdjacentHTML('beforeend', controlsHtml);
           }
           return;
@@ -245,6 +249,7 @@
     if (typeof RS.syncPixiDeviceSceneLOD === 'function') {
       RS.syncPixiDeviceSceneLOD();
     }
+    RS.DeviceLayoutPresentation?.refreshLabels(RS.PixiContext?.deviceContainers);
 
     bindPortInteractions();
     updateRackHeaderTelemetry();

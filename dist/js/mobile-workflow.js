@@ -91,6 +91,7 @@
   }
 
   function openPorts(trigger, preferredDeviceId) {
+    RS.setStudioWorkMode?.('cabling');
     const devices = RS.STATE.racks.flatMap(rack => rack.devices.map(device => ({ rack, device })));
     const body = open('Port seç', trigger);
     body.replaceChildren();
@@ -155,6 +156,7 @@
 
   function openSelection(trigger) {
     const body = open('Seçim', trigger);
+    if(RS.WorkflowSelection){RS.WorkflowSelection.render(body);return;}
     body.replaceChildren();
     const cable = RS.STATE.cables.find(item => item.id === RS.STATE.highlightedCableId);
     const device = RS.STATE.racks.flatMap(rack => rack.devices).find(item => item.instanceId === RS.STATE.selectedDeviceId);

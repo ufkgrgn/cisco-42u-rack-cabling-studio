@@ -1,5 +1,7 @@
 # Rack Studio — uygulanabilir geliştirme planı
 
+> **6 Ekim 2026 güncel ürün planı:** [docs/product-plan/README.md](docs/product-plan/README.md). Yeni ürünleştirme çalışmaları bu paketteki P00–P31 sırasını, veri sözleşmesini ve A01–A44 kabul senaryolarını kullanır. Aşağıdaki metin önceki editör temelinin tarihsel planı olarak korunmuştur; yeni kapsamın tamamlandığını göstermez.
+
 Bu teslimat mevcut uygulamayı çalışır tutarak editör temelini tamamlar. Büyük framework/GPU geçişi, ölçüm olmadan yapılmaz. Kullanıcının mevcut dosyaları korunur.
 
 ## İş paketleri ve sorumluluklar

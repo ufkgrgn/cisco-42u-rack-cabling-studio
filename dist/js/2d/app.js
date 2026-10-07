@@ -43,6 +43,10 @@
   const loadFullSitePreset = () => RS.loadFullSitePreset && RS.loadFullSitePreset();
 
   function init() {
+    // Hide rack stage during init to prevent flash of empty rack or demo devices
+    const _rackStage = document.getElementById('rack-stage');
+    if (_rackStage) _rackStage.style.visibility = 'hidden';
+
     initDomReferences();
     const savedViewMode = (typeof localStorage !== 'undefined') ? localStorage.getItem('rack_studio_view_mode') : null;
     if (savedViewMode === 'multi' || savedViewMode === 'single') {
@@ -50,16 +54,28 @@
     }
     dom.btnViewModeSingle?.classList.toggle('active', STATE.viewMode === 'single');
     dom.btnViewModeMulti?.classList.toggle('active', STATE.viewMode === 'multi');
+    dom.btnViewModeSingle?.setAttribute('aria-pressed', String(STATE.viewMode === 'single'));
+    dom.btnViewModeMulti?.setAttribute('aria-pressed', String(STATE.viewMode === 'multi'));
     renderRackRailsAndSlots(handleSlotClick);
     bindCatalogEvents();
     bindColorSwatchEvents();
     bindHeaderActionEvents();
     bindRoutingSelectorEvents();
     bindGlobalEvents();
+    // Auto-save on every change event
+    document.addEventListener('rackstudio:change', () => {
+      if (RS.autosaveTopology && !STATE.isBatchLoading) RS.autosaveTopology();
+    });
     bindZoomAndPanEvents();
-    loadMdfPreset();
+    // Restore autosaved session; fall back to MDF demo preset on first launch
+    const _restored = RS.loadAutosaveTopology ? RS.loadAutosaveTopology() : false;
+    if (!_restored) {
+      loadMdfPreset();
+    }
 
     requestAnimationFrame(() => {
+      // Reveal rack after first paint with data
+      if (_rackStage) _rackStage.style.visibility = '';
       fitRackToScreen(false);
       requestAnimationFrame(() => {
         if (RS.invalidatePixiCableGeometry) RS.invalidatePixiCableGeometry();
@@ -251,6 +267,8 @@
     }
     dom.btnViewModeSingle?.classList.toggle('active', mode === 'single');
     dom.btnViewModeMulti?.classList.toggle('active', mode === 'multi');
+    dom.btnViewModeSingle?.setAttribute('aria-pressed', String(mode === 'single'));
+    dom.btnViewModeMulti?.setAttribute('aria-pressed', String(mode === 'multi'));
     renderRackRailsAndSlots(handleSlotClick);
     renderMountedDevices();
     renderAllCables();
@@ -305,6 +323,26 @@
     }
     if (dom.btnViewModeMulti) {
       dom.btnViewModeMulti.addEventListener('click', () => setViewMode('multi'));
+    }
+
+    const btnModeLayout = document.getElementById('btn-mode-layout');
+    const btnModeCabling = document.getElementById('btn-mode-cabling');
+    const btnToggleCables = document.getElementById('btn-toggle-cables');
+
+    if (btnModeLayout) {
+      btnModeLayout.addEventListener('click', () => {
+        RS.setStudioWorkMode?.('layout');
+      });
+    }
+    if (btnModeCabling) {
+      btnModeCabling.addEventListener('click', () => {
+        RS.setStudioWorkMode?.('cabling');
+      });
+    }
+    if (btnToggleCables) {
+      btnToggleCables.addEventListener('click', () => {
+        RS.toggleCablesVisibility?.();
+      });
     }
 
     if (dom.btnPresetMdf) {
@@ -385,15 +423,21 @@
       dom.fileImport.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (file.size > RS.ProjectDocument.MAX_BYTES) {
+          alert('Proje JSON dosyası 32 MB sınırını aşıyor.');
+          dom.fileImport.value = '';
+          return;
+        }
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const parsed = JSON.parse(event.target.result);
+            const parsed = RS.ProjectDocument.parse(event.target.result);
             loadCustomTopology(parsed);
           } catch (err) {
             alert("JSON dosyası okunurken hata oluştu: " + err.message);
           }
         };
+        reader.onerror = () => alert('Proje dosyası okunamadı; mevcut proje korundu.');
         reader.readAsText(file);
         dom.fileImport.value = '';
       });
@@ -433,13 +477,18 @@
     });
 
     window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key === '+' || e.key === '=') {
         setZoom(ZOOM_STATE.scale * 1.2, undefined, undefined, true);
       } else if (e.key === '-' || e.key === '_') {
         setZoom(ZOOM_STATE.scale / 1.2, undefined, undefined, true);
       } else if (e.key === 'Escape') {
         cancelPendingConnection();
+      } else if (e.key === 'c' || e.key === 'C') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          RS.toggleCablesVisibility?.();
+        }
       }
     });
   }

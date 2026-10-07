@@ -145,6 +145,7 @@ export function initCatalogDrawer(studio) {
       });
     });
 
+    window.renderCatalog = renderCatalog;
     renderCatalog();
 
     // 6b. Left Drawer Tabs (Catalog vs Installed Devices)
@@ -213,7 +214,7 @@ export function initCatalogDrawer(studio) {
             <span style="font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(2,132,199,0.25);border:1px solid #0284c7;color:#38bdf8;font-weight:700;">${rackObj.name}</span>
             <span class="installed-cables-badge" title="Bağlı Kablo Sayısı">🔌 ${cableCount}</span>
           </div>
-          <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${dev.powerWatts !== undefined ? dev.powerWatts : 150}W · ${dev.category || 'Donanım'}</div>
+          <div class="installed-card-sub">${dev.manufacturer || 'Cisco'} · ${dev.uHeight}U · ${typeof dev.powerWatts === 'number' ? dev.powerWatts + ' W · plan/kaynak türünü mühendislikte incele' : 'Güç bilinmiyor'} · ${dev.category || 'Donanım'}</div>
           ${metaHtml}
           <div class="installed-card-actions">
             <button class="btn-inst-action btn-inst-edit" title="Donanım bilgilerini yapılandır">Düzenle</button>
@@ -249,7 +250,7 @@ export function initCatalogDrawer(studio) {
 
         card.querySelector('.btn-inst-dismount').addEventListener('click', (e) => {
           e.stopPropagation();
-          studio.removeDevice(dev.id);
+          if (studio.removeDevice(dev.id) === false) return;
           studio.showToast(`🗑️ "${dev.name}" kabinden söküldü.`);
           renderInstalledDevicesList();
           renderCatalog(searchInput ? searchInput.value : '');
@@ -272,12 +273,11 @@ export function initCatalogDrawer(studio) {
       btnDismountAll.addEventListener('click', () => {
         if (studio.state.devices.length === 0) return;
         if (confirm('Kabindeki TÜM cihazları sökmek istediğinize emin misiniz?')) {
-          studio.state.devices = [];
-          studio.state.cables = [];
-          studio.rebuildAllDevices();
-          studio.rebuildAllCables();
-          studio.state.pushSnapshot();
-          studio.state.autoSave();
+          if (studio.runProjectEdit(() => {
+            studio.state.devices = []; studio.state.cables = [];
+            studio.rebuildAllDevices(); studio.rebuildAllCables();
+            return true;
+          }) === false) return;
           studio.deselectDevice();
           renderInstalledDevicesList();
           renderCatalog(searchInput ? searchInput.value : '');

@@ -16,6 +16,8 @@
   const addDirectCable = (...args) => RS.addDirectCable && RS.addDirectCable(...args);
 
   function loadMdfPreset() {
+    if (RS.clearAutosaveTopology) RS.clearAutosaveTopology();
+
     STATE.isBatchLoading = true;
     try {
       STATE.racks = [
@@ -91,6 +93,8 @@
   }
 
   function loadIdfPreset() {
+    if (RS.clearAutosaveTopology) RS.clearAutosaveTopology();
+
     STATE.isBatchLoading = true;
     try {
       STATE.racks = [
@@ -160,6 +164,8 @@
   }
 
   function loadFullSitePreset() {
+    if (RS.clearAutosaveTopology) RS.clearAutosaveTopology();
+
     STATE.isBatchLoading = true;
     try {
       STATE.racks = [

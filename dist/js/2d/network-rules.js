@@ -335,8 +335,16 @@
     const portA = catA?.ports?.find(p => p.id === source.portId);
     const portB = catB?.ports?.find(p => p.id === target.portId);
 
-    const typeA = String(portA?.type || 'rj45').toLowerCase();
-    const typeB = String(portB?.type || 'rj45').toLowerCase();
+    const doc = stateRef?.projectDocument || { topology:stateRef, catalogContext: optionsOrState.catalogContext || RS.STATE?.projectDocument?.catalogContext || {} };
+    const existing = stateRef?.cables?.find(c => c.from.instanceId === source.instanceId && c.from.portId === source.portId && c.to.instanceId === target.instanceId && c.to.portId === target.portId);
+    const assessment = RSEngineeringAssessment();
+    function RSEngineeringAssessment() {
+      if (!RS.EngineeringCompatibility || !Array.isArray(doc.topology?.racks)) return null;
+      return RS.EngineeringCompatibility.assess({ ...doc, topology:stateRef },existing || { id:'candidate',from:source,to:target,medium:optionsOrState.medium || '' },catalogRef);
+    }
+    if (strictMode && assessment?.status === 'blocked') return { allowed:false,status:'blocked',type:'engineering',reason:assessment.errors.join(' '),sources:assessment.sources };
+    const typeA = String(assessment?.ends[0].connector || portA?.type || 'rj45').toLowerCase();
+    const typeB = String(assessment?.ends[1].connector || portB?.type || 'rj45').toLowerCase();
 
     // 3. POWER ISOLATION: PDU AC power ports cannot connect to network ports
     if (typeA === 'power' || typeB === 'power') {
@@ -390,7 +398,9 @@
 
     return {
       allowed: true,
-      warning: loopWarning || passThroughWarning || null,
+      status: assessment?.status || 'unknown',
+      sources: assessment?.sources || [],
+      warning: loopWarning || passThroughWarning || (assessment?.status === 'unknown' ? 'Uyumluluk bilinmiyor: ' + assessment.unknown.join(' ') : null),
       autoConfig: fiberConfig || uplinkConfig,
       fiberConfig: fiberConfig
     };

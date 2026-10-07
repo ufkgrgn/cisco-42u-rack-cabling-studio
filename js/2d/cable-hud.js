@@ -519,6 +519,7 @@
     window.__CABLE_INTERACTIONS_BOUND__ = true;
 
     document.addEventListener('click', (e) => {
+      if(e.target.closest('#hud-tools-menu,#btn-mobile-selection,.workflow-selection-panel,.workflow-selection-dialog,#mobile-workflow-dialog'))return;
       if (Date.now() - lastHudOpenTime < 250) {
         return;
       }

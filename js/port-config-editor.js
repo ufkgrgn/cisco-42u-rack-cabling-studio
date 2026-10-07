@@ -36,11 +36,12 @@
 
       if (source === '3d' && window.__STUDIO3D__) {
         dev = window.__STUDIO3D__.state.devices.find(d => d.id === devId);
-        portIdx = typeof portIdxOrId === 'number' ? portIdxOrId : (parseInt(portIdxOrId, 10) || 1);
+        portIdx = typeof portIdxOrId === 'number' ? portIdxOrId : (dev?.portDefinitions || []).findIndex(port => port.id === portIdxOrId) + 1;
+        if (!dev?.portDefinitions?.[portIdx - 1]) return;
         this.activePortIdx = portIdx;
-        this.activePortId = 'p' + portIdx;
+        this.activePortId = dev.portDefinitions[portIdx - 1].id;
         if (dev) {
-          portCfg = (dev.portsConfig && dev.portsConfig[portIdx]) || null;
+          portCfg = dev.portsConfig?.[this.activePortId] || dev.portsConfig?.[portIdx] || dev.portsConfig?.['p' + portIdx] || null;
           portName = `Port #${portIdx}`;
           if (dev.portDefinitions && dev.portDefinitions[portIdx - 1]) {
             portType = dev.portDefinitions[portIdx - 1].type || dev.portType || 'rj45';
@@ -198,15 +199,15 @@
           autoCableColor
         };
 
-        // 2D Engine update first
-        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+        // One owner writes the project; the inactive view is only a projection.
+        if (!window.is3DMode && window.RackStudio && window.RackStudio.updatePortConfig) {
           window.RackStudio.updatePortConfig(devId, targetPortId, config);
         }
 
         // 3D Engine update (guarded)
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+        if (window.is3DMode && window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, config);
+            if (window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, config) === false) return;
           } catch (e) {
             console.warn('[PortConfigEditor] 3D port config update skipped:', e);
           }
@@ -247,12 +248,12 @@
       this.activeDevId = devId;
       const targetPortId = this.activePortId || modal?.dataset?.portId || this.activePortIdx;
       try {
-        if (window.RackStudio && window.RackStudio.updatePortConfig) {
+        if (!window.is3DMode && window.RackStudio && window.RackStudio.updatePortConfig) {
           window.RackStudio.updatePortConfig(devId, targetPortId, null);
         }
-        if (window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
+        if (window.is3DMode && window.__STUDIO3D__ && window.__STUDIO3D__.updatePortConfig) {
           try {
-            window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, null);
+            if (window.__STUDIO3D__.updatePortConfig(devId, this.activePortIdx, null) === false) return;
           } catch (e) {}
         }
 

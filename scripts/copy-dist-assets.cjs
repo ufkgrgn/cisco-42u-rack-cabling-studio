@@ -26,11 +26,16 @@ if (fs.existsSync(srcCss)) {
 }
 
 if (fs.existsSync(srcAssets)) {
-  fs.cpSync(srcAssets, distAssets, { recursive: true });
-  console.log(`[build:dist] Successfully copied assets/ to dist/assets/`);
+  try {
+    fs.cpSync(srcAssets, distAssets, { recursive: true });
+    console.log(`[build:dist] Successfully copied assets/ to dist/assets/`);
+  } catch (err) {
+    console.warn(`[build:dist] Notice: assets copy skipped (file in use): ${err.message}`);
+  }
 }
 
 // Keep dist/index.html aligned with root modular index
+for(const file of ['field-sw.js','field-manifest.webmanifest'])fs.copyFileSync(path.join(rootDir,file),path.join(distDir,file));
 const srcIndex = path.join(rootDir, 'index.html');
 const distIndex = path.join(distDir, 'index.html');
 if (fs.existsSync(srcIndex)) {

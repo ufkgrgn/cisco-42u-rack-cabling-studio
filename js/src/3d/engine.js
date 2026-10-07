@@ -11,6 +11,8 @@ import {
   RACK_DEPTH
 } from './catalog3d.js';
 import { StudioState } from './state3d.js';
+import { installProjectCommandBridge } from './project-command-bridge.js';
+import { loadMdfPreset } from './project-presets.js';
 import { registerRackSceneMethods } from './rack-scene-builder.js';
 import { registerDeviceMeshMethods } from './device-mesh-builder.js';
 import { registerCableMeshMethods } from './cable-mesh-builder.js';
@@ -43,6 +45,7 @@ class Studio3D {
     this.setPerformanceMode(this.state.performanceMode, false);
     this.buildDatacenterRoom();
     this.initEvents();
+    installProjectCommandBridge(this);
 
     // Check canonical 2D project state first to ensure parity, then auto-save, then fallback
     let initialLoaded = false;
@@ -50,7 +53,7 @@ class Studio3D {
       const canonical = localStorage.getItem('cisco-rack-studio-project') || localStorage.getItem('rack-studio-project-v2');
       if (canonical) {
         const parsed = JSON.parse(canonical);
-        if (parsed && (parsed.racks || parsed.devices)) {
+        if (parsed && (parsed.schemaVersion !== undefined || parsed.racks || parsed.devices)) {
           this.loadTopologyFromProject(parsed);
           initialLoaded = true;
         }
@@ -555,63 +558,7 @@ class Studio3D {
 
   // --- PRESETS ---
   loadPresetMDF() {
-    this.state.devices = [];
-    this.state.cables = [];
-
-    const silentOpt = { silent: true };
-    this.mountDevice('patch-cat6a-24p', 40, null, silentOpt);
-    this.mountDevice('cisco-c9300-48p', 38, null, silentOpt);
-    this.mountDevice('cable-manager-1u', 37, null, silentOpt);
-    this.mountDevice('patch-cat6a-24p', 35, null, silentOpt);
-    this.mountDevice('cisco-c9500-32qc', 33, null, silentOpt);
-    this.mountDevice('cable-manager-1u', 32, null, silentOpt);
-    this.mountDevice('cisco-isr4451', 28, null, silentOpt);
-    this.mountDevice('dell-r750', 20, null, silentOpt);
-    this.mountDevice('hpe-dl380-g10', 16, null, silentOpt);
-    this.mountDevice('blank-panel-1u', 12, null, silentOpt);
-    this.mountDevice('pdu-1u-8c13', 2, null, silentOpt);
-
-    const dPatch = this.state.devices.find(d => d.catalogId === 'patch-cat6a-24p');
-    const dSwitch = this.state.devices.find(d => d.catalogId === 'cisco-c9300-48p');
-    const dRouter = this.state.devices.find(d => d.catalogId === 'cisco-isr4451');
-    const dSpine = this.state.devices.find(d => d.catalogId === 'cisco-c9500-32qc');
-
-    if (dPatch && dSwitch) {
-      for (let i = 1; i <= 6; i++) {
-        this.connectPorts(
-          { devId: dPatch.id, portIdx: i },
-          { devId: dSwitch.id, portIdx: i },
-          CABLE_COLORS[(i - 1) % CABLE_COLORS.length].hex,
-          `Patch-P${i} ➔ Switch-P${i}`,
-          '',
-          silentOpt
-        );
-      }
-    }
-
-    if (dSwitch && dRouter) {
-      this.connectPorts(
-        { devId: dSwitch.id, portIdx: 48 },
-        { devId: dRouter.id, portIdx: 1 },
-        0xef4444,
-        'Uplink-Core-to-WAN',
-        '',
-        silentOpt
-      );
-    }
-
-    if (dSwitch && dSpine) {
-      this.connectPorts(
-        { devId: dSwitch.id, portIdx: 47 },
-        { devId: dSpine.id, portIdx: 1 },
-        0xf97316,
-        '100G-Spine-Trunk',
-        '',
-        silentOpt
-      );
-    }
-
-    this.state.pushSnapshot();
+    return loadMdfPreset(this);
   }
 
   // --- CAMERA PRESET VIEWS ---

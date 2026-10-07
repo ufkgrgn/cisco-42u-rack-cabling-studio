@@ -1,0 +1,240 @@
+.workflow-mode-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 13px;
+}
+.workflow-mode-control select {
+  min-height: 34px;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #17202c);
+  border: 1px solid var(--border, #2a3a4d);
+  border-radius: 7px;
+}
+#workflow-status {
+  position: fixed;
+  bottom: 28px;
+  left: 8px;
+  right: 8px;
+  z-index: 600;
+  padding: 6px 14px;
+  margin: 0;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-panel, #131b26);
+  font-size: 12px;
+  border: 1px solid var(--border, #2a3a4d);
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+@media (max-width: 1023px) {
+  #workflow-status { bottom: 60px; font-size: 11px; }
+}
+
+/* 2D & Inspector footer panel */
+.workflow-selection-panel {
+  padding: 12px;
+  border-top: 1px solid var(--border, #2a3a4d);
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #16202e);
+  border-radius: 8px;
+  margin-top: 10px;
+  min-width: 0;
+  overflow: auto;
+  max-height: 45vh;
+}
+.workflow-selection-panel[hidden] { display: none; }
+.workflow-selection-panel.is-cable-integrated {
+  display: block;
+  position: absolute;
+  width: 0;
+  height: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.workflow-selection-panel h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 8px;
+}
+
+/* 3D floating panel */
+.workflow-selection-panel.is-3d {
+  position: absolute;
+  right: 12px;
+  top: calc(var(--chrome-offset, 48px) + 12px);
+  width: 320px;
+  max-height: calc(100% - var(--chrome-offset, 48px) - 24px);
+  border: 1px solid var(--border-strong, #3b4e66);
+  border-radius: 12px;
+  background: rgba(18, 26, 38, 0.94);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 20;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+body:has(#hud-tools-panel:not([hidden])) .workflow-selection-panel.is-3d {
+  visibility: hidden;
+}
+@media (max-width: 1023px) {
+  .workflow-selection-panel.is-3d { display: none; }
+}
+
+.workflow-selection-content dl {
+  display: grid;
+  grid-template-columns: minmax(75px, 1fr) minmax(0, 2fr);
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.workflow-selection-content dt {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 500;
+}
+.workflow-selection-content dd {
+  margin: 0;
+  color: var(--text-main, #f1f5f9);
+  overflow-wrap: anywhere;
+}
+.workflow-selection-content table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 8px 0;
+  background: var(--bg-panel, #121924);
+  border: 1px solid var(--border, #2a3a4d);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.workflow-selection-content th,
+.workflow-selection-content td {
+  text-align: left;
+  padding: 5px 8px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border, #2a3a4d);
+}
+.workflow-selection-content th {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+}
+.workflow-selection-content .selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.workflow-selection-content button,
+.workflow-selection-dialog header button {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 30px;
+  padding: 5px 10px;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-panel, #131b26);
+  border: 1px solid var(--border, #2a3a4d);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.workflow-selection-content button:hover,
+.workflow-selection-dialog header button:hover {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.08);
+}
+.workflow-selection-dialog {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  box-sizing: border-box;
+  width: min(580px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-5, 20px);
+  color: var(--text-main);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.workflow-selection-dialog::backdrop {
+  background: rgba(8, 14, 24, 0.65);
+  backdrop-filter: blur(4px);
+}
+.workflow-selection-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: -20px;
+  background: var(--bg-panel, #131b26);
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--border, #2a3a4d);
+  margin-bottom: 14px;
+}
+.workflow-selection-dialog h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.workflow-mode-control :focus-visible,
+.workflow-selection-content :focus-visible,
+.workflow-selection-dialog :focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: 2px;
+}
+
+body[data-workflow="presentation"] .studio-editor,
+body[data-workflow="presentation"] .device-controls,
+body[data-workflow="presentation"] #preset-btn-group,
+body[data-workflow="presentation"] .tools-slider-row,
+body[data-workflow="presentation"] #btn-2d-clear-action,
+body[data-workflow="presentation"] #btn-hud-dismount,
+body[data-workflow="presentation"] #btn-hud-config,
+body[data-workflow="presentation"] #viewport-cable-dock,
+body[data-workflow="presentation"] #btn-cable-tools,
+body[data-workflow="presentation"] .cable-palette-bar,
+body[data-workflow="presentation"] .floating-device-hud {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  body[data-workflow="field"] .sidebar-right:not(.collapsed) {
+    width: min(500px, 42vw) !important;
+    min-width: 360px !important;
+  }
+}
+@media (max-width: 1023px) {
+  body[data-workflow="field"] .sidebar-right {
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 0;
+  }
+  .workflow-selection-dialog {
+    width: min(580px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+  }
+  .workflow-selection-content button {
+    min-height: 38px;
+  }
+}

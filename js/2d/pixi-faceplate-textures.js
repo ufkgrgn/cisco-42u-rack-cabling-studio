@@ -666,64 +666,91 @@
     if (isLight) {
       let fill = isKeystone ? '#ffffff' : '#ffffff';
       let stroke = isKeystone ? (isOccupied ? '#ea580c' : '#64748b') : (isOccupied ? '#0284c7' : '#64748b');
-      let detail = isKeystone ? '#64748b' : '#64748b';
 
       if (style.shape === 'optic') {
         fill = '#f8fafc';
         stroke = isOccupied ? '#0284c7' : '#64748b';
-        detail = '#0284c7';
       } else if (style.shape === 'lc' || style.shape === 'sc') {
         fill = '#faf5ff';
         stroke = isOccupied ? (style.shape === 'lc' ? '#8b5cf6' : '#a855f7') : '#64748b';
-        detail = '#a78bfa';
       } else if (style.shape === 'power') {
         fill = '#f0fdf4';
         stroke = isOccupied ? '#16a34a' : '#64748b';
-        detail = '#15803d';
       }
 
       ctx.fillStyle = fill;
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 1.1;
+      ctx.lineWidth = 1.0;
       roundRect(ctx, x + 2, 2, 16, 16, 1.5);
       ctx.fill();
       ctx.stroke();
 
+      // Top rim highlight & bottom bevel
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fillRect(x + 3, 2.5, 14, 1);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(x + 3, 17, 14, 1);
+
       if (style.shape === 'copper') {
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(x + 4, 5, 12, 10);
-        ctx.fillStyle = isOccupied ? '#d97706' : '#94a3b8';
-        [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 2.5));
-        ctx.fillStyle = '#64748b';
-        ctx.fillRect(x + 7, 11.5, 6, 2.5);
+        // Dark recessed socket cavity
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 4, 4.5, 12, 11, 1);
+        ctx.fill();
+
+        // 6 precision gold/brass contact wire pins
+        const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+        ctx.fillStyle = pinColor;
+        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
+
+        // RJ45 lower socket latch notch
+        ctx.fillStyle = isOccupied ? '#334155' : '#1e293b';
+        roundRect(ctx, x + 7, 11.5, 6, 3.5, 0.8);
+        ctx.fill();
+        ctx.fillStyle = isOccupied ? '#475569' : '#334155';
+        ctx.fillRect(x + 8.5, 13, 3, 2);
+
+        // Micro status LED
+        ctx.fillStyle = isOccupied ? '#16a34a' : '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+
         if (isKeystone) {
           ctx.fillStyle = isOccupied ? '#ea580c' : '#94a3b8';
-          ctx.fillRect(x + 3, 2.5, 14, 1.5);
+          ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
         }
       } else if (style.shape === 'optic') {
-        ctx.fillStyle = '#e2e8f0';
-        roundRect(ctx, x + 4, 5, 12, 10, 1.5);
+        ctx.fillStyle = '#0f172a';
+        roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
         ctx.fill();
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-        ctx.fillStyle = isOccupied ? '#0284c7' : '#64748b';
-        ctx.fillRect(x + 6, 7, 8, 2);
-        ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
-        ctx.fillRect(x + 7, 11, 6, 2);
+        ctx.fillStyle = isOccupied ? '#475569' : '#94a3b8';
+        ctx.fillRect(x + 5, 9.2, 10, 1.6);
+        // Optical twin bores
+        ctx.fillStyle = '#020617';
+        roundRect(ctx, x + 5.2, 5.2, 3.8, 3.4, 0.8);
+        ctx.fill();
+        roundRect(ctx, x + 11.0, 5.2, 3.8, 3.4, 0.8);
+        ctx.fill();
+        if (isOccupied) {
+          ctx.fillStyle = '#0284c7';
+          ctx.beginPath();
+          ctx.arc(x + 7.1, 6.9, 1.1, 0, Math.PI * 2);
+          ctx.arc(x + 12.9, 6.9, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = isOccupied ? '#0284c7' : '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
       } else if (style.shape === 'lc') {
-        // Recessed optical cavity
         ctx.fillStyle = '#0f172a';
         roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
-        // Center dividing latch
         ctx.fillStyle = isOccupied ? stroke : '#64748b';
         ctx.fillRect(x + 9.5, 5, 1, 10);
-        // Left & Right ceramic ferrule sleeves
         ctx.fillStyle = '#334155';
         ctx.fillRect(x + 4.5, 7, 4, 6);
         ctx.fillRect(x + 11.5, 7, 4, 6);
-        // High-contrast optical core dots
         ctx.fillStyle = isOccupied ? '#38bdf8' : '#f8fafc';
         ctx.beginPath();
         ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
@@ -755,56 +782,95 @@
       return;
     }
 
-    // --- DARK THEME: Crisp High-Definition Hardware Sockets (Clear Geometric Definition without Screaming Noise) ---
+    // --- DARK THEME: Crisp High-Definition Hardware Sockets ---
     const fill = isKeystone ? (isOccupied ? '#141c2c' : '#0e141f') : style.shape === 'power' ? '#0e1814' : style.shape === 'optic' ? (isOccupied ? '#111929' : '#0c111c') : (isOccupied ? '#151d2c' : '#0f1622');
     const stroke = isKeystone ? (isOccupied ? '#f97316' : '#334155') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'optic' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : (isOccupied ? '#a855f7' : '#475569');
-    const detail = isKeystone ? (isOccupied ? '#ea580c' : '#475569') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#475569') : style.shape === 'power' ? '#166534' : '#818cf8';
 
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.1;
+    ctx.lineWidth = 1.0;
     roundRect(ctx, x + 2, 2, 16, 16, 1.5);
     ctx.fill();
     ctx.stroke();
 
+    // Stamped metal rim highlight & shadow
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    ctx.fillRect(x + 3, 2.5, 14, 1);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(x + 3, 17, 14, 1);
+
     if (style.shape === 'copper') {
-      // Recessed dark socket cavity with crisp top highlight
-      ctx.fillStyle = '#05080e';
-      ctx.fillRect(x + 4, 5, 12, 10);
-      // Precision copper/steel pins - clear and visible, beautifully refined
-      ctx.fillStyle = isOccupied ? '#f59e0b' : '#64748b';
-      [5.2, 7.9, 10.6, 13.3].forEach(pin => ctx.fillRect(x + pin, 5, 1.5, 2.5));
-      // RJ45 lower socket latch
-      ctx.fillStyle = isOccupied ? '#253348' : '#1e293b';
-      ctx.fillRect(x + 7, 11.5, 6, 2.5);
+      // Recessed dark socket cavity
+      ctx.fillStyle = '#050811';
+      roundRect(ctx, x + 4, 4.5, 12, 11, 1);
+      ctx.fill();
+      ctx.fillStyle = '#020409';
+      ctx.fillRect(x + 4.5, 4.5, 11, 1);
+
+      // 6 precision gold/brass contact wire pins
+      const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+      ctx.fillStyle = pinColor;
+      [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
+      if (isOccupied) {
+        ctx.fillStyle = '#fef08a';
+        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 0.7));
+      }
+
+      // RJ45 lower socket latch notch
+      ctx.fillStyle = isOccupied ? '#1e293b' : '#0a0f1d';
+      roundRect(ctx, x + 7, 11.5, 6, 3.5, 0.8);
+      ctx.fill();
+      ctx.fillStyle = isOccupied ? '#27354a' : '#141d2e';
+      ctx.fillRect(x + 8.5, 13, 3, 2);
+
+      // Micro status link LED
+      ctx.fillStyle = isOccupied ? '#22c55e' : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+      ctx.fill();
+      if (isOccupied) {
+        ctx.fillStyle = '#86efac';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       if (isKeystone) {
         ctx.fillStyle = isOccupied ? '#f97316' : '#475569';
-        ctx.fillRect(x + 3, 2.5, 14, 1.4);
+        ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
       }
     } else if (style.shape === 'optic') {
-      ctx.fillStyle = '#05080e';
-      roundRect(ctx, x + 4, 5, 12, 10, 1.5);
+      ctx.fillStyle = '#050811';
+      roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
       ctx.fill();
-      ctx.strokeStyle = stroke;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-      ctx.fillStyle = isOccupied ? stroke : '#475569';
-      ctx.fillRect(x + 6, 7, 8, 2);
-      ctx.fillStyle = isOccupied ? '#38bdf8' : '#334155';
-      ctx.fillRect(x + 7, 11, 6, 2);
+      ctx.fillStyle = isOccupied ? '#475569' : '#334155';
+      ctx.fillRect(x + 5, 9.2, 10, 1.6);
+      // Optical twin bores
+      ctx.fillStyle = '#020617';
+      roundRect(ctx, x + 5.2, 5.2, 3.8, 3.4, 0.8);
+      ctx.fill();
+      roundRect(ctx, x + 11.0, 5.2, 3.8, 3.4, 0.8);
+      ctx.fill();
+      if (isOccupied) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(x + 7.1, 6.9, 1.1, 0, Math.PI * 2);
+        ctx.arc(x + 12.9, 6.9, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = isOccupied ? '#00d2ff' : '#1e293b';
+      ctx.beginPath();
+      ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
+      ctx.fill();
     } else if (style.shape === 'lc') {
-      // Deep optical cavity
       ctx.fillStyle = '#04060a';
       roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      // Center latch divider
       ctx.fillStyle = isOccupied ? stroke : '#334155';
       ctx.fillRect(x + 9.5, 5, 1, 10);
-      // Left & Right ceramic ferrule sleeves
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(x + 4.5, 7, 4, 6);
       ctx.fillRect(x + 11.5, 7, 4, 6);
-      // Optical ferrule ceramic core dots (crisp high visibility)
       ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
       ctx.beginPath();
       ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);

@@ -1,0 +1,192 @@
+.engineering-dialog {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(1080px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  padding: var(--space-5, 20px);
+  color: var(--text-main);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.engineering-dialog::backdrop {
+  background: rgba(7, 12, 20, 0.65);
+  backdrop-filter: blur(5px);
+}
+.engineering-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: -22px;
+  background: var(--bg-panel, #121924);
+  padding: 4px 0 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border, #243242);
+  z-index: 5;
+}
+.engineering-dialog h2,
+.engineering-dialog h3 {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.engineering-dialog p {
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.engineering-dialog nav,
+.scenario-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.engineering-dialog label {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+  margin: 10px 0;
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+}
+.engineering-dialog label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+  color: var(--text-main, #f1f5f9);
+}
+.engineering-dialog input:not([type="checkbox"]),
+.engineering-dialog select,
+.engineering-dialog textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #16202c);
+  border: 1px solid var(--border, #283749);
+  padding: 8px 12px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 13px;
+}
+.engineering-dialog button {
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #17212e);
+  border: 1px solid var(--border, #283749);
+  border-radius: 7px;
+  padding: 8px 14px;
+  cursor: pointer;
+  margin: 4px 4px 4px 0;
+  min-height: 36px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.engineering-dialog button:hover {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.08);
+}
+.engineering-dialog button:focus-visible,
+.engineering-dialog input:focus-visible,
+.engineering-dialog select:focus-visible,
+.engineering-dialog textarea:focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: 2px;
+}
+.engineering-dialog details,
+.engineering-dialog section,
+.engineering-models article {
+  border: 1px solid var(--border, #243242);
+  border-radius: 10px;
+  background: var(--bg-card, #16202c);
+  padding: 14px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.engineering-dialog summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.engineering-dialog small {
+  display: block;
+  opacity: 0.85;
+  margin-top: 5px;
+  color: var(--text-muted, #94a3b8);
+}
+.engineering-dialog a {
+  color: var(--accent, #38bdf8);
+}
+.engineering-dialog pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 350px;
+  overflow: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  background: var(--bg-inset, #0d131a);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #243242);
+}
+.engineering-issue {
+  border-left: 4px solid var(--accent, #38bdf8);
+  padding-left: 12px;
+}
+.engineering-issue.blocked {
+  border-left-color: var(--danger, #ef4444);
+}
+.engineering-issue.unknown {
+  border-left-color: var(--status-warn, #d19a20);
+}
+.scenario-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.project-checks-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+.project-check-item.unknown {
+  border-left-color: var(--status-warn, #d19a20);
+}
+@media (max-width: 650px) {
+  .engineering-dialog {
+    padding: 14px;
+  }
+  .scenario-comparison {
+    grid-template-columns: 1fr;
+  }
+  .engineering-dialog header {
+    align-items: flex-start;
+  }
+  .engineering-dialog h2 {
+    font-size: 19px;
+  }
+}
+@media (forced-colors: active) {
+  .engineering-dialog,
+  .engineering-dialog button,
+  .engineering-dialog input,
+  .engineering-dialog textarea,
+  .engineering-dialog select {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+  }
+  .engineering-dialog a {
+    color: LinkText;
+  }
+}

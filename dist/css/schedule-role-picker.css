@@ -1,15 +1,14 @@
-/* Role Picker Popover (Floating Dropdown) */
 .role-picker-popover {
   position: fixed;
   z-index: 10050;
   min-width: 190px;
-  background: #0f172af8;
+  background: var(--bg-panel);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 5px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 229, 255, 0.2);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   user-select: none;
   animation: rolePopoverFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -166,12 +165,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 10px;
-  background: linear-gradient(180deg, #111827 0%, #0b1120 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px 8px 0 0;
-  margin-bottom: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  flex-shrink: 0;
+  z-index: 15;
 }
 
 .schedule-toolbar-left {
@@ -181,12 +180,12 @@
 }
 
 .schedule-total-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 11px;
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent-strong) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, transparent);
   padding: 2px 7px;
   border-radius: 4px;
   white-space: nowrap;
@@ -195,17 +194,17 @@
 .schedule-sort-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(15, 23, 42, 0.85);
+  gap: 3px;
+  background: var(--bg-inset);
   padding: 2px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
 }
 
 .sort-tab-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
@@ -217,8 +216,8 @@
 }
 
 .sort-tab-btn:hover {
-  color: #f1f5f9;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  background: var(--bg-elevated);
 }
 
 .sort-tab-btn.active {
@@ -232,8 +231,8 @@
    SWITCH TREE VIEW ACCORDION & ROWS
    ========================================================================== */
 .schedule-tree-switch-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
   border-radius: 6px;
   margin-bottom: 6px;
   transition: all 0.2s ease;
@@ -242,13 +241,13 @@
 }
 
 .schedule-tree-switch-card:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .schedule-tree-switch-card.active-switch {
-  border-color: #00e5ff;
-  box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-strong) 30%, transparent);
 }
 
 .tree-switch-header {
@@ -257,6 +256,13 @@
   justify-content: space-between;
   padding: 6px 10px;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
 }
 
 .tree-switch-info {
@@ -268,7 +274,7 @@
 
 .tree-toggle-icon {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-muted);
   transition: transform 0.2s ease;
   display: inline-block;
   width: 12px;
@@ -280,12 +286,12 @@
 }
 
 .tree-switch-badge-u {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 11px;
-  font-weight: 900;
-  color: #00e5ff;
-  background: #0b1320;
-  border: 1px solid rgba(0, 229, 255, 0.5);
+  font-weight: 800;
+  color: var(--text-main);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -306,24 +312,24 @@
 }
 
 .tree-switch-count {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 11px;
   font-weight: 700;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent-strong) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-strong) 35%, transparent);
   padding: 2px 7px;
   border-radius: 4px;
   white-space: nowrap;
 }
 
 .tree-switch-body {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
   padding: 4px 6px 6px 12px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: rgba(11, 17, 30, 0.7);
+  background: var(--bg-inset);
 }
 
 .schedule-tree-switch-card.collapsed .tree-switch-body {
@@ -335,9 +341,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-left: 3px solid var(--row-accent, #38bdf8);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--row-accent, var(--accent-strong));
   border-radius: 4px;
   transition: all 0.15s ease;
   font-size: 11.5px;
@@ -346,16 +352,15 @@
 
 .tree-cable-row:hover,
 .tree-cable-row.hovered {
-  background: rgba(30, 41, 59, 0.95);
-  border-color: #38bdf8;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
   transform: translateX(2px);
 }
 
 .tree-cable-row.active {
-  border-color: #00e5ff;
-  box-shadow: 0 0 0 1px #00e5ff, 0 0 12px rgba(0, 229, 255, 0.5);
-  background: rgba(8, 47, 73, 0.92);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent-strong);
+  background: var(--bg-elevated);
 }
 
 .tree-branch-symbol {
@@ -407,7 +412,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 900;
   font-size: 11px;
-  color: #00e5ff;
+  color: var(--accent-strong);
   background: #0b1320;
   border: 1px solid rgba(0, 229, 255, 0.4);
   padding: 0 4px;
@@ -432,7 +437,7 @@
   font-family: inherit;
   font-size: 10.5px;
   font-weight: 600;
-  color: #38bdf8;
+  color: var(--accent);
   background: rgba(56, 189, 248, 0.12);
   border: 1px solid rgba(56, 189, 248, 0.35);
   padding: 2px 7px;
@@ -447,7 +452,7 @@
 
 .btn-switch-bulk-color:hover {
   background: rgba(56, 189, 248, 0.25);
-  border-color: #38bdf8;
+  border-color: var(--accent);
   color: #ffffff;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
   transform: translateY(-0.5px);

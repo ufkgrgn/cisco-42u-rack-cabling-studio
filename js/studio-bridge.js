@@ -111,185 +111,41 @@
   }
 
   function sync3Dto2D() {
-    if (!window.__STUDIO3D__) return;
+    if (!window.__STUDIO3D__) return false;
     try {
-      const s = window.__STUDIO3D__.state;
-      const catalog = (window.RackStudio && window.RackStudio.catalog) || {};
-      const devMap = new Map();
-      (s.devices || []).forEach(d => devMap.set(d.id, d));
-      const usedPorts = new Set();
-
-      function resolvePortId(devId, portIdx, savedPortId) {
-        const d = devMap.get(devId);
-        if (!d) return savedPortId || ('p' + (portIdx || 1));
-        const catKey = d.catalogId;
-        const catResolver = (window.RackStudio && window.RackStudio.resolveCatalogItem) ? window.RackStudio.resolveCatalogItem(catKey) : null;
-        let cat = catResolver || catalog[catKey];
-        if (!cat && window.CATALOG_3D) {
-          cat = window.CATALOG_3D.find(c => c.id === catKey);
-        }
-        if (!cat && Array.isArray(window.CISCO_MASTER_CATALOG)) {
-          cat = window.CISCO_MASTER_CATALOG.find(m => m.id === catKey);
-        }
-        const ports = (cat && cat.ports) || [];
-        if (!ports.length) {
-          const pid = savedPortId || ('p' + (portIdx || 1));
-          usedPorts.add(`${devId}:${pid}`);
-          return pid;
-        }
-        // 1. If savedPortId is valid on this device and not already used
-        if (savedPortId && ports.some(p => p.id === savedPortId) && !usedPorts.has(`${devId}:${savedPortId}`)) {
-          usedPorts.add(`${devId}:${savedPortId}`);
-          return savedPortId;
-        }
-        // 2. Map 1-based portIdx to port
-        const targetIdx = (typeof portIdx === 'number' && portIdx >= 1 && portIdx <= ports.length) ? portIdx - 1 : 0;
-        const candidate = ports[targetIdx];
-        if (candidate && !usedPorts.has(`${devId}:${candidate.id}`)) {
-          usedPorts.add(`${devId}:${candidate.id}`);
-          return candidate.id;
-        }
-        // 3. Find any unused port
-        const available = ports.find(p => !usedPorts.has(`${devId}:${p.id}`));
-        if (available) {
-          usedPorts.add(`${devId}:${available.id}`);
-          return available.id;
-        }
-        // 4. Fallback to candidate or first port
-        return candidate ? candidate.id : ports[0].id;
-      }
-
-      const defaultRackId = (s.racks && s.racks[0] && s.racks[0].id) || 'rack-1';
-
-      const validCables = [];
-      (s.cables || []).forEach(c => {
-        if (!c.from || !c.to) return;
-        const pFrom = resolvePortId(c.from.devId, c.from.portIdx, c.from.portId);
-        const pTo = resolvePortId(c.to.devId, c.to.portIdx, c.to.portId);
-        if (!pFrom || !pTo) return;
-        const devFrom = s.devices.find(d => d.id === c.from.devId);
-        const devTo = s.devices.find(d => d.id === c.to.devId);
-        const rackFrom = c.from.rackId || (devFrom && devFrom.rackId) || defaultRackId;
-        const rackTo = c.to.rackId || (devTo && devTo.rackId) || defaultRackId;
-        const hex = typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff');
-        validCables.push({
-          id: c.id,
-          name: c.name || 'Kablo',
-          role: c.role || '',
-          medium: c.medium || '',
-          note: c.note || '',
-          ductSide: c.ductSide || 'auto',
-          color: hex,
-          lengthMeters: c.lengthM || 1.5,
-          from: {
-            rackId: rackFrom,
-            instanceId: c.from.devId,
-            portId: pFrom,
-            face: c.from.face || 'front'
-          },
-          to: {
-            rackId: rackTo,
-            instanceId: c.to.devId,
-            portId: pTo,
-            face: c.to.face || 'front'
-          }
-        });
-      });
-
-      const racksData = (Array.isArray(s.racks) && s.racks.length > 0)
-        ? s.racks.map(r => ({
-            id: r.id,
-            name: r.name,
-            heightU: r.heightU || s.rackHeightU || 42,
-            devices: s.devices.filter(d => (d.rackId || defaultRackId) === r.id).map(d => ({
-              instanceId: d.id,
-              catalogKey: d.catalogId,
-              topU: d.startU + (d.uHeight || 1) - 1,
-              uHeight: d.uHeight || 1,
-              name: d.name,
-              hostname: d.hostname || d.name,
-              ipAddress: d.ipAddress || '',
-              macAddress: d.macAddress || '',
-              serialNumber: d.serialNumber || '',
-              observed: d.observed || null,
-              passThroughPairs: d.passThroughPairs || [],
-              panelLabel: d.panelLabel || '',
-              portsConfig: d.portsConfig || {},
-              face: d.face || 'front'
-            }))
-          }))
-        : [{
-            id: 'rack-1',
-            name: 'MDF - Dağıtım Kabini',
-            heightU: s.rackHeightU || 42,
-            devices: s.devices.map(d => ({
-              instanceId: d.id,
-              catalogKey: d.catalogId,
-              topU: d.startU + (d.uHeight || 1) - 1,
-              uHeight: d.uHeight || 1,
-              name: d.name,
-              hostname: d.hostname || d.name,
-              ipAddress: d.ipAddress || '',
-              macAddress: d.macAddress || '',
-              serialNumber: d.serialNumber || '',
-              observed: d.observed || null,
-              passThroughPairs: d.passThroughPairs || [],
-              panelLabel: d.panelLabel || '',
-              portsConfig: d.portsConfig || {},
-              face: d.face || 'front'
-            }))
-          }];
-
-      const legacyProj = {
-        version: '3.0.0',
-        portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
-        doorOpen: s.doorOpen === true,
-        activeRackId: s.activeRackId || defaultRackId,
-        racks: racksData,
-        cables: validCables
-      };
-      localStorage.setItem('cisco-rack-studio-project', JSON.stringify(legacyProj));
-      if (window.RackStudio && window.RackStudio.loadCustomTopology) {
-        try {
-          window.RackStudio.loadCustomTopology(legacyProj);
-        } catch (loadErr) {
-          console.warn('loadCustomTopology failed in sync3Dto2D, falling back to direct state assignment:', loadErr);
-          if (window.RackStudio.STATE) {
-            window.RackStudio.STATE.racks = legacyProj.racks;
-            window.RackStudio.STATE.cables = legacyProj.cables;
-            window.RackStudio.STATE.activeRackId = legacyProj.activeRackId;
-            if (window.RackStudio.refresh) window.RackStudio.refresh();
-          }
-        }
-      }
-    } catch (e) {
-      console.error('sync3Dto2D error:', e);
+      const api = window.RackStudio;
+      const scene = window.__STUDIO3D__.state;
+      if (scene.projectProjection || scene.projectBatchDepth > 0 || !window.is3DMode) return true;
+      return scene.autoSave();
+    } catch (error) {
+      window.RackStudio?.showTemporaryTooltip?.(window.innerWidth / 2, 80, error.message);
+      console.error('sync3Dto2D error:', error);
+      return false;
     }
   }
   window.sync3Dto2D = sync3Dto2D;
 
   function sync2Dto3D() {
-    if (!window.__STUDIO3D__) return;
+    if (!window.__STUDIO3D__) return false;
     try {
       let proj = null;
       if (window.RackStudio && window.RackStudio.STATE && window.RackStudio.STATE.racks) {
-        proj = {
-          activeRackId: window.RackStudio.STATE.activeRackId,
-          portGeometryOverrides: window.RackStudio.exportPortGeometryOverrides?.() || {},
-          doorOpen: window.RackStudio.STATE.doorOpen === true,
-          racks: window.RackStudio.STATE.racks,
-          cables: window.RackStudio.STATE.cables || []
-        };
+        proj = window.RackStudio.ProjectDocument.capture(window.RackStudio.STATE);
       } else {
         const raw = localStorage.getItem('cisco-rack-studio-project') || localStorage.getItem('rack-studio-project-v2');
-        if (raw) proj = JSON.parse(raw);
+        if (raw) {
+          proj = JSON.parse(raw);
+        }
       }
       if (proj) {
         window.__STUDIO3D__.loadTopologyFromProject(proj);
+        return true;
       }
     } catch (e) {
       console.error('sync2Dto3D error:', e);
+      window.RackStudio?.showTemporaryTooltip?.(window.innerWidth / 2, 80, e.message);
     }
+    return false;
   }
   window.sync2Dto3D = sync2Dto3D;
 
@@ -423,23 +279,25 @@
   async function setMode(to3D) {
     if (window.is3DMode === to3D) return;
     const selection = captureStudioSelection();
+    const projectId = window.RackStudio?.STATE?.projectDocument?.projectId;
     if (to3D) {
       const loaded = await ensure3DStudioLoaded();
       if (!loaded) return;
-      sync2Dto3D();
+      if (!sync2Dto3D()) return;
       window.__STUDIO3D__?.fitCameraToRacks?.('iso');
       window.is3DMode = true;
       applyMode();
       requestAnimationFrame(() => restoreStudioSelection(selection));
     } else {
+      if (!sync3Dto2D()) return;
       window.is3DMode = false;
       applyMode();
-      sync3Dto2D();
       if (window.RackStudioTheme) {
         window.RackStudioTheme.apply(window.RackStudioTheme.get());
       }
       requestAnimationFrame(() => {
         setTimeout(() => {
+          if (window.RackStudio?.STATE?.projectDocument?.projectId !== projectId) return;
           if (window.RackStudio && typeof window.RackStudio.refresh === 'function') {
             window.RackStudio.refresh();
           }
@@ -459,6 +317,8 @@
     }
     if (typeof window.updateTelemetry === 'function') window.updateTelemetry();
   }
+
+  window.RackStudio.setStudioMode = setMode;
 
   function initBridge() {
     const btnView2D = document.getElementById('btn-view-2d');

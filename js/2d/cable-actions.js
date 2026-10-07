@@ -161,6 +161,7 @@
       row.classList.toggle('active', row.dataset.cableId === STATE.highlightedCableId);
     });
     renderHighlightedCableInspector();
+    if(!window.is3DMode)document.dispatchEvent(new CustomEvent('rackstudio:selection',{detail:{kind:'cable',id:STATE.highlightedCableId,source:'2d'}}));
     RS.syncPixiCableSelection?.();
     if (window.is3DMode && window.__STUDIO3D__?.selectCable) {
       window.__STUDIO3D__.selectCable(STATE.highlightedCableId);
@@ -187,12 +188,30 @@
     };
     const fromLocation = describe(cable.from);
     const toLocation = describe(cable.to);
+    const roleText = cable.role || 'standart';
+    const mediumText = cable.medium || 'Belirtilmedi';
+    const estText = cable.estimatedLengthMeters != null ? `${cable.estimatedLengthMeters} m` : 'Belirtilmedi';
+    const measText = cable.measuredLengthMeters != null ? `${cable.measuredLengthMeters} m` : 'Belirtilmedi';
+    const noteText = cable.note || 'Belirtilmedi';
+    const titleText = cable.name && cable.name !== cable.id ? `${cable.id} · ${cable.name}` : (cable.id || 'Kablo');
+
     dom.inspectorInfo.innerHTML = `
-      <div class="inspector-summary"><span class="inspector-kicker">Seçili kablo</span><span class="inspector-cable-id">${escapeHtml(cable.id || 'Kablo')}</span><span class="inspector-meter">${escapeHtml(meters)}</span></div>
+      <div class="inspector-summary">
+        <span class="inspector-kicker">Seçili kablo</span>
+        <span class="inspector-cable-id" title="${escapeHtml(titleText)}">${escapeHtml(titleText)}</span>
+        <span class="inspector-meter">${escapeHtml(meters)}</span>
+      </div>
       <div class="inspector-route" aria-label="Kablo uçları">
         <div class="inspector-end"><span class="inspector-end-marker" style="--cable-color:${escapeHtml(color)}"></span><div class="inspector-end-copy"><span class="inspector-end-label">Kaynak · ${escapeHtml(fromLocation.unit)}</span><strong title="${escapeHtml(from.deviceName)}">${escapeHtml(from.deviceName)}</strong><small>${escapeHtml(fromLocation.rack)} · ${escapeHtml(from.portName)}</small></div></div>
         <div class="inspector-route-line" aria-hidden="true"></div>
         <div class="inspector-end"><span class="inspector-end-marker" style="--cable-color:${escapeHtml(color)}"></span><div class="inspector-end-copy"><span class="inspector-end-label">Hedef · ${escapeHtml(toLocation.unit)}</span><strong title="${escapeHtml(to.deviceName)}">${escapeHtml(to.deviceName)}</strong><small>${escapeHtml(toLocation.rack)} · ${escapeHtml(to.portName)}</small></div></div>
+      </div>
+      <div class="inspector-specs-grid" aria-label="Kablo teknik detayları">
+        <div class="inspector-spec-item"><span class="spec-k">Rol</span><span class="spec-v">${escapeHtml(roleText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Tür</span><span class="spec-v">${escapeHtml(mediumText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Planlanan</span><span class="spec-v">${escapeHtml(estText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Ölçülen</span><span class="spec-v">${escapeHtml(measText)}</span></div>
+        ${noteText !== 'Belirtilmedi' ? `<div class="inspector-spec-item spec-full"><span class="spec-k">Not</span><span class="spec-v">${escapeHtml(noteText)}</span></div>` : ''}
       </div>
       <div class="inspector-actions" role="group" aria-label="Kablo görünümü">
         <button type="button" data-cable-focus="from" title="Kaynak cihazı ekranın ortasına getir"><span aria-hidden="true">↖</span> Kaynak</button>
@@ -200,24 +219,39 @@
         <button type="button" data-cable-focus="both" title="Kablonun iki ucunu aynı kadraja sığdır"><span aria-hidden="true">⤢</span> İki uç</button>
         <button type="button" data-cable-focus="trace" title="Kabloyu ve tanımlı panel iç geçişlerini göster"><span aria-hidden="true">⌁</span> Devre izi</button>
       </div>
+      <div class="inspector-field-actions" role="group" aria-label="Saha işlemleri">
+        <button type="button" class="btn-inspector-sub" data-cable-action="qr" title="Saha QR Kodu"><span aria-hidden="true">▦</span> Saha QR</button>
+        <button type="button" class="btn-inspector-sub" data-cable-action="workflow" title="Saha Uygulama ve Test Kaydı"><span aria-hidden="true">✓</span> Saha Kaydı</button>
+        <button type="button" class="btn-inspector-sub" data-cable-action="obs" title="Saha Gözlem Geçmişi"><span aria-hidden="true">⏱</span> Gözlem</button>
+      </div>
     `;
   }
 
   // The module loads before app.init() populates RS.dom; bind to the existing
   // panel element directly so the delegated buttons remain actionable.
   document.getElementById('inspector-info')?.addEventListener('click', event => {
-    const action = event.target.closest('[data-cable-focus]')?.dataset.cableFocus;
+    const focusBtn = event.target.closest('[data-cable-focus]');
+    const actionBtn = event.target.closest('[data-cable-action]');
     const cable = STATE.cables.find(c => c.id === STATE.highlightedCableId);
-    if (!action || !cable) return;
-    event.stopPropagation();
-    if (action === 'trace') RS.CircuitTrace?.open(cable.id);
-    else if (action === 'both') {
-      const differentRacks = cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== cable.to.rackId;
-      if (differentRacks && STATE.viewMode !== 'multi') {
-        RS.setViewMode?.('multi', true);
-        requestAnimationFrame(() => RS.focusOnCable?.(cable.id));
-      } else RS.focusOnCable?.(cable.id);
-    } else RS.focusOnDevice?.(cable[action]?.instanceId);
+    if (!cable) return;
+    if (focusBtn) {
+      const action = focusBtn.dataset.cableFocus;
+      event.stopPropagation();
+      if (action === 'trace') RS.CircuitTrace?.open(cable.id);
+      else if (action === 'both') {
+        const differentRacks = cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== cable.to.rackId;
+        if (differentRacks && STATE.viewMode !== 'multi') {
+          RS.setViewMode?.('multi', true);
+          requestAnimationFrame(() => RS.focusOnCable?.(cable.id));
+        } else RS.focusOnCable?.(cable.id);
+      } else RS.focusOnDevice?.(cable[action]?.instanceId);
+    } else if (actionBtn) {
+      const action = actionBtn.dataset.cableAction;
+      event.stopPropagation();
+      if (action === 'qr') RS.FieldQRUI?.open({ kind: 'cable', id: cable.id });
+      else if (action === 'workflow') RS.FieldWorkflowUI?.open({ kind: 'cable', id: cable.id });
+      else if (action === 'obs') RS.FieldObservationUI?.open({ kind: 'cable', id: cable.id });
+    }
   });
 
   function addDirectCable(rackA, instA, portA, rackB, instB, portB, color, lengthMeters) {

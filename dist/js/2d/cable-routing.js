@@ -245,7 +245,7 @@
     }
     const devBot = devTop - Number(dev.uHeight || 1) + 1;
 
-    // 1. Directly adjacent below
+    // 1. Directly adjacent below (always prefer organizer directly below)
     const directlyBelow = orgs.find(org => Number(org.topU) === devBot - 1);
     if (directlyBelow) return directlyBelow;
 

@@ -43,7 +43,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -86,21 +86,21 @@
   letter-spacing: 0.3px;
   text-transform: uppercase;
   background: rgba(255, 255, 255, 0.12);
-  color: #f1f5f9;
+  color: var(--text-main);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   line-height: 1.2;
 }
 
 .cable-role-tag.role-trunk { background: #7c3aed; border-color: #a855f7; color: #fff; }
-.cable-role-tag.role-uplink { background: #00d2ff; border-color: #38bdf8; color: #000; font-weight: 900; }
+.cable-role-tag.role-uplink { background: #00d2ff; border-color: var(--accent); color: #000; font-weight: 900; }
 .cable-role-tag.role-trunk-ap { background: #ec4899; border-color: #f472b6; color: #fff; }
 .cable-role-tag.role-poe { background: #f59e0b; border-color: #fbbf24; color: #000; font-weight: 900; }
 .cable-role-tag.role-mgmt { background: #059669; border-color: #34d399; color: #fff; }
 .cable-role-tag.role-routed { background: #b91c1c; border-color: #f87171; color: #fff; }
 .cable-role-tag.role-fiber { background: #facc15; border-color: #fde047; color: #000; font-weight: 900; box-shadow: 0 0 6px rgba(250, 204, 21, 0.45); }
-.cable-role-tag.role-console { background: #00bceb; border-color: #38bdf8; color: #000; font-weight: 900; }
-.cable-role-tag.role-standard { background: #334155; border-color: #475569; color: #cbd5e1; }
+.cable-role-tag.role-console { background: #00bceb; border-color: var(--accent); color: #000; font-weight: 900; }
+.cable-role-tag.role-standard { background: #334155; border-color: #475569; color: #f8fafc; font-weight: 800; }
 
 .card-legend-right {
   display: inline-flex;
@@ -112,7 +112,7 @@
 .duct-select-trigger {
   background: rgba(30, 41, 59, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #cbd5e1;
+  color: var(--text-main);
   font-size: 9.5px;
   font-weight: 700;
   padding: 2px 7px;
@@ -126,17 +126,17 @@
 }
 
 .duct-select-trigger:hover {
-  background: rgba(56, 189, 248, 0.25);
-  border-color: #38bdf8;
-  color: #fff;
-  transform: scale(1.04);
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+  transform: scale(1.02);
 }
 
 .metraj-badge {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #cbd5e1;
+  color: var(--text-main);
   background: rgba(15, 23, 42, 0.85);
   padding: 2px 6px;
   border-radius: 4px;
@@ -153,7 +153,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-muted);
   padding: 3px 2px 1px 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -396,7 +396,7 @@
 }
 
 .route-arrow {
-  color: #38bdf8;
+  color: var(--accent-strong);
   font-size: 9px;
   font-weight: 900;
   opacity: 0.85;
@@ -412,7 +412,7 @@
 }
 
 .endpoint-arrow {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 10px;
   margin-right: 2px;
   user-select: none;
@@ -423,10 +423,10 @@
   align-items: center;
   border-radius: 4px;
   overflow: hidden;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 10.5px;
-  border: 1px solid #334155;
-  background: #0f172a;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
   box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   white-space: nowrap;
   flex-shrink: 0;
@@ -439,8 +439,8 @@
 }
 
 .endpoint-badge.clickable-endpoint:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent-strong) 40%, transparent);
   transform: translateY(-0.5px);
 }
 
@@ -448,12 +448,12 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  background: rgba(30, 41, 59, 0.9);
-  color: #94a3b8;
-  border: 1px dashed #475569;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
   border-radius: 4px;
   padding: 1px 4px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
   font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -461,16 +461,16 @@
 }
 
 .badge-u {
-  background: #1e293b;
-  color: #38bdf8;
+  background: var(--bg-panel-light);
+  color: var(--text-main);
   font-weight: 700;
   padding: 1px 4px;
-  border-right: 1px solid #334155;
+  border-right: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .badge-port {
-  color: #f1f5f9;
+  color: var(--text-main);
   font-weight: 600;
   padding: 1px 4px;
   overflow: hidden;
@@ -485,7 +485,7 @@
 }
 
 .badge-port.copper {
-  color: #38bdf8;
+  color: var(--accent);
 }
 
 .badge-port.trunk {
@@ -542,7 +542,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
+  color: var(--text-muted);
   transition: all 0.15s ease;
   white-space: nowrap;
   user-select: none;
@@ -585,13 +585,13 @@
 .role-select-trigger.standard {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .role-select-trigger.standard:hover {
   background: rgba(56, 189, 248, 0.15);
   border-color: var(--accent-blue);
-  color: #f1f5f9;
+  color: var(--text-main);
 }
 
 .role-tag {
@@ -612,7 +612,7 @@
 .role-select-trigger.poe .role-tag { background: #f59e0b; color: #000; }
 .role-select-trigger.mgmt .role-tag { background: #059669; color: #fff; }
 .role-select-trigger.routed .role-tag { background: #b91c1c; color: #fff; }
-.role-select-trigger.standard .role-tag { background: #334155; color: #cbd5e1; }
+.role-select-trigger.standard .role-tag { background: #334155; color: #f8fafc; }
 
 /* Light Theme Adaptations for Cable Schedule Cards */
 :is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card {
@@ -625,6 +625,14 @@
 :is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card:hover {
   background: #f8fafc !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+:is([data-theme="light"], [data-theme="high-contrast"]) .cable-role-tag.role-standard,
+:is([data-theme="light"], [data-theme="high-contrast"]) .role-select-trigger.standard .role-tag {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  font-weight: 800;
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .cable-id-badge {
@@ -663,6 +671,6 @@
 }
 
 :is([data-theme="light"], [data-theme="high-contrast"]) .schedule-table tr.schedule-cable-card:hover .card-legend-bar {
-  border-bottom-color: #e2e8f0;
+  border-bottom-color: #cbd5e1;
 }
 

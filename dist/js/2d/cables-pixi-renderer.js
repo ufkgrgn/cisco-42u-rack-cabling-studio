@@ -71,7 +71,7 @@
     if (performanceTelemetry) performanceTelemetry.layoutCacheInvalidations++;
   }
 
-  function renderAllCablesPixi() {
+  function renderAllCablesPixi(options) {
     const renderStartedAt = performance.now();
     if (renderStats) renderStats.calls++;
     const svgEl = document.getElementById('cables-svg');
@@ -110,6 +110,9 @@
 
     if (svgEl) svgEl.style.display = 'none';
     if (canvas) canvas.style.display = 'block';
+
+    RS.StudioView?.syncCableVisibility();
+
     RS.PixiDeviceScene?.syncPixiDeviceSceneLOD();
     RS.PixiCabinScene?.syncPixiCabinScenes?.();
 
@@ -128,6 +131,17 @@
       canvas.style.width = '100%';
       canvas.style.height = '100%';
     }
+
+    // Placement edits need chassis positions, not cable paths. Keep retained
+    // batches hidden and reconcile their geometry when cabling becomes visible.
+    if (RS.StudioView && !RS.StudioView.areCablesShown() && !options?.prepareHidden) {
+      PixiContext.cablesDeferred = true;
+      if (renderStats) renderStats.lastDurationMs = performance.now() - renderStartedAt;
+      PixiContext.syncPixiViewportCamera?.(RS.ZOOM_STATE, true, 'placement');
+      PixiContext.renderPixi?.('placement');
+      return;
+    }
+    PixiContext.cablesDeferred = false;
 
     const sceneSignature = buildSceneSignature(stageW, stageH, isMulti, activeRack);
     const layoutSignature = buildLayoutSignature(stageW, stageH, isMulti, activeRack);
@@ -457,6 +471,7 @@
   RS.flushPixiCableTransaction = flushPixiCableTransaction;
   RS.endPixiCableTransaction = endPixiCableTransaction;
   RS.renderAllCablesPixi = renderAllCablesPixi;
+  RS.prepareCableGeometryForExport = () => renderAllCablesPixi({ prepareHidden: true });
   RS.syncPixiDeviceSceneLOD = lod => {
     const changed = RS.PixiDeviceScene?.syncPixiDeviceSceneLOD(lod);
     if (changed) PixiContext.renderPixi?.('device-scene-lod');

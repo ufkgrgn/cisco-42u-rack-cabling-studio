@@ -40,6 +40,7 @@
     const btn = document.getElementById('btn-field-mode');
     if (!btn) return;
     btn.addEventListener('click', () => {
+      if(window.RackStudio?.WorkflowViews){window.RackStudio.WorkflowViews.set(window.RackStudio.WorkflowViews.get()==='field'?'design':'field');return;}
       const on = document.body.classList.toggle('field-mode');
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.classList.toggle('active', on);
@@ -84,6 +85,7 @@
       compactViewPanel.querySelectorAll('[data-shortcut-for]').forEach(button => {
         button.setAttribute('aria-pressed', String(document.getElementById(button.dataset.shortcutFor)?.classList.contains('active') || false));
       });
+      if (!compactViewPanel.hidden) compactViewPanel.querySelector('button:not([disabled])')?.focus();
     });
     compactViewPanel?.addEventListener('click', event => {
       if (!event.target.closest('[data-shortcut-for]')) return;

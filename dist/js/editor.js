@@ -4,7 +4,7 @@
   function init() {
     const api = window.RackStudio;
     if (!api) return;
-    const state = api.STATE, KEY = 'rack-studio-project-v2';
+    const state = api.STATE;
     const bar = document.createElement('section');
     bar.className = 'studio-editor';
     bar.setAttribute('aria-label', 'Kabin düzenleme araçları');
@@ -15,23 +15,7 @@
     let writeQueue = Promise.resolve();
     const persistenceTelemetry = { serializations: 0, serializationMs: 0, writes: 0, skippedWrites: 0, writeMs: 0 };
     let undo = [], redo = [], last = '';
-    const database = new Promise(resolve => {
-      try {
-        const request = indexedDB.open('rack-studio', 1);
-        request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains('projects')) request.result.createObjectStore('projects'); };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => resolve(null);
-        request.onblocked = () => { status('Yerel veritabanı başka sekmede bekliyor', true); };
-      } catch (_) { resolve(null); }
-    });
-    const databaseAction = (db, mode, value) => new Promise((resolve, reject) => {
-      const transaction = db.transaction('projects', mode);
-      const store = transaction.objectStore('projects');
-      const request = mode === 'readonly' ? store.get('current') : store.put(value, 'current');
-      transaction.oncomplete = () => resolve(request.result);
-      transaction.onerror = () => reject(transaction.error || new Error('Veritabanı işlemi başarısız'));
-      transaction.onabort = () => reject(transaction.error || new Error('Veritabanı işlemi iptal edildi'));
-    });
+    const repository = api.ProjectRepository;
     function capHistory() {
       let bytes = [...undo, ...redo].reduce((size, entry) => size + entry.length * 2, 0);
       while (undo.length + redo.length > 50 || bytes > 20 * 1024 * 1024) {
@@ -42,7 +26,7 @@
     }
     const snapshot = () => {
       const started = performance.now();
-      const value = JSON.stringify({
+      const value = JSON.stringify(api.ProjectDocument ? api.ProjectDocument.capture(state) : {
       racks: state.racks,
       cables: state.cables,
       rackCounter: state.rackCounter,
@@ -79,29 +63,27 @@
       bar.querySelector('[data-command="redo"]').disabled = !redo.length;
       document.querySelectorAll('.mounted-device').forEach(el => el.classList.toggle('studio-selected', el.id === selected));
       window.RackStudio?.syncPixiDeviceSelection?.();
+      if(!window.is3DMode && bar.dataset.workflowSelected!==(selected||'')){bar.dataset.workflowSelected=selected||'';state.selectedDeviceId=selected;document.dispatchEvent(new CustomEvent('rackstudio:selection',{detail:{kind:'device',id:selected,source:'2d'}}));}
       if (typeof renderMultiSelectPill === 'function') renderMultiSelectPill();
     }
     function save() {
       clearTimeout(saveTimer);
-      if (recoveryPending || !last) return;
+      if (recoveryPending || !last) return Promise.resolve({ status: 'pendingRecovery' });
       const value = last, savedRevision = revision;
       writeQueue = writeQueue.catch(() => {}).then(async () => {
-        if (savedRevision !== revision) { persistenceTelemetry.skippedWrites++; return; }
-        const db = await database;
-        if (savedRevision !== revision) { persistenceTelemetry.skippedWrites++; return; }
+        if (savedRevision !== revision) { persistenceTelemetry.skippedWrites++; return { status: 'superseded' }; }
         const started = performance.now();
         try {
-          if (db) await databaseAction(db, 'readwrite', value);
-          else localStorage.setItem(KEY, value);
+          const doc = JSON.parse(value);
+          repository.rememberDraft(doc);
+          const result = await repository.commit(doc);
           persistenceTelemetry.writes++;
           persistenceTelemetry.writeMs += performance.now() - started;
-          if (savedRevision === revision) {
-            try { localStorage.setItem('cisco-rack-studio-project', value); } catch (_) {}
-            if (db) try { localStorage.removeItem(KEY); } catch (_) {}
-            status(db ? 'Yerel kayıt tamam' : 'Yerel kayıt tamam (sınırlı depolama)');
-          }
-        } catch (_) {
-          if (savedRevision === revision) status('Yerel kayıt başarısız — JSON dışa aktarın', true);
+          if (savedRevision === revision) status('Yerel kayıt tamam');
+          return result;
+        } catch (error) {
+          if (savedRevision === revision) status('Taslak korunuyor — ' + error.message, true);
+          return { status: 'draft', error: error.message };
         }
       });
       return writeQueue;
@@ -109,7 +91,18 @@
     function record() {
       queued = false;
       if (restoring) return;
-      const next = snapshot();
+      let next = snapshot();
+      if (last && api.ProjectCommands) {
+        const before = JSON.parse(last), after = JSON.parse(next);
+        if (before.projectId === after.projectId && after.revision <= before.revision) {
+          const changed = api.ProjectCommands.domainKey(before) !== api.ProjectCommands.domainKey(after);
+          state.projectDocument.revision = before.revision + (changed ? 1 : 0);
+          const key = api.ProjectCommands.LEDGER;
+          const receipts = api.ProjectCommands.receipts(before);
+          if (receipts.length) state.projectDocument.extensions[key] = receipts;
+          next = snapshot();
+        }
+      }
       if (last && next !== last) {
         undo.push(last);
         redo = [];
@@ -117,7 +110,7 @@
         last = next;
         revision++;
         status('Kaydediliyor…');
-        try { localStorage.setItem(KEY, next); } catch (_) {}
+        repository.rememberDraft(JSON.parse(next));
         clearTimeout(saveTimer);
         saveTimer = setTimeout(save, 350);
         sync();
@@ -125,13 +118,17 @@
       else if (!last) { last = next; sync(); }
     }
     function scheduleRecord() { if (!queued && !restoring) { queued = true; queueMicrotask(record); } }
-    function restore(value) {
+    function restore(value, recovering = false) {
       restoring = true;
       try {
         const data = JSON.parse(value);
-        if (data.cableRoutingMode) state.cableRoutingMode = data.cableRoutingMode;
-        if (data.viewMode && api.setViewMode) {
-          api.setViewMode(data.viewMode, true);
+        if (!recovering && data.schemaVersion === 1 && data.projectId === state.projectDocument.projectId) {
+          api.FieldEvents?.preserveHistory(data, api.ProjectDocument.capture(state));
+          api.HandoverRepository?.preserveHistory(data, api.ProjectDocument.capture(state));
+          data.revision = state.projectDocument.revision + 1;
+          const key = api.ProjectCommands.LEDGER;
+          const receipts = api.ProjectCommands.receipts(state.projectDocument);
+          if (receipts.length) data.extensions[key] = receipts;
         }
         api.loadCustomTopology(data);
         last = snapshot();
@@ -144,9 +141,10 @@
     function history(back) {
       record();
       const source = back ? undo : redo, destination = back ? redo : undo;
-      if (!source.length) return;
+      if (!source.length) return false;
       const value = source[source.length - 1], current = last;
       restore(value); source.pop(); destination.push(current); capHistory(); sync();
+      return true;
     }
     const canPlace = (rack, device, topU, ignore = null) => Number.isInteger(topU) && topU <= (rack.heightU || 42) && topU - device.uHeight + 1 >= 1 && !rack.devices.some(d => d.instanceId !== ignore && topU >= d.topU - d.uHeight + 1 && topU - device.uHeight + 1 <= d.topU);
     function rebuild(rack) {
@@ -481,18 +479,12 @@
           if (m.device.instanceId !== device.instanceId) m.device.topU = m.topU;
         });
       } else {
-        if (rack.id !== target.id) {
-          rack.devices = rack.devices.filter(d => d.instanceId !== device.instanceId);
-          target.devices.push(device);
-          for (const cable of state.cables) {
-            for (const end of [cable.from, cable.to]) {
-              if (end.instanceId === device.instanceId) end.rackId = target.id;
-            }
-          }
-        }
-        plannedMoves.forEach(m => {
-          m.device.topU = m.topU;
-        });
+        api.ProjectCommands.execute({ ...api.ProjectCommands.begin(), type: 'MoveDevice', payload: {
+          deviceId: device.instanceId, targetRackId: target.id,
+          moves: plannedMoves.map(m => ({ deviceId: m.device.instanceId, topU: m.topU }))
+        } });
+        sync();
+        return;
       }
       const affectedIds = new Set(plannedMoves.map(m => m.device.instanceId));
       for (const cable of (state.cables || [])) {
@@ -595,6 +587,7 @@
       }
     });
     document.addEventListener('keydown', e => {
+      if (window.is3DMode) return;
       if (e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
       if (e.key === 'Escape') {
         if (selected || state.multiSelectMode || (state.multiSelectedDevices && state.multiSelectedDevices.size > 0)) {
@@ -853,6 +846,91 @@
     document.addEventListener('change', e => { if (!e.target.closest('.studio-editor')) scheduleRecord(); }, true);
     document.addEventListener('drop', scheduleRecord, true);
 
+    api.flushProjectChanges = record;
+    api.undoProject = () => history(true);
+    api.redoProject = () => history(false);
+    api.importProjectDocument = async (input, expected, options = {}) => {
+      if (recoveryPending) throw new Error('Yerel kurtarma tamamlanmadan proje açılamaz.');
+      let doc = repository.validate(input);
+      const baseline = expected || api.ProjectCommands.begin();
+      const ensureCurrent = () => {
+        const live = api.ProjectDocument.capture(state);
+        if (live.projectId !== baseline.projectId || live.revision !== baseline.expectedRevision || api.ProjectCommands.domainKey(live) !== baseline.expectedContent) {
+          throw new Error('Dosya okunurken proje değişti; açık çalışma korunuyor. Dosyayı tekrar seçin.');
+        }
+      };
+      ensureCurrent();
+      await api.saveProjectNow();
+      ensureCurrent();
+      const existing = await repository.get(doc.projectId);
+      ensureCurrent();
+      const copied = !!existing;
+      if (copied) {
+        const sourceId = doc.projectId;
+        doc.projectId = crypto.randomUUID();
+        doc.metadata.sourceProjectId = sourceId;
+        for (const key of ['locations', 'observations', 'fieldEvents', 'evidenceRefs', 'handoverRecords', 'integrationMappings']) {
+          for (const item of doc[key]) {
+            if (item.projectId === sourceId) item.projectId = doc.projectId;
+            if (item.entityRef?.kind === 'project' && item.entityRef.id === sourceId) item.entityRef.id = doc.projectId;
+          }
+        }
+        delete doc.extensions[api.ProjectCommands.LEDGER];
+        doc = repository.validate(doc);
+      }
+      // Store the incoming document independently before changing the active workspace.
+      await repository.commit(doc, { evidence: options.evidence || [] });
+      ensureCurrent();
+      await repository.release(state.projectDocument.projectId);
+      ensureCurrent();
+      recoveryPending = true;
+      try {
+        restore(JSON.stringify(doc), true);
+        undo = []; redo = []; selected = null; sync();
+      } finally { recoveryPending = false; }
+      await repository.select(doc.projectId);
+      status(copied ? 'Ayrı proje kopyası açıldı' : 'İçe aktarılan proje açıldı');
+      return { projectId: doc.projectId, copied, status: 'opened' };
+    };
+    api.saveProjectNow = async () => {
+      record();
+      const projectId = state.projectDocument.projectId;
+      let result = await save();
+      if (result?.status === 'superseded') result = await writeQueue;
+      if (result?.projectId && result.projectId !== projectId) throw new Error('Kayıt sırasında proje değişti; önceki taslak korunuyor.');
+      if (result?.status !== 'durable') throw new Error(result?.error || 'Proje henüz dayanıklı kayda alınmadı.');
+      return result;
+    };
+    api.openStoredProject = async (projectId, options = {}) => {
+      if (window.is3DMode) {
+        await api.setStudioMode(false);
+        if (window.is3DMode) throw new Error('3D değişiklikleri aktarılamadı; açık çalışma korunuyor.');
+      }
+      const baseline = api.ProjectCommands.begin();
+      const ensureCurrent = () => {
+        const live = api.ProjectDocument.capture(state);
+        if (live.projectId !== baseline.projectId || api.ProjectCommands.domainKey(live) !== baseline.expectedContent) throw new Error('Proje açılırken çalışma değişti; taslak korunuyor. Tekrar açın.');
+      };
+      if (options.preserveDraft) {
+        record();
+        repository.rememberDraft(JSON.parse(last));
+        await repository.preserveCandidate({ source: 'Saklanan taslak', raw: last });
+      } else await api.saveProjectNow();
+      const row = await repository.get(projectId, { adopt: true });
+      ensureCurrent();
+      if (!row) throw new Error('Proje bulunamadı.');
+      if (row.archived) await repository.archive(projectId, false);
+      await repository.release(state.projectDocument.projectId);
+      ensureCurrent();
+      recoveryPending = true;
+      try {
+        restore(JSON.stringify(row.document), true);
+        undo = []; redo = []; selected = null; sync();
+      } finally { recoveryPending = false; }
+      await repository.select(projectId);
+      status('Son dayanıklı kayıt açıldı');
+      return { status: 'opened', projectId };
+    };
     api.insertUSpace = insertUSpace;
     api.collapseUSpace = collapseUSpace;
     api.smartRippleMove = smartRippleMove;
@@ -872,24 +950,31 @@
     document.addEventListener('rackstudio:refresh', () => { sync(); scheduleRecord(); });
     window.addEventListener('rackstudio:change', handleImmediateChange);
     window.addEventListener('rackstudio:refresh', () => { sync(); scheduleRecord(); });
-    window.addEventListener('pagehide', save);
-    window.addEventListener('beforeunload', () => { if (last) { try { localStorage.setItem(KEY, last); } catch (_) {} save(); } });
+    window.addEventListener('pagehide', () => { repository.release(state.projectDocument.projectId).catch(() => {}); });
+    window.addEventListener('beforeunload', () => { if (last) repository.rememberDraft(JSON.parse(last)); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { record(); save(); } });
     last = snapshot(); sync();
+    const startupBase = last;
     (async () => {
       try {
-        const db = await database;
-        const stored = db ? await databaseAction(db, 'readonly') : null;
-        let legacy = null;
-        try { legacy = localStorage.getItem(KEY); } catch (_) { /* May be disabled while IDB is available. */ }
-        const saved = legacy || stored;
-        // Never replace edits made while the database was opening.
-        if (saved && revision === 0) {
-          restore(saved);
+        const candidates = await repository.recoveryCandidates();
+        const valid = candidates.filter(candidate => candidate.document);
+        const keys = new Set(valid.map(candidate => api.ProjectCommands.domainKey(candidate.document)));
+        let chosen = valid.find(candidate => candidate.durable) || valid[0];
+        if (keys.size > 1 && revision === 0) chosen = await api.ProjectRecoveryUI.choose(candidates);
+        // Never replace edits made while IndexedDB, validation or the selection screen was opening.
+        if (chosen && revision === 0) {
+          restore(JSON.stringify(chosen.document), true);
           status('Son yerel proje geri yüklendi');
         }
+        if (chosen?.durable && revision > 0 && state.projectDocument.projectId === chosen.document.projectId && api.ProjectCommands.domainKey(JSON.parse(startupBase)) !== api.ProjectCommands.domainKey(chosen.document)) {
+          // The working cache was already stale when opening began. Keep edits as a draft.
+          repository.versions.delete(chosen.document.projectId);
+        }
         recoveryPending = false;
-        if (legacy || revision > 0) await save();
+        if (chosen || revision > 0) await save();
+        for (const candidate of candidates) await repository.preserveCandidate(candidate);
+        if (candidates.some(candidate => candidate.error)) status('Bazı kurtarma kayıtları okunamadı; orijinalleri korunuyor', true);
         bar.dataset.ready = 'true';
       } catch (error) {
         recoveryPending = false; bar.dataset.ready = 'true';

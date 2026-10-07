@@ -6,6 +6,8 @@ import { initCatalogDrawer } from './catalogDrawer.js';
 import { initDeviceHud } from './deviceHud.js';
 import { initCableModals } from './cableModals.js';
 import { initWizardModal } from './wizardModal.js';
+import { initProjectFileControls } from './project-file-controls.js';
+import { initWorkflowSelection } from './workflow-selection.js';
 
 (function () {
   'use strict';
@@ -18,6 +20,7 @@ import { initWizardModal } from './wizardModal.js';
     // Instantiate 3D Studio Engine
     const studio = new window.Studio3D(container);
     window.__STUDIO3D__ = studio;
+    initWorkflowSelection(studio);
 
     // Wire component controllers
     initCameraControls(studio);
@@ -32,9 +35,10 @@ import { initWizardModal } from './wizardModal.js';
     if (btnPresetMdf) {
       btnPresetMdf.addEventListener('click', () => {
         if (confirm('MDF Omurga Şablonunu yüklemek istiyor musunuz? Mevcut tasarım sıfırlanacaktır.')) {
-          studio.loadPresetMDF();
+          try { if (studio.loadPresetMDF() === false) return; }
+          catch (error) { studio.showToast(error.message); return; }
           studio.showToast('MDF Dağıtım Şablonu Yüklendi.');
-          renderCatalog(searchInput ? searchInput.value : '');
+          window.renderCatalog?.();
         }
       });
     }
@@ -43,16 +47,21 @@ import { initWizardModal } from './wizardModal.js';
     if (btnPresetIdf) {
       btnPresetIdf.addEventListener('click', () => {
         if (confirm('IDF Kat Kenar Şablonunu yüklemek istiyor musunuz?')) {
-          studio.state.devices = [];
-          studio.state.cables = [];
-          studio.mountDevice('patch-cat6-48p', 38);
-          studio.mountDevice('cisco-c9300-48p', 36);
-          studio.mountDevice('cable-manager-1u', 35);
-          studio.mountDevice('patch-cat6-48p', 33);
-          studio.mountDevice('cisco-c9300-48p', 31);
-          studio.mountDevice('pdu-1u-8c13', 2);
+          try {
+            if (studio.runProjectEdit(() => {
+              studio.state.devices = [];
+              studio.state.cables = [];
+              if (!studio.mountDevice('patch-cat6-48p', 38)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              if (!studio.mountDevice('cisco-c9300-48p', 36)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              if (!studio.mountDevice('cable-manager-1u', 35)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              if (!studio.mountDevice('patch-cat6-48p', 33)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              if (!studio.mountDevice('cisco-c9300-48p', 31)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              if (!studio.mountDevice('pdu-1u-8c13', 2)) throw new Error('Şablon için yeterli kabin alanı yok.');
+              return true;
+            }) === false) return;
+          } catch (error) { studio.showToast(error.message); return; }
           studio.showToast('IDF Kat Kabini Şablonu Yüklendi.');
-          renderCatalog(searchInput ? searchInput.value : '');
+          window.renderCatalog?.();
         }
       });
     }
@@ -61,9 +70,10 @@ import { initWizardModal } from './wizardModal.js';
     if (btnPresetSite) {
       btnPresetSite.addEventListener('click', () => {
         if (confirm('Tüm Saha Topolojisini yüklemek istiyor musunuz? (3D kabinde MDF şablonu yüklenecektir)')) {
-          studio.loadPresetMDF();
+          try { if (studio.loadPresetMDF() === false) return; }
+          catch (error) { studio.showToast(error.message); return; }
           studio.showToast('Saha Topolojisi Yüklendi. Çoklu kabin için 2D moduna geçebilirsiniz.');
-          renderCatalog(searchInput ? searchInput.value : '');
+          window.renderCatalog?.();
         }
       });
     }
@@ -80,7 +90,7 @@ import { initWizardModal } from './wizardModal.js';
           studio.rebuildAllDevices();
           studio.rebuildAllCables();
           studio.showToast('Geri Alındı (Undo)');
-          renderCatalog(searchInput ? searchInput.value : '');
+          window.renderCatalog?.();
         }
       });
     }
@@ -91,63 +101,12 @@ import { initWizardModal } from './wizardModal.js';
           studio.rebuildAllDevices();
           studio.rebuildAllCables();
           studio.showToast('Yinelendi (Redo)');
-          renderCatalog(searchInput ? searchInput.value : '');
+          window.renderCatalog?.();
         }
       });
     }
 
-    // 14. JSON Export & Import
-    const btnExportJson = document.getElementById('btn-export-json-3d');
-    const btnImportJson = document.getElementById('btn-import-json-3d');
-    const fileImport = document.getElementById('file-import-3d');
-
-    if (btnExportJson) {
-      btnExportJson.addEventListener('click', () => {
-        const payload = {
-          version: '3.1.0-3D',
-          timestamp: new Date().toISOString(),
-          rackHeightU: studio.state.rackHeightU,
-          devices: studio.state.devices,
-          cables: studio.state.cables
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cisco-rack-studio-3d-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        studio.showToast('3D Topoloji JSON Olarak Kaydedildi.');
-      });
-    }
-
-    if (btnImportJson && fileImport) {
-      btnImportJson.addEventListener('click', () => fileImport.click());
-      fileImport.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          try {
-            const data = JSON.parse(evt.target.result);
-            if (data.devices) {
-              studio.state.rackHeightU = data.rackHeightU || 42;
-              studio.state.devices = data.devices || [];
-              studio.state.cables = data.cables || [];
-              studio.buildRack(studio.state.rackHeightU);
-              studio.rebuildAllDevices();
-              studio.rebuildAllCables();
-              studio.state.pushSnapshot();
-              renderCatalog(searchInput ? searchInput.value : '');
-              studio.showToast('3D Topoloji Başarıyla Yüklendi!');
-            }
-          } catch (err) {
-            alert('Geçersiz JSON Dosyası!');
-          }
-        };
-        reader.readAsText(file);
-      });
-    }
+    initProjectFileControls(studio);
 
     // 15. Keyboard Shortcuts (Only active when in 3D Mode to avoid duplicate events with 2D editor)
     window.addEventListener('keydown', (e) => {
@@ -175,7 +134,7 @@ import { initWizardModal } from './wizardModal.js';
         document.getElementById('cam-focus')?.click();
       } else if (e.key.toLowerCase() === 'd') {
         e.preventDefault();
-        btnDoor && btnDoor.click();
+        document.getElementById('btn-door-toggle')?.click();
       }
     });
   }

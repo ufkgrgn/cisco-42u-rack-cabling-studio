@@ -1,0 +1,135 @@
+/* Shared product surfaces. Component-specific layouts remain in their own files. */
+:is(.delivery-dialog,.engineering-dialog,.field-workflow-dialog,.field-observations-dialog) [hidden]{display:none!important}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog){
+  --surface-gap:14px;
+  font:13px/1.5 Inter,'Segoe UI',sans-serif;
+  color:var(--text-main);background:var(--bg-panel);border:1px solid var(--border);
+  padding:20px;border-radius:14px;box-shadow:0 24px 80px #0005;
+  scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;
+}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog)::backdrop{background:#080d1680;backdrop-filter:blur(4px)}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) :is(header,.pm-header){
+  position:static;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 0 14px;margin:0 0 12px;border-bottom:1px solid var(--border);
+}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) h2{font-size:19px;line-height:1.3;letter-spacing:-.025em;margin:0;font-weight:650}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog) h3{font-size:14px;font-weight:650;margin:0 0 12px}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog) p{font-size:12px;line-height:1.6;margin:8px 0 14px;color:var(--text-muted)}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) :is(button,input,select,textarea){
+  font:inherit;color:var(--text-main);background:var(--bg-inset);border:1px solid var(--border);border-radius:7px;padding:7px 10px;min-height:34px;max-width:100%;box-sizing:border-box;
+}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) button{cursor:pointer;background:var(--bg-elevated);font-weight:550;line-height:1.4;white-space:normal}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) button:hover:not(:disabled){border-color:var(--accent);background:var(--bg-panel-light)}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) button:disabled{opacity:.5;cursor:default}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.p09-dialog) label{font-size:12px;color:var(--text-muted);font-weight:500}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.p09-dialog) :is(input[type=checkbox],input[type=radio]){min-height:16px;width:16px;height:16px;accent-color:var(--accent-strong);flex-shrink:0}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog) [role=status]:empty{display:none}
+:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog) [role=status]:not(:empty){padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-elevated);color:var(--text-main);overflow-wrap:anywhere}
+:is(.delivery-dialog,.engineering-dialog) details{border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin:12px 0;background:var(--bg-inset)}
+:is(.delivery-dialog,.engineering-dialog) summary{font-size:12px;font-weight:600;color:var(--text-main);cursor:pointer;min-height:24px;align-content:center}
+:is(.delivery-dialog,.engineering-dialog) details[open]>summary{margin-bottom:10px}
+.product-empty{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:230px;padding:24px;border:1px dashed var(--border);border-radius:12px;background:var(--bg-inset)}
+.product-empty p{max-width:300px;margin:0!important}.product-empty h3{margin:0 0 8px!important}
+.product-empty[hidden]{display:none}
+.field-layout,.observation-layout{grid-template-columns:minmax(230px,.85fr) minmax(0,1.35fr);gap:18px;align-items:start}
+.field-layout>section:first-child,.observation-layout>section:first-child{max-height:65dvh;overflow:auto;padding-right:6px;scrollbar-width:thin}
+.field-job{margin:0 0 6px!important;padding:10px 12px!important;display:grid!important;gap:4px;background:var(--bg-inset)!important;border-color:var(--border)!important}
+.field-job strong{font-size:12px;line-height:1.45;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.field-job span{font-size:11px;color:var(--text-muted);font-weight:450}
+.field-job[aria-pressed=true],.observation-row[aria-pressed=true]{border-color:var(--accent)!important;background:var(--bg-elevated)!important;box-shadow:inset 3px 0 var(--accent)}
+.field-layout form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px;background:var(--bg-inset);border:1px solid var(--border);border-radius:10px}
+.field-layout form :is(label:has(textarea),label:has(input[type=file]),small,button){grid-column:1/-1}
+.field-event{padding:12px;border:1px solid var(--border);border-radius:9px;background:var(--bg-inset);margin:8px 0}
+.field-event strong{font-size:12px}.field-event button{width:auto;display:inline-block;margin:4px}
+.field-filters{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr);gap:10px;margin:12px 0 16px}
+.field-filters :is(input,select){width:100%;min-width:0}
+.workflow-selection-panel{padding:12px;max-height:46dvh}
+.workflow-selection-panel h3{font-size:12px;letter-spacing:.02em;margin-bottom:10px;color:var(--text-muted)}
+.workflow-selection-content dl{grid-template-columns:100px minmax(0,1fr);gap:0;font-size:12px;line-height:1.5}
+.workflow-selection-content :is(dt,dd){padding:4px 0;border-bottom:1px solid var(--border-subtle)}
+.workflow-selection-content dd{font-weight:550;padding-left:10px}.workflow-selection-content dt{font-size:11px}
+.selection-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:12px}
+.selection-actions button{margin:0;min-height:32px;padding:6px 8px;font-size:11px;text-align:center;background:var(--bg-elevated)}
+.workflow-selection-content table{margin:10px 0;max-height:240px;font-size:11px}
+.workflow-selection-content table th{color:var(--text-muted);font-weight:550}
+.delivery-source{padding:12px;background:var(--bg-inset);border:1px solid var(--border);border-radius:10px;align-items:end;margin:12px 0}
+.delivery-source label{margin:0;flex:1;max-width:480px}.delivery-source button{margin:0}
+.delivery-work{grid-template-columns:290px minmax(0,1fr);gap:18px;align-items:start}
+.delivery-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}
+.delivery-actions button{margin:0;font-size:11px}.delivery-actions button:last-child{grid-column:1/-1}
+.delivery-preview{min-width:0;border:1px solid var(--border);border-radius:10px;background:var(--bg-inset);overflow:hidden}
+.delivery-preview>h3{padding:12px 14px;margin:0;border-bottom:1px solid var(--border);font-size:12px}
+.delivery-preview iframe{display:block;height:570px;border:0;background:white}
+.delivery-preview iframe[hidden]{display:none}
+.delivery-preview .product-empty{border:0;border-radius:0;min-height:360px}
+.delivery-history article{padding:12px;border:1px solid var(--border);border-radius:9px;margin:8px 0;background:var(--bg-inset)}
+.delivery-dialog [data-action=freeze],.delivery-dialog [data-action=zip],.engineering-dialog [data-action=apply]{background:var(--accent-strong);color:var(--text-on-accent,#fff);border-color:var(--accent-strong)}
+.qr-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start;margin:16px 0}
+.field-qr-dialog{width:min(760px,calc(100vw - 24px))}
+.qr-layout>section{min-width:0;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--bg-inset)}
+.qr-output{background:white;border-radius:8px;padding:12px;margin:12px 0}
+.field-qr-dialog .qr-output canvas{width:224px;max-width:100%;height:auto;margin:0 auto;image-rendering:pixelated}
+.field-qr-dialog textarea{font:11px/1.5 'JetBrains Mono',monospace;min-height:64px;margin:8px 0}
+.field-qr-dialog video:not([src]){display:none}.field-qr-dialog video[data-active=true]{display:block}
+.qr-layout details{margin:12px 0;font-size:11px;color:var(--text-muted)}
+.qr-layout button{margin:4px 4px 4px 0!important;font-size:12px}
+.engineering-plan-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.engineering-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.engineering-models article{margin:0;padding:12px;background:var(--bg-elevated);border-color:var(--border)}
+.engineering-dialog section{border-color:var(--border);background:var(--bg-inset)}
+.engineering-dialog pre{font:11px/1.6 'JetBrains Mono',monospace;background:var(--bg-inset);padding:10px;border-radius:7px}
+.scenario-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg-inset)}
+.scenario-controls label:last-child{grid-column:1/-1}.scenario-comparison>section{margin:12px 0}
+.rv-card,.rv-change,.pm-section{border-color:var(--border);background:var(--bg-inset)}
+.rv-card button{margin:4px 4px 0 0}.rv-list{gap:12px}.rv-controls{align-items:end}
+.saved-view-row{padding:12px!important;margin:8px 0;border:1px solid var(--border)!important;border-radius:9px;background:var(--bg-inset)}
+.scenario-setup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.scenario-setup section{margin:0}.scenario-setup label{margin:8px 0}
+.scenario-footer{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:12px 0}.scenario-footer label{flex:1;margin:0;min-width:180px}
+.project-checks-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding-bottom:14px}
+.project-checks-controls label{display:grid;gap:5px;color:var(--text-muted);font-size:12px}
+.project-check-item{display:grid;gap:4px;width:100%;text-align:left;padding:10px 12px!important;margin:6px 0;background:var(--bg-inset)!important;font-weight:450!important}
+.project-check-item strong{font-size:10px;letter-spacing:.04em;color:var(--text-muted)}
+.project-checks-list>[data-fix]{margin:0 0 10px 10px;font-size:11px}
+.product-dialog{
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(680px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.product-dialog::backdrop {
+  background: rgba(5, 10, 18, 0.65);
+  backdrop-filter: blur(8px);
+}
+.project-recovery-dialog h2{margin-bottom:14px!important}.project-recovery-dialog section{padding:12px;margin:10px 0;background:var(--bg-inset);border:1px solid var(--border);border-radius:var(--radius-md, 8px)}
+.recovery-action{margin:4px 4px 4px 0}
+.inventory-import-head{padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.inventory-import-row{background:var(--bg-inset);font-size:12px}.inventory-import-dialog input[type=file]{width:100%;min-width:0}
+.engineering-power .power-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.power-summary div{padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px}
+.power-summary dt{font-size:11px;color:var(--text-muted)}.power-summary dd{margin:6px 0 0;font-size:16px;font-weight:650;color:var(--text-main)}.power-summary small{font-size:10px;color:var(--text-muted);font-weight:450}
+.observation-row{display:grid;gap:4px;font-size:12px;padding:10px 12px!important;background:var(--bg-inset)!important}
+.observation-row small{color:var(--text-muted);font-weight:450}
+@media(max-width:767px){
+  :is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog){padding:14px}
+  .field-layout,.observation-layout,.delivery-work,.qr-layout{grid-template-columns:minmax(0,1fr)}
+  .field-layout>section:first-child,.observation-layout>section:first-child{max-height:300px}
+  .field-layout form,.engineering-plan-fields,.engineering-models,.scenario-controls{grid-template-columns:minmax(0,1fr)}
+  .delivery-preview iframe{height:420px}.delivery-preview .product-empty{min-height:180px}
+  .field-filters{grid-template-columns:minmax(0,1fr)}
+  .scenario-setup{grid-template-columns:minmax(0,1fr)}
+  .engineering-power .power-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .selection-actions button{min-height:40px}
+}
+@media(pointer:coarse){:is(.product-dialog,.inventory-import-dialog,.mobile-workflow-dialog,.project-manager,.revision-manager,.field-workflow-dialog,.field-observations-dialog,.delivery-dialog,.engineering-dialog,.project-checks-dialog,.p09-dialog,.workflow-selection-dialog) :is(button,select){min-height:44px}}
+@media(forced-colors:active){.field-job[aria-pressed=true]{outline:2px solid Highlight}.product-empty{border-color:CanvasText}}

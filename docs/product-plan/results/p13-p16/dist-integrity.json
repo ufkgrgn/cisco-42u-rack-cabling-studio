@@ -1,0 +1,15 @@
+{
+  "checked": 143,
+  "mismatches": [],
+  "sourceHashes": {
+    "js/report-model.js": "fbce529a6138a9cd95691e32fca85c66bdbf9db3d77ee958f6915f0491028dc1",
+    "js/bom-engine.js": "ab01fd3d9059781ccc677755a8c49e03c564573d99a197811a18043b8aaaf680",
+    "js/label-model.js": "36e733eba076efbf71686f5b8af508c233ba4292be9fd89e22b914725369a613",
+    "js/report-output.js": "6ec575eaf75298062194068c7128285eab746378b1111af49fefc43f0a61873c",
+    "js/report-pdf.js": "b9e901a7e70bc035b42316a3462b5a99743d3e8a04abec1b26e60c39095eebd1",
+    "js/label-output.js": "02f0c5d59aa9af79ee0023e83f221c33ef9c22dd48791710d51879c66b8123f8",
+    "js/handover-package.js": "dcdaff7590cc2a3392e90849bf3984bdfb0b769b66ace6f477d9d0d21a2c1391",
+    "js/handover-repository.js": "a2b687337e0142c998e8289d516cccfc72c32bb0bd3ca5b30b544d5a571c781d",
+    "js/report-controller.js": "e23818b3e43363adfa1feb9dbbb540bb5999472b39f0909892c6e76c25e78c41"
+  }
+}

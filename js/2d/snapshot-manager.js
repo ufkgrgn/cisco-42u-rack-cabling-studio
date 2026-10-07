@@ -24,7 +24,8 @@
   function saveSnapshots() {
     try {
       localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshots));
-    } catch (_) {}
+      return true;
+    } catch (_) { return false; }
   }
 
   loadSnapshots();
@@ -42,15 +43,17 @@
       id,
       label,
       timestamp,
-      racks: JSON.parse(JSON.stringify(state.racks)),
-      cables: JSON.parse(JSON.stringify(state.cables || [])),
-      activeRackId: state.activeRackId,
-      viewMode: state.viewMode || "single"
+      projectDocument: RS.ProjectDocument.capture(state)
     };
 
+    const previous = [...snapshots];
     snapshots.unshift(snapshot);
     if (snapshots.length > 20) snapshots.pop(); // Keep last 20 snapshots
-    saveSnapshots();
+    if (!saveSnapshots()) {
+      snapshots = previous;
+      RS.showTemporaryTooltip?.(window.innerWidth / 2, 80, 'Snapshot kaydedilemedi; JSON dışa aktarın.');
+      return null;
+    }
 
     if (RS.showTemporaryTooltip) {
       RS.showTemporaryTooltip(window.innerWidth / 2, 80, `📸 Snapshot kaydedildi: "${label}"`);
@@ -60,8 +63,13 @@
   }
 
   function deleteSnapshot(id) {
+    const previous = snapshots;
     snapshots = snapshots.filter(s => s.id !== id);
-    saveSnapshots();
+    if (!saveSnapshots()) {
+      snapshots = previous;
+      RS.showTemporaryTooltip?.(window.innerWidth / 2, 80, 'Snapshot silme kaydedilemedi.');
+      return;
+    }
     renderSnapshotModalContent();
   }
 
@@ -71,12 +79,12 @@
 
     if (confirm(`"${snap.label}" snapshotına geri dönmek istediğinize emin misiniz? Mevcut bağlantılar değiştirilecek.`)) {
       if (RS.loadCustomTopology) {
-        RS.loadCustomTopology({
-          racks: JSON.parse(JSON.stringify(snap.racks)),
-          cables: JSON.parse(JSON.stringify(snap.cables)),
-          activeRackId: snap.activeRackId,
-          viewMode: snap.viewMode
-        });
+        if (snap.projectDocument) RS.loadCustomTopology(snap.projectDocument);
+        else {
+          const document = RS.ProjectDocument.capture(RS.STATE);
+          document.topology = { ...document.topology, racks: snap.racks, cables: snap.cables, activeRackId: snap.activeRackId, viewMode: snap.viewMode };
+          RS.loadCustomTopology(document);
+        }
       }
       closeSnapshotModal();
       if (RS.showTemporaryTooltip) {
@@ -87,7 +95,7 @@
 
   function computeComparison(baseSnap) {
     const currentCables = RS.STATE.cables || [];
-    const baseCables = baseSnap.cables || [];
+    const baseCables = baseSnap.projectDocument?.topology.cables || baseSnap.cables || [];
 
     const baseCount = baseCables.length;
     const currentCount = currentCables.length;
@@ -110,6 +118,7 @@
   }
 
   function openSnapshotModal() {
+    if (RS.RevisionController) return RS.RevisionController.open();
     let modal = document.getElementById("modal-snapshot");
     if (!modal) {
       modal = document.createElement("div");

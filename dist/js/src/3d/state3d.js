@@ -23,6 +23,7 @@
     }
 
     autoSave() {
+      if (this.projectProjection || this.projectBatchDepth > 0) return true;
       try {
         const payload = {
           version: '3.2.0',
@@ -39,106 +40,54 @@
           deviceLabelMode: this.deviceLabelMode,
           performanceMode: this.performanceMode
         };
-        localStorage.setItem('cisco_rack_studio_3d_state', JSON.stringify(payload));
 
-        // Bidirectional live cache for 2D mode & external tabs
-        const defaultRackId = (this.racks[0] && this.racks[0].id) || 'rack-1';
-        const racksData = (this.racks && this.racks.length > 0)
-          ? this.racks.map(r => ({
-              id: r.id,
-              name: r.name,
-              heightU: r.heightU || this.rackHeightU,
-              devices: this.devices.filter(d => (d.rackId || defaultRackId) === r.id).map(d => ({
-                instanceId: d.id,
-                catalogKey: d.catalogId,
-                topU: d.startU + (d.uHeight || 1) - 1,
-                uHeight: d.uHeight || 1,
-                name: d.name,
-                ipAddress: d.ipAddress || '',
-                macAddress: d.macAddress || '',
-                serialNumber: d.serialNumber || '',
-                observed: d.observed || null,
-                passThroughPairs: d.passThroughPairs || [],
-                panelLabel: d.panelLabel || '',
-                portsConfig: d.portsConfig || {},
-                face: d.face || 'front'
-              }))
-            }))
-          : [{
-              id: 'rack-1',
-              name: 'MDF - Dağıtım Kabini',
-              heightU: this.rackHeightU,
-              devices: this.devices.map(d => ({
-                instanceId: d.id,
-                catalogKey: d.catalogId,
-                topU: d.startU + (d.uHeight || 1) - 1,
-                uHeight: d.uHeight || 1,
-                name: d.name,
-                ipAddress: d.ipAddress || '',
-                macAddress: d.macAddress || '',
-                serialNumber: d.serialNumber || '',
-                observed: d.observed || null,
-                passThroughPairs: d.passThroughPairs || [],
-                panelLabel: d.panelLabel || '',
-                portsConfig: d.portsConfig || {},
-                face: d.face || 'front'
-              }))
-            }];
-
-        const canonicalProj = {
-          version: '3.0.0',
-          portGeometryOverrides: window.RackStudio?.exportPortGeometryOverrides?.() || {},
-          doorOpen: this.doorOpen,
-          activeRackId: this.activeRackId || defaultRackId,
-          racks: racksData,
-          cables: this.cables.map(c => {
-            const devFrom = this.devices.find(d => d.id === c.from.devId);
-            const devTo = this.devices.find(d => d.id === c.to.devId);
-            const rackFrom = c.from.rackId || (devFrom && devFrom.rackId) || defaultRackId;
-            const rackTo = c.to.rackId || (devTo && devTo.rackId) || defaultRackId;
-            return {
-              id: c.id,
-              name: c.name || 'Kablo',
-              note: c.note || '',
-              role: c.role || '',
-              medium: c.medium || '',
-              ductSide: c.ductSide || 'auto',
-              color: typeof c.color === 'number' ? '#' + c.color.toString(16).padStart(6, '0') : (c.color || '#00d2ff'),
-              lengthMeters: c.lengthM || 1.5,
-              from: {
-                rackId: rackFrom,
-                instanceId: c.from.devId,
-                portId: c.from.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devFrom || {}).catalogId] || {}).ports || [])[c.from.portIdx - 1] || {}).id || ('p' + (c.from.portIdx || 1)),
-                face: c.from.face || devFrom?.face || 'front'
-              },
-              to: {
-                rackId: rackTo,
-                instanceId: c.to.devId,
-                portId: c.to.portId || (((window.RackStudio && window.RackStudio.catalog && window.RackStudio.catalog[(devTo || {}).catalogId] || {}).ports || [])[c.to.portIdx - 1] || {}).id || ('p' + (c.to.portIdx || 1)),
-                face: c.to.face || devTo?.face || 'front'
-              }
-            };
-          })
-        };
-        localStorage.setItem('cisco-rack-studio-project', JSON.stringify(canonicalProj));
-        document.dispatchEvent(new CustomEvent('rackstudio:change', {
-          bubbles: true,
-          detail: { immediate: true, project: canonicalProj }
-        }));
-        if (typeof window !== 'undefined' && window.dispatchEvent) {
-          window.dispatchEvent(new CustomEvent('rackstudio:change', {
-            detail: { immediate: true, project: canonicalProj }
-          }));
+        const api = window.RackStudio;
+        if (!api?.ProjectAdapters) throw new Error('Ortak proje adaptörü yüklenmedi.');
+        const base = this.projectDocument || api.ProjectDocument.capture(api.STATE);
+        let canonicalProj = api.ProjectAdapters.from3D(this, base);
+        if (window.is3DMode) {
+          const candidate = { ...base, topology: canonicalProj.topology };
+          if (api.ProjectCommands.domainKey(candidate) !== api.ProjectCommands.domainKey(base)) {
+            api.ProjectCommands.execute({ commandId: crypto.randomUUID(), projectId: base.projectId,
+              expectedRevision: base.revision, expectedContent: api.ProjectCommands.domainKey(base),
+              type: 'ApplyTopology', payload: { topology: canonicalProj.topology } });
+          }
+          canonicalProj = api.ProjectDocument.capture(api.STATE);
+          if (api.ProjectCommands.domainKey(candidate) === api.ProjectCommands.domainKey(base)
+              && api.ProjectCommands.domainKey(base) !== api.ProjectCommands.domainKey(canonicalProj)) {
+            this.restoreProjectScene?.(canonicalProj);
+          }
         }
-      } catch (e) {}
+        this.projectDocument = canonicalProj;
+        payload.projectDocument = canonicalProj;
+        // Compatibility cache failure cannot undo an already accepted domain command.
+        try {
+          localStorage.setItem('cisco_rack_studio_3d_state', JSON.stringify(payload));
+          localStorage.setItem('cisco-rack-studio-project', JSON.stringify(canonicalProj));
+          this.lastCacheError = null;
+        } catch (error) { this.lastCacheError = error.message; }
+        this.lastSaveError = null;
+        return true;
+      } catch (error) {
+        this.lastSaveError = error.message;
+        if (window.is3DMode) this.restoreProjectScene?.(window.RackStudio.ProjectDocument.capture(window.RackStudio.STATE));
+        console.error('3D proje kaydedilemedi:', error);
+        return false;
+      }
     }
-
     loadAutoSave() {
       try {
         const raw = localStorage.getItem('cisco_rack_studio_3d_state');
         if (!raw) return false;
         const data = JSON.parse(raw);
-        if (data && Array.isArray(data.devices) && data.devices.length > 0) {
+        if (data && Array.isArray(data.devices) && Array.isArray(data.racks) && data.racks.length > 0) {
+          if (data.version !== undefined && data.version !== '3.2.0') throw new Error('Desteklenmeyen 3D kayıt sürümü.');
+          const api = window.RackStudio;
+          const base = data.projectDocument || api.ProjectDocument.normalize({
+            racks: data.racks.map(rack => ({ ...rack, devices: [] })), cables: [], customCatalog: api.STATE.customCatalog || {}
+          });
+          const project = api.ProjectAdapters.from3D(data, base);
+          this.projectDocument = project;
           this.rackHeightU = data.rackHeightU || 42;
           this.racks = Array.isArray(data.racks) && data.racks.length > 0 ? data.racks : [{ id: 'rack-1', name: 'MDF - Dağıtım Kabini', heightU: this.rackHeightU }];
           this.activeRackId = data.activeRackId || (this.racks[0] && this.racks[0].id) || 'rack-1';
@@ -155,12 +104,15 @@
     }
 
     pushSnapshot() {
+      if (this.projectProjection || this.projectBatchDepth > 0) return true;
+      if (window.is3DMode) return this.autoSave();
       const snap = JSON.stringify({
         rackHeightU: this.rackHeightU,
         racks: this.racks,
         activeRackId: this.activeRackId,
         devices: this.devices,
-        cables: this.cables
+        cables: this.cables,
+        projectDocument: this.projectDocument
       });
       this.history = this.history.slice(0, this.historyIdx + 1);
       this.history.push(snap);
@@ -173,6 +125,11 @@
     }
 
     undo() {
+      if (window.is3DMode) {
+        const changed = window.RackStudio.undoProject?.() === true;
+        if (changed) this.restoreProjectScene?.(window.RackStudio.ProjectDocument.capture(window.RackStudio.STATE));
+        return changed;
+      }
       if (this.historyIdx > 0) {
         this.historyIdx--;
         const state = JSON.parse(this.history[this.historyIdx]);
@@ -181,6 +138,7 @@
         if (state.activeRackId) this.activeRackId = state.activeRackId;
         this.devices = state.devices;
         this.cables = state.cables;
+        if (state.projectDocument) this.projectDocument = state.projectDocument;
         this.autoSave();
         return true;
       }
@@ -188,6 +146,11 @@
     }
 
     redo() {
+      if (window.is3DMode) {
+        const changed = window.RackStudio.redoProject?.() === true;
+        if (changed) this.restoreProjectScene?.(window.RackStudio.ProjectDocument.capture(window.RackStudio.STATE));
+        return changed;
+      }
       if (this.historyIdx < this.history.length - 1) {
         this.historyIdx++;
         const state = JSON.parse(this.history[this.historyIdx]);
@@ -196,6 +159,7 @@
         if (state.activeRackId) this.activeRackId = state.activeRackId;
         this.devices = state.devices;
         this.cables = state.cables;
+        if (state.projectDocument) this.projectDocument = state.projectDocument;
         this.autoSave();
         return true;
       }

@@ -26,7 +26,7 @@
     organizer: 'List', fiber: 'Zap'
   };
   function decorate(button) {
-    if (button.closest('template') || button.matches('.port, .sidebar-scrim, .sidebar-right-scrim, [data-color], .color-swatch, .cable-color-swatch')) return;
+    if (button.closest('template') || button.matches('.port, .sidebar-scrim, .sidebar-right-scrim, [data-color], .color-swatch, .cable-color-swatch, .field-job, .observation-row, .project-check-item')) return;
     if (button.matches('.rail-btn')) {
       const name = railIcons[button.dataset.category] || ({
         'rail-btn-toggle': 'PanelLeft', 'rail-btn-fav': 'Star',

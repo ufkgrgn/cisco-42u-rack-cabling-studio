@@ -24,7 +24,8 @@
   function saveSnapshots() {
     try {
       localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshots));
-    } catch (_) {}
+      return true;
+    } catch (_) { return false; }
   }
 
   loadSnapshots();
@@ -42,15 +43,17 @@
       id,
       label,
       timestamp,
-      racks: JSON.parse(JSON.stringify(state.racks)),
-      cables: JSON.parse(JSON.stringify(state.cables || [])),
-      activeRackId: state.activeRackId,
-      viewMode: state.viewMode || "single"
+      projectDocument: RS.ProjectDocument.capture(state)
     };
 
+    const previous = [...snapshots];
     snapshots.unshift(snapshot);
     if (snapshots.length > 20) snapshots.pop(); // Keep last 20 snapshots
-    saveSnapshots();
+    if (!saveSnapshots()) {
+      snapshots = previous;
+      RS.showTemporaryTooltip?.(window.innerWidth / 2, 80, 'Snapshot kaydedilemedi; JSON dışa aktarın.');
+      return null;
+    }
 
     if (RS.showTemporaryTooltip) {
       RS.showTemporaryTooltip(window.innerWidth / 2, 80, `📸 Snapshot kaydedildi: "${label}"`);
@@ -60,8 +63,13 @@
   }
 
   function deleteSnapshot(id) {
+    const previous = snapshots;
     snapshots = snapshots.filter(s => s.id !== id);
-    saveSnapshots();
+    if (!saveSnapshots()) {
+      snapshots = previous;
+      RS.showTemporaryTooltip?.(window.innerWidth / 2, 80, 'Snapshot silme kaydedilemedi.');
+      return;
+    }
     renderSnapshotModalContent();
   }
 
@@ -71,12 +79,12 @@
 
     if (confirm(`"${snap.label}" snapshotına geri dönmek istediğinize emin misiniz? Mevcut bağlantılar değiştirilecek.`)) {
       if (RS.loadCustomTopology) {
-        RS.loadCustomTopology({
-          racks: JSON.parse(JSON.stringify(snap.racks)),
-          cables: JSON.parse(JSON.stringify(snap.cables)),
-          activeRackId: snap.activeRackId,
-          viewMode: snap.viewMode
-        });
+        if (snap.projectDocument) RS.loadCustomTopology(snap.projectDocument);
+        else {
+          const document = RS.ProjectDocument.capture(RS.STATE);
+          document.topology = { ...document.topology, racks: snap.racks, cables: snap.cables, activeRackId: snap.activeRackId, viewMode: snap.viewMode };
+          RS.loadCustomTopology(document);
+        }
       }
       closeSnapshotModal();
       if (RS.showTemporaryTooltip) {
@@ -87,7 +95,7 @@
 
   function computeComparison(baseSnap) {
     const currentCables = RS.STATE.cables || [];
-    const baseCables = baseSnap.cables || [];
+    const baseCables = baseSnap.projectDocument?.topology.cables || baseSnap.cables || [];
 
     const baseCount = baseCables.length;
     const currentCount = currentCables.length;
@@ -110,6 +118,7 @@
   }
 
   function openSnapshotModal() {
+    if (RS.RevisionController) return RS.RevisionController.open();
     let modal = document.getElementById("modal-snapshot");
     if (!modal) {
       modal = document.createElement("div");
@@ -118,24 +127,31 @@
       modal.style.display = "flex";
       modal.style.zIndex = "9999";
       modal.innerHTML = `
-        <div class="studio-modal-card" style="width: 640px; max-width: 95vw; background: #0f172a; border: 1px solid #1e3a5f; border-radius: 10px; box-shadow: 0 25px 60px rgba(0,0,0,0.85); overflow: hidden; display: flex; flex-direction: column;">
-          <div class="modal-header" style="padding: 14px 18px; background: linear-gradient(180deg, #1e293b, #0f172a); border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
+        <div class="studio-modal-card" style="width: 640px; max-width: 95vw;">
+          <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:18px;">📸</span>
-              <h2 style="font-size:14px; font-weight:800; color:#38bdf8; margin:0; letter-spacing:0.5px;">KABİN SNAPSHOT & KARŞILAŞTIRMA SİSTEMİ</h2>
+              <h2 style="font-size:14px; font-weight:800; margin:0; letter-spacing:0.5px;">KABİN SNAPSHOT &amp; KARŞILAŞTIRMA SİSTEMİ</h2>
             </div>
-            <button class="hud-btn" id="btn-close-snapshot-modal" style="cursor:pointer;">✕</button>
+            <button class="hud-btn icon-only" id="btn-close-snapshot-modal" title="Kapat" aria-label="Kapat" style="cursor:pointer;"></button>
           </div>
           <div class="modal-body" id="snapshot-modal-body" style="padding: 16px; overflow-y: auto; max-height: 65vh;">
             <!-- Rendered dynamically -->
           </div>
-          <div class="modal-footer" style="padding: 12px 18px; background: #090d16; border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
-            <button class="hud-btn btn-primary" id="btn-create-snapshot" style="background:#0284c7; border:1px solid #38bdf8; color:#fff; font-weight:700; cursor:pointer;">📸 Yeni Snapshot Al</button>
+          <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+            <button class="hud-btn btn-primary" id="btn-create-snapshot" style="cursor:pointer;">📸 Yeni Snapshot Al</button>
             <button class="hud-btn" id="btn-close-snapshot-footer" style="cursor:pointer;">Kapat</button>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
+
+      // Inject X icon into close button (UIIcons runs once at DOMContentLoaded via bindings map,
+      // so we inject manually for dynamically created modals)
+      const closeBtn = modal.querySelector('#btn-close-snapshot-modal');
+      if (closeBtn && window.getLucideIconSvg) {
+        closeBtn.innerHTML = window.getLucideIconSvg('x', 14);
+      }
 
       modal.querySelector("#btn-close-snapshot-modal").addEventListener("click", closeSnapshotModal);
       modal.querySelector("#btn-close-snapshot-footer").addEventListener("click", closeSnapshotModal);

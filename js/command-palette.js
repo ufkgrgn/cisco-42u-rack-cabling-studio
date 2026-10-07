@@ -156,13 +156,14 @@
     const RS = window.RackStudio;
     const state = RS?.STATE;
     if (!state) return [];
+    const projectId=state.projectDocument?.projectId;
     const matches = value => normalize(value).includes(query);
     const results = [];
     const add = (label, run) => {
       const prefix = label.split(':')[0];
       const categories = { Kabin: ['Kabinler', 'Server'], Cihaz: ['Cihazlar', 'Server'], Port: ['Portlar', 'Plug'], Kablo: ['Kablolar', 'Cable'] };
       const [group, icon] = categories[prefix] || ['Proje', 'Search'];
-      if (results.length < 30) results.push({ label, hint: 'Proje', run, group, icon });
+      if (results.length < 30) results.push({ label, hint: 'Proje', run:()=>{if(RS.STATE.projectDocument?.projectId!==projectId){window.UIActions?.notify('Açık proje değişti; aramayı yenileyin.');return;}run();}, group, icon });
     };
     for (const rack of state.racks || []) {
       if (matches(rack.name) || matches(rack.id)) {
@@ -172,8 +173,10 @@
         const catalog = RS.catalog?.[device.catalogKey] || RS.HARDWARE_CATALOG?.[device.catalogKey];
         const deviceLabel = device.hostname || device.name || catalog?.name || device.catalogKey;
         if ([deviceLabel, device.ipAddress, device.serialNumber, device.instanceId, catalog?.modelTag].some(matches)) {
-          add(`Cihaz: ${deviceLabel} · ${rack.name}`, () => window.is3DMode
-            ? window.__STUDIO3D__?.focusDevice?.(device.instanceId) : RS.focusOnDevice?.(device.instanceId));
+          add(`Cihaz: ${deviceLabel} · ${rack.name}`, () => {
+            RS.WorkflowSelection?.choose('device',device.instanceId,window.is3DMode?'3d':'2d');
+            if(window.is3DMode){window.__STUDIO3D__?.selectDevice?.(device.instanceId);window.__STUDIO3D__?.focusDevice?.(device.instanceId);}else RS.focusOnDevice?.(device.instanceId);
+          });
         }
         for (const port of catalog?.ports || []) {
           if (!matches(port.id) && !matches(port.name)) continue;

@@ -124,12 +124,14 @@
   }
 
   function hitDevicePortAt(clientX, clientY) {
-    if (!PixiContext.deviceSceneContainer?.visible) return null;
+    if (!PixiContext.deviceSceneContainer?.visible || RS.StudioView?.isOverview()) return null;
     const rect = PixiContext.getPixiCanvasRect?.();
     if (!rect?.width || !rect?.height) return null;
     const point = PixiContext.clientToRenderer ? PixiContext.clientToRenderer(clientX, clientY, rect, hitTestPoint) : hitTestPoint;
     const scale = Math.max(0.05, Number(RS.ZOOM_STATE?.scale) || 1);
-    const tolerance = Math.max(2, (scale < 0.35 ? 8 : 2.5) / scale);
+    const isConnecting = !!STATE.pendingConnection;
+    const baseTolerance = (scale < 0.35 ? 8 : 2.5) / scale;
+    const tolerance = isConnecting ? Math.max(6 / scale, baseTolerance * 1.5) : Math.max(2, baseTolerance);
     const cellRadius = Math.ceil(tolerance / DEVICE_PORT_HIT_CELL_SIZE);
     const centerX = Math.floor(point.x / DEVICE_PORT_HIT_CELL_SIZE);
     const centerY = Math.floor(point.y / DEVICE_PORT_HIT_CELL_SIZE);
@@ -146,7 +148,7 @@
           const dx = point.x - portX;
           const dy = point.y - portY;
           const distance = dx * dx + dy * dy;
-          const radius = Math.max(tolerance, Math.max(port.width, port.height) * 0.65);
+          const radius = Math.max(tolerance, Math.max(port.width, port.height) * (isConnecting ? 0.95 : 0.65));
           if (distance > radius * radius || distance >= bestDistance) continue;
           best = port;
           bestDistance = distance;
@@ -220,8 +222,12 @@
   function applyPortTint(sprite, key, port, isOccupied) {
     const pending = STATE.pendingConnection;
     const isSelected = pending && `${pending.instanceId}::${pending.portId}` === key;
-    if (isSelected || key === hoveredDevicePortKey) {
-      sprite.tint = 0x67e8f9;
+    if (isSelected) {
+      sprite.tint = 0x38bdf8;
+      return;
+    }
+    if (key === hoveredDevicePortKey) {
+      sprite.tint = pending ? 0x00f0ff : 0x67e8f9;
       return;
     }
     const roleColor = port ? getDevicePortRoleColor(port.instanceId, port.portId) : null;
@@ -229,7 +235,11 @@
       sprite.tint = roleColor;
       return;
     }
-    sprite.tint = isOccupied ? 0x22c55e : 0xffffff;
+    if (isOccupied) {
+      sprite.tint = 0x22c55e;
+      return;
+    }
+    sprite.tint = 0xffffff;
   }
 
   function updateDevicePortTints(targetInstanceId) {
@@ -284,6 +294,7 @@
     if (selected || hovered) {
       const color = multi ? 0xa855f7 : (isLight ? 0x0284c7 : 0x38bdf8);
       const alpha = hovered ? 0.75 : 1;
+      if (selected) graphics.rect(1, 1, w - 2, h - 2).stroke({ width: 2, color, alpha: 0.9 });
       const arm = Math.max(5, Math.min(12, w * 0.045, h * 0.42));
       const t = Math.max(1.5, Math.min(2.4, h * 0.08));
       const bars = [
@@ -295,7 +306,7 @@
 
     // Paint crisp safety-orange separators between patch panel port groups
     const isPatch = entry.device.category === 'patch' || /patch/i.test(entry.device.catalogKey || '');
-    if (isPatch) {
+    if (isPatch && !RS.StudioView?.isOverview()) {
       const cat = RS.resolveCatalogItem ? RS.resolveCatalogItem(entry.device.catalogKey) : null;
       if (cat?.ports && cat.ports.length > 1) {
         for (let i = 0; i < cat.ports.length - 1; i++) {
@@ -336,8 +347,9 @@
   }
 
   function syncPixiDeviceSelection(options) {
-    const selectedId = STATE.selectedDeviceId || document.querySelector('.mounted-device.studio-selected')?.id;
+    const selectedId = document.querySelector('.mounted-device.studio-selected')?.id;
     if (selectedId) RS.showDeviceFloatingControls?.(selectedId);
+    else RS.hideDeviceFloatingControls?.(true);
     deviceContainers.forEach(entry => paintDeviceChrome(entry));
     if (!options || options.render !== false) PixiContext.renderPixi?.('device-selection');
   }
@@ -356,9 +368,6 @@
       const nextEl = document.getElementById(next);
       if (nextEl) nextEl.classList.add('pixi-hovered');
       if (deviceContainers.get(next)) paintDeviceChrome(deviceContainers.get(next));
-      RS.showDeviceFloatingControls?.(next);
-    } else {
-      RS.hideDeviceFloatingControls?.();
     }
     PixiContext.renderPixi?.('device-hover');
     return true;
@@ -410,15 +419,6 @@
     return false;
   }
 
-  function faceplateSpec(device) {
-    return {
-      category: device.category || '',
-      catalogKey: device.catalogKey || '',
-      uHeight: Math.max(1, Math.round((device.height || 32) / 32)),
-      series: device.series || ''
-    };
-  }
-
   function buildDeviceChassis(devices) {
     const texturesApi = RS.FaceplateTextures;
     if (!texturesApi || !window.PIXI) return;
@@ -438,48 +438,16 @@
       portsContainer.label = `device-ports-${device.instanceId}`;
       portsContainer.eventMode = 'passive';
 
-      const spec = faceplateSpec(device);
-      const slice = texturesApi.chassisSlice(spec);
-      let chassisSprite = null;
-      let overlays = null;
-      if (slice.mode === 'graphics') {
-        overlays = new window.PIXI.Graphics();
-        overlays.eventMode = 'none';
-        texturesApi.paintChassisGraphics(overlays, spec, device.width, device.height, deviceCoverOpen(device.instanceId));
-        devContainer.addChild(overlays);
-        if (spec.category === 'blank' && window.PIXI.Text) {
-          const label = new window.PIXI.Text({
-            text: 'BLANK COVER PANEL',
-            style: { fontFamily: 'ui-monospace, monospace', fontSize: 9, fill: 0x475569, letterSpacing: 1 }
-          });
-          if (label.anchor?.set) label.anchor.set(0.5);
-          label.position.set(device.width / 2, device.height / 2);
-          label.eventMode = 'none';
-          devContainer.addChild(label);
-        }
-        spriteCount++;
-      } else {
-        const texture = texturesApi.getChassisTexture(spec);
-        if (texture) {
-          chassisSprite = new window.PIXI.NineSliceSprite({
-            texture,
-            leftWidth: slice.leftWidth,
-            rightWidth: slice.rightWidth,
-            topHeight: slice.topHeight,
-            bottomHeight: slice.bottomHeight,
-            width: device.width,
-            height: device.height
-          });
-          chassisSprite.eventMode = 'none';
-          chassisSprite.visible = true;
-          devContainer.addChild(chassisSprite);
-          spriteCount++;
-        }
-      }
+      const { chassis: chassisSprite, overlays } = RS.PixiDeviceChassis.create(device, deviceCoverOpen(device.instanceId));
+      if (chassisSprite) devContainer.addChild(chassisSprite);
+      if (overlays) devContainer.addChild(overlays);
+      if (chassisSprite || overlays) spriteCount++;
+
+      const macroContainer = RS.DeviceLayoutPresentation.createPixiLayer(device);
 
       const chrome = new window.PIXI.Graphics();
       chrome.eventMode = 'none';
-      devContainer.addChild(portsContainer, chrome);
+      devContainer.addChild(portsContainer, macroContainer, chrome);
       scene.container.addChild(devContainer);
       const entry = {
         container: devContainer,
@@ -487,6 +455,7 @@
         overlays,
         chrome,
         ports: portsContainer,
+        macroLabel: macroContainer,
         device,
         originX: device.x,
         originY: device.y,
@@ -500,9 +469,9 @@
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisSpriteCount = spriteCount;
   }
 
-  function buildDeviceGeometrySignature(snapshot, lod) {
+  function buildDeviceGeometrySignature(snapshot) {
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-    return `${theme}|${lod}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
+    return `${theme}|${snapshot.generation}|${snapshot.devices.length}|${snapshot.ports.length}`;
   }
 
   function hashOccupancyValue(value, hash, prime) {
@@ -587,7 +556,7 @@
     devicePortVariantCounts.clear();
     devicePortHitGrid.clear();
     // Port silhouettes must not jump between LOD tiers during zoom.
-    const density = 0.82;
+    const density = 1;
     ports.forEach(port => {
       const key = `${port.instanceId}::${port.portId}`;
       const devEntry = deviceContainers.get(String(port.instanceId));
@@ -601,8 +570,13 @@
       const localX = (port.localX !== undefined) ? port.localX : (port.x - devEntry.originX);
       const localY = (port.localY !== undefined) ? port.localY : (port.y - devEntry.originY);
       sprite.position.set(localX, localY);
-      sprite.width = Math.max(3, port.width * density);
-      sprite.height = Math.max(3, port.height * density);
+      // Maintain authentic physical square aspect ratio for hardware ports (never stretch into oblong rectangles)
+      const isOptic = port.type === 'sfp' || port.type === 'sfp+' || port.type === 'qsfp28';
+      const baseHeight = Math.max(8, Math.min(13, (port.height && port.height > 6) ? port.height : 10.5));
+      const spriteH = baseHeight * density;
+      const spriteW = spriteH * (isOptic ? 1.08 : 1.0);
+      sprite.width = Math.round(spriteW);
+      sprite.height = Math.round(spriteH);
       sprite.eventMode = 'none';
       applyPortTint(sprite, key, port, isOccupied);
       devEntry.ports.addChild(sprite);
@@ -657,10 +631,12 @@
   }
 
   function revealDeviceSprites() {
+    const overview = RS.StudioView?.isOverview() || activeDeviceSceneLod === 'macro';
     deviceContainers.forEach(dev => {
-      if (dev.chassis) dev.chassis.visible = true;
-      if (dev.overlays) dev.overlays.visible = true;
-      if (dev.ports) dev.ports.visible = true;
+      if (dev.chassis) dev.chassis.visible = !overview;
+      if (dev.overlays) dev.overlays.visible = !overview;
+      if (dev.ports) dev.ports.visible = !overview;
+      if (dev.macroLabel) dev.macroLabel.visible = overview;
     });
   }
 
@@ -668,7 +644,7 @@
     const pixiApp = PixiContext.pixiApp;
     const deviceSceneContainer = PixiContext.deviceSceneContainer;
     if (!deviceSceneContainer || !pixiApp) return false;
-    const lod = explicitLod || (RS.ZOOM_STATE?.scale < 0.35 ? 'macro' : 'detail');
+    const lod = RS.StudioView?.isOverview() ? 'macro' : 'detail';
     const presentationKey = `pixi:${lod}`;
     deviceSceneContainer.visible = true;
     document.documentElement.setAttribute('data-device-renderer', 'pixi');
@@ -686,11 +662,13 @@
       return false;
     }
     activeDeviceSceneLod = lod;
-    const geometrySignature = buildDeviceGeometrySignature(snapshot, lod);
+    const geometrySignature = buildDeviceGeometrySignature(snapshot);
+    const presentationChanged = presentationKey !== lastDevicePresentationKey;
+    const needsPorts = lod !== 'macro' && snapshot.ports.length > 0 && devicePortSprites.size === 0;
     const occupied = collectDeviceOccupancy();
     const geometryChanged = geometrySignature !== lastDeviceGeometrySignature;
     const occupancyChanged = deviceOccupancyChanged;
-    if (!geometryChanged && !occupancyChanged) {
+    if (!geometryChanged && !occupancyChanged && !presentationChanged && !needsPorts) {
       lastDevicePresentationKey = presentationKey;
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceSceneSkippedRebuilds++;
       return false;
@@ -699,6 +677,11 @@
     if (geometryChanged) {
       buildDeviceChassis(snapshot.devices);
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.deviceChassisRebuilds++;
+      if (lod !== 'macro') {
+        buildDevicePortSprites(snapshot.ports, occupied);
+        if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.devicePortRebuilds++;
+      }
+    } else if (needsPorts) {
       buildDevicePortSprites(snapshot.ports, occupied);
       if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.devicePortRebuilds++;
     } else if (occupancyChanged) {
@@ -781,35 +764,17 @@
   RS.syncPixiDeviceScenes = syncPixiDeviceSceneLOD;
 
   RS.PixiDeviceScene = {
-    syncPixiDeviceSceneLOD,
-    syncPixiDeviceScenes: syncPixiDeviceSceneLOD,
-    destroyDeviceRackScenes,
-    destroyDeviceRackScene,
-    prunePixiDevice,
-    getOrCreateDeviceRackScene,
-    applyDeviceViewportCulling,
-    hitDevicePortAt,
-    hitDeviceBodyAt,
-    listDeviceFrames,
-    syncPixiDeviceSelection,
-    setPixiDeviceHover,
-    toggleOrganizerCover,
-    getPixiPortPresentation,
-    getDevicePortClientRect,
-    dispatchDevicePortInteraction,
-    getDevicePortRoleColor,
-    updateDevicePortTints,
-    restoreDevicePortTint,
-    invalidatePixiDeviceScene,
-    collectDeviceOccupancy,
-    getDeviceContainer,
-    getDevicePosition,
-    setDevicePosition,
-    moveDeviceByOffset,
-    resetDevicePosition,
-    resetAllDevicePositions
+    syncPixiDeviceSceneLOD, syncPixiDeviceScenes: syncPixiDeviceSceneLOD,
+    destroyDeviceRackScenes, destroyDeviceRackScene, prunePixiDevice,
+    getOrCreateDeviceRackScene, applyDeviceViewportCulling,
+    hitDevicePortAt, hitDeviceBodyAt, listDeviceFrames,
+    syncPixiDeviceSelection, setPixiDeviceHover, toggleOrganizerCover,
+    getPixiPortPresentation, getDevicePortClientRect, dispatchDevicePortInteraction,
+    getDevicePortRoleColor, updateDevicePortTints, restoreDevicePortTint,
+    invalidatePixiDeviceScene, collectDeviceOccupancy,
+    getDeviceContainer, getDevicePosition, setDevicePosition, moveDeviceByOffset,
+    resetDevicePosition, resetAllDevicePositions
   };
-
   PixiContext.deviceRackScenes = deviceRackScenes;
   PixiContext.deviceContainers = deviceContainers;
   PixiContext.devicePortSprites = devicePortSprites;
@@ -822,8 +787,6 @@
   PixiContext.hitDeviceBodyAt = hitDeviceBodyAt;
   PixiContext.listDeviceFrames = listDeviceFrames;
   PixiContext.dispatchDevicePortInteraction = dispatchDevicePortInteraction;
-  PixiContext.syncPixiDeviceSceneLOD = syncPixiDeviceSceneLOD;
-  PixiContext.destroyDeviceRackScenes = destroyDeviceRackScenes;
   PixiContext.destroyDeviceRackScene = destroyDeviceRackScene;
   PixiContext.prunePixiDevice = prunePixiDevice;
   PixiContext.applyDeviceViewportCulling = applyDeviceViewportCulling;

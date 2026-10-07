@@ -325,6 +325,26 @@
       dom.btnViewModeMulti.addEventListener('click', () => setViewMode('multi'));
     }
 
+    const btnModeLayout = document.getElementById('btn-mode-layout');
+    const btnModeCabling = document.getElementById('btn-mode-cabling');
+    const btnToggleCables = document.getElementById('btn-toggle-cables');
+
+    if (btnModeLayout) {
+      btnModeLayout.addEventListener('click', () => {
+        RS.setStudioWorkMode?.('layout');
+      });
+    }
+    if (btnModeCabling) {
+      btnModeCabling.addEventListener('click', () => {
+        RS.setStudioWorkMode?.('cabling');
+      });
+    }
+    if (btnToggleCables) {
+      btnToggleCables.addEventListener('click', () => {
+        RS.toggleCablesVisibility?.();
+      });
+    }
+
     if (dom.btnPresetMdf) {
       dom.btnPresetMdf.addEventListener('click', () => {
         if (confirm("MDF Ana Dağıtım Kabini şablonu yüklensin mi? (Mevcut topoloji sıfırlanır)")) {
@@ -403,15 +423,21 @@
       dom.fileImport.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if (file.size > RS.ProjectDocument.MAX_BYTES) {
+          alert('Proje JSON dosyası 32 MB sınırını aşıyor.');
+          dom.fileImport.value = '';
+          return;
+        }
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const parsed = JSON.parse(event.target.result);
+            const parsed = RS.ProjectDocument.parse(event.target.result);
             loadCustomTopology(parsed);
           } catch (err) {
             alert("JSON dosyası okunurken hata oluştu: " + err.message);
           }
         };
+        reader.onerror = () => alert('Proje dosyası okunamadı; mevcut proje korundu.');
         reader.readAsText(file);
         dom.fileImport.value = '';
       });
@@ -451,13 +477,18 @@
     });
 
     window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.key === '+' || e.key === '=') {
         setZoom(ZOOM_STATE.scale * 1.2, undefined, undefined, true);
       } else if (e.key === '-' || e.key === '_') {
         setZoom(ZOOM_STATE.scale / 1.2, undefined, undefined, true);
       } else if (e.key === 'Escape') {
         cancelPendingConnection();
+      } else if (e.key === 'c' || e.key === 'C') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          RS.toggleCablesVisibility?.();
+        }
       }
     });
   }

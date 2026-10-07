@@ -1,0 +1,356 @@
+.field-workflow-dialog {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(1040px, calc(100vw - 20px));
+  max-width: calc(100vw - 20px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding: var(--space-5, 20px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.field-workflow-dialog::backdrop {
+  background: rgba(7, 12, 20, 0.65);
+  backdrop-filter: blur(5px);
+}
+.field-workflow-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: -20px;
+  background: var(--bg-panel, #121924);
+  padding: 4px 0 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border, #243242);
+  z-index: 5;
+}
+.field-workflow-dialog h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+}
+.field-workflow-dialog p {
+  line-height: 1.5;
+  color: var(--text-muted, #94a3b8);
+  font-size: 12.5px;
+  margin: 4px 0 8px;
+}
+.field-workflow-dialog button,
+.field-workflow-dialog input,
+.field-workflow-dialog select,
+.field-workflow-dialog textarea {
+  font: inherit;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #182230);
+  border: 1px solid var(--border, #283749);
+  border-radius: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.field-workflow-dialog button {
+  cursor: pointer;
+  white-space: normal;
+  transition: all 0.15s ease;
+  width: auto;
+}
+.field-workflow-dialog button:hover {
+  border-color: var(--accent, #38bdf8);
+}
+.field-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+@media (max-width: 580px) {
+  .field-filters {
+    grid-template-columns: 1fr;
+  }
+}
+.field-filters select,
+.field-filters input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.field-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr);
+  gap: 18px;
+}
+.field-layout section {
+  min-width: 0;
+}
+.field-layout section:first-child h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 10px;
+}
+
+/* Sol iş listesi kartları */
+.field-job {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  width: 100% !important;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  background: var(--bg-card, #17212e);
+  border: 1px solid var(--border, #253344);
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.field-job:hover {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.05);
+}
+.field-job[aria-pressed="true"] {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.09);
+  box-shadow: inset 3px 0 0 var(--accent, #38bdf8);
+}
+.field-job strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main, #f1f5f9);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.field-job span {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+/* Sağ detay paneli */
+.field-layout section:last-child {
+  background: var(--bg-card, #16202c);
+  border: 1px solid var(--border, #243242);
+  border-radius: 10px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.field-layout section:last-child h3 {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.product-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+  padding: 24px 12px;
+  border: 1px dashed var(--border, #2a3a4d);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.product-empty h3 {
+  font-size: 14px;
+  color: var(--text-main, #f1f5f9);
+  margin-bottom: 4px;
+}
+.product-empty p {
+  font-size: 12px;
+  max-width: 280px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Form alanları */
+.field-layout form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  min-width: 0;
+}
+.field-layout label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+  min-width: 0;
+}
+.field-layout label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-main, #f1f5f9);
+}
+.field-layout input[type="checkbox"] {
+  min-height: 18px;
+  width: 18px;
+  accent-color: var(--accent, #38bdf8);
+}
+.field-layout textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+.field-layout button[type="submit"] {
+  min-height: 38px;
+  background: var(--accent, #38bdf8);
+  color: #0c1420;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  margin-top: 6px;
+  width: 100%;
+}
+.field-layout button[type="submit"]:hover {
+  background: var(--accent-hover, #7dd3fc);
+}
+.field-event {
+  border-top: 1px solid var(--border, #243242);
+  padding: 12px 0;
+  margin-top: 10px;
+  min-width: 0;
+}
+.field-event button {
+  display: block;
+  margin: 6px 0;
+  width: 100%;
+}
+.field-workflow-dialog :focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .field-workflow-dialog {
+    padding: 14px;
+    width: calc(100vw - 12px);
+    max-width: calc(100vw - 12px);
+  }
+  .field-workflow-dialog header {
+    top: -14px;
+  }
+  .field-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+.field-record-trigger {
+  display: none;
+}
+body[data-workflow="field"] .field-record-trigger {
+  display: block;
+}
+
+/* QR Saha Erişimi Modalı */
+.field-qr-dialog {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(500px, calc(100vw - 20px));
+  max-width: calc(100vw - 20px);
+  padding: var(--space-5, 20px);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.qr-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.qr-layout section h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 6px;
+}
+.qr-output {
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  margin: 10px auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+}
+.field-qr-dialog canvas {
+  display: block;
+  max-width: 190px;
+  height: auto;
+  margin: 0 auto;
+}
+.field-qr-dialog details {
+  margin: 8px 0;
+  border: 1px solid var(--border, #283749);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--bg-card, #16202c);
+}
+.field-qr-dialog summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+.field-qr-dialog textarea {
+  min-height: 48px;
+  max-height: 80px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  padding: 8px;
+  background: var(--bg-panel, #121924);
+  border: 1px solid var(--border, #283749);
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.field-qr-dialog video {
+  max-height: 180px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #283749);
+  width: 100%;
+  box-sizing: border-box;
+}
+.field-qr-dialog button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 7px;
+  margin: 4px 4px 4px 0;
+}

@@ -35,6 +35,8 @@
     selectedCableColor: '#2563eb',
     cableRoutingMode: 'structured',
     cableRenderMode: 'pixi',
+    cablesVisible: true,
+    studioWorkMode: 'layout', // 'layout' (Yerleşim) or 'cabling' (Kablolama)
     // V2 keeps the GPU surface viewport-sized and mirrors the camera inside
     // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.
     pixiViewportRendererV2: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_pixi_viewport_v2') !== '0',
@@ -258,9 +260,14 @@
     const btn = document.getElementById('btn-2d-face-toggle');
     if (btn) {
       btn.classList.toggle('active', nextFace === 'rear');
-      const textSpan = btn.querySelector('.btn-text');
-      if (textSpan) textSpan.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
-      else btn.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
+      btn.setAttribute('aria-pressed', String(nextFace === 'rear'));
+      let textSpan = btn.querySelector('.btn-text');
+      if (!textSpan) {
+        textSpan = document.createElement('span');
+        textSpan.className = 'btn-text';
+        btn.appendChild(textSpan);
+      }
+      textSpan.textContent = nextFace === 'rear' ? 'Arka Yüz' : 'Ön Yüz';
       btn.title = nextFace === 'rear' ? 'Kabin Arka Yüzü (Güç girişleri ve arka panel)' : 'Kabin Ön Yüzü (Portlar ve göstergeler)';
     }
 

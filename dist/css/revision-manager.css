@@ -1,0 +1,184 @@
+.revision-manager {
+  margin: auto !important;
+  inset: 0 !important;
+  position: fixed !important;
+  width: min(1040px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-5, 20px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl, 16px);
+  background: var(--bg-panel);
+  color: var(--text-main);
+  box-shadow: var(--shadow-modal);
+  font-family: var(--font-sans);
+}
+.revision-manager::backdrop {
+  background: rgba(7, 12, 20, 0.65);
+  backdrop-filter: blur(5px);
+}
+.revision-manager header,
+.rv-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.revision-manager header {
+  position: sticky;
+  top: -22px;
+  background: var(--bg-panel, #121924);
+  padding: 4px 0 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border, #243242);
+  z-index: 5;
+}
+.revision-manager h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+.revision-manager h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.revision-manager button,
+.revision-manager input,
+.revision-manager select,
+.revision-manager textarea {
+  font: inherit;
+  color: var(--text-main, #f1f5f9);
+  background: var(--bg-card, #17212e);
+  border: 1px solid var(--border, #263546);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 38px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.revision-manager button {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.revision-manager button:hover {
+  border-color: var(--accent, #38bdf8);
+}
+.revision-manager :focus-visible {
+  outline: 2px solid var(--accent, #38bdf8);
+  outline-offset: 2px;
+}
+.rv-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--border, #243242);
+}
+.rv-form label,
+.rv-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-muted, #94a3b8);
+}
+.rv-form textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+.rv-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.rv-list h3 {
+  grid-column: 1 / -1;
+}
+.rv-card,
+.rv-change {
+  padding: 14px;
+  border: 1px solid var(--border, #253344);
+  border-radius: 10px;
+  background: var(--bg-card, #16202c);
+  overflow-wrap: anywhere;
+}
+.rv-card p {
+  margin: 8px 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.rv-change {
+  margin: 10px 0;
+}
+.rv-change summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+.rv-change table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 12px;
+  border: 1px solid var(--border, #253344);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rv-change td,
+.rv-change th {
+  border-bottom: 1px solid var(--border, #253344);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.rv-change th {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted, #94a3b8);
+}
+.rv-change th:first-child {
+  width: 24%;
+}
+.revision-manager [data-error="true"] {
+  color: var(--danger, #ef4444);
+}
+.rv-legacy {
+  margin-top: 18px;
+  border-top: 1px solid var(--border, #243242);
+  padding-top: 14px;
+}
+.rv-legacy > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+@media (max-width: 650px) {
+  .revision-manager {
+    padding: 14px;
+  }
+  .revision-manager header {
+    top: -14px;
+  }
+  .rv-form,
+  .rv-list {
+    grid-template-columns: 1fr;
+  }
+  .rv-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .revision-manager h2 {
+    font-size: 19px;
+  }
+}

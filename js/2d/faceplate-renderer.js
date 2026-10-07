@@ -249,6 +249,7 @@
     if (typeof RS.syncPixiDeviceSceneLOD === 'function') {
       RS.syncPixiDeviceSceneLOD();
     }
+    RS.DeviceLayoutPresentation?.refreshLabels(RS.PixiContext?.deviceContainers);
 
     bindPortInteractions();
     updateRackHeaderTelemetry();

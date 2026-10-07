@@ -50,6 +50,9 @@
       this.renderConfiguredPortsList(dev, cat, source, instanceId);
 
       modal.dataset.source = source;
+      let history=modal.querySelector('[data-observation-history]');
+      if(!history){history=document.createElement('button');history.type='button';history.className='hud-btn';history.dataset.observationHistory='true';history.textContent='Gözlem geçmişi';modal.querySelector('.modal-body')?.append(history);}
+      history.onclick=()=>window.RackStudio.FieldObservationUI?.open({kind:'device',id:instanceId});
       modal.dataset.deviceId = instanceId;
       modal.dataset.deviceCategory = category || '';
       modal.style.display = 'flex';
@@ -61,10 +64,7 @@
       trunkListEl.innerHTML = '';
 
       const portsConfig = dev.portsConfig || {};
-      // Proactively clean legacy bogus keys (e.g., 'pup_...')
-      Object.keys(portsConfig).forEach(k => {
-        if (k.startsWith('pup_')) delete portsConfig[k];
-      });
+      // Opening a form is read-only; keep legacy keys in the project document.
 
       const configuredList = [];
       const seenKeys = new Set();
@@ -227,8 +227,9 @@
           window.RackStudio.updateDeviceMetadata(devId, meta);
         }
       } else if (modal.dataset.source === '3d') {
+        event.stopImmediatePropagation();
         if (window.__STUDIO3D__ && window.__STUDIO3D__.updateDeviceMetadata) {
-          window.__STUDIO3D__.updateDeviceMetadata(devId, meta);
+          if (window.__STUDIO3D__.updateDeviceMetadata(devId, meta) === false) return;
           if (typeof window.renderInstalledDevicesList === 'function') window.renderInstalledDevicesList();
         }
       }

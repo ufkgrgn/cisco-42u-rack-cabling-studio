@@ -291,6 +291,8 @@
       });
     }
 
+    const fieldHost=tr.querySelector('td');
+    if(fieldHost){const fieldButton=document.createElement('button');fieldButton.type='button';fieldButton.className='field-record-trigger';fieldButton.textContent='Saha kaydı';fieldButton.addEventListener('click',e=>{e.stopPropagation();RS.FieldWorkflowUI?.open({kind:'cable',id:c.id});});fieldHost.append(fieldButton);}
     dom.scheduleTbody.appendChild(tr);
   }
 

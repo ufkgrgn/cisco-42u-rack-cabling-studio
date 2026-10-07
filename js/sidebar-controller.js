@@ -120,7 +120,10 @@
     }
     document.getElementById('btn-mobile-schedule-list')?.addEventListener('click', () => setMobileScheduleView('list'));
     document.getElementById('btn-mobile-schedule-detail')?.addEventListener('click', () => setMobileScheduleView('detail'));
-    document.getElementById('btn-mobile-schedule-close')?.addEventListener('click', () => setRightSidebarCollapsed(true));
+    document.getElementById('btn-mobile-schedule-close')?.addEventListener('click', () => {
+      window.RackStudio?.highlightCable?.(null);
+      setRightSidebarCollapsed(true);
+    });
     document.getElementById('schedule-tbody')?.addEventListener('click', event => {
       if (!isCompactDrawer() || event.target.closest('button, .role-select-trigger, .duct-select-trigger, .clickable-endpoint')) return;
       if (event.target.closest('[data-cable-id]')) requestAnimationFrame(() => setMobileScheduleView('detail'));

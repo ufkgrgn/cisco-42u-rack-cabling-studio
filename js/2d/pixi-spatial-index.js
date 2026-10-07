@@ -194,6 +194,7 @@
   }
 
   function hitCableAt(clientX, clientY) {
+    if (STATE.cablesVisible === false || RS.StudioView?.isOverview()) return null;
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.pointerHitTests++;
     const rect = PixiContext.getPixiCanvasRect?.();
     if (!rect?.width || !rect?.height) return null;

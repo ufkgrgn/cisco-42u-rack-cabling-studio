@@ -81,7 +81,7 @@ export function initDeviceHud(studio) {
         if (activeContextDevId) {
           const dev = studio.state.devices.find(d => d.id === activeContextDevId);
           if (confirm(`"${dev ? dev.name : 'Bu cihaz'}" kabinden sökülsün mü? (Bağlı kablolar da sökülecektir)`)) {
-            studio.removeDevice(activeContextDevId);
+            if (studio.removeDevice(activeContextDevId) === false) return;
             devContext.style.display = 'none';
             studio.showToast('Cihaz kabinden söküldü.');
             renderCatalog(searchInput ? searchInput.value : '');
@@ -90,54 +90,10 @@ export function initDeviceHud(studio) {
       });
     }
 
-    // 9b. Device Hostname & IP Edit Modal
-    const btnDevEditConfig = document.getElementById('btn-dev-edit-config');
-    const modalDeviceEdit = document.getElementById('modal-device-edit');
-    const btnCloseDeviceEdit = document.getElementById('btn-close-device-edit');
-    const btnCancelDeviceEdit = document.getElementById('btn-cancel-device-edit');
-    const btnSaveDeviceEdit = document.getElementById('btn-save-device-edit');
-    const devEditHostname = document.getElementById('dev-edit-hostname');
-    const devEditIp = document.getElementById('dev-edit-ip');
-    const devEditMac = document.getElementById('dev-edit-mac');
-    const devEditSerial = document.getElementById('dev-edit-serial');
-    const devEditPanelLabel = document.getElementById('dev-edit-panel-label');
-    const modalDevEditTitle = document.getElementById('modal-dev-edit-title');
-
-    if (btnDevEditConfig && modalDeviceEdit) {
-      btnDevEditConfig.addEventListener('click', () => {
-        if (!activeContextDevId) return;
-        const dev = studio.state.devices.find(d => d.id === activeContextDevId);
-        if (!dev) return;
-
-        devContext.style.display = 'none';
-        window.DeviceMetadataEditor?.open3D(dev.id);
-      });
-
-      const closeDevEdit = () => { modalDeviceEdit.style.display = 'none'; modalDeviceEdit.dataset.source = ''; };
-      if (btnCloseDeviceEdit) btnCloseDeviceEdit.addEventListener('click', closeDevEdit);
-      if (btnCancelDeviceEdit) btnCancelDeviceEdit.addEventListener('click', closeDevEdit);
-
-      if (btnSaveDeviceEdit) {
-        btnSaveDeviceEdit.addEventListener('click', () => {
-          if (!activeContextDevId) return;
-          const newHostname = devEditHostname ? devEditHostname.value.trim() : '';
-          const newIp = devEditIp ? devEditIp.value.trim() : '';
-          const newMac = devEditMac ? devEditMac.value.trim() : '';
-          const newSerial = devEditSerial ? devEditSerial.value.trim() : '';
-          const newPanelLabel = devEditPanelLabel ? devEditPanelLabel.value.trim() : '';
-          studio.updateDeviceMetadata(activeContextDevId, {
-            name: newHostname,
-            ipAddress: newIp,
-            macAddress: newMac,
-            serialNumber: newSerial,
-            panelLabel: newPanelLabel
-          });
-          renderInstalledDevicesList();
-          if (typeof window.sync3Dto2D === 'function') window.sync3Dto2D();
-          modalDeviceEdit.dataset.source = '';
-          modalDeviceEdit.style.display = 'none';
-        });
-      }
-    }
-
+    // The shared metadata controller owns save/cancel and the command boundary.
+    document.getElementById('btn-dev-edit-config')?.addEventListener('click', () => {
+      if (!activeContextDevId) return;
+      devContext.style.display = 'none';
+      window.DeviceMetadataEditor?.open3D(activeContextDevId);
+    });
 }

@@ -74,19 +74,14 @@
     const zoomBadgeValue = `${Math.round(RS.ZOOM_STATE.scale * 100)}%`;
     if (RS.dom.zoomBadge && zoomBadgeValue !== lastZoomBadgeValue) {
       RS.dom.zoomBadge.textContent = zoomBadgeValue;
+      const statusZoom = document.getElementById('status-zoom');
+      if (statusZoom) statusZoom.textContent = zoomBadgeValue;
       lastZoomBadgeValue = zoomBadgeValue;
     }
 
-    // Dynamic 2D Level of Detail (LOD) tiering with smooth crossfade
-    let currentLod = 'detail';
-    if (RS.ZOOM_STATE.scale < 0.48) {
-      currentLod = 'macro';
-    } else if (RS.ZOOM_STATE.scale < 0.72) {
-      currentLod = 'medium';
-    }
+    const currentLod = RS.StudioView?.getCameraLod() || 'detail';
     if (RS.dom.rackStage.getAttribute('data-lod') !== currentLod) {
-      RS.dom.rackStage.setAttribute('data-lod', currentLod);
-      RS.syncPixiDeviceSceneLOD?.(currentLod === 'macro' ? 'macro' : 'detail');
+      RS.StudioView?.syncPresentation();
     }
     const commitDuration = performance.now() - commitStarted;
     cameraPerformanceTelemetry.transformCommits++;
@@ -116,7 +111,10 @@
     }
 
     const paddingX = 48;
-    const paddingY = 48;
+    // Leave room for the bottom resize grip and the fixed camera toolbar.
+    const toolbar = canvas.querySelector('.zoom-toolbar') || document.querySelector('.zoom-toolbar');
+    const toolbarHeight = toolbar?.getBoundingClientRect().height || 0;
+    const paddingY = Math.max(48, toolbarHeight + 64);
     const scaleX = (cw - paddingX * 2) / rackW;
     const scaleY = (ch - paddingY * 2) / rackH;
 

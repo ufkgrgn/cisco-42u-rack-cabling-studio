@@ -379,22 +379,27 @@
       const canDelete = STATE.racks.length > 1;
       const devCount = activeRack.devices ? activeRack.devices.length : 0;
       const telem = getRackTelemetry(activeRack);
+      const iconServer = window.getLucideIconSvg ? window.getLucideIconSvg('Server', 14) : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" x2="6.01"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';
+      const iconCables = window.getLucideIconSvg ? window.getLucideIconSvg('Unplug', 12) : '';
+      const iconDevices = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '';
+      const iconDuplicate = window.getLucideIconSvg ? window.getLucideIconSvg('Copy', 12) : '';
+      const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('X', 12) : '✕';
 
       rackStage.innerHTML = `
         <div class="rack-container" id="rack-container" data-rack-id="${activeRack.id}">
           <div class="rack-header-plate" data-rack-id="${activeRack.id}">
             <div class="rack-header-top-tier">
               <span class="rack-header-title">
-                <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v1.077a2.5 2.5 0 0 1-.95 1.956L4.5 6.786V14.5a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5V6.786l-1.55-1.253A2.5 2.5 0 0 1 9 3.577V2.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 13.5v-11z"/></svg>
+                ${iconServer}
                 <span class="rack-header-name-editable" data-rack-id="${activeRack.id}" title="Adı düzenlemek için tıklayın">${escapeHtml(activeRack.name)}</span>
                 <span class="rack-header-rename-hint" title="Adı düzenle"></span>
               </span>
               <span class="rack-header-standard-badge" title="EIA-310-D Standart 19 İnç Kabin Çerçevesi">EIA-310-D Standard</span>
               <span class="rack-header-actions">
-                <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm kabloları temizle / sök">Kablo</button>
-                <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt">Cihaz</button>
-                <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)">Klon</button>
-                ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil">✕ Sil</button>` : ''}
+                <button class="rack-action-btn rack-hdr-clear-cables" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm kabloları temizle / sök"><span class="rack-action-icon">${iconCables}</span><span class="rack-action-label">Kablo</span></button>
+                <button class="rack-action-btn danger rack-hdr-clear-devices" data-rack-id="${activeRack.id}" title="Bu kabindeki tüm cihazları ve kablolarını boşalt"><span class="rack-action-icon">${iconDevices}</span><span class="rack-action-label">Cihaz</span></button>
+                <button class="rack-action-btn rack-hdr-duplicate" data-rack-id="${activeRack.id}" title="Kabini ve Cihazlarını Çoğalt (Yeni Kabin)"><span class="rack-action-icon">${iconDuplicate}</span><span class="rack-action-label">Klon</span></button>
+                ${canDelete ? `<button class="rack-action-btn danger rack-hdr-delete" data-rack-id="${activeRack.id}" title="Kabini Sil"><span class="rack-action-icon">${iconDelete}</span><span class="rack-action-label">Sil</span></button>` : ''}
               </span>
             </div>
             <div class="rack-header-bottom-tier">
@@ -495,7 +500,7 @@
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (RS.deleteRack) RS.deleteRack(activeRack.id);
+            if (RS.deleteRack) RS.deleteRack(activeRack.id, delBtn);
           });
         }
         const dupBtn = sHdr.querySelector('.rack-hdr-duplicate');
@@ -575,7 +580,7 @@
         const iconCables = window.getLucideIconSvg ? window.getLucideIconSvg('Unplug', 12) : '';
         const iconDevices = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '';
         const iconDuplicate = window.getLucideIconSvg ? window.getLucideIconSvg('Copy', 12) : '';
-        const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('Trash2', 12) : '✕';
+        const iconDelete = window.getLucideIconSvg ? window.getLucideIconSvg('X', 12) : '✕';
         headerPlate.innerHTML = `
           <div class="rack-header-top-tier">
             <span class="rack-header-title">
@@ -687,7 +692,7 @@
         if (delBtn) {
           delBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (RS.deleteRack) RS.deleteRack(rack.id);
+            if (RS.deleteRack) RS.deleteRack(rack.id, delBtn);
           });
         }
 

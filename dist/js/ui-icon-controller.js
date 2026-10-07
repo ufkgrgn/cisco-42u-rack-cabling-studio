@@ -21,9 +21,25 @@
     [/kapak|door/, 'DoorOpen'], [/isik|lighting/, 'Lightbulb'], [/ses|audio/, 'Volume2'],
     [/liste|list|detay|detail/, 'ClipboardList'], [/yardim|kisayol|help/, 'CircleHelp']
   ];
+  const railIcons = {
+    all: 'Server', switch: 'Cable', router: 'Route', patch: 'Plug',
+    organizer: 'List', fiber: 'Zap'
+  };
   function decorate(button) {
-    if (button.closest('template') || button.matches('.port, .sidebar-scrim, .sidebar-right-scrim, [data-color], .color-swatch, .cable-color-swatch')) return;
-    if (button.querySelector(':scope > svg.ui-icon')) return;
+    if (button.closest('template') || button.matches('.port, .sidebar-scrim, .sidebar-right-scrim, [data-color], .color-swatch, .cable-color-swatch, .field-job, .observation-row, .project-check-item')) return;
+    if (button.matches('.rail-btn')) {
+      const name = railIcons[button.dataset.category] || ({
+        'rail-btn-toggle': 'PanelLeft', 'rail-btn-fav': 'Star',
+        'rail-btn-cisco-catalog': 'Server', 'rail-btn-custom': 'Plus'
+      })[button.id];
+      const slot = button.querySelector('.rail-icon');
+      if (name && slot && !slot.querySelector('svg.ui-icon')) slot.innerHTML = window.getLucideIconSvg(name, 16);
+      return;
+    }
+    // Skip buttons that already have an icon — check both direct children AND nested (e.g. inside .rack-action-icon span)
+    if (button.querySelector('svg.ui-icon')) return;
+    // Skip buttons that manage their own icons via JS rendering
+    if (button.matches('.rack-action-btn, .rail-btn, .dev-btn, .hud-btn-duct, .btn-card-quick-mount, .catalog-star')) return;
     const action = window.UIActions?.get(button.id || button.dataset.shortcutFor);
     const label = button.textContent.trim();
     const search = window.UIActions?.normalize([button.dataset.action, button.dataset.command, button.dataset.cameraAction, button.dataset.cameraView, label, button.title, button.getAttribute('aria-label')].filter(Boolean).join(' ')) || label;

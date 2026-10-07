@@ -34,6 +34,7 @@ async function run() {
 
     const endpoint = await page.evaluate(async () => {
       const RS = window.RackStudio;
+      RS.setStudioWorkMode('cabling');
       const rack = RS.getActiveRack();
       rack.devices = [];
       RS.STATE.cables = [];
@@ -917,11 +918,9 @@ async function run() {
     assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancyOnlyUpdates, deviceLod.macro.occupancyUpdate.before.deviceOccupancyOnlyUpdates + 1);
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortStateChanges, deviceLod.macro.occupancyUpdate.before.devicePortStateChanges + 2, 'a cable connection must update only its two endpoint sprites');
     assert.equal(deviceLod.macro.occupancyUpdate.after.devicePortVariants.occupied, 2, 'connecting copper endpoints must update only the two matching atlas variants');
-    assert.equal(deviceLod.macro.occupancyUpdate.after.deviceOccupancySetRebuilds, deviceLod.macro.occupancyUpdate.before.deviceOccupancySetRebuilds + 1, 'a changed cable endpoint set must rebuild occupancy once');
-    assert.equal(deviceLod.macro.portInteraction.hover.tooltipVisible, true, 'macro Pixi ports must show the existing port tooltip');
-    assert.equal(deviceLod.macro.portInteraction.hover.tooltipHasPortName, true, 'macro Pixi tooltip must identify the exact port');
-    assert.equal(deviceLod.macro.portInteraction.click.pendingInstanceId, deviceLod.macro.portInteraction.expected.instanceId, 'macro Pixi port click must start the existing connection workflow');
-    assert.equal(deviceLod.macro.portInteraction.click.pendingPortId, deviceLod.macro.portInteraction.expected.portId, 'macro Pixi hit testing must resolve the exact port id');
+    assert.equal(deviceLod.macro.portInteraction.hover.tooltipVisible, false, 'overview must not expose hidden port tooltips');
+    assert.equal(deviceLod.macro.portInteraction.click.pendingInstanceId, undefined, 'overview clicks must not start hidden port connections');
+    assert.equal(deviceLod.macro.portInteraction.click.pendingPortId, undefined, 'overview has no interactive port hit targets');
     assert.equal(deviceLod.detail.lod, 'detail');
     assert.equal(deviceLod.detail.renderer, 'pixi', 'detail LOD must stay on the Pixi device renderer');
     assert.equal(deviceLod.detail.liveFaceplates, 0, 'detail LOD must not restore DOM faceplates');

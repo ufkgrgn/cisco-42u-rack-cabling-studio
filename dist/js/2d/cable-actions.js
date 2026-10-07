@@ -161,6 +161,7 @@
       row.classList.toggle('active', row.dataset.cableId === STATE.highlightedCableId);
     });
     renderHighlightedCableInspector();
+    if(!window.is3DMode)document.dispatchEvent(new CustomEvent('rackstudio:selection',{detail:{kind:'cable',id:STATE.highlightedCableId,source:'2d'}}));
     RS.syncPixiCableSelection?.();
     if (window.is3DMode && window.__STUDIO3D__?.selectCable) {
       window.__STUDIO3D__.selectCable(STATE.highlightedCableId);
@@ -183,38 +184,74 @@
     const describe = endpoint => {
       const endpointRack = STATE.racks.find(r => r.id === endpoint?.rackId || r.devices.some(d => d.instanceId === endpoint?.instanceId));
       const device = endpointRack?.devices.find(d => d.instanceId === endpoint?.instanceId);
-      return `${endpointRack?.name || 'Kabin'} · U${device?.topU ?? '?'} · `;
+      return { rack: endpointRack?.name || 'Kabin', unit: `U${device?.topU ?? '?'}` };
     };
+    const fromLocation = describe(cable.from);
+    const toLocation = describe(cable.to);
+    const roleText = cable.role || 'standart';
+    const mediumText = cable.medium || 'Belirtilmedi';
+    const estText = cable.estimatedLengthMeters != null ? `${cable.estimatedLengthMeters} m` : 'Belirtilmedi';
+    const measText = cable.measuredLengthMeters != null ? `${cable.measuredLengthMeters} m` : 'Belirtilmedi';
+    const noteText = cable.note || 'Belirtilmedi';
+    const titleText = cable.name && cable.name !== cable.id ? `${cable.id} · ${cable.name}` : (cable.id || 'Kablo');
+
     dom.inspectorInfo.innerHTML = `
-      <div class="inspector-kicker">Kablo izi</div>
-      <div class="inspector-title">${escapeHtml(cable.name || cable.id || 'Kablo')}</div>
-      <div class="inspector-ends">
-        <div><b>Kaynak:</b> ${escapeHtml(describe(cable.from) + from.deviceName)} / ${escapeHtml(from.portName)}</div>
-        <div><b>Hedef:</b> ${escapeHtml(describe(cable.to) + to.deviceName)} / ${escapeHtml(to.portName)}</div>
-        <div><b>Metraj:</b> <span class="inspector-meter">${escapeHtml(meters)}</span></div>
-        <div><b>Renk:</b> <span class="swatch-dot" style="background:${escapeHtml(color)};vertical-align:middle;"></span> ${escapeHtml(color)}</div>
+      <div class="inspector-summary">
+        <span class="inspector-kicker">Seçili kablo</span>
+        <span class="inspector-cable-id" title="${escapeHtml(titleText)}">${escapeHtml(titleText)}</span>
+        <span class="inspector-meter">${escapeHtml(meters)}</span>
       </div>
-      <div class="inspector-actions">
-        <button type="button" data-cable-focus="from">Kaynağa git</button>
-        <button type="button" data-cable-focus="to">Hedefe git</button>
-        <button type="button" data-cable-focus="both">İki ucu göster</button>
-        <button type="button" data-cable-focus="trace">Devre izi</button>
+      <div class="inspector-route" aria-label="Kablo uçları">
+        <div class="inspector-end"><span class="inspector-end-marker" style="--cable-color:${escapeHtml(color)}"></span><div class="inspector-end-copy"><span class="inspector-end-label">Kaynak · ${escapeHtml(fromLocation.unit)}</span><strong title="${escapeHtml(from.deviceName)}">${escapeHtml(from.deviceName)}</strong><small>${escapeHtml(fromLocation.rack)} · ${escapeHtml(from.portName)}</small></div></div>
+        <div class="inspector-route-line" aria-hidden="true"></div>
+        <div class="inspector-end"><span class="inspector-end-marker" style="--cable-color:${escapeHtml(color)}"></span><div class="inspector-end-copy"><span class="inspector-end-label">Hedef · ${escapeHtml(toLocation.unit)}</span><strong title="${escapeHtml(to.deviceName)}">${escapeHtml(to.deviceName)}</strong><small>${escapeHtml(toLocation.rack)} · ${escapeHtml(to.portName)}</small></div></div>
+      </div>
+      <div class="inspector-specs-grid" aria-label="Kablo teknik detayları">
+        <div class="inspector-spec-item"><span class="spec-k">Rol</span><span class="spec-v">${escapeHtml(roleText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Tür</span><span class="spec-v">${escapeHtml(mediumText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Planlanan</span><span class="spec-v">${escapeHtml(estText)}</span></div>
+        <div class="inspector-spec-item"><span class="spec-k">Ölçülen</span><span class="spec-v">${escapeHtml(measText)}</span></div>
+        ${noteText !== 'Belirtilmedi' ? `<div class="inspector-spec-item spec-full"><span class="spec-k">Not</span><span class="spec-v">${escapeHtml(noteText)}</span></div>` : ''}
+      </div>
+      <div class="inspector-actions" role="group" aria-label="Kablo görünümü">
+        <button type="button" data-cable-focus="from" title="Kaynak cihazı ekranın ortasına getir"><span aria-hidden="true">↖</span> Kaynak</button>
+        <button type="button" data-cable-focus="to" title="Hedef cihazı ekranın ortasına getir"><span aria-hidden="true">↘</span> Hedef</button>
+        <button type="button" data-cable-focus="both" title="Kablonun iki ucunu aynı kadraja sığdır"><span aria-hidden="true">⤢</span> İki uç</button>
+        <button type="button" data-cable-focus="trace" title="Kabloyu ve tanımlı panel iç geçişlerini göster"><span aria-hidden="true">⌁</span> Devre izi</button>
+      </div>
+      <div class="inspector-field-actions" role="group" aria-label="Saha işlemleri">
+        <button type="button" class="btn-inspector-sub" data-cable-action="qr" title="Saha QR Kodu"><span aria-hidden="true">▦</span> Saha QR</button>
+        <button type="button" class="btn-inspector-sub" data-cable-action="workflow" title="Saha Uygulama ve Test Kaydı"><span aria-hidden="true">✓</span> Saha Kaydı</button>
+        <button type="button" class="btn-inspector-sub" data-cable-action="obs" title="Saha Gözlem Geçmişi"><span aria-hidden="true">⏱</span> Gözlem</button>
       </div>
     `;
   }
 
-  dom.inspectorInfo?.addEventListener('click', event => {
-    const action = event.target.closest('[data-cable-focus]')?.dataset.cableFocus;
+  // The module loads before app.init() populates RS.dom; bind to the existing
+  // panel element directly so the delegated buttons remain actionable.
+  document.getElementById('inspector-info')?.addEventListener('click', event => {
+    const focusBtn = event.target.closest('[data-cable-focus]');
+    const actionBtn = event.target.closest('[data-cable-action]');
     const cable = STATE.cables.find(c => c.id === STATE.highlightedCableId);
-    if (!action || !cable) return;
-    if (action === 'trace') RS.CircuitTrace?.open(cable.id);
-    else if (action === 'both') {
-      const differentRacks = cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== cable.to.rackId;
-      if (differentRacks && STATE.viewMode !== 'multi') {
-        RS.setViewMode?.('multi', true);
-        requestAnimationFrame(() => RS.focusOnCable?.(cable.id));
-      } else RS.focusOnCable?.(cable.id);
-    } else RS.focusOnDevice?.(cable[action]?.instanceId);
+    if (!cable) return;
+    if (focusBtn) {
+      const action = focusBtn.dataset.cableFocus;
+      event.stopPropagation();
+      if (action === 'trace') RS.CircuitTrace?.open(cable.id);
+      else if (action === 'both') {
+        const differentRacks = cable.from?.rackId && cable.to?.rackId && cable.from.rackId !== cable.to.rackId;
+        if (differentRacks && STATE.viewMode !== 'multi') {
+          RS.setViewMode?.('multi', true);
+          requestAnimationFrame(() => RS.focusOnCable?.(cable.id));
+        } else RS.focusOnCable?.(cable.id);
+      } else RS.focusOnDevice?.(cable[action]?.instanceId);
+    } else if (actionBtn) {
+      const action = actionBtn.dataset.cableAction;
+      event.stopPropagation();
+      if (action === 'qr') RS.FieldQRUI?.open({ kind: 'cable', id: cable.id });
+      else if (action === 'workflow') RS.FieldWorkflowUI?.open({ kind: 'cable', id: cable.id });
+      else if (action === 'obs') RS.FieldObservationUI?.open({ kind: 'cable', id: cable.id });
+    }
   });
 
   function addDirectCable(rackA, instA, portA, rackB, instB, portB, color, lengthMeters) {
@@ -229,6 +266,32 @@
       role: '',
       lengthMeters: lengthMeters || 1.5
     });
+  }
+
+  function bringCableToFront(cableId) {
+    if (!cableId || !STATE.cables) return;
+    const index = STATE.cables.findIndex(c => c.id === cableId);
+    if (index < 0 || index === STATE.cables.length - 1) return;
+    const [cable] = STATE.cables.splice(index, 1);
+    STATE.cables.push(cable);
+    RS.takeHistorySnapshot?.();
+    renderScheduleTable();
+    RS.renderAllCables?.();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+  }
+
+  function sendCableToBack(cableId) {
+    if (!cableId || !STATE.cables) return;
+    const index = STATE.cables.findIndex(c => c.id === cableId);
+    if (index <= 0) return;
+    const [cable] = STATE.cables.splice(index, 1);
+    STATE.cables.unshift(cable);
+    RS.takeHistorySnapshot?.();
+    renderScheduleTable();
+    RS.renderAllCables?.();
+    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
+    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
   function appendSingleCable(cable) {
@@ -249,4 +312,6 @@
   RS.disconnectCable = disconnectCable;
   RS.highlightCable = highlightCable;
   RS.addDirectCable = addDirectCable;
+  RS.bringCableToFront = bringCableToFront;
+  RS.sendCableToBack = sendCableToBack;
 })();

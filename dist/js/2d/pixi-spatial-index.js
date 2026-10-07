@@ -194,6 +194,7 @@
   }
 
   function hitCableAt(clientX, clientY) {
+    if (STATE.cablesVisible === false || RS.StudioView?.isOverview()) return null;
     if (PixiContext.performanceTelemetry) PixiContext.performanceTelemetry.pointerHitTests++;
     const rect = PixiContext.getPixiCanvasRect?.();
     if (!rect?.width || !rect?.height) return null;
@@ -266,6 +267,7 @@
   function clearSceneHover(canvas, e) {
     if (isPointerOverCable) canvas.style.pointerEvents = 'none';
     isPointerOverCable = false;
+    RS.setPixiDeviceHover?.(null);
     // Schedule rows own their hover while the pointer is inside the inspector.
     // Clearing Pixi here would immediately undo the row's mouseenter highlight.
     if (hoveredCableId && !e?.target?.closest?.('#sidebar-right')) setPixiHover(null);
@@ -330,6 +332,13 @@
           const isHudOrMenuOpen = !!document.getElementById('cable-quick-hud') || !!document.getElementById('cable-context-menu') || !!document.querySelector('.modal.show, .modal.active, .inline-delete-popover');
           const inHudOrMenu = !!target?.closest('#cable-quick-hud, #cable-context-menu, .cable-quick-hud, .cable-context-menu, .modal, .inline-delete-popover');
           if (inFloatingControls) {
+            const currentPortKey = RS.getHoveredDevicePortKey?.();
+            if (currentPortKey) {
+              RS.setHoveredDevicePortKey?.(null);
+              RS.restoreDevicePortTint?.(currentPortKey);
+              RS.dispatchDevicePortInteraction?.('leave');
+            }
+            RS.setPixiDeviceHover?.(null);
             if (isPointerOverCable) {
               canvas.style.pointerEvents = 'none';
               isPointerOverCable = false;
@@ -374,7 +383,7 @@
             const earDeviceId = earDevice?.id || earDevice?.dataset?.instanceId || null;
             if (earDeviceId) {
               RS.setPixiDeviceHover?.(earDeviceId);
-            } else if (!RS.isPointerOverActiveDevice?.(e.clientX, e.clientY)) {
+            } else {
               RS.setPixiDeviceHover?.(null);
             }
             if (isPointerOverCable) {
@@ -395,7 +404,7 @@
               RS.restoreDevicePortTint?.(currentPortKey);
               RS.dispatchDevicePortInteraction?.('leave');
             }
-            RS.hideDeviceFloatingControls?.(true);
+            if (RS.isDraggingDevice) RS.hideDeviceFloatingControls?.(true);
             if (hoveredCableId) setPixiHover(null);
             if (dom?.tooltip) dom.tooltip.style.display = 'none';
             return;
@@ -403,10 +412,7 @@
 
           const port = RS.hitDevicePortAt?.(e.clientX, e.clientY);
           const hitDev = RS.hitDeviceBodyAt?.(e.clientX, e.clientY);
-          let targetDevId = hitDev?.instanceId || (port ? port.instanceId : null);
-          if (!targetDevId && RS.isPointerOverActiveDevice?.(e.clientX, e.clientY)) {
-            targetDevId = RS.getActiveFloatingDeviceId?.();
-          }
+          const targetDevId = hitDev?.instanceId || (port ? port.instanceId : null);
           RS.setPixiDeviceHover?.(targetDevId);
           const portKey = port ? `${port.instanceId}::${port.portId}` : null;
           const previousPortKey = RS.getHoveredDevicePortKey?.();
