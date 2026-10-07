@@ -116,16 +116,28 @@
           <button class="hud-btn cam-btn" id="cam-top" title="Üst (4)">Üst</button>
           <button class="hud-btn cam-btn" id="cam-focus" title="Odak (5)">Odak</button>
         </div>
+        <button type="button" class="hud-btn active" id="btn-3d-routing-toggle" title="3D Kablolama Düzeni: Yapısal Yan Kanal veya Serbest Sarkma (C)" aria-pressed="true">
+          <span class="btn-text">Yapısal Kanal</span>
+        </button>
       </div>
 
       <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
-        <div class="segmented-control studio-work-mode-switch" id="studio-work-mode-switch" role="group" aria-label="Çalışma Modu">
+        <div class="segmented-control studio-work-mode-switch" id="studio-work-mode-switch" role="group" aria-label="Çalışma Modu" style="position:relative;">
           <button type="button" class="segmented-btn active" aria-pressed="true" id="btn-mode-layout" title="Kabin Yerleşimi Modu (Cihaz montajı ve U planlaması)">Kabin yerleşimi</button>
-          <button type="button" class="segmented-btn" aria-pressed="false" id="btn-mode-cabling" title="Kablolama Modu (Portlar ve kablo yönetimi)">Kablo ayrıntıları</button>
+          <button type="button" class="segmented-btn" aria-pressed="false" id="btn-mode-cabling" title="Kablolama Modu (Portlar ve kablo yönetimi)">
+            <span>Kablo ayrıntıları</span>
+            <span class="cabling-indicator-badge" title="Ayrıntı alt seçenekleri">▾</span>
+          </button>
+          <!-- Contextual Sub-bar: Appears directly under "Kablo ayrıntıları" when active -->
+          <div class="cabling-sub-popover" id="cabling-sub-popover" style="display:none;" role="toolbar" aria-label="Kablo Ayrıntı Seçenekleri">
+            <button type="button" class="hud-btn cabling-sub-btn active" id="btn-toggle-cables" title="Kabloları Gizle / Göster (C)" aria-pressed="true">
+              <span class="btn-text">Kablolar (C)</span>
+            </button>
+            <button type="button" class="hud-btn cabling-sub-btn active" id="btn-toggle-port-numbers" title="Port Numaralarını Gizle / Göster (N)" aria-pressed="true">
+              <span class="btn-text">Port No (N)</span>
+            </button>
+          </div>
         </div>
-        <button class="hud-btn active" id="btn-toggle-cables" title="Kabloları Gizle / Göster (C)" aria-pressed="true">
-          <span class="btn-text">Kablolar</span>
-        </button>
         <div class="rack-view-mode-switch" id="rack-view-mode-switch" role="group" aria-label="Kabin görünüm modu">
           <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek kabin">
             <span class="rack-view-mode-text">Tek</span>
@@ -145,6 +157,7 @@
           <button type="button" class="hud-btn" data-shortcut-for="btn-mode-layout">Kabin yerleşimi</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-mode-cabling">Kablo ayrıntıları</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-toggle-cables">Kablolar (C)</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-toggle-port-numbers">Port No (N)</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-multi">Yan yana</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / Arka yüz</button>
@@ -300,7 +313,7 @@
           <button class="cat-pill" data-category="switch">Switch</button>
           <button class="cat-pill" data-category="router">Router</button>
           <button class="cat-pill" data-category="server">Sunucu</button>
-          <button class="cat-pill" data-category="patch-panel">Patch Panel</button>
+          <button class="cat-pill" data-category="patch-panel">Yapısal Panel</button>
           <button class="cat-pill" data-category="accessory">Kablo Paneli</button>
           <button class="cat-pill" data-category="pdu">PDU</button>
         </div>

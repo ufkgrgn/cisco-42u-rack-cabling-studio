@@ -61,15 +61,43 @@
       });
     }
     const btnRouting = document.getElementById("btn-routing-toggle");
-    if (btnRouting) {
-      btnRouting.addEventListener("click", () => {
-        const next = studio.state.cableRoutingMode === "catenary" ? "structured" : "catenary";
-        studio.state.cableRoutingMode = next;
-        studio.rebuildAllCables();
-        btnRouting.textContent = next === "catenary" ? "Serbest kablo" : "Kablo kanal\u0131";
-        studio.showToast(next === "catenary" ? "Kablolama: Yer\xE7ekimi Sarkma Fizi\u011Fi (Catenary)" : "Kablolama: 90\xB0 Yap\u0131sal Yan Kanal");
-      });
+    const btn3dRouting = document.getElementById("btn-3d-routing-toggle");
+    function syncRoutingButtons(mode) {
+      const isStructured = mode === "structured";
+      if (btnRouting) {
+        btnRouting.textContent = isStructured ? "Kablo kanal\u0131" : "Serbest kablo";
+        btnRouting.classList.toggle("active", isStructured);
+      }
+      if (btn3dRouting) {
+        const txt = btn3dRouting.querySelector(".btn-text");
+        if (txt) txt.textContent = isStructured ? "Yap\u0131sal Kanal" : "Serbest Sarkma";
+        else btn3dRouting.textContent = isStructured ? "Yap\u0131sal Kanal" : "Serbest Sarkma";
+        btn3dRouting.classList.toggle("active", isStructured);
+        btn3dRouting.setAttribute("aria-pressed", String(isStructured));
+        btn3dRouting.title = isStructured ? "Kablo D\xFCzeni: 90\xB0 Yap\u0131sal Yan Kanal (T\u0131kla: Serbest Sarkma)" : "Kablo D\xFCzeni: Serbest Sarkma Fizi\u011Fi (T\u0131kla: Yap\u0131sal Yan Kanal)";
+      }
     }
+    window.sync3dRoutingButtons = syncRoutingButtons;
+    function toggleRoutingMode() {
+      const next = studio.state.cableRoutingMode === "catenary" ? "structured" : "catenary";
+      studio.state.cableRoutingMode = next;
+      studio.rebuildAllCables();
+      syncRoutingButtons(next);
+      studio.showToast(next === "catenary" ? "Kablolama: Yer\xE7ekimi Sarkma Fizi\u011Fi (Catenary)" : "Kablolama: 90\xB0 Yap\u0131sal Yan Kanal");
+      if (window.RackStudio?.STATE) {
+        window.RackStudio.STATE.cableRoutingMode = next === "catenary" ? "direct" : "structured";
+        window.RackStudio.invalidatePixiCableGeometry?.();
+      }
+    }
+    if (btnRouting && !btnRouting.__wired) {
+      btnRouting.__wired = true;
+      btnRouting.addEventListener("click", toggleRoutingMode);
+    }
+    if (btn3dRouting && !btn3dRouting.__wired) {
+      btn3dRouting.__wired = true;
+      btn3dRouting.addEventListener("click", toggleRoutingMode);
+    }
+    syncRoutingButtons(studio.state.cableRoutingMode || "structured");
     const btnLighting = document.getElementById("btn-lighting-toggle");
     if (btnLighting) {
       const modes = ["studio", "datacenter"];
@@ -169,7 +197,16 @@
       const query = norm(filterText);
       const allCatalogItems = getUnifiedCatalog();
       const items = allCatalogItems.filter((item) => {
-        const matchesCat = activeCategory === "all" || item.category === activeCategory;
+        let matchesCat = activeCategory === "all";
+        if (!matchesCat) {
+          if (activeCategory === "patch-panel" || activeCategory === "patch") {
+            matchesCat = item.category === "patch" || item.category === "patch-panel" || item.category === "fiber";
+          } else if (activeCategory === "accessory") {
+            matchesCat = item.category === "accessory" || item.category === "organizer" || item.category === "brush" || item.category === "blank";
+          } else {
+            matchesCat = item.category === activeCategory;
+          }
+        }
         const matchesQuery = !query || norm(item.name).includes(query) || norm(item.desc).includes(query) || norm(item.manufacturer).includes(query);
         return matchesCat && matchesQuery;
       });

@@ -916,9 +916,9 @@
       bg.addColorStop(0.5, "#3c454a");
       bg.addColorStop(1, "#252c30");
     } else if (visualKind === "patch-panel") {
-      bg.addColorStop(0, "#17120a");
-      bg.addColorStop(0.5, "#292011");
-      bg.addColorStop(1, "#0f0c08");
+      bg.addColorStop(0, "#111827");
+      bg.addColorStop(0.5, "#1e293b");
+      bg.addColorStop(1, "#0f172a");
     } else if (dev.category === "server") {
       bg.addColorStop(0, "#283142");
       bg.addColorStop(0.5, "#3b4759");
@@ -1036,11 +1036,11 @@
     const brand = (dev.manufacturer || "CISCO").toUpperCase();
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
-    ctx.fillText(brand, 28, 40);
+    ctx.fillText(brand, 28, 40, badgeW - 40);
     ctx.fillStyle = "#38bdf8";
     ctx.font = "bold 15px system-ui, -apple-system, sans-serif";
     const modelText = dev.name.replace(new RegExp(brand, "i"), "").trim();
-    ctx.fillText(modelText || dev.name, 28, 64);
+    ctx.fillText(modelText || dev.name, 28, 64, badgeW - 40);
     const kindLabels = {
       switch: ["NETWORK SWITCH", "#22d3ee"],
       "patch-panel": ["COPPER PATCH PANEL", "#f59e0b"],
@@ -1054,9 +1054,9 @@
       ctx.font = "bold 11px Consolas, monospace";
       const typeW = Math.ceil(ctx.measureText(badgeText).width) + 18;
       ctx.fillStyle = badgeColor;
-      ctx.fillRect(28, 72, typeW, 20);
+      ctx.fillRect(28, 72, Math.min(typeW, badgeW - 40), 20);
       ctx.fillStyle = "#071018";
-      ctx.fillText(badgeText, 37, 86);
+      ctx.fillText(badgeText, 37, 86, badgeW - 56);
     }
     const hostname = ["patch-panel", "fiber-panel"].includes(visualKind) ? dev.panelLabel || dev.name || "" : dev.hostname || dev.name || "";
     const ip = dev.ipAddress || dev.ip || "";
@@ -1073,7 +1073,7 @@
       ctx.strokeRect(24, h - 40, labelW, 24);
       ctx.fillStyle = "#0f172a";
       ctx.font = "bold 12px Consolas, monospace";
-      ctx.fillText(labelText.slice(0, 36), 30, h - 24);
+      ctx.fillText(labelText.slice(0, 36), 30, h - 24, labelW - 12);
     } else {
       ctx.fillStyle = "#94a3b8";
       ctx.font = "11px monospace";
@@ -1397,7 +1397,7 @@
         }
         const roofFloorGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.2, RACK_DEPTH);
         const roof = new THREE.Mesh(roofFloorGeo, frameMat);
-        roof.position.set(0, totalH + 0.3, 0);
+        roof.position.set(0, totalH + 0.35, 0);
         singleRackGroup.add(roof);
         const badgeTex = createRackHeaderBadgeTexture(rack.name || `KAB\u0130N #${idx + 1}`, rackU);
         const badgeMat = new THREE.MeshStandardMaterial({
@@ -1407,7 +1407,8 @@
         });
         const badgeGeo = new THREE.PlaneGeometry(RACK_WIDTH - 0.6, 0.55);
         const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
-        badgeMesh.position.set(0, totalH + 0.3, RACK_DEPTH / 2 + 0.02);
+        badgeMesh.position.set(0, totalH + 0.35 + 0.32, RACK_DEPTH / 2 + 0.02);
+        badgeMesh.userData = { type: "rack-header-badge", isRackBadge: true, rackId: rack.id, rackName: rack.name };
         singleRackGroup.add(badgeMesh);
         const floor = new THREE.Mesh(roofFloorGeo, frameMat);
         floor.position.set(0, 0.1, 0);
@@ -1976,7 +1977,7 @@
             roughness: 0.2
           });
           const ledMesh = new THREE.Mesh(ledGeo, ledMat);
-          ledMesh.position.set(-w / 2 + 0.28 + i * 0.1, -h / 2 + 0.06, d / 2 + 0.035);
+          ledMesh.position.set(-w / 2 + 0.28 + i * 0.08, h / 2 - 0.045, d / 2 + 0.035);
           devGroup.add(ledMesh);
           this.ledObjects.push({
             mesh: ledMesh,
@@ -2129,10 +2130,13 @@
           const isTrunk = portCfg && (portCfg.role === "trunk" || portCfg.isTrunk);
           const customColor = portCfg && portCfg.color;
           const trunkColorNum = customColor ? parseInt(customColor.replace("#", "0x"), 16) : isTrunk ? 11032055 : null;
+          const isOccupied = Array.isArray(this.state.cables) && this.state.cables.some(
+            (c) => c.from && c.from.devId === dev.id && (c.from.portIdx === p + 1 || c.from.portId === portDefinition?.id) || c.to && c.to.devId === dev.id && (c.to.portIdx === p + 1 || c.to.portId === portDefinition?.id)
+          );
           const portMat = new THREE.MeshStandardMaterial({
-            color: isTrunk ? trunkColorNum || 11032055 : isFiber ? 165063 : isUplink ? 9741240 : visualKind === "patch-panel" ? 1120295 : effectivePortType === "qsfp28" ? 959977 : effectivePortType === "c13" ? 15680580 : 3621201,
+            color: isTrunk ? trunkColorNum || 11032055 : isFiber ? 165063 : isUplink ? 9741240 : visualKind === "patch-panel" ? 1976635 : 4674921,
             metalness: isTrunk ? 0.65 : 0.85,
-            roughness: isTrunk ? 0.25 : 0.25,
+            roughness: 0.25,
             emissive: isTrunk ? trunkColorNum || 11032055 : 0,
             emissiveIntensity: isTrunk ? 0.45 : 0
           });
@@ -2142,17 +2146,18 @@
             anchor ? (0.5 - anchor.y) * (h - 0.02) : py,
             pz
           );
-          const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.75, drawnHeight * 0.7, 0.02);
-          const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 1379620 : 593174 });
+          const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.78, drawnHeight * 0.74, 0.02);
+          const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 1379620 : 132106 });
           const cavity = new THREE.Mesh(cavityGeo, cavityMat);
           cavity.position.set(0, 0, 0.02);
           portMesh.add(cavity);
-          if (visualKind === "switch" && !isFiber) {
-            const ledGeo = new THREE.BoxGeometry(pWidth * 0.22, 0.012, 0.012);
-            const ledColor = isTrunk ? trunkColorNum || 11032055 : 16096779;
+          if (visualKind === "switch" || isOccupied || isTrunk) {
+            const ledActive = isOccupied || isTrunk;
+            const ledColor = isTrunk ? trunkColorNum || 11032055 : isFiber ? 54015 : ledActive ? 2278750 : 993566;
+            const ledGeo = new THREE.BoxGeometry(0.016, 0.016, 0.012);
             const ledMat = new THREE.MeshBasicMaterial({ color: ledColor });
             const portLed = new THREE.Mesh(ledGeo, ledMat);
-            portLed.position.set(0, -drawnHeight * 0.38, 0.032);
+            portLed.position.set(-drawnWidth * 0.32, drawnHeight * 0.32, 0.025);
             portMesh.add(portLed);
           }
           portMesh.userData = {
@@ -2936,6 +2941,13 @@
           }
         });
       }
+      if (this.rackGroup) {
+        this.rackGroup.traverse((child) => {
+          if (child.userData && (child.userData.isRackBadge || child.userData.type === "rack-header-badge")) {
+            targets.push(child);
+          }
+        });
+      }
       this.interactiveTargets = targets;
     }
     handleHover(e) {
@@ -2946,6 +2958,17 @@
       let foundPort = null;
       let foundCable = null;
       for (const hit of intersects) {
+        if (hit.object.userData && (hit.object.userData.isRackBadge || hit.object.userData.type === "rack-header-badge")) {
+          document.body.style.cursor = "pointer";
+          const tooltip2 = document.getElementById("studio-tooltip");
+          if (tooltip2) {
+            tooltip2.style.display = "block";
+            tooltip2.style.left = e.clientX + 16 + "px";
+            tooltip2.style.top = e.clientY + 16 + "px";
+            tooltip2.innerHTML = `<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#38bdf8;white-space:nowrap;">\u270F\uFE0F Kabin Ad\u0131n\u0131 D\xFCzenle (T\u0131klay\u0131n)</div>`;
+          }
+          return;
+        }
         if (hit.object.userData && hit.object.userData.isPort) {
           foundPort = hit.object;
           break;
@@ -3019,6 +3042,29 @@
       const targets = this.interactiveTargets && this.interactiveTargets.length ? this.interactiveTargets : [this.devicesGroup, this.cablesGroup];
       const intersects = this.raycaster.intersectObjects(targets, true);
       for (const hit of intersects) {
+        if (hit.object.userData && (hit.object.userData.isRackBadge || hit.object.userData.type === "rack-header-badge")) {
+          const rackId = hit.object.userData.rackId || this.state.racks[0] && this.state.racks[0].id || "rack-1";
+          const rack = this.getRack ? this.getRack(rackId) : this.state.racks && this.state.racks.find((r) => r.id === rackId);
+          if (rack) {
+            sfx.click();
+            const newName = prompt("Kabin Ad\u0131n\u0131 D\xFCzenle:", rack.name);
+            if (newName && newName.trim() && newName.trim() !== rack.name) {
+              rack.name = newName.trim();
+              this.rebuildAllRacks();
+              this.showToast(`Kabin ad\u0131 g\xFCncellendi: ${rack.name}`);
+              if (window.RackStudio?.STATE?.racks) {
+                const r2d = window.RackStudio.STATE.racks.find((r) => r.id === rackId);
+                if (r2d) {
+                  r2d.name = rack.name;
+                  window.RackStudio.renderRackTabs?.();
+                  window.RackStudio.renderRackRailsAndSlots?.();
+                  document.dispatchEvent(new CustomEvent("rackstudio:change", { bubbles: true, detail: { immediate: true } }));
+                }
+              }
+            }
+          }
+          return;
+        }
         if (hit.object.userData && hit.object.userData.isPort) {
           const portData = hit.object.userData;
           if (e.shiftKey) {

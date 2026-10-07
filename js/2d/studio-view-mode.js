@@ -70,6 +70,10 @@
       button?.setAttribute('aria-pressed', String(value === mode));
       document.querySelectorAll(`[data-shortcut-for="btn-mode-${value}"]`).forEach(btn => btn.setAttribute('aria-pressed', String(value === mode)));
     });
+    const subPopover = document.getElementById('cabling-sub-popover');
+    if (subPopover) {
+      subPopover.style.display = mode === 'cabling' ? 'flex' : 'none';
+    }
     if (mode === 'layout') clearCableInteraction();
     syncPresentation();
     document.dispatchEvent(new CustomEvent('rackstudio:studio-work-mode', { detail: { mode } }));
@@ -83,12 +87,74 @@
     RS.PixiContext?.renderPixi?.('cable-visibility');
     return STATE.cablesVisible;
   }
+
   function toggleCablesVisibility() {
     if (STATE.studioWorkMode === 'layout') return STATE.cablesVisible;
     return setCablesVisible(STATE.cablesVisible === false);
   }
+
+  function syncPortNumbersButton() {
+    const show = STATE.portNumbersVisible !== false;
+    const button = document.getElementById('btn-toggle-port-numbers');
+    if (button) {
+      button.classList.toggle('active', show);
+      button.setAttribute('aria-pressed', String(show));
+      button.title = show ? 'Port numaralarını gizle (N)' : 'Port numaralarını göster (N)';
+      const label = button.querySelector('.btn-text');
+      if (label) label.textContent = show ? 'Port No (N)' : 'Port No Gizli (N)';
+    }
+    document.querySelectorAll('[data-shortcut-for="btn-toggle-port-numbers"]').forEach(btn => {
+      btn.setAttribute('aria-pressed', String(show));
+      btn.textContent = (show ? 'Port No açık' : 'Port No gizli') + ' (N)';
+    });
+  }
+
+  function setPortNumbersVisible(visible) {
+    STATE.portNumbersVisible = Boolean(visible);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('rackstudio_port_numbers_visible', STATE.portNumbersVisible ? '1' : '0');
+      }
+    } catch (_) {}
+    syncPortNumbersButton();
+    RS.syncPortLabelsVisibility?.();
+    RS.PixiContext?.renderPixi?.('port-numbers-toggle');
+    return STATE.portNumbersVisible;
+  }
+
+  function togglePortNumbersVisibility() {
+    return setPortNumbersVisible(STATE.portNumbersVisible === false);
+  }
+
+  function initPortNumbersToggleUI() {
+    syncPortNumbersButton();
+    const btn = document.getElementById('btn-toggle-port-numbers');
+    if (btn && !btn.__wired) {
+      btn.__wired = true;
+      btn.addEventListener('click', () => togglePortNumbersVisibility());
+    }
+    document.querySelectorAll('[data-shortcut-for="btn-toggle-port-numbers"]').forEach(el => {
+      if (!el.__wired) {
+        el.__wired = true;
+        el.addEventListener('click', () => togglePortNumbersVisibility());
+      }
+    });
+  }
+
   RS.StudioView = Object.freeze({ getCameraLod, isOverview, areCablesShown, syncCableVisibility, syncPresentation });
-  Object.assign(RS, { setStudioWorkMode, setCablesVisible, toggleCablesVisibility });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setStudioWorkMode(STATE.studioWorkMode));
-  else setStudioWorkMode(STATE.studioWorkMode);
+  Object.assign(RS, {
+    setStudioWorkMode,
+    setCablesVisible,
+    toggleCablesVisibility,
+    setPortNumbersVisible,
+    togglePortNumbersVisibility,
+    syncPortNumbersButton
+  });
+
+  const initAllViews = () => {
+    setStudioWorkMode(STATE.studioWorkMode);
+    initPortNumbersToggleUI();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAllViews);
+  else initAllViews();
 })();

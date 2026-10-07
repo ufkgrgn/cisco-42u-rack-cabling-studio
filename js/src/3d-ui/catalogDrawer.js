@@ -56,7 +56,16 @@ export function initCatalogDrawer(studio) {
       const allCatalogItems = getUnifiedCatalog();
 
       const items = allCatalogItems.filter(item => {
-        const matchesCat = activeCategory === 'all' || item.category === activeCategory;
+        let matchesCat = activeCategory === 'all';
+        if (!matchesCat) {
+          if (activeCategory === 'patch-panel' || activeCategory === 'patch') {
+            matchesCat = item.category === 'patch' || item.category === 'patch-panel' || item.category === 'fiber';
+          } else if (activeCategory === 'accessory') {
+            matchesCat = item.category === 'accessory' || item.category === 'organizer' || item.category === 'brush' || item.category === 'blank';
+          } else {
+            matchesCat = item.category === activeCategory;
+          }
+        }
         const matchesQuery = !query || norm(item.name).includes(query) || norm(item.desc).includes(query) || norm(item.manufacturer).includes(query);
         return matchesCat && matchesQuery;
       });

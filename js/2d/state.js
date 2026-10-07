@@ -36,6 +36,7 @@
     cableRoutingMode: 'structured',
     cableRenderMode: 'pixi',
     cablesVisible: true,
+    portNumbersVisible: typeof localStorage === 'undefined' || localStorage.getItem('rackstudio_port_numbers_visible') !== '0',
     studioWorkMode: 'layout', // 'layout' (Yerleşim) or 'cabling' (Kablolama)
     // V2 keeps the GPU surface viewport-sized and mirrors the camera inside
     // Pixi. Persist "0" before reload for an immediate legacy-renderer rollback.

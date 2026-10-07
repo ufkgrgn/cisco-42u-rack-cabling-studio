@@ -64,15 +64,49 @@ export function initCameraControls(studio) {
 
     // 3. Routing Mode Toggle (Catenary vs Structured)
     const btnRouting = document.getElementById('btn-routing-toggle');
-    if (btnRouting) {
-      btnRouting.addEventListener('click', () => {
-        const next = studio.state.cableRoutingMode === 'catenary' ? 'structured' : 'catenary';
-        studio.state.cableRoutingMode = next;
-        studio.rebuildAllCables();
-        btnRouting.textContent = next === 'catenary' ? 'Serbest kablo' : 'Kablo kanalı';
-        studio.showToast(next === 'catenary' ? 'Kablolama: Yerçekimi Sarkma Fiziği (Catenary)' : 'Kablolama: 90° Yapısal Yan Kanal');
-      });
+    const btn3dRouting = document.getElementById('btn-3d-routing-toggle');
+
+    function syncRoutingButtons(mode) {
+      const isStructured = mode === 'structured';
+      if (btnRouting) {
+        btnRouting.textContent = isStructured ? 'Kablo kanalı' : 'Serbest kablo';
+        btnRouting.classList.toggle('active', isStructured);
+      }
+      if (btn3dRouting) {
+        const txt = btn3dRouting.querySelector('.btn-text');
+        if (txt) txt.textContent = isStructured ? 'Yapısal Kanal' : 'Serbest Sarkma';
+        else btn3dRouting.textContent = isStructured ? 'Yapısal Kanal' : 'Serbest Sarkma';
+        btn3dRouting.classList.toggle('active', isStructured);
+        btn3dRouting.setAttribute('aria-pressed', String(isStructured));
+        btn3dRouting.title = isStructured
+          ? 'Kablo Düzeni: 90° Yapısal Yan Kanal (Tıkla: Serbest Sarkma)'
+          : 'Kablo Düzeni: Serbest Sarkma Fiziği (Tıkla: Yapısal Yan Kanal)';
+      }
     }
+    window.sync3dRoutingButtons = syncRoutingButtons;
+
+    function toggleRoutingMode() {
+      const next = studio.state.cableRoutingMode === 'catenary' ? 'structured' : 'catenary';
+      studio.state.cableRoutingMode = next;
+      studio.rebuildAllCables();
+      syncRoutingButtons(next);
+      studio.showToast(next === 'catenary' ? 'Kablolama: Yerçekimi Sarkma Fiziği (Catenary)' : 'Kablolama: 90° Yapısal Yan Kanal');
+      if (window.RackStudio?.STATE) {
+        window.RackStudio.STATE.cableRoutingMode = next === 'catenary' ? 'direct' : 'structured';
+        window.RackStudio.invalidatePixiCableGeometry?.();
+      }
+    }
+
+    if (btnRouting && !btnRouting.__wired) {
+      btnRouting.__wired = true;
+      btnRouting.addEventListener('click', toggleRoutingMode);
+    }
+    if (btn3dRouting && !btn3dRouting.__wired) {
+      btn3dRouting.__wired = true;
+      btn3dRouting.addEventListener('click', toggleRoutingMode);
+    }
+    syncRoutingButtons(studio.state.cableRoutingMode || 'structured');
+
 
     // 3b. Lighting Mode Toggle
     const btnLighting = document.getElementById('btn-lighting-toggle');

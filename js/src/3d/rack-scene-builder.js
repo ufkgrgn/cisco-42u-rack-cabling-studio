@@ -264,7 +264,7 @@ export function registerRackSceneMethods(Studio3D) {
 
       const roofFloorGeo = new THREE.BoxGeometry(RACK_WIDTH, 0.2, RACK_DEPTH);
       const roof = new THREE.Mesh(roofFloorGeo, frameMat);
-      roof.position.set(0, totalH + 0.3, 0);
+      roof.position.set(0, totalH + 0.35, 0);
       singleRackGroup.add(roof);
 
       const badgeTex = createRackHeaderBadgeTexture(rack.name || `KABİN #${idx + 1}`, rackU);
@@ -275,7 +275,8 @@ export function registerRackSceneMethods(Studio3D) {
       });
       const badgeGeo = new THREE.PlaneGeometry(RACK_WIDTH - 0.6, 0.55);
       const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
-      badgeMesh.position.set(0, totalH + 0.3, RACK_DEPTH / 2 + 0.02);
+      badgeMesh.position.set(0, totalH + 0.35 + 0.32, RACK_DEPTH / 2 + 0.02);
+      badgeMesh.userData = { type: 'rack-header-badge', isRackBadge: true, rackId: rack.id, rackName: rack.name };
       singleRackGroup.add(badgeMesh);
 
       const floor = new THREE.Mesh(roofFloorGeo, frameMat);

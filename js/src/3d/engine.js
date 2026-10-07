@@ -371,6 +371,13 @@ class Studio3D {
         }
       });
     }
+    if (this.rackGroup) {
+      this.rackGroup.traverse(child => {
+        if (child.userData && (child.userData.isRackBadge || child.userData.type === 'rack-header-badge')) {
+          targets.push(child);
+        }
+      });
+    }
     this.interactiveTargets = targets;
   }
 
@@ -384,6 +391,17 @@ class Studio3D {
     let foundCable = null;
 
     for (const hit of intersects) {
+      if (hit.object.userData && (hit.object.userData.isRackBadge || hit.object.userData.type === 'rack-header-badge')) {
+        document.body.style.cursor = 'pointer';
+        const tooltip = document.getElementById('studio-tooltip');
+        if (tooltip) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = (e.clientX + 16) + 'px';
+          tooltip.style.top = (e.clientY + 16) + 'px';
+          tooltip.innerHTML = `<div style="padding:4px 8px;font-size:12px;font-weight:600;color:#38bdf8;white-space:nowrap;">✏️ Kabin Adını Düzenle (Tıklayın)</div>`;
+        }
+        return;
+      }
       if (hit.object.userData && hit.object.userData.isPort) {
         foundPort = hit.object;
         break;
@@ -468,6 +486,31 @@ class Studio3D {
     const intersects = this.raycaster.intersectObjects(targets, true);
 
     for (const hit of intersects) {
+      // 0. Rack Header Badge Click -> Rename Rack
+      if (hit.object.userData && (hit.object.userData.isRackBadge || hit.object.userData.type === 'rack-header-badge')) {
+        const rackId = hit.object.userData.rackId || (this.state.racks[0] && this.state.racks[0].id) || 'rack-1';
+        const rack = this.getRack ? this.getRack(rackId) : (this.state.racks && this.state.racks.find(r => r.id === rackId));
+        if (rack) {
+          sfx.click();
+          const newName = prompt('Kabin Adını Düzenle:', rack.name);
+          if (newName && newName.trim() && newName.trim() !== rack.name) {
+            rack.name = newName.trim();
+            this.rebuildAllRacks();
+            this.showToast(`Kabin adı güncellendi: ${rack.name}`);
+            if (window.RackStudio?.STATE?.racks) {
+              const r2d = window.RackStudio.STATE.racks.find(r => r.id === rackId);
+              if (r2d) {
+                r2d.name = rack.name;
+                window.RackStudio.renderRackTabs?.();
+                window.RackStudio.renderRackRailsAndSlots?.();
+                document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+              }
+            }
+          }
+        }
+        return;
+      }
+
       // 1. Port Click
       if (hit.object.userData && hit.object.userData.isPort) {
         const portData = hit.object.userData;

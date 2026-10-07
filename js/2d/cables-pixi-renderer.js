@@ -276,6 +276,10 @@
 
     const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
     if (renderStats) renderStats.domRectReads++;
+    if (!canvasRect || canvasRect.width <= 0 || canvasRect.height <= 0) {
+      PixiContext.cablesDeferred = true;
+      return;
+    }
 
     let leftChannelUsage = appendOnlyGeometry ? lastChannelUsage.left : 0;
     let rightChannelUsage = appendOnlyGeometry ? lastChannelUsage.right : 0;

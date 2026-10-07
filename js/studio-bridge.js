@@ -139,6 +139,11 @@
       }
       if (proj) {
         window.__STUDIO3D__.loadTopologyFromProject(proj);
+        const rMode2d = window.RackStudio?.STATE?.cableRoutingMode;
+        if (rMode2d && window.__STUDIO3D__.state) {
+          window.__STUDIO3D__.state.cableRoutingMode = (rMode2d === 'direct') ? 'catenary' : 'structured';
+          window.sync3dRoutingButtons?.(window.__STUDIO3D__.state.cableRoutingMode);
+        }
         return true;
       }
     } catch (e) {
@@ -191,6 +196,7 @@
       if (btnWizard) btnWizard.style.display = 'inline-flex';
       if (fpsCounter) fpsCounter.style.display = 'inline-block';
       if (deviceLabelControl) deviceLabelControl.style.display = 'inline-flex';
+      window.sync3dRoutingButtons?.(window.__STUDIO3D__?.state?.cableRoutingMode || 'structured');
       if (window.__STUDIO3D__) {
         const container = document.getElementById('studio3d-container');
         if (container && window.__STUDIO3D__.camera && window.__STUDIO3D__.renderer) {
@@ -295,11 +301,24 @@
       if (window.RackStudioTheme) {
         window.RackStudioTheme.apply(window.RackStudioTheme.get());
       }
+      if (window.RackStudio) {
+        window.RackStudio.invalidateLayoutGeometryCache?.();
+        window.RackStudio.PixiCableGeometry?.invalidateLayoutGeometryCache?.();
+        window.RackStudio.PixiCabinScene?.invalidatePixiCabinScenes?.();
+      }
       requestAnimationFrame(() => {
         setTimeout(() => {
           if (window.RackStudio?.STATE?.projectDocument?.projectId !== projectId) return;
-          if (window.RackStudio && typeof window.RackStudio.refresh === 'function') {
-            window.RackStudio.refresh();
+          if (window.RackStudio) {
+            window.RackStudio.invalidateLayoutGeometryCache?.();
+            window.RackStudio.PixiCableGeometry?.invalidateLayoutGeometryCache?.();
+            window.RackStudio.DeviceSceneRegistry?.captureFromDom?.('return-from-3d');
+            if (typeof window.RackStudio.refresh === 'function') {
+              window.RackStudio.refresh();
+            }
+            if (typeof window.RackStudio.renderAllCablesPixi === 'function') {
+              window.RackStudio.renderAllCablesPixi();
+            }
           }
           const uSlider = document.getElementById('rack-u-slider');
           const uDisplay = document.getElementById('rack-u-val');

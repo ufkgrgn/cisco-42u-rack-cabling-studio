@@ -163,10 +163,13 @@
       RS.invalidateLayoutGeometryCache?.();
       RS.loadCustomTopology(validated, { render: false });
       // An accepted domain change must still be recorded if its visual refresh fails.
-      try { RS.refresh(); }
-      catch (error) {
-        renderingWarning = error instanceof Error ? error.message : 'Görünüm yenilenemedi.';
-        console.warn('Proje komutu uygulandı; görünüm yenilenemedi.', renderingWarning);
+      // If 3D mode is active, the 2D view is hidden, so avoid running 2D DOM visual refresh now.
+      if (!window.is3DMode) {
+        try { RS.refresh(); }
+        catch (error) {
+          renderingWarning = error instanceof Error ? error.message : 'Görünüm yenilenemedi.';
+          console.warn('Proje komutu uygulandı; görünüm yenilenemedi.', renderingWarning);
+        }
       }
       document.dispatchEvent(new CustomEvent('rackstudio:change', { detail: { immediate: true } }));
     } finally { applying = false; }

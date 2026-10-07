@@ -81,3 +81,50 @@ body.studio-3d-mode .studio-view-caption, body.studio-3d-mode .layout-legend { d
 @media (prefers-reduced-motion: reduce) {
   .studio-work-mode-switch .segmented-btn { transition: none; }
 }
+
+.cabling-indicator-badge {
+  font-size: 9px;
+  margin-left: 3px;
+  opacity: 0.7;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+[data-studio-mode="cabling"] .cabling-indicator-badge {
+  transform: rotate(180deg);
+  opacity: 1;
+  color: var(--neon-cyan, #38bdf8);
+}
+
+.cabling-sub-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-panel, #0f172a);
+  border: 1px solid var(--border-strong, #334155);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  z-index: 10000;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+:is([data-theme="light"], [data-theme="high-contrast"]) .cabling-sub-popover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+}
+
+.cabling-sub-popover .cabling-sub-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  height: 28px;
+  min-height: 28px;
+  border-radius: 5px;
+}
+

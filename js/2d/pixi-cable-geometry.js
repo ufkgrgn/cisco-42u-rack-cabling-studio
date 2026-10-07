@@ -130,29 +130,53 @@
       return rackRailWorldCache.get(rackId);
     }
     if (telemetry) telemetry.rackCacheMisses++;
-    let left = 23;
-    let right = 595;
-    let top = 0;
+
+    const isMulti = STATE.viewMode === 'multi' && STATE.racks && STATE.racks.length > 1;
+    let fallbackLeft = 23;
+    let fallbackRight = 595;
+    let fallbackTop = 0;
+    if (isMulti) {
+      const idx = (STATE.racks || []).findIndex(r => r && r.id === rackId);
+      const rackIdx = idx >= 0 ? idx : 0;
+      const rackX = 60 + rackIdx * (634 + 64);
+      fallbackLeft = rackX + 30;
+      fallbackRight = rackX + 604;
+      fallbackTop = 76;
+    }
+
+    let left = fallbackLeft;
+    let right = fallbackRight;
+    let top = fallbackTop;
+
     const rackCont = document.querySelector(`.rack-container[data-rack-id="${rackId}"]`) ||
                      document.getElementById(`rack-container-${rackId}`) ||
                      document.getElementById('rack-container');
-    if (rackCont) {
+    if (rackCont && canvasRect && canvasRect.width > 0 && canvasRect.height > 0) {
       const rc = rackCont.getBoundingClientRect();
       if (renderStats) renderStats.domRectReads++;
-      top = clientToPixi(0, rc.top, canvasRect, stageW, stageH).y;
-      const railL = rackCont.querySelector('.rack-rail.left');
-      const railR = rackCont.querySelector('.rack-rail.right');
-      if (railL && railR) {
-        const lRect = railL.getBoundingClientRect();
-        const rRect = railR.getBoundingClientRect();
-        if (renderStats) renderStats.domRectReads += 2;
-        left = clientToPixi(lRect.left + lRect.width / 2, 0, canvasRect, stageW, stageH).x;
-        right = clientToPixi(rRect.left + rRect.width / 2, 0, canvasRect, stageW, stageH).x;
+      if (rc.width > 0) {
+        top = clientToPixi(0, rc.top, canvasRect, stageW, stageH).y;
+        const railL = rackCont.querySelector('.rack-rail.left');
+        const railR = rackCont.querySelector('.rack-rail.right');
+        if (railL && railR) {
+          const lRect = railL.getBoundingClientRect();
+          const rRect = railR.getBoundingClientRect();
+          if (renderStats) renderStats.domRectReads += 2;
+          if (lRect.width > 0 && rRect.width > 0) {
+            const measuredLeft = clientToPixi(lRect.left + lRect.width / 2, 0, canvasRect, stageW, stageH).x;
+            const measuredRight = clientToPixi(rRect.left + rRect.width / 2, 0, canvasRect, stageW, stageH).x;
+            if (measuredRight > measuredLeft + 100) {
+              left = measuredLeft;
+              right = measuredRight;
+              const bounds = { left, right, top };
+              rackRailWorldCache.set(rackId, bounds);
+              return bounds;
+            }
+          }
+        }
       }
     }
-    const bounds = { left, right, top };
-    rackRailWorldCache.set(rackId, bounds);
-    return bounds;
+    return { left, right, top };
   }
 
   function getCachedOrgY(org, fallbackY, otherY, canvasRect, stageW, stageH) {
@@ -165,12 +189,16 @@
     }
     if (telemetry) telemetry.organizerCacheMisses++;
     const orgEl = document.getElementById(org.instanceId);
-    if (orgEl) {
+    if (orgEl && canvasRect && canvasRect.width > 0 && canvasRect.height > 0) {
       const r = orgEl.getBoundingClientRect();
       if (renderStats) renderStats.domRectReads++;
-      const y = clientToPixi(0, r.top + r.height / 2, canvasRect, stageW, stageH).y;
-      organizerWorldYCache.set(org.instanceId, y);
-      return y;
+      if (r.height > 0) {
+        const y = clientToPixi(0, r.top + r.height / 2, canvasRect, stageW, stageH).y;
+        if (y > 0) {
+          organizerWorldYCache.set(org.instanceId, y);
+          return y;
+        }
+      }
     }
     return fallbackY + (otherY >= fallbackY ? 14 : -14);
   }
