@@ -36,6 +36,8 @@
 .sidebar-right.collapsed #layout-overview,
 [data-studio-mode="layout"] #sidebar-right.collapsed .schedule-inspector-footer { display: none !important; }
 .layout-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 12px 6px; background: var(--bg-inset); border: 1px solid var(--border); border-radius: 8px; }
+.layout-summary-scope { grid-column: 1 / -1; text-align: center; margin: 0 0 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); font: 600 12px/1.45 var(--font-sans); color: var(--text-main); }
+.layout-summary-scope span { display: block; margin-top: 3px; font-weight: 400; overflow-wrap: anywhere; }
 .layout-summary > div { display: grid; text-align: center; gap: 3px; }
 .layout-summary strong { font-size: 22px; font-weight: 650; color: var(--text-main); }
 .layout-summary span { font-size: 11px; color: var(--text-muted); }
@@ -49,27 +51,14 @@
 .layout-device-name { display: grid; gap: 3px; min-width: 0; }
 .layout-device-name strong { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .layout-device-name small { font-size: 10px; color: var(--text-muted); overflow-wrap: anywhere; }
-[data-studio-mode="layout"] #sidebar-right .schedule-table-wrapper,
-[data-studio-mode="layout"] #sidebar-right .schedule-inspector-footer,
-[data-studio-mode="layout"] #schedule-toolbar,
-[data-studio-mode="layout"] #sidebar-right .schedule-subtitle,
-[data-studio-mode="layout"] #btn-clear-cables,
-[data-studio-mode="layout"] .mobile-schedule-tabs,
-[data-studio-mode="layout"] #btn-cable-tools,
-[data-studio-mode="layout"] #viewport-cable-dock,
-[data-studio-overview="true"] .viewport-bottom-hint { display: none !important; }
 [data-studio-overview="true"] .mounted-device .port { pointer-events: none; }
-[data-studio-mode="layout"] .schedule-inspector-footer:has(#workflow-selection-panel:not([hidden])) { display: block !important; max-height: 40%; overflow-y: auto; order: 3; }
-[data-studio-mode="layout"] .schedule-inspector-footer > .section-title,
-[data-studio-mode="layout"] .schedule-inspector-footer > #inspector-info,
-[data-studio-mode="layout"] .schedule-inspector-footer .workflow-selection-content > table { display: none; }
 [data-theme="high-contrast"] .layout-device-row { border-width: 2px; }
 body.studio-3d-mode .studio-view-caption, body.studio-3d-mode .layout-legend { display: none; }
 @media (max-width: 1023px) {
   .studio-view-caption { top: calc(var(--chrome-offset, 48px) + 8px); left: 10px; right: 10px; }
   .layout-legend { bottom: 126px; padding: 5px 8px; gap: 5px 9px; }
   .studio-work-mode-switch .segmented-btn { min-height: 40px; }
-  .layout-legend-title, .studio-view-note { display: none; }
+  .layout-legend-title { display: none; }
   .layout-overview { padding: 12px; }
 }
 @media (max-width: 520px) {
@@ -81,3 +70,50 @@ body.studio-3d-mode .studio-view-caption, body.studio-3d-mode .layout-legend { d
 @media (prefers-reduced-motion: reduce) {
   .studio-work-mode-switch .segmented-btn { transition: none; }
 }
+
+.cabling-indicator-badge {
+  font-size: 9px;
+  margin-left: 3px;
+  opacity: 0.7;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+[data-studio-mode="cabling"] .cabling-indicator-badge {
+  transform: rotate(180deg);
+  opacity: 1;
+  color: var(--neon-cyan, #38bdf8);
+}
+
+.cabling-sub-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: var(--bg-panel, #0f172a);
+  border: 1px solid var(--border-strong, #334155);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(12px);
+  z-index: 10000;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+:is([data-theme="light"], [data-theme="high-contrast"]) .cabling-sub-popover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
+}
+
+.cabling-sub-popover .cabling-sub-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  height: 28px;
+  min-height: 28px;
+  border-radius: 5px;
+}
+

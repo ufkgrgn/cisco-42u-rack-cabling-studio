@@ -91,6 +91,6 @@
   outline-offset: 2px;
 }
 .p09-dialog::backdrop {
-  background: rgba(5, 10, 18, 0.65);
-  backdrop-filter: blur(8px);
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(var(--modal-blur));
 }

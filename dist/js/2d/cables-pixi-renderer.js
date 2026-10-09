@@ -239,6 +239,24 @@
 
       if (!geometryChanged) {
         if (renderStats) renderStats.fastPathHits++;
+        const orderChanged = visibleCables.some((cable, index) => cable.id !== lastVisibleCableOrder[index]);
+        if (orderChanged) {
+          const orderedDisplays = visibleCables.map(cable => [cable.id, cableDisplays.get(cable.id)]);
+          cableDisplays.clear();
+          orderedDisplays.forEach(([id, display]) => cableDisplays.set(id, display));
+          if (usesBatchedViewportRenderer()) {
+            RS.PixiCableBatch?.rebuildBatchedBase();
+            RS.PixiCableBatch?.rebuildBatchedFocus();
+          } else {
+            orderedDisplays.forEach(([, display]) => {
+              [display.glow, display.casing, display.core, ...(display.boots || [])].forEach(child => {
+                if (child?.parent) child.parent.addChild(child);
+              });
+            });
+          }
+          lastVisibleCableOrder = visibleCables.map(cable => cable.id);
+        }
+
         if (styleChangedIds.size > 0) {
           if (performanceTelemetry) {
             performanceTelemetry.incrementalStylePasses++;
@@ -255,7 +273,7 @@
         }
         if (renderStats) renderStats.lastDurationMs = performance.now() - renderStartedAt;
         if (rendererResized) PixiContext.syncPixiViewportCamera?.(RS.ZOOM_STATE, true, 'resize');
-        else if (styleChangedIds.size > 0) PixiContext.renderPixi?.('style');
+        else if (orderChanged || styleChangedIds.size > 0) PixiContext.renderPixi?.(orderChanged ? 'layer' : 'style');
         return;
       }
     }
@@ -276,6 +294,10 @@
 
     const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
     if (renderStats) renderStats.domRectReads++;
+    if (!canvasRect || canvasRect.width <= 0 || canvasRect.height <= 0) {
+      PixiContext.cablesDeferred = true;
+      return;
+    }
 
     let leftChannelUsage = appendOnlyGeometry ? lastChannelUsage.left : 0;
     let rightChannelUsage = appendOnlyGeometry ? lastChannelUsage.right : 0;

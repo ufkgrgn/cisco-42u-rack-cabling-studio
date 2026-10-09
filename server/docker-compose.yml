@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17
+    ports: ["127.0.0.1:5432:5432"]
+    environment:
+      POSTGRES_DB: rack_studio
+      POSTGRES_USER: rack_studio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a development database password}
+    volumes: ["workspace-db:/var/lib/postgresql/data"]
+  identity:
+    image: quay.io/keycloak/keycloak:26.4
+    command: start-dev
+    ports: ["127.0.0.1:8080:8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?Set a development admin name}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set a development admin password}
+    volumes: ["workspace-identity:/opt/keycloak/data"]
+volumes:
+  workspace-db:
+  workspace-identity:

@@ -25,6 +25,9 @@
     ['btn-export-json-3d', 'Projeyi dosyaya kaydet', 'Download', 'Proje', 'json export indir'],
     ['btn-import-json-3d', 'Proje dosyası aç', 'Upload', 'Proje', 'json import yukle'],
     ['btn-inventory-import', 'Envanteri karşılaştır', 'ListChecks', 'Proje', 'import'],
+    ['btn-netbox-import', 'NetBox gözlemleri', 'ListChecks', 'Proje', 'netbox import envanter'],
+    ['btn-workspace', 'Ekip çalışma alanı', 'Users', 'Proje', 'ortak çalışma senkronizasyon taslak'],
+    ['btn-diagnostics', 'Yerel teşhis', 'Activity', 'Proje', 'teşhis destek tanılama'],
     ['btn-field-observations', 'Gözlem geçmişi', 'History', 'Proje', 'saha fark gözlem observations'],
     ['btn-field-workflow', 'Saha iş akışı', 'ClipboardList', 'Proje', 'uygulama etiket test kanıt'],
     ['btn-field-qr', 'Saha QR kodu', 'ScanLine', 'Proje', 'kamera kimlik'],
@@ -41,13 +44,15 @@
     ['btn-audio-toggle', 'Ses efektleri', 'Volume2', 'Tercihler', 'audio'],
     ['btn-show-dpad', 'Yön düğmeleri', 'Move', 'Görünüm', 'navigation', '3d'],
     ['btn-mode-layout', 'Kabin yerleşim modu', 'Layers', 'Görünüm', 'yerlesim layout montaj', '2d'],
-    ['btn-mode-cabling', 'Kablo ayrıntıları', 'Cable', 'Görünüm', 'kablolama cabling baglanti', '2d'],
+    ['btn-mode-cabling', 'Kablolama', 'Cable', 'Görünüm', 'kablolama cabling baglanti', '2d'],
     ['btn-toggle-cables', 'Kabloları göster / gizle', 'Eye', 'Görünüm', 'kablo gizle goster C', '2d'],
     ['btn-2d-clear-action', 'Tüm kabinleri sıfırla', 'Trash2', 'Proje', 'sil temizle']
   ].map(([id, label, icon, group, keywords, context]) => ({ id, label, icon, group, keywords, context }));
   const byId = new Map(definitions.map(action => [action.id, action]));
   function reason(action) {
     if (action?.context && action.context !== mode()) return `${action.context.toUpperCase()} görünümünde kullanılabilir`;
+    if (action?.id === 'btn-toggle-cables' && window.RackStudio?.STATE.studioWorkMode !== 'cabling') return 'Kablolama görünümünde kullanılabilir';
+    if (action?.id === 'btn-view-mode-multi' && matchMedia('(max-width: 767px)').matches) return 'Telefonda etkin kabin gösterilir';
     const control = document.getElementById(action?.id);
     if (!control) return 'Bu işlem henüz hazır değil';
     if (control.disabled || control.getAttribute('aria-disabled') === 'true') return control.title || 'Bu işlem şu anda kullanılamıyor';
@@ -75,6 +80,14 @@
     } else document.getElementById(id).click();
     return true;
   }
-  window.UIActions = { definitions, get: id => byId.get(id), normalize, reason, run, notify,
+  function getState(id) {
+    const action = byId.get(id) || {id};
+    const control = document.getElementById(id);
+    const why = reason(action);
+    const pressed = control?.getAttribute('aria-pressed');
+    const toggles = /^(btn-view-(2d|3d|mode-single|mode-multi)|cam-|btn-mode-)/.test(id);
+    return {id, label: action.label || control?.textContent.trim() || id, enabled: !why, reason: why, pressed: pressed === null || pressed === undefined ? (toggles ? !!control?.classList.contains('active') : null) : pressed === 'true'};
+  }
+  window.UIActions = {getState, definitions, get: id => byId.get(id), normalize, reason, run, notify,
     list: () => definitions.filter(a => !a.context || a.context === mode()) };
 })();

@@ -167,9 +167,10 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       bg.addColorStop(0.5, '#3c454a');
       bg.addColorStop(1, '#252c30');
     } else if (visualKind === 'patch-panel') {
-      bg.addColorStop(0, '#17120a');
-      bg.addColorStop(0.5, '#292011');
-      bg.addColorStop(1, '#0f0c08');
+      // Professional matte dark graphite steel for patch panels (no brown mud)
+      bg.addColorStop(0, '#111827');
+      bg.addColorStop(0.5, '#1e293b');
+      bg.addColorStop(1, '#0f172a');
     } else if (dev.category === 'server') {
       bg.addColorStop(0, '#283142');
       bg.addColorStop(0.5, '#3b4759');
@@ -334,12 +335,12 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
     const brand = (dev.manufacturer || 'CISCO').toUpperCase();
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
-    ctx.fillText(brand, 28, 40);
+    ctx.fillText(brand, 28, 40, badgeW - 40);
 
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
     const modelText = dev.name.replace(new RegExp(brand, 'i'), '').trim();
-    ctx.fillText(modelText || dev.name, 28, 64);
+    ctx.fillText(modelText || dev.name, 28, 64, badgeW - 40);
 
     const kindLabels = {
       switch: ['NETWORK SWITCH', '#22d3ee'],
@@ -354,9 +355,9 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       ctx.font = 'bold 11px Consolas, monospace';
       const typeW = Math.ceil(ctx.measureText(badgeText).width) + 18;
       ctx.fillStyle = badgeColor;
-      ctx.fillRect(28, 72, typeW, 20);
+      ctx.fillRect(28, 72, Math.min(typeW, badgeW - 40), 20);
       ctx.fillStyle = '#071018';
-      ctx.fillText(badgeText, 37, 86);
+      ctx.fillText(badgeText, 37, 86, badgeW - 56);
     }
 
     // SWITCH HOSTNAME & IP ADDRESS LABEL STRIP (P-Touch Style Bezel Label)
@@ -383,7 +384,7 @@ import { RAIL_WIDTH, U_HEIGHT } from './catalog3d.js';
       // Black monospace crisp label
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 12px Consolas, monospace';
-      ctx.fillText(labelText.slice(0, 36), 30, h - 24);
+      ctx.fillText(labelText.slice(0, 36), 30, h - 24, labelW - 12);
     } else {
       ctx.fillStyle = '#94a3b8';
       ctx.font = '11px monospace';

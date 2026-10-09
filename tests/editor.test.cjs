@@ -52,6 +52,7 @@ test('rack editor resize, placement guards, move, history and recovery', async (
     await page.mouse.up();
     assert.equal(await top(), 23);
 
+    await page.locator('.catalog-tree-header').first().click();
     const catalogCard = page.locator('.device-card[data-device-id]:not([hidden])').first();
     const catalogKey = await catalogCard.getAttribute('data-device-id');
     const targetSlot = page.locator('.rack-slot[data-u="40"]').first();
@@ -106,16 +107,42 @@ test('tablet catalog is an overlay and supports tap-to-place', async () => {
       window.setLeftSidebarCollapsed(false);
     });
     const viewportWidthBefore = await page.locator('#rack-viewport').evaluate(el => el.getBoundingClientRect().width);
-    const card = page.locator('.sidebar-left .device-card[data-device-id]:not([hidden])').first();
+    await page.locator('.catalog-tree-header').first().click();
+    const card = page.locator('#sidebar-left .device-card[data-device-id]:not([hidden])').first();
     const key = await card.getAttribute('data-device-id');
-    await card.click();
-    await page.waitForFunction(() => document.getElementById('sidebar-left').classList.contains('collapsed'));
+    await card.locator('.btn-card-quick-mount').click();
+    await page.selectOption('#mobile-mount-slot','35');
+    await page.locator('#mobile-workflow-dialog').getByRole('button',{name:'Yerleştir',exact:true}).click();
+    await page.waitForFunction(() => document.getElementById('sidebar-left').hidden);
     const viewportWidthAfter = await page.locator('#rack-viewport').evaluate(el => el.getBoundingClientRect().width);
     assert.equal(Math.round(viewportWidthAfter), Math.round(viewportWidthBefore), 'overlay sidebar must not resize the rack viewport');
-    await page.locator('.rack-slot[data-u="35"]').first().evaluate(slot => slot.click());
     await page.waitForFunction(
       ({key, topU}) => window.RackStudio.getActiveRack().devices.some(device => device.catalogKey === key && device.topU === topU),
       {key, topU:35}
     );
+  } finally { await browser.close(); }
+});
+
+
+test('closing captures the latest change before the autosave delay and durable reload retains it', async () => {
+  const browser = await chromium.launch({channel:process.env.BROWSER_CHANNEL || 'msedge',headless:true});
+  try {
+    const page = await browser.newPage();
+    await page.goto(pathToFileURL(path.resolve(__dirname, '../index.html')).href);
+    await page.waitForSelector('.studio-editor[data-ready="true"]');
+    await page.evaluate(() => window.RackStudio.saveProjectNow());
+    const saved = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.getActiveRack().name = 'Immediate close regression';
+      window.dispatchEvent(new Event('beforeunload'));
+      const prefix = RS.ProjectRepositoryConstants.DRAFT_PREFIX;
+      const drafts = Object.keys(localStorage).filter(key => key.startsWith(prefix)).map(key => JSON.parse(localStorage.getItem(key)));
+      return drafts.some(doc => doc.projectId === RS.STATE.projectDocument.projectId && doc.topology.racks.some(r => r.name === 'Immediate close regression'));
+    });
+    assert.equal(saved, true, 'unload recovery must capture live state rather than the previous snapshot');
+    await page.evaluate(() => window.RackStudio.saveProjectNow());
+    await page.reload();
+    await page.waitForSelector('.studio-editor[data-ready="true"]');
+    assert.equal(await page.evaluate(() => window.RackStudio.getActiveRack().name), 'Immediate close regression');
   } finally { await browser.close(); }
 });

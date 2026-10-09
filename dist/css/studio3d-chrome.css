@@ -87,7 +87,20 @@
   white-space: nowrap;
 }
 
-.hud-badge.fps {
+.hud-badge.fps,
+#fps-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  min-width: 64px;
+  max-width: 64px;
+  box-sizing: border-box;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  contain: layout inline-size;
+  flex-shrink: 0;
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.4);
   color: var(--neon-green);

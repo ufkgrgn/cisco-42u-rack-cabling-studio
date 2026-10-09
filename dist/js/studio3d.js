@@ -2808,7 +2808,7 @@
         this.focusCable(this.state.selectedCableId);
       });
       const dom = this.renderer.domElement;
-      window.addEventListener("resize", () => {
+      const resizeRenderer = () => {
         const w = this.container.clientWidth;
         const h = this.container.clientHeight;
         if (!w || !h || w === this._lastW && h === this._lastH) return;
@@ -2817,7 +2817,11 @@
         this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(w, h);
-      });
+        this.markDirty();
+      };
+      window.addEventListener("resize", resizeRenderer);
+      this._containerResizeObserver = new ResizeObserver(resizeRenderer);
+      this._containerResizeObserver.observe(this.container);
       dom.addEventListener("mousemove", (e) => {
         const rect = dom.getBoundingClientRect();
         this.mouse.x = (e.clientX - rect.left) / rect.width * 2 - 1;

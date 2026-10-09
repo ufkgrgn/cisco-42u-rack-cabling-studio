@@ -40,14 +40,14 @@ test('common selection uses canonical device metadata and ports in 2D/3D and edi
  await page.waitForFunction(()=>window.RackStudio.STATE.racks[0].devices[0].hostname==='workflow-edit');assert.match(await panel.textContent(),/workflow-edit/);
  await page.evaluate(()=>window.__STUDIO3D__.selectCable('cable-1'));assert.match(await panel.textContent(),/Ölçülen metraj/);assert.match(await panel.textContent(),/Kaynak/);
  await page.setViewportSize({width:390,height:950});await page.waitForTimeout(320);await page.evaluate(()=>window.__STUDIO3D__.selectDevice('device-1'));
- await page.locator('#btn-tools-menu-toggle').click();await page.locator('#btn-workflow-selection').click();const compact=page.getByRole('dialog',{name:'Seçim bilgileri',exact:true});assert.match(await compact.textContent(),/workflow-edit/);
+ await page.locator('#btn-mobile-selection').click();const compact=page.locator('#sidebar-right');assert.match(await compact.textContent(),/workflow-edit/);
  await page.screenshot({path:path.resolve(__dirname,'../docs/product-plan/results/workflow-selection-3d-390.png')});await page.keyboard.press('Escape');assert.equal(await compact.isVisible(),false);
- await page.evaluate(()=>window.__STUDIO3D__.selectCable('cable-1'));if(!(await page.locator('#hud-tools-panel').isVisible()))await page.locator('#btn-tools-menu-toggle').click();await page.locator('#btn-workflow-selection').click();assert.match(await compact.textContent(),/Pilot bağlantı/);await page.keyboard.press('Escape');
+ await page.evaluate(()=>window.__STUDIO3D__.selectCable('cable-1'));await page.locator('#btn-mobile-selection').click();assert.match(await compact.textContent(),/Pilot bağlantı/);await page.keyboard.press('Escape');
  await page.setViewportSize({width:1440,height:950});await page.waitForTimeout(320);if(await page.locator('#hud-tools-panel').isVisible())await page.locator('#btn-close-tools').click();
  await page.locator('#btn-view-2d').click();await page.waitForFunction(()=>!window.is3DMode);
  await page.evaluate(()=>window.RackStudio.highlightCable('cable-1',true));assert.match(await panel.textContent(),/Pilot bağlantı/);
  await page.evaluate(()=>window.RackStudio.loadCustomTopology({racks:[{id:'new-rack',name:'Yeni',heightU:18,devices:[]}],cables:[]}));
- assert.equal(await panel.isVisible(),false);assert.deepEqual(errors,[]);
+ assert.match(await panel.textContent(),/Bir cihaz veya kablo seçin/);assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 });
 
@@ -63,10 +63,10 @@ test('workflow views and selection fit 320/390/768/1440 widths with keyboard and
   }
  }
  await page.setViewportSize({width:390,height:950});await page.evaluate(()=>{const R=window.RackStudio;R.WorkflowViews.set('field');R.highlightCable('cable-1',true);});
- await page.locator('#btn-mobile-selection').click();let dialog=page.locator('#mobile-workflow-dialog');assert.match(await dialog.textContent(),/Ölçülen metraj/);assert.match(await dialog.textContent(),/Port seçerek bağla/);
+ await page.locator('#btn-mobile-selection').click();let dialog=page.locator('#sidebar-right');assert.match(await dialog.textContent(),/Ölçülen metraj/);assert.match(await dialog.textContent(),/Port seçerek bağla/);
  await page.screenshot({path:path.resolve(__dirname,'../docs/product-plan/results/workflow-selection-390.png')});
  await page.keyboard.press('Escape');assert.equal(await dialog.isVisible(),false);assert.equal(await page.locator('#btn-mobile-selection').evaluate(el=>el===document.activeElement),true);
- await page.locator('#btn-mobile-selection').click();await dialog.getByRole('button',{name:'Port seçerek bağla',exact:true}).click();assert.match(await dialog.textContent(),/Bağlantının ilk portunu seçin/);await page.keyboard.press('Escape');
+ await page.locator('#btn-mobile-selection').click();await dialog.getByRole('button',{name:'Port seçerek bağla',exact:true}).click();dialog=page.locator('#mobile-workflow-dialog');assert.match(await dialog.textContent(),/Bağlantının ilk portunu seçin/);await page.keyboard.press('Escape');
  await page.locator('#btn-tools-menu-toggle').click();await page.locator('#workflow-mode').focus();await page.keyboard.press('s');await page.keyboard.press('Escape');assert.equal(await page.locator('#hud-tools-panel').isVisible(),false);
  }finally{await browser.close();}
 });

@@ -199,9 +199,7 @@
           </div>
         </div>
         <div class="card-endpoint-summary" title="${escapeHtml(flowTooltip)}">
-          <span>${showRackBadge && left.rack ? `[${escapeHtml(left.rackShort)}] ` : ''}${escapeHtml(left.devLabel || 'Cihaz')} · ${escapeHtml(left.port ? left.port.name : left.portId)}</span>
-          <span aria-hidden="true">→</span>
-          <span>${showRackBadge && right.rack ? `[${escapeHtml(right.rackShort)}] ` : ''}${escapeHtml(right.devLabel || 'Cihaz')} · ${escapeHtml(right.port ? right.port.name : right.portId)}</span>
+          ${[left, right].map((end, index) => `<button type="button" class="schedule-endpoint clickable-endpoint" data-icon="none" data-instance-id="${end.instanceId}" data-port-id="${end.portId}"><small>Uç ${index+1}${end.rack ? ' · '+escapeHtml(end.rack.name) : ''}</small><strong>${escapeHtml(end.devLabel || 'Cihaz')}</strong><span>U${end.dev?.topU || '?'} · ${escapeHtml(end.port?.name || end.portId)}</span></button>`).join('')}
         </div>
         <div class="card-route-bar">
           <div class="route-split-container" title="${escapeHtml(flowTooltip)}">
@@ -373,7 +371,8 @@
               <span class="route-center-sep" style="font-size:12px;opacity:0.7;">➔</span>
               <div class="tree-dest-info">
                 <span class="tree-dest-u">U${remoteDev ? remoteDev.topU : '?'}</span>
-                <span>${escapeHtml(remoteLabel)} (${escapeHtml(remotePortName)})</span>
+                <span class="tree-dest-label" title="${escapeHtml(remoteLabel)}">${escapeHtml(remoteLabel)}</span>
+                <span class="tree-dest-port">${escapeHtml(remotePortName)}</span>
               </div>
             </div>
             <div class="tree-cable-right">
@@ -392,7 +391,7 @@
             <div class="tree-switch-info">
               <span class="tree-toggle-icon">${isCollapsed ? '▶' : '▼'}</span>
               <span class="tree-switch-badge-u">U${sw.topU}</span>
-              <span class="tree-switch-title">${escapeHtml(swShort)}</span>
+              <span class="tree-switch-title" title="${escapeHtml(sw.name || swCat?.name || swShort)}">${escapeHtml(swShort)}</span>
               ${sw.hostname && sw.hostname !== swShort ? `<span class="tree-switch-model">(${escapeHtml(sw.hostname)})</span>` : ''}
             </div>
             <div class="tree-switch-actions">
@@ -507,9 +506,9 @@
         <span class="schedule-total-badge">${STATE.cables.length} Bağlantı</span>
       </div>
       <div class="schedule-sort-group">
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'u' ? 'active' : ''}" data-sort="u" title="Kabin U Konumuna Göre Sırala">U sırası</button>
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'panel' ? 'active' : ''}" data-sort="panel" title="Patch Panel Adına Göre Sırala (A-Z)">Panel</button>
-        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'tree' ? 'active' : ''}" data-sort="tree" title="Cisco Switch Port Ağacı Görünümü">Switch ağacı</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'u' ? 'active' : ''}" aria-pressed="${scheduleSortMode === 'u'}" data-sort="u" title="Kabin U Konumuna Göre Sırala">U sırası</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'panel' ? 'active' : ''}" aria-pressed="${scheduleSortMode === 'panel'}" data-sort="panel" title="Patch Panel Adına Göre Sırala (A-Z)">Panel</button>
+        <button type="button" class="sort-tab-btn ${scheduleSortMode === 'tree' ? 'active' : ''}" aria-pressed="${scheduleSortMode === 'tree'}" data-sort="tree" title="Cisco Switch Port Ağacı Görünümü">Switch</button>
       </div>
     `;
 
@@ -541,8 +540,9 @@
     if (!STATE.cables || STATE.cables.length === 0) {
       dom.scheduleTbody.innerHTML = `
         <tr>
-          <td colspan="5" style="text-align:center; color:#64748b; padding:20px;">
-            Henüz kablo bağlantısı yapılmadı.
+          <td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">
+            Henüz kablo bağlantısı yapılmadı. Kablo ayrıntılarını açıp kaynak ve hedef portu seçin.
+            <button type="button" class="section-help-button" data-help-open="cabling">Bağlantı oluşturmayı öğren</button>
           </td>
         </tr>
       `;

@@ -7,7 +7,9 @@
   function choose(kind,id,source){
     if((source==='3d')!==!!window.is3DMode)return;
     if(!id && selected?.kind!==kind)return;
+    const changed = id && (selected?.id !== id || selected?.kind !== kind);
     selected=id?{kind,id}:null;projectId=RS.STATE.projectDocument.projectId;refresh();
+    if(changed && kind === "device") RS.WorkspaceUI?.openPanel("selection");
   }
   function current(){
     if(projectId!==RS.STATE.projectDocument.projectId){selected=null;projectId=RS.STATE.projectDocument.projectId;}
@@ -28,8 +30,18 @@
       row('Cihaz',device.hostname||device.name||cat.name);row('Model',cat.name||device.catalogKey);row('Kabin',rack.name);row('Konum',RS.STATE.projectDocument.locations.find(l=>l.id===rack.locationId)?.name);row('Yerleşim',`U${device.topU} · ${device.uHeight}U`);row('IP adresi',device.ipAddress);row('Varlık etiketi',device.assetTag);row('Seri numarası',device.serialNumber);
       const observed=RS.STATE.projectDocument.observations.filter(o=>o.entityRef?.kind==='device'&&o.entityRef.id===device.instanceId);
       row('Saha gözlemi',observed.length?`${observed.length} kayıt · planı değiştirmez`:'Henüz gözlem yok');
+      const title=node('h2',device.hostname||device.name||cat.name||device.catalogKey);title.className='workspace-selected-title';target.prepend(title);
       const table=node('table'),head=node('tr');for(const title of ['Port','Durum','Plan'])head.append(node('th',title));table.append(head);
-      for(const port of cat.ports||[]){const cfg=device.portsConfig?.[port.id]||{},connected=RS.STATE.cables.some(c=>[c.from,c.to].some(e=>e.instanceId===device.instanceId&&e.portId===port.id));const tr=node('tr');tr.append(node('td',port.name||port.id),node('td',connected?'Bağlı':'Boş'),node('td',[cfg.role,cfg.vlan&&'VLAN '+cfg.vlan,cfg.description].filter(Boolean).join(' · ')||'Varsayılan'));table.append(tr);}target.append(table);
+      for(const port of cat.ports||[]){const cfg=device.portsConfig?.[port.id]||{},connected=RS.STATE.cables.some(c=>[c.from,c.to].some(e=>e.instanceId===device.instanceId&&e.portId===port.id));const tr=node('tr');tr.append(node('td',port.name||port.id),node('td',connected?'Bağlı':'Boş'),node('td',[cfg.role,cfg.vlan&&'VLAN '+cfg.vlan,cfg.description].filter(Boolean).join(' · ')||'Varsayılan'));table.append(tr);}
+      const portDetails=node('details'),portSummary=node('summary',`Portlar · ${(cat.ports||[]).length} port`);portDetails.append(portSummary,table);target.append(portDetails);
+      if(RS.WorkflowViews.canEdit() && cat.ports?.length)target.append(button('Port ayarları',()=>window.PortConfigEditor?.open(device.instanceId,cat.ports[0].id,window.is3DMode?'3d':'2d')));
+      if(RS.WorkflowViews.canEdit() && !window.is3DMode){
+        const related=RS.STATE.cables.filter(c=>[c.from,c.to].some(e=>e.instanceId===device.instanceId));
+        if((cat.ports||[]).filter(p=>p.type!=='power').length>related.length)target.append(button('Boş portları otomatik bağla',e=>RS.openSwitchAutoFillPopover?.(document.activeElement,device.instanceId)));
+        if(related.length){target.append(button('Kabloları renklendir',()=>RS.openSwitchBulkColorPopover?.(document.activeElement,device.instanceId)),button('Cihazın kablolarını sök',()=>RS.clearDeviceCables?.(device.instanceId,document.activeElement)));}
+        if(cat.subType==='finger-duct' || /finger/i.test(cat.name||''))target.append(button('Kanal kapağını aç / kapat',()=>RS.toggleOrganizerCover?.(device.instanceId)));
+        target.append(button('Cihazı kaldır',()=>RS.showInlineDeleteConfirm?.(document.activeElement,device.hostname||cat.name,{category:cat.category,cableCount:related.length},()=>RS.removeDevice?.(device.instanceId))));
+      }
       if(RS.WorkflowViews.canEdit())target.append(button('Cihaz bilgilerini düzenle',()=>{
         if(!current()?.device) return refresh();
         if(mobile?.open)mobile.close();
@@ -49,40 +61,27 @@
     target.append(button('Gözlem geçmişi',()=>{if(mobile?.open)mobile.close();document.getElementById('mobile-workflow-dialog')?.close();RS.FieldObservationUI?.open({kind:found.device?'device':'cable',id:found.device?.instanceId||found.cable.id});}));
     const actions=node('div');actions.className='selection-actions';
     for(const action of [...target.children].filter(el=>el.tagName==='BUTTON'))actions.append(action);
-    target.append(actions);
+    const title = target.querySelector(".workspace-selected-title");
+    if(title) title.after(actions); else target.prepend(actions);
   }
   function refresh(){
     if(!panel)return;
-    const found=current();
-    if(window.is3DMode){
-      const host=document.getElementById('studio3d-wrapper');
-      if(host && panel.parentElement!==host)host.prepend(panel);
-      panel.classList.add('is-3d');
-      panel.classList.remove('is-cable-integrated');
-      panel.hidden=!found;
-    } else {
-      const footer=document.querySelector('.schedule-inspector-footer') || document.getElementById('sidebar-right');
-      if(footer && panel.parentElement!==footer)footer.append(panel);
-      panel.classList.remove('is-3d');
-      if(found?.cable){
-        panel.classList.add('is-cable-integrated');
-        panel.hidden=false;
-      } else {
-        panel.classList.remove('is-cable-integrated');
-        panel.hidden=!found;
-      }
-    }
-    if(found)render(content);
+    const host=document.getElementById('workspace-content-selection');
+    if(host && panel.parentElement!==host)host.append(panel);
+    panel.hidden=false;
+    panel.classList.remove('is-3d','is-cable-integrated');
+    render(content);
     if(mobile?.open)render(mobile.querySelector('.workflow-selection-content'));
   }
   function open(trigger){
+    if(RS.WorkspaceUI){RS.WorkspaceUI.openPanel('selection',trigger);return;}
     if(!mobile){mobile=node('dialog');mobile.className='workflow-selection-dialog';mobile.setAttribute('aria-label','Seçim bilgileri');const header=node('header');header.append(node('h2','Seçim bilgileri'),button('Kapat',()=>mobile.close()));const body=node('div');body.className='workflow-selection-content';mobile.append(header,body);document.body.append(mobile);mobile.addEventListener('close',()=>opener?.focus());}
     opener=trigger||document.activeElement;render(mobile.querySelector('.workflow-selection-content'));mobile.showModal();
   }
   function init(){
     panel=node('section');panel.id='workflow-selection-panel';panel.className='workflow-selection-panel';panel.hidden=true;panel.setAttribute('aria-label','Seçim bilgileri');panel.append(node('h3','Seçim bilgileri'));content=node('div');content.className='workflow-selection-content';panel.append(content);
-    const host=document.querySelector('.schedule-inspector-footer') || document.getElementById('sidebar-right');
-    host?.append(panel);
+    const host=document.getElementById('workspace-content-selection');
+    host?.append(panel);refresh();
     document.addEventListener('rackstudio:selection',e=>choose(e.detail.kind,e.detail.id,e.detail.source));
     document.getElementById('btn-workflow-selection')?.addEventListener('click',e=>open(e.currentTarget));
     for(const type of ['rackstudio:change','rackstudio:refresh','rackstudio:workflow','rackstudio:viewchange'])document.addEventListener(type,refresh);

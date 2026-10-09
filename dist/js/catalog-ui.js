@@ -2,7 +2,7 @@
   'use strict';
   function init() {
     const api = window.RackStudio;
-    const sidebar = document.querySelector('.sidebar-left');
+    const sidebar = document.getElementById('sidebar-left');
     if (!api || !sidebar) return;
     const escapeHtml = api.escapeHtml || (value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]));
     const make = (tag, text, className) => {
@@ -13,7 +13,6 @@
     };
     // Stencil hover preview and procedural SVG generators extracted to js/catalog-stencil-resolver.js
     const hideStencilHoverPreview = () => window.CatalogStencil?.hideStencilHoverPreview?.();
-    const showStencilHoverPreview = (...args) => window.CatalogStencil?.showStencilHoverPreview?.(...args);
     const toggleStencilHover = (...args) => window.CatalogStencil?.toggleStencilHover?.(...args);
     const createGeneratedStencil = (...args) => window.CatalogStencil?.createGeneratedStencil?.(...args);
     const normalize = (value) => window.CatalogStencil?.normalize ? window.CatalogStencil.normalize(value) : String(value || "").toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
@@ -38,6 +37,14 @@
     // Quick Filter Chips: [Tümü], [48 Port], [24 Port], [PoE+], [Fiber/SFP]
     let activeQuickFilter = 'all';
     const quickChipsWrapper = make('div', undefined, 'catalog-quick-chips');
+    quickChipsWrapper.setAttribute('aria-label', 'Donanım filtreleri');
+    quickChipsWrapper.addEventListener('wheel', event => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      const before = quickChipsWrapper.scrollLeft;
+      quickChipsWrapper.scrollLeft += event.deltaY;
+      if (quickChipsWrapper.scrollLeft !== before) event.preventDefault();
+    }, { passive: false });
+    quickChipsWrapper.addEventListener('focusin', event => event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     const quickChips = [
       { id: 'all', label: 'Tümü' },
       { id: '48p', label: '48 Port' },
@@ -83,7 +90,14 @@
     btnModeCategory.title = 'Fonksiyonel kategorilere göre Switch Tree yapısı';
     viewModeSegmented.append(btnModeSeries, btnModeCategory);
 
+    const catalogHelp = make('button', '?', 'section-help-button catalog-inline-help');
+    catalogHelp.type = 'button'; catalogHelp.dataset.helpOpen = 'devices'; catalogHelp.setAttribute('aria-label', 'Donanım yardımı');
+    catalogHelp.title = 'Donanım yardımı'; searchWrapper.append(catalogHelp);
     toolbar.append(searchWrapper, quickChipsWrapper, viewModeSegmented, accessibleGroup);
+    const emptySearch = make('p', undefined, 'catalog-empty-search'); emptySearch.hidden = true;
+    const clearSearch = make('button', 'Filtreleri temizle', 'section-help-button'); clearSearch.type = 'button';
+    clearSearch.addEventListener('click', () => { search.value = ''; category.value = ''; units.value = ''; favoriteOnly.checked = false; filter(); });
+    emptySearch.append(make('span', 'Eşleşen donanım bulunamadı. Model adını kısaltın veya filtreleri temizleyin. '), clearSearch); toolbar.append(emptySearch);
 
     const drawer = sidebar.querySelector('.sidebar-drawer') || sidebar;
     const stream = sidebar.querySelector('.sidebar-device-stream');
@@ -95,7 +109,8 @@
 
     const customSection = make('section', undefined, 'panel-section catalog-custom');
     const details = make('details');
-    const summary = make('summary', '+ Özel donanım oluştur');
+    const summary = make('summary', 'Özel donanım oluştur');
+    summary.dataset.icon = 'FilePlus';
     const formHeader = make('div', undefined, 'catalog-custom-header');
     const formTitle = make('span', '✨ Yeni Özel Donanım', 'catalog-custom-title');
     const closeBtn = make('button', '✕', 'catalog-custom-close'); closeBtn.type = 'button'; closeBtn.title = 'Kapat';
@@ -203,6 +218,7 @@
       sidebar.classList.toggle('placement-mode', !!item);
       document.body.classList.toggle('catalog-placement-mode', !!item);
       if (!item) return;
+      sidebar.querySelector(`.device-card[data-device-id="${CSS.escape(key)}"] .hw-card-detail-body`)?.append(detailPanel);
 
       const close = make('button', '×', 'catalog-detail-close');
       close.type = 'button';
@@ -227,7 +243,7 @@
       const actions = make('div', undefined, 'catalog-detail-actions');
       actions.append(mount);
       if (stencilUrl) {
-        const actualPreview = make('button', 'Gerçek stencil’i göster', 'catalog-detail-stencil');
+        const actualPreview = make('button', 'Önizleme', 'catalog-detail-stencil');
         actualPreview.type = 'button';
         actualPreview.addEventListener('click', () => {
           toggleStencilHover(generated, actualPreview, stencilUrl);
@@ -237,12 +253,12 @@
       detailPanel.append(close, visual, copy, actions);
     }
 
-    function selectCustom(key) {
+    function selectCustom(key, keepCatalogOpen = false) {
       api.STATE.selectedLibraryItem = api.STATE.selectedLibraryItem === key ? null : key;
-      sidebar.querySelectorAll('.device-card').forEach(card => card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem));
+      sidebar.querySelectorAll('.device-card').forEach(card => { card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem); card.__syncDisclosure?.(); });
       renderSelectionDetail(api.STATE.selectedLibraryItem);
       if (status) status.textContent = api.STATE.selectedLibraryItem ? `Seçili: ${api.catalog[key].name}. Masaüstünde sürükleyin; tablette boş bir U seviyesine dokunun.` : 'Kütüphaneden bir donanım seçin.';
-      if (api.STATE.selectedLibraryItem && window.matchMedia('(max-width: 1199px)').matches && typeof window.setLeftSidebarCollapsed === 'function') {
+      if (!keepCatalogOpen && api.STATE.selectedLibraryItem && window.matchMedia('(max-width: 1199px)').matches && typeof window.setLeftSidebarCollapsed === 'function') {
         window.setLeftSidebarCollapsed(true);
       }
     }
@@ -384,7 +400,7 @@
 
       card.addEventListener('click', (e) => {
         if (window.RackStudio?.isSpacePressed) return;
-        if (e.target.closest('.catalog-star') || e.target.closest('.btn-card-quick-mount')) return;
+        if (e.target.closest('button') || e.target.closest('.catalog-selection-detail')) return;
         selectCustom(key);
       });
 
@@ -393,15 +409,18 @@
       card.title = `${sku} - ${item.name} (${item.u || 1}U)`;
 
       // 1. Header
-      const header = make('div', undefined, 'hw-card-header');
+      const header = make('button', undefined, 'hw-card-header');
+      header.type = 'button'; header.dataset.icon = 'none'; header.setAttribute('aria-label', `${sku} model ayrıntıları`);
+      header.addEventListener('click', event => { event.stopPropagation(); selectCustom(key, true); });
       const skuWrap = make('div', undefined, 'hw-sku-wrap');
       const skuTag = make('span', sku, 'hw-sku-tag');
       skuTag.title = sku;
+
       const devName = make('span', item.name, 'device-name');
       devName.title = item.name;
-      skuWrap.append(skuTag, devName);
+      skuWrap.append(skuTag);
+      skuWrap.setAttribute("aria-label", item.name);
 
-      const topBadges = make('div', undefined, 'hw-card-top-badges');
       const uBadge = make('span', `${item.u || 1}U`, 'device-u-badge');
       const favorite = make('button', '', 'catalog-star');
       favorite.type = 'button';
@@ -421,8 +440,7 @@
         updateFav();
         filter();
       });
-      topBadges.append(uBadge, favorite);
-      header.append(skuWrap, topBadges);
+      header.append(uBadge, skuWrap);
 
       // 2. Visual Stencil or Fallback Mini-Bezel
       const visualContainer = make('div', undefined, 'hw-visual-container');
@@ -441,13 +459,11 @@
       const generated = createGeneratedStencil(item, sku);
       generated.alt = `${sku} · ${generated.dataset.previewKind} önizlemesi`;
       generated.setAttribute('draggable', 'false');
+      generated.style.pointerEvents = 'auto';
+      generated.addEventListener('pointerenter', event => { if(event.pointerType === 'mouse') window.CatalogStencil?.showStencilHoverPreview(generated, card); });
+      generated.addEventListener('pointerleave', () => window.CatalogStencil?.hideStencilHoverPreview());
       fallbackBezel.style.display = 'none';
       visualContainer.append(generated, fallbackBezel);
-      visualContainer.tabIndex = 0;
-      visualContainer.addEventListener('pointerenter', () => showStencilHoverPreview(generated, visualContainer));
-      visualContainer.addEventListener('pointerleave', hideStencilHoverPreview);
-      visualContainer.addEventListener('focusin', () => showStencilHoverPreview(generated, visualContainer));
-      visualContainer.addEventListener('focusout', hideStencilHoverPreview);
 
       // 3. Spec Chips
       const specChipsWrap = make('div', undefined, 'hw-spec-chips');
@@ -458,8 +474,9 @@
       });
 
       // 4. Action Button "+ Kabine Ekle"
-      const footer = make('div', undefined, 'hw-card-footer');
-      const mountBtn = make('button', '+', 'btn-card-quick-mount');
+      const mountBtn = make('button', undefined, 'btn-card-quick-mount');
+      mountBtn.dataset.icon = 'none';
+      mountBtn.append(make('span', 'Ekle', 'catalog-corner-label'));
       mountBtn.type = 'button';
       mountBtn.setAttribute('draggable', 'false');
       mountBtn.setAttribute('aria-label', `${item.name} cihazını aktif kabinin ilk boş U yuvasına monte et`);
@@ -467,13 +484,14 @@
       mountBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (window.matchMedia('(max-width: 1023px)').matches && window.openMobileMountFlow) {
+        if (window.matchMedia('(max-width: 1023px), (pointer: coarse)').matches && window.openMobileMountFlow) {
           window.openMobileMountFlow(key);
           return;
         }
         mountCardDeviceToRack(key);
       });
-      footer.append(mountBtn);
+      const previewRow = make('div', undefined, 'hw-preview-row');
+      previewRow.append(visualContainer);
 
       // 5. Hidden description for search / tests
       const descEl = make('div', item.desc || '', 'device-desc');
@@ -481,8 +499,23 @@
 
       // Two-row card: transparent stencil above, concise metadata below.
       const infoRow = make('div', undefined, 'hw-card-info-row');
-      infoRow.append(header, specChipsWrap, footer);
-      card.replaceChildren(visualContainer, infoRow, descEl);
+      const detailBody = make('div', undefined, 'hw-card-detail-body');
+      const detailMeta = make('div', undefined, 'hw-detail-meta');
+      detailMeta.append(specChipsWrap, favorite);
+      detailBody.append(devName, detailMeta); infoRow.append(detailBody);
+      infoRow.id = 'catalog-details-' + key; header.setAttribute('aria-controls', infoRow.id);
+      let hovered = false;
+      card.__syncDisclosure = () => {
+        const expanded = hovered || card.matches(':focus-visible') || !!card.querySelector(':focus-visible') || card.classList.contains('active');
+        card.classList.toggle('details-expanded', expanded); detailBody.inert = !expanded;
+        header.setAttribute('aria-expanded', String(expanded));
+      };
+      card.addEventListener('pointerenter', event => { hovered = event.pointerType === 'mouse'; card.__syncDisclosure(); });
+      card.addEventListener('pointerleave', () => { hovered = false; card.__syncDisclosure(); });
+      card.addEventListener('focusin', card.__syncDisclosure);
+      card.addEventListener('focusout', () => queueMicrotask(card.__syncDisclosure));
+      card.__syncDisclosure();
+      card.replaceChildren(header, previewRow, infoRow, descEl, mountBtn);
     }
     // --- Switch-Tree Style Catalog Series & Category Architecture ---
     function getDeviceSeriesGroup(deviceId, item) {
@@ -550,7 +583,22 @@
     }
 
     const collapsedTreeGroups = new Set();
+    const initializedTreeGroups = new Set();
+    const groupIcon = group => /ODF|FIBER/.test(group.badge) ? 'Cable'
+      : /PATCH/.test(group.badge) ? 'PanelsTopLeft'
+      : /D-RING|ORGANIZER/.test(group.badge) ? 'Layers'
+      : /WAN|ROUTER|ISR/.test(group.badge) ? 'Router'
+      : /COMPACT/.test(group.badge) ? 'Cpu'
+      : /CUSTOM/.test(group.badge) ? 'SlidersHorizontal' : 'Network';
     const treeContainer = make('div', undefined, 'catalog-tree-container');
+    function paintGroupIcons() {
+      const customSummary = customSection.querySelector('summary');
+      if (customSummary && !customSummary.querySelector('svg')) customSummary.insertAdjacentHTML('afterbegin', window.getLucideIconSvg?.('FilePlus', 16) || '');
+      treeContainer.querySelectorAll('.catalog-group-icon, .catalog-tree-icon').forEach(el => {
+        el.innerHTML = window.getLucideIconSvg?.(el.dataset.icon, 16) || '';
+      });
+    }
+    document.addEventListener('DOMContentLoaded', paintGroupIcons, { once: true });
 
     // Collect all initial device cards from sidebar
     const allDeviceCards = [];
@@ -580,16 +628,24 @@
       const sortedGroups = [...groupsMap.values()].sort((a, b) => a.info.order - b.info.order);
 
       sortedGroups.forEach(grp => {
+        if (!initializedTreeGroups.has(grp.info.key)) {
+          initializedTreeGroups.add(grp.info.key); collapsedTreeGroups.add(grp.info.key);
+        }
         const isCollapsed = collapsedTreeGroups.has(grp.info.key);
         const cardEl = make('div', undefined, `catalog-tree-card panel-section collapsible-section ${isCollapsed ? 'collapsed' : ''}`);
         cardEl.dataset.groupKey = grp.info.key;
 
-        const header = make('div', undefined, 'catalog-tree-header');
+        const header = make('button', undefined, 'catalog-tree-header');
+        header.type = 'button'; header.dataset.icon = 'none';
+        header.setAttribute('aria-expanded', String(!isCollapsed));
         const info = make('div', undefined, 'catalog-tree-info');
-        const icon = make('span', isCollapsed ? '▶' : '▼', 'catalog-tree-icon');
+        const icon = make('span', undefined, 'catalog-tree-icon');
+        icon.dataset.icon = 'ChevronRight'; icon.setAttribute('aria-hidden', 'true');
+        const categoryIcon = make('span', undefined, 'catalog-group-icon');
+        categoryIcon.dataset.icon = groupIcon(grp.info); categoryIcon.setAttribute('aria-hidden', 'true');
         const badge = make('span', grp.info.badge, 'catalog-tree-badge');
         const title = make('span', grp.info.title, 'catalog-tree-title');
-        info.append(icon, badge, title);
+        info.append(icon, categoryIcon, badge, title);
 
         const countBadge = make('span', `${grp.cards.length} Model`, 'catalog-tree-count');
         header.append(info, countBadge);
@@ -605,12 +661,14 @@
             collapsedTreeGroups.add(grp.info.key);
           }
           cardEl.classList.toggle('collapsed', !coll);
-          icon.textContent = !coll ? '▶' : '▼';
+          header.setAttribute('aria-expanded', String(coll));
+
         });
 
         cardEl.append(header, body);
         treeContainer.append(cardEl);
       });
+      paintGroupIcons();
     }
 
     if (stream) {
@@ -651,6 +709,7 @@
 
     function filter() {
       const query = normalize(search.value); let visible = 0; let total = 0;
+      const aiCandidates = [];
       sidebar.querySelectorAll('.device-card').forEach(card => {
         decorate(card);
         const item = (api.resolveCatalogItem ? api.resolveCatalogItem(card.dataset.deviceId) : null) || api.catalog[card.dataset.deviceId] || (window.RackStudio.HARDWARE_CATALOG && window.RackStudio.HARDWARE_CATALOG[card.dataset.deviceId]);
@@ -679,6 +738,8 @@
           if (!isFiber) quickMatch = false;
         }
 
+        const eligible = quickMatch && matchesCategory(item, category.value) && (!units.value || item.u === Number(units.value)) && (!favoriteOnly.checked || favorites.has(card.dataset.deviceId));
+        if (eligible && api.CatalogReranker) { const candidate = api.CatalogReranker.publicCandidate(card.dataset.deviceId, item); if (candidate) aiCandidates.push(candidate); }
         const matches = quickMatch &&
                         (!query || normalize([item.name, item.modelTag, item.desc, card.dataset.deviceId].join(' ')).includes(query)) &&
                         matchesCategory(item, category.value) &&
@@ -694,6 +755,10 @@
         const visibleInGroup = cardsInGroup.filter(c => !c.hidden).length;
         cardEl.hidden = (visibleInGroup === 0);
         cardEl.style.display = (visibleInGroup === 0) ? 'none' : '';
+        const filtering = !!query || !!category.value || !!units.value || favoriteOnly.checked || activeQuickFilter !== 'all';
+        const collapsed = !filtering && collapsedTreeGroups.has(cardEl.dataset.groupKey);
+        cardEl.classList.toggle('collapsed', collapsed);
+        cardEl.querySelector('.catalog-tree-header').setAttribute('aria-expanded', String(!collapsed));
         const countBadge = cardEl.querySelector('.catalog-tree-count');
         if (countBadge) {
           countBadge.textContent = `${visibleInGroup} Model`;
@@ -742,7 +807,10 @@
       if (drawerCount) {
         drawerCount.textContent = String(visible);
       }
+      emptySearch.hidden = visible !== 0;
+      aiPilot?.update(search.value, aiCandidates, id => [...sidebar.querySelectorAll('.device-card')].find(card => card.dataset.deviceId === id));
     }
+    const aiPilot = api.CatalogAI?.attach(toolbar);
     let signature = '';
     function restore() {
       const custom = api.STATE.customCatalog || {};
@@ -770,7 +838,7 @@
           customCards.append(card);
         });
       }
-      sidebar.querySelectorAll('.device-card').forEach(card => card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem));
+      sidebar.querySelectorAll('.device-card').forEach(card => { card.classList.toggle('active', card.dataset.deviceId === api.STATE.selectedLibraryItem); card.__syncDisclosure?.(); });
       renderSelectionDetail(api.STATE.selectedLibraryItem);
       filter();
     }

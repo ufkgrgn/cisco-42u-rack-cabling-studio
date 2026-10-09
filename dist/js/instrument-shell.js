@@ -89,11 +89,10 @@
     });
     compactViewPanel?.addEventListener('click', event => {
       if (!event.target.closest('[data-shortcut-for]')) return;
-      compactViewPanel.hidden = true;
-      compactViewTrigger?.setAttribute('aria-expanded', 'false');
+      window.RackStudio?.WorkspaceUI?.closePanel();
     });
     document.addEventListener('pointerdown', event => {
-      if (compactViewPanel && !compactViewPanel.hidden && !event.target.closest('#compact-view-menu')) {
+      if (compactViewPanel && !compactViewPanel.hidden && !event.target.closest('#compact-view-menu') && !compactViewPanel.contains(event.target)) {
         compactViewPanel.hidden = true;
         compactViewTrigger?.setAttribute('aria-expanded', 'false');
       }

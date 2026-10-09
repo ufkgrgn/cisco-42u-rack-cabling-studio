@@ -489,6 +489,11 @@
           e.preventDefault();
           RS.toggleCablesVisibility?.();
         }
+      } else if (e.key === 'n' || e.key === 'N') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          RS.togglePortNumbersVisibility?.();
+        }
       }
     });
   }

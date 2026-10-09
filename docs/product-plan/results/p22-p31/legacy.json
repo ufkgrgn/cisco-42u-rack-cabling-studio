@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "legacy",
+  "command": "npm run test:legacy",
+  "startedAt": "2026-10-08T07:36:43.407Z",
+  "finishedAt": "2026-10-08T07:37:14.381Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "ca12099cd06a34c3bf02d74367c64855222eed3283e50b6a20f7fbfec7f4b864"
+}

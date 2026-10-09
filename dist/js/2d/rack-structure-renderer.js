@@ -453,35 +453,38 @@
       const sHdr = rackStage.querySelector('.rack-header-plate');
       if (sHdr) {
         const nameEl = sHdr.querySelector('.rack-header-name-editable');
-        if (nameEl) {
-          nameEl.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const current = activeRack.name;
-            nameEl.setAttribute('contenteditable', 'true');
-            nameEl.focus();
-            const range = document.createRange();
-            range.selectNodeContents(nameEl);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            const commit = () => {
-              nameEl.removeAttribute('contenteditable');
-              const newName = nameEl.textContent.trim();
-              if (newName && newName !== current) {
-                activeRack.name = newName;
-                if (RS.renderRackTabs) RS.renderRackTabs();
-                if (RS.renderScheduleTable) RS.renderScheduleTable();
-                document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
-              } else {
-                nameEl.textContent = current;
-              }
-            };
-            nameEl.addEventListener('blur', commit, { once: true });
-            nameEl.addEventListener('keydown', (ev) => {
-              if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
-              if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
-            }, { once: true });
-          });
-        }
+        const titleEl = sHdr.querySelector('.rack-header-title');
+        const startInlineRename = (e) => {
+          e.stopPropagation();
+          const current = activeRack.name;
+          nameEl.setAttribute('contenteditable', 'true');
+          nameEl.focus();
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          const commit = () => {
+            nameEl.removeAttribute('contenteditable');
+            const newName = nameEl.textContent.trim();
+            if (newName && newName !== current) {
+              activeRack.name = newName;
+              if (RS.renderRackTabs) RS.renderRackTabs();
+              if (RS.renderScheduleTable) RS.renderScheduleTable();
+              document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+            } else {
+              nameEl.textContent = current;
+            }
+          };
+          nameEl.addEventListener('blur', commit, { once: true });
+          nameEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+            if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
+          }, { once: true });
+        };
+        if (nameEl) nameEl.addEventListener('click', startInlineRename);
+        if (titleEl) titleEl.addEventListener('click', (e) => {
+          if (e.target !== nameEl) startInlineRename(e);
+        });
         const clearCablesBtn = sHdr.querySelector('.rack-hdr-clear-cables');
         if (clearCablesBtn) {
           clearCablesBtn.addEventListener('click', (e) => {
@@ -657,35 +660,38 @@
 
         // Inline rename on header name click
         const nameEl = headerPlate.querySelector('.rack-header-name-editable');
-        if (nameEl) {
-          nameEl.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const current = rack.name;
-            nameEl.setAttribute('contenteditable', 'true');
-            nameEl.focus();
-            const range = document.createRange();
-            range.selectNodeContents(nameEl);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-            const commit = () => {
-              nameEl.removeAttribute('contenteditable');
-              const newName = nameEl.textContent.trim();
-              if (newName && newName !== current) {
-                rack.name = newName;
-                if (RS.renderRackTabs) RS.renderRackTabs();
-                if (RS.renderScheduleTable) RS.renderScheduleTable();
-                document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
-              } else {
-                nameEl.textContent = current;
-              }
-            };
-            nameEl.addEventListener('blur', commit, { once: true });
-            nameEl.addEventListener('keydown', (ev) => {
-              if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
-              if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
-            }, { once: true });
-          });
-        }
+        const titleEl = headerPlate.querySelector('.rack-header-title');
+        const startInlineRename = (e) => {
+          e.stopPropagation();
+          const current = rack.name;
+          nameEl.setAttribute('contenteditable', 'true');
+          nameEl.focus();
+          const range = document.createRange();
+          range.selectNodeContents(nameEl);
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(range);
+          const commit = () => {
+            nameEl.removeAttribute('contenteditable');
+            const newName = nameEl.textContent.trim();
+            if (newName && newName !== current) {
+              rack.name = newName;
+              if (RS.renderRackTabs) RS.renderRackTabs();
+              if (RS.renderScheduleTable) RS.renderScheduleTable();
+              document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true, detail: { immediate: true } }));
+            } else {
+              nameEl.textContent = current;
+            }
+          };
+          nameEl.addEventListener('blur', commit, { once: true });
+          nameEl.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter') { ev.preventDefault(); nameEl.blur(); }
+            if (ev.key === 'Escape') { nameEl.textContent = current; nameEl.removeAttribute('contenteditable'); nameEl.blur(); }
+          }, { once: true });
+        };
+        if (nameEl) nameEl.addEventListener('click', startInlineRename);
+        if (titleEl) titleEl.addEventListener('click', (e) => {
+          if (e.target !== nameEl) startInlineRename(e);
+        });
 
         // Delete button handler
         const delBtn = headerPlate.querySelector('.rack-hdr-delete');

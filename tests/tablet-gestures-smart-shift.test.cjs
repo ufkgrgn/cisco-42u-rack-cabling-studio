@@ -204,7 +204,9 @@ test('Tablet gestures, ear handles, smart ripple push, multi-select and U-space 
     // Click on device again to select, then click outside: must deselect!
     await firstDevEar.click();
     assert.equal(await page.locator('.mounted-device.studio-selected').count(), 1, 'Device selected again');
-    await page.mouse.click(50, 200);
+    // Use empty canvas space: the compact catalog now owns the old fixed coordinate.
+    const emptyCanvas = await page.locator('#rack-viewport').boundingBox();
+    await page.mouse.click(emptyCanvas.x + 12, emptyCanvas.y + emptyCanvas.height - 12);
     const afterOutsideClickState = await page.evaluate(() => ({
       hasSelectedClass: document.querySelector('.mounted-device.studio-selected') !== null,
       selectionText: document.getElementById('studio-selection')?.textContent

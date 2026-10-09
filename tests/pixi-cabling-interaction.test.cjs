@@ -34,7 +34,7 @@ async function run() {
 
     const endpoint = await page.evaluate(async () => {
       const RS = window.RackStudio;
-      RS.setStudioWorkMode('cabling');
+      RS.setStudioWorkMode('cabling'); RS.setZoom(1.3);
       const rack = RS.getActiveRack();
       rack.devices = [];
       RS.STATE.cables = [];
@@ -99,6 +99,43 @@ async function run() {
     assert.equal(retainedRender.after.domRectReads, retainedRender.before.domRectReads, 'retained render must not read DOM geometry');
     assert.equal(retainedRender.after.createdDisplays, retainedRender.before.createdDisplays, 'retained render must not allocate cable displays');
 
+    // Reordering must paint immediately while retaining cable geometry.
+    const layerBeforeImage = await page.locator('#viewport-canvas canvas').first().screenshot();
+    const layers = await page.evaluate(() => {
+      const RS = window.RackStudio;
+      const before = RS.getPixiCableInteractionState().renderStats;
+      const renders = RS.getPixiPerformanceTelemetry().totalRenders;
+      RS.bringCableToFront('pixi-regression-cable');
+      return { before, after: RS.getPixiCableInteractionState().renderStats,
+        painted: RS.getPixiPerformanceTelemetry().totalRenders > renders,
+        order: RS.STATE.cables.map(c => c.id) };
+    });
+    assert.equal(layers.order.at(-1), 'pixi-regression-cable');
+    assert.equal(layers.painted, true, 'layer command must submit a frame immediately');
+    assert.equal(layers.before.geometryPasses, layers.after.geometryPasses, 'layer changes must retain routes');
+    assert.equal(layers.before.domRectReads, layers.after.domRectReads);
+    const layerAfterImage = await page.locator('#viewport-canvas canvas').first().screenshot();
+    assert.notDeepEqual(layerBeforeImage, layerAfterImage, 'cable overlap pixels must change after reordering');
+    await page.evaluate(() => window.RackStudio.showCableContextMenu('pixi-regression-cable', 200, 200));
+    const slider = page.locator('#ctx-layer');
+    await slider.fill('0');
+    await slider.dispatchEvent('input');
+    assert.equal(await page.evaluate(() => window.RackStudio.STATE.cables[0].id), 'pixi-regression-cable');
+    await slider.dispatchEvent('change');
+    assert.equal(await slider.getAttribute('aria-valuetext'), '1. sıra, toplam 2 kablo');
+    const layerArtifacts = path.join(root, 'docs/product-plan/results/cable-layer');
+    fs.mkdirSync(layerArtifacts, { recursive: true });
+    await page.locator('.cable-context-menu').screenshot({ path: path.join(layerArtifacts, 'live-layer-menu.png') });
+    await page.locator('#ctx-cancel').click();
+
+    await page.evaluate(() => {
+      const RS = window.RackStudio;
+      RS.highlightCable('pixi-regression-cable', true);
+      RS.sendCableToBack('pixi-regression-cable');
+    });
+    assert.equal(await page.evaluate(() => window.RackStudio.STATE.highlightedCableId), null,
+      'sending an already backmost cable must clear its foreground selection overlay');
+
     const cameraDedup = await page.evaluate(() => {
       const RS = window.RackStudio;
       const before = RS.getPixiPerformanceTelemetry();
@@ -148,6 +185,7 @@ async function run() {
     assert.equal(secondHover.pixiHovered, 'pixi-regression-cable-2');
 
     const scheduleRow = page.locator('#schedule-tbody [data-cable-id="pixi-regression-cable"]').first();
+    await page.evaluate(() => RackStudio.WorkspaceUI.openPanel('connections'));
     await scheduleRow.scrollIntoViewIfNeeded();
     const scheduleRowBox = await scheduleRow.boundingBox();
     assert.ok(scheduleRowBox, 'schedule row must be visible');
@@ -349,6 +387,8 @@ async function run() {
 
     await page.setViewportSize({ width: 1420, height: 880 });
     await page.waitForTimeout(100);
+    // The narrower docked workspace can fit below cable LOD; verify picking at detail zoom.
+    await page.evaluate(() => RackStudio.setZoom(1.3));
     const resizeState = await page.evaluate(() => {
       const RS = window.RackStudio;
       const ref = window.__pixiTestEndpoint;
@@ -450,7 +490,7 @@ async function run() {
 
     const cullingState = await page.evaluate(() => {
       const RS = window.RackStudio;
-      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.scale = 2.2;
       RS.ZOOM_STATE.panX = -2000;
       RS.ZOOM_STATE.panY = 0;
       RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'culling-regression');
@@ -480,6 +520,8 @@ async function run() {
       };
       RS.deleteRack(extraRackIds[1]);
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      // Check cable alignment in detail view; fit can legitimately enter overview LOD.
+      RS.setZoom(1.3);
       const ref = window.__pixiTestEndpoint;
       const port = RS.DeviceSceneRegistry.getPortPoint(ref.instanceId, ref.portId);
       const viewportRect = document.getElementById('viewport-canvas').getBoundingClientRect();
@@ -798,7 +840,7 @@ async function run() {
       RS.renderMountedDevices();
       RS.renderAllCables();
       RS.DeviceSceneRegistry.restoreDomPortAreas();
-      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.scale = 2.2;
       RS.updateStageTransform(false);
       RS.syncPixiDeviceSceneLOD('detail');
       await new Promise(resolve => setTimeout(resolve, 40));
@@ -806,6 +848,9 @@ async function run() {
       const totalPortCount = RS.DeviceSceneRegistry.getSnapshot().ports.length;
       const detailFaceplates = document.querySelectorAll('.mounted-device .device-faceplate').length;
       RS.ZOOM_STATE.scale = 0.3;
+      // Keep the macro interaction target visible in the reserved center canvas.
+      RS.ZOOM_STATE.panX = 20;
+      RS.ZOOM_STATE.panY = 20;
       RS.updateStageTransform(false);
       RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-probe');
       await new Promise(resolve => setTimeout(resolve, 40));
@@ -869,7 +914,7 @@ async function run() {
       RS.syncPixiViewportCamera({ scale: 0.3, panX: -100000, panY: -100000 }, true, 'device-culling-offscreen');
       macro.offscreenCulling = RS.getPixiPerformanceTelemetry();
       RS.syncPixiViewportCamera(RS.ZOOM_STATE, true, 'device-culling-restore');
-      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.scale = 2.2;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 40));
       const detail = {
@@ -954,9 +999,9 @@ async function run() {
       RS.mountDeviceAt('patch-cat6-24', 29);
       RS.renderMountedDevices();
       RS.setCableRenderMode('pixi');
-      RS.ZOOM_STATE.scale = 1;
+      RS.ZOOM_STATE.scale = 1.3;
       RS.ZOOM_STATE.panX = 0;
-      RS.ZOOM_STATE.panY = 0;
+      RS.ZOOM_STATE.panY = -250;
       RS.updateStageTransform(false);
       await new Promise(resolve => setTimeout(resolve, 100));
       RS.renderAllCables();

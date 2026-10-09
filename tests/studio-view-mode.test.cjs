@@ -24,8 +24,11 @@ const server = http.createServer((req, res) => {
     assert.equal(await page.evaluate(() => RackStudio.STATE.studioWorkMode), 'layout');
     assert.equal(await page.locator('#btn-mode-layout').getAttribute('aria-pressed'), 'true');
     assert.equal(await page.locator('#btn-mode-cabling').getAttribute('aria-pressed'), 'false');
+    await page.locator('#workspace-tab-devices').click();
     assert.ok(await page.locator('#layout-overview').isVisible());
+    await page.locator('#workspace-device-types summary').click();
     assert.ok(await page.locator('#layout-legend').isVisible());
+    await page.locator('#workspace-device-types summary').click();
     assert.equal(await page.locator('#btn-toggle-cables').isEnabled(), false);
     assert.equal(await page.locator('#schedule-toolbar').isVisible(), false);
     assert.equal(await page.locator('#status-zoom').textContent(), await page.locator('#zoom-badge').textContent());
@@ -41,8 +44,9 @@ const server = http.createServer((req, res) => {
     });
     assert.ok(initial.cards && initial.colors >= 4 && initial.maxFont >= 20, 'large replacement cards with distinct category colors');
     // First entry into cabling creates the retained port sprites once.
-    await page.evaluate(() => { RackStudio.setZoom(0.9); });
+    await page.evaluate(() => { RackStudio.setZoom(1.3); });
     await page.locator('#btn-mode-cabling').click();
+    await page.locator('#workspace-tab-connections').click();
     assert.ok(await page.locator('#schedule-toolbar').isVisible());
     await page.waitForFunction(() => RackStudio.PixiContext.devicePortSprites.size > 0);
     const transitions = await page.evaluate(() => {
@@ -61,21 +65,25 @@ const server = http.createServer((req, res) => {
       const y = viewport.top + RS.ZOOM_STATE.panY + port.y * RS.ZOOM_STATE.scale;
       const hiddenPort = RS.hitPixiDevicePortAt(x, y) === null;
       RS.setZoom(0.49); const stillFar = RS.StudioView.getCameraLod() === 'macro';
-      RS.setZoom(0.55); const medium = RS.StudioView.getCameraLod() === 'medium' && ctx.getCablesContainer().visible && !ctx.getConnectorsContainer().visible;
-      RS.setZoom(0.8); const near = first.ports.visible && !first.macroLabel.visible && ctx.getCablesContainer().visible && ctx.getConnectorsContainer().visible;
-      return { preference, far, hiddenPort, stillFar, medium, near,
+      RS.setZoom(0.8); const medium = RS.StudioView.getCameraLod() === 'medium' && first.flatChassis.visible && !first.ports.visible && !ctx.getCablesContainer().visible;
+      RS.setZoom(1.3); const basic = first.ports.visible && first.flatChassis.visible && !first.portLabels.visible && !ctx.getConnectorsContainer().visible;
+      RS.setZoom(2); const threshold = !first.portLabels.visible && first.flatChassis.visible;
+      RS.setZoom(2.2); const near = first.ports.visible && !first.macroLabel.visible && !first.flatChassis.visible && first.portLabels.visible && ctx.getCablesContainer().visible && ctx.getConnectorsContainer().visible;
+      RS.setZoom(1.3); const returnsToBasic = first.flatChassis.visible && !first.portLabels.visible;
+      RS.setZoom(2.2);
+      return { preference, far, hiddenPort, stillFar, medium, basic, threshold, returnsToBasic, near,
         retained: first.container === container && ports === ctx.devicePortSprites.size,
         rebuilds: ctx.performanceTelemetry.deviceChassisRebuilds - rebuilds,
         unchanged: window.__topologyBefore === JSON.stringify({ racks: RS.STATE.racks, cables: RS.STATE.cables }) };
     });
-    for (const key of ['preference', 'far', 'hiddenPort', 'stillFar', 'medium', 'near', 'retained', 'unchanged']) assert.ok(transitions[key], key);
+    for (const key of ['preference', 'far', 'hiddenPort', 'stillFar', 'medium', 'basic', 'threshold', 'returnsToBasic', 'near', 'retained', 'unchanged']) assert.ok(transitions[key], key);
     assert.equal(transitions.rebuilds, 0, 'mode and zoom switches retain chassis geometry');
     // A real port click must still start a connection after returning from layout.
     await page.evaluate(() => {
       const RS = RackStudio;
       RS.loadCustomTopology({ racks: [{ id: 'lod-test', name: 'Yerleşim testi', heightU: 12, devices: [] }], cables: [] });
       RS.mountDeviceAt('cisco-2960x-24ps', 11); RS.mountDeviceAt('organizer-1u', 10); RS.mountDeviceAt('patch-cat6-24', 9);
-      RS.refresh(); RS.fitRackToScreen(false); RS.setZoom(1);
+      RS.refresh(); RS.fitRackToScreen(false); RS.setZoom(1.3);
     });
     await page.waitForFunction(() => RackStudio.PixiContext.devicePortSprites.size > 0);
     const point = await page.evaluate(() => {
@@ -91,6 +99,7 @@ const server = http.createServer((req, res) => {
     const layoutCablePreference = await page.evaluate(() => RackStudio.STATE.cablesVisible);
     await page.keyboard.press('c');
     assert.equal(await page.evaluate(() => RackStudio.STATE.cablesVisible), layoutCablePreference, 'C in layout preserves cabling preference');
+    await page.locator('#workspace-tab-devices').click();
     await page.locator('.layout-device-row').first().click();
     assert.ok(await page.evaluate(() => RackStudio.STATE.selectedDeviceId), 'inventory selects device');
     // A new mount and metadata edit must update placement information immediately.
@@ -113,7 +122,7 @@ const server = http.createServer((req, res) => {
       return { delayed, reconciled: !RS.PixiContext.cablesDeferred && RS.PixiContext.cableDisplays.has('deferred-connection') };
     });
     assert.ok(deferred.delayed && deferred.reconciled, 'hidden changes reconcile before cable display');
-    await page.evaluate(() => { RackStudio.setStudioWorkMode('cabling'); RackStudio.setZoom(1); });
+    await page.evaluate(() => { RackStudio.setStudioWorkMode('cabling'); RackStudio.setZoom(1.3); });
     await page.keyboard.press('c');
     assert.equal(await page.locator('#btn-toggle-cables').getAttribute('aria-pressed'), 'false');
     await page.keyboard.press('c');
@@ -129,13 +138,17 @@ const server = http.createServer((req, res) => {
         await page.waitForTimeout(350);
         const bounds = await page.locator('#studio-work-mode-switch').boundingBox();
         assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width && bounds.y >= 48, `mode controls fit ${theme}/${width}`);
+        await page.locator('#workspace-device-types summary').click();
         const legend = await page.locator('#layout-legend').boundingBox();
         assert.ok(legend.x >= 0 && legend.x + legend.width <= width, `legend fits ${theme}/${width}`);
+        await page.locator('#workspace-device-types summary').click();
         await page.screenshot({ path: path.join(root, 'scratch', 'studio-view', `${theme}-${width}.png`) });
       }
     }
     await page.locator('#btn-mode-cabling').click();
-    assert.ok(await page.locator('#btn-toggle-cables').isVisible(), 'phone exposes cable visibility control');
+    await page.locator('#btn-mobile-view').click();
+    assert.ok(await page.locator('#btn-toggle-cables').isVisible(), 'phone view panel exposes cable visibility control');
+    await page.keyboard.press('Escape');
     await page.evaluate(() => RackStudio.setStudioWorkMode('layout'));
     assert.equal(await page.locator('#layout-overview').isVisible(), false, 'collapsed placement panel hides its content');
     assert.deepEqual(errors, [], 'no browser errors');

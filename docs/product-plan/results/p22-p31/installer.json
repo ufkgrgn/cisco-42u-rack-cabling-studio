@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "installer",
+  "command": "npm run tauri:build",
+  "startedAt": "2026-10-08T07:42:03.726Z",
+  "finishedAt": "2026-10-08T07:45:19.357Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "74301060832c7d0243dae816a05a9552c669d18f00532e94eb858e5f617f40b2"
+}

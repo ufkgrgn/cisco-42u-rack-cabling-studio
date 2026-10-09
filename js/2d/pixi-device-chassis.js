@@ -32,5 +32,26 @@
     chassis.eventMode = 'none';
     return { chassis, overlays: null };
   }
-  RS.PixiDeviceChassis = Object.freeze({ create });
+  let flatPortTexture;
+  function getFlatPortTexture() {
+    if (flatPortTexture) return flatPortTexture;
+    const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#cbd5e1'; ctx.fillRect(2, 2, 28, 28);
+    ctx.fillStyle = '#334155'; ctx.fillRect(5, 5, 22, 22);
+    flatPortTexture = window.PIXI.Texture.from(canvas);
+    return flatPortTexture;
+  }
+  function createFlat(device) {
+    const info = RS.DeviceLayoutPresentation.describe(device);
+    const color = hex => parseInt(hex.slice(1), 16);
+    const layer = new window.PIXI.Container(); layer.eventMode = 'none';
+    const background = new window.PIXI.Graphics();
+    background.rect(0, 1, device.width, device.height - 2).fill(color(info.profile.surface));
+    background.rect(0, 1, 4, device.height - 2).fill(color(info.profile.accent));
+    const label = new window.PIXI.Text({ text: info.model, style: { fontFamily: 'Inter, Segoe UI, sans-serif', fontSize: 12, fontWeight: '600', fill: color(info.profile.text) } });
+    label.anchor.set(0, 0.5); label.position.set(12, device.height / 2);
+    layer.addChild(background, label); return layer;
+  }
+  RS.PixiDeviceChassis = Object.freeze({ create, createFlat, getFlatPortTexture });
 })();

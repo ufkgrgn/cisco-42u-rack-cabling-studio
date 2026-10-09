@@ -3,18 +3,17 @@ const {pathToFileURL}=require('node:url'),{chromium}=require('playwright');
 const fixture=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/product/project-rich-v1.json'),'utf8'));fixture.evidenceRefs=[];fixture.fieldEvents=[];
 async function setup(browser){const page=await browser.newPage({viewport:{width:1440,height:950}});page.setDefaultTimeout(8000);await page.goto(pathToFileURL(path.resolve(__dirname,'../index.html')).href);await page.waitForSelector('.studio-editor[data-ready="true"]');await page.evaluate(async doc=>{const R=window.RackStudio;R.loadCustomTopology(doc);await R.saveProjectNow();},fixture);return page;}
 const key=page=>page.evaluate(()=>{const R=window.RackStudio;return R.ProjectCommands.domainKey(R.ProjectDocument.capture(R.STATE));});
-async function action(page,name){await page.getByRole('dialog',{name:'İlk kullanım',exact:true}).getByRole('button',{name,exact:true}).click();await page.waitForFunction(()=>!document.getElementById('onboarding-dialog')?.hasAttribute('aria-busy'));}
+async function action(page,name){await page.getByRole('complementary',{name:'İlk kullanım',exact:true}).getByRole('button',{name,exact:true}).click();await page.waitForFunction(()=>!document.getElementById('onboarding-panel')?.hasAttribute('aria-busy'));}
 
 test('onboarding skip and separate sample preserve the user project through placement connection and return',async()=>{
  const browser=await chromium.launch({headless:true,channel:'msedge'});try{const page=await setup(browser),before=await key(page),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.evaluate(()=>window.RackStudio.Onboarding.open());const dialog=page.getByRole('dialog',{name:'İlk kullanım',exact:true});
+ await page.evaluate(()=>window.RackStudio.Onboarding.open());const dialog=page.getByRole('complementary',{name:'İlk kullanım',exact:true});
  for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:950});await page.screenshot({path:path.resolve(__dirname,`../docs/product-plan/results/onboarding-${width}.png`)});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));}
- await dialog.getByRole('button',{name:'Atla / Kapat'}).click();assert.equal(await key(page),before);
+ await dialog.getByRole('button',{name:'Kapat'}).click();assert.equal(await key(page),before);
  await page.evaluate(()=>window.RackStudio.Onboarding.open());await action(page,'Ayrı örnek projeyi başlat');assert.notEqual(await page.evaluate(()=>window.RackStudio.STATE.projectDocument.projectId),fixture.projectId);
- await action(page,'Örnek cihazı yerleştir');assert.equal(await page.evaluate(()=>window.RackStudio.STATE.racks[0].devices.length),2);
- await action(page,'Örnek portları bağla');assert.equal(await page.evaluate(()=>window.RackStudio.STATE.cables.length),1);
- await action(page,'Saha görünümünü incele');assert.equal(await page.evaluate(()=>window.RackStudio.WorkflowViews.get()),'field');
- await action(page,'Örnek sunum taslağını kaydet');assert.match(await dialog.textContent(),/Örnek tamamlandı/);assert.equal(await page.evaluate(async()=>{const R=window.RackStudio;return (await R.ProjectRevisions.list(R.STATE.projectDocument.projectId))[0].presentationViews.length;}),1);
+ await action(page,'Örneği benim için yap');assert.equal(await page.evaluate(()=>window.RackStudio.STATE.racks[0].devices.length),2);
+ await action(page,'Örneği benim için yap');assert.equal(await page.evaluate(()=>window.RackStudio.STATE.cables.length),1);
+ await action(page,'Bağlantıyı kontrol ettim');assert.match(await dialog.textContent(),/Örnek tamamlandı/);
  await action(page,'Kendi projeme dön');assert.equal(await key(page),before);
  await page.evaluate(()=>window.RackStudio.Onboarding.open());assert.match(await dialog.textContent(),/Ayrı örnek projeyi başlat/);await page.keyboard.press('Escape');assert.deepEqual(errors,[]);
  }finally{await browser.close();}

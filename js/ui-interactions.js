@@ -1,11 +1,11 @@
 /* Overlay ownership. Observe surfaces, never camera transforms or render loops. */
 (() => {
   'use strict';
-  const selector = '#hud-tools-panel, #compact-view-panel, #viewport-cable-dock, .instrument-overlay, dialog, .modal, #catalog-drawer, #cable-context-menu, #device-context-menu, .mobile-3d-controls details';
+  const selector = '#sidebar-left, #sidebar-right, #hud-tools-panel, #compact-view-panel, #viewport-cable-dock, .instrument-overlay, dialog, .modal, #catalog-drawer, #cable-context-menu, #device-context-menu, .mobile-3d-controls details';
   const surfaces = new Map();
   let stack = [], scheduled = false, dismissUntil = 0;
   let lastExternalFocus = null;
-  const visible = node => node.isConnected && !node.hidden && (node.tagName !== 'DIALOG' || node.open)
+  const visible = node => (!['sidebar-left', 'sidebar-right'].includes(node.id) || node.classList.contains('workspace-overlay')) && node.isConnected && !node.hidden && (node.tagName !== 'DIALOG' || node.open)
     && (node.tagName !== 'DETAILS' || node.open) && node.getAttribute('aria-hidden') !== 'true'
     && getComputedStyle(node).display !== 'none' && getComputedStyle(node).visibility !== 'hidden'
     && node.getClientRects().length > 0;
@@ -22,7 +22,8 @@
   }
   function close(node) {
     if (!node) return;
-    if (node.id === 'hud-tools-panel') window.setToolsOpen?.(false);
+    if (node.classList.contains('workspace-overlay')) window.RackStudio?.WorkspaceUI?.closePanel();
+    else if (node.id === 'hud-tools-panel') window.setToolsOpen?.(false);
     else if (node.id === 'catalog-drawer') document.getElementById('btn-3d-catalog')?.click();
     else if (node.id === 'cable-context-menu') window.RackStudio?.hideCableContextMenu?.();
     else if (node.id === 'device-context-menu') window.RackStudio?.hideDeviceContextMenu?.();
@@ -80,15 +81,18 @@
   document.addEventListener('pointerdown', event => {
     if (!top() || !isScene(event.target)) return;
     event.preventDefault(); event.stopImmediatePropagation(); dismissUntil = performance.now() + 500;
-    if (!top().matches('dialog, .modal, .instrument-overlay')) close(top());
+    if (!top().matches('dialog, .modal, .instrument-overlay, .workspace-overlay')) close(top());
   }, true);
   for (const type of ['click', 'dblclick', 'contextmenu', 'wheel']) document.addEventListener(type, event => {
     if (window.UIInteraction.isSceneBlocked() && isScene(event.target)) { event.preventDefault(); event.stopImmediatePropagation(); }
   }, { capture: true, passive: false });
   document.addEventListener('keydown', event => {
     const node = top(); if (!node) return;
+    if (event.key === 'Escape' && window.CatalogStencil?.isHoverVisible()) {
+      event.preventDefault(); event.stopImmediatePropagation(); window.CatalogStencil.hideStencilHoverPreview(); return;
+    }
     if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(node); return; }
-    if (event.key === 'Tab' && node.matches('dialog, .modal, .instrument-overlay')) {
+    if (event.key === 'Tab' && node.matches('dialog, .modal, .instrument-overlay, .workspace-overlay')) {
       const controls = Array.from(node.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')).filter(el => el.getClientRects().length);
       if (!controls.length) return;
       if (event.shiftKey && (document.activeElement === controls[0] || !node.contains(document.activeElement))) { event.preventDefault(); controls.at(-1).focus(); }

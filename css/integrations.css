@@ -1,0 +1,8 @@
+.integration-dialog{width:min(900px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box}
+.integration-dialog fieldset{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;padding:12px;border:1px solid var(--border-color,#9ca3af);border-radius:8px}
+.integration-dialog input:not([type=checkbox]),.integration-dialog select{max-width:100%;min-width:0;box-sizing:border-box;padding:8px;font:inherit}
+.integration-dialog fieldset input{flex:1 1 230px}.integration-dialog .pm-card{display:flex;flex-wrap:wrap;gap:8px;padding:12px;margin:8px 0}
+.integration-dialog .pm-card label{flex:1 1 100%;overflow-wrap:anywhere}.integration-dialog .pm-card select{flex:1 1 180px}.integration-dialog button{min-height:40px;white-space:normal}
+@media(max-width:480px){.integration-dialog{padding:12px}.integration-dialog fieldset{padding:8px}.integration-dialog .pm-card select{flex-basis:100%}}
+.integration-dialog pre{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;min-width:0;}
+.integration-dialog textarea{width:100%;min-height:72px;box-sizing:border-box;resize:vertical;font:inherit;padding:8px;}

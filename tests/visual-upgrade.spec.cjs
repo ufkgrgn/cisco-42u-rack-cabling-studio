@@ -32,9 +32,15 @@ for (const theme of themes) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.addInitScript(value => localStorage.setItem('rack-studio-theme', value), theme);
+    await page.addInitScript(value => {
+      localStorage.setItem('rack-studio-theme', value);
+      localStorage.setItem('rackstudio-intro-invite', 'dismissed');
+    }, theme);
     await page.goto(baseUrl);
     await page.locator('#rack-viewport').waitFor();
+    // These snapshots and inspector interactions cover cabling chrome.
+    // Placement is now the default and has its own studio-view-mode suite.
+    await page.evaluate(() => window.RackStudio.setStudioWorkMode('cabling'));
     expect(await page.evaluate(async () => {
       await Promise.all([document.fonts.load('500 14px Inter', 'Türkçe'), document.fonts.load('500 14px "JetBrains Mono"', 'Bağlantı')]);
       return document.fonts.check('500 14px Inter', 'Türkçe') && document.fonts.check('500 14px "JetBrains Mono"', 'Bağlantı');
@@ -454,50 +460,27 @@ for (const width of [390, 820]) {
     });
     await page.goto(baseUrl);
     await page.locator('#rack-viewport').waitFor();
-    await expect(page.locator('#sidebar-right')).toHaveClass(/collapsed/);
+    await page.waitForSelector('.studio-editor[data-ready="true"]');
+    await expect(page.locator('#sidebar-right')).toBeHidden();
     await expect(page.locator('#sidebar-left')).toHaveAttribute('inert', '');
-    await expect(page.locator('#sidebar-right')).toHaveAttribute('inert', '');
-    if (width > 520) {
-      await page.locator('#btn-compact-view').click();
-      await expect(page.locator('#compact-view-2d')).toBeVisible();
-      await expect(page.locator('#compact-view-3d')).toBeHidden();
-      await page.locator('#btn-compact-view').click();
-    } else await expect(page.locator('#btn-compact-view')).toBeHidden();
-    fs.mkdirSync(path.join(root, 'tmp', 'visual-upgrade'), { recursive: true });
-    await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', `${width}-2d.png`) });
-    await page.locator('#btn-mobile-catalog').click();
-    await expect(page.locator('#sidebar-left')).not.toHaveAttribute('inert');
-    await expect(page.locator('#btn-mobile-catalog')).toHaveAttribute('aria-expanded', 'true');
-    await expect.poll(async () => (await page.locator('#sidebar-left').boundingBox()).x).toBeGreaterThanOrEqual(-1);
+    await page.locator(width < 768 ? '#btn-mobile-catalog' : '#workspace-library-toggle').click();
+    await expect(page.locator('#sidebar-left')).toBeVisible();
     const catalogBox = await page.locator('#sidebar-left').boundingBox();
-    expect(catalogBox.x).toBeGreaterThanOrEqual(-1);
-    expect(catalogBox.width).toBeLessThanOrEqual(width + 1);
-    await expect(page.locator('#sidebar-drawer')).toBeVisible();
-    await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', `${width}-catalog.png`) });
-    if (width <= 520) await page.locator('#btn-toggle-left-sidebar').click();
-    await page.locator('#btn-mobile-schedule').click();
-    await expect(page.locator('#sidebar-left')).toHaveAttribute('inert', '');
-    await expect(page.locator('#sidebar-right')).not.toHaveAttribute('inert');
-    await expect(page.locator('#btn-mobile-catalog')).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#btn-mobile-schedule')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#sidebar-right')).not.toHaveClass(/collapsed/);
-    if (width <= 520) await page.locator('#btn-mobile-schedule-close').click();
-    else await page.locator('.sidebar-right-scrim').click({ position: { x: 10, y: 300 } });
-    await expect(page.locator('#sidebar-right')).toHaveClass(/collapsed/);
-    await expect(page.locator('#sidebar-right')).toHaveAttribute('inert', '');
+    expect(catalogBox.x).toBeGreaterThanOrEqual(-1); expect(catalogBox.width).toBeLessThanOrEqual(width + 1);
+    await page.keyboard.press('Escape');
+    await page.locator(width < 768 ? '#btn-mobile-selection' : '#workspace-inspector-toggle').click();
+    await expect(page.locator('#sidebar-right')).toBeVisible();
+    await expect(page.locator('#sidebar-left')).toBeHidden();
+    await page.keyboard.press('Escape');
+    if (width < 768) await page.locator('#btn-mobile-view').click();
     await page.locator('#btn-view-3d').click();
     await page.waitForFunction(() => Boolean(window.__STUDIO3D__?.rackGroup));
-    await expect(page.locator('.compact-panel-actions')).toBeHidden();
-    if (width > 520) {
-      await page.locator('#btn-compact-view').click();
-      await expect(page.locator('#compact-view-3d')).toBeVisible();
-      await expect(page.locator('#compact-view-2d')).toBeHidden();
-      await page.locator('#btn-compact-view').click();
-    } else await expect(page.locator('.mobile-3d-controls')).toBeVisible();
-    await page.locator('#btn-3d-catalog').click();
-    await expect(page.locator('#catalog-drawer')).toHaveAttribute('aria-hidden', 'false');
-    await expect.poll(async () => (await page.locator('#catalog-drawer').boundingBox()).x).toBeGreaterThanOrEqual(0);
-    await page.screenshot({ path: path.join(root, 'tmp', 'visual-upgrade', `${width}-3d-catalog.png`) });
+    await page.evaluate(() => RackStudio.WorkspaceUI.closePanel());
+    await page.locator(width < 768 ? '#btn-mobile-catalog' : '#workspace-library-toggle').click();
+    await expect(page.locator('#sidebar-left')).toBeVisible();
+    await expect(page.locator('#sidebar-left .catalog-tree-header').first()).toHaveAttribute('aria-expanded', 'false');
+    await page.locator('#sidebar-left .catalog-tree-header').first().click();
+    await expect(page.locator('#sidebar-left .device-card').first()).toBeVisible();
     expect(externalRequests).toEqual([]);
     await page.close();
   });
@@ -536,6 +519,7 @@ test('phone mounting and two-port connection work without dragging', async ({ br
   await page.goto(baseUrl);
   await page.locator('#rack-viewport').waitFor();
   await page.locator('#btn-mobile-catalog').click();
+  await page.locator('.catalog-tree-header').first().click();
   await page.locator('.device-card .btn-card-quick-mount').first().click();
   await expect(page.locator('#mobile-workflow-dialog')).toBeVisible();
   await expect(page.locator('#mobile-mount-slot option:disabled').first()).toBeAttached();
@@ -564,6 +548,7 @@ test('phone mounting and two-port connection work without dragging', async ({ br
 test('phone schedule scroll area isolates cable picking and opens readable detail', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 402, height: 874 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
   await page.goto(baseUrl);
+  await page.evaluate(() => window.RackStudio.setStudioWorkMode('cabling'));
   await page.locator('#btn-mobile-schedule').click();
   await expect(page.locator('#sidebar-right')).not.toHaveClass(/collapsed/);
   expect(await page.evaluate(() => document.getElementById('rack-viewport').inert)).toBe(true);
@@ -624,48 +609,21 @@ test('phone 3D view exposes camera presets and zoom', async ({ browser }) => {
 
 test('2D panels clear the header and menus block rack pointer targets', async ({ browser }) => {
   for (const width of [1200, 1440]) {
-    const page = await browser.newPage({ viewport: { width, height: 800 } });
-    await page.goto(baseUrl);
-    await page.waitForFunction(() => window.RackStudio?.toggleActiveFace && window.setToolsOpen);
-    await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
-    await page.waitForTimeout(250);
-    const initial = await page.evaluate(() => {
-      const header = document.querySelector('.unified-header').getBoundingClientRect();
-      const left = document.querySelector('.sidebar-left').getBoundingClientRect();
-      const right = document.querySelector('.sidebar-right').getBoundingClientRect();
-      const card = document.querySelector('.sidebar-left .device-card');
-      return {
-        headerBottom: header.bottom, leftTop: left.top, rightTop: right.top,
-        leftWidth: left.width, viewportWidth: document.querySelector('#rack-viewport').clientWidth,
-        cardBackground: getComputedStyle(card).backgroundColor,
-        panelBackground: getComputedStyle(document.documentElement).getPropertyValue('--bg-panel').trim(),
-        railUsesLucide: !!document.querySelector('.rail-btn .rail-icon svg.ui-icon')
-      };
-    });
-    expect(initial.leftTop).toBe(initial.headerBottom);
-    expect(initial.rightTop).toBe(initial.headerBottom);
-    expect(initial.railUsesLucide).toBe(true);
-    expect(initial.cardBackground).toBe('rgb(28, 27, 25)');
-    if (width === 1200) {
-      expect(initial.leftWidth).toBe(44);
-      expect(initial.viewportWidth).toBeGreaterThan(700);
-      await page.evaluate(() => window.setLeftSidebarCollapsed(false));
-      await expect.poll(() => page.locator('.sidebar-left').evaluate(el => el.getBoundingClientRect().left)).toBe(0);
-      await page.evaluate(() => window.setLeftSidebarCollapsed(true));
-    }
-    await page.evaluate(() => document.querySelector('#btn-2d-face-toggle').click());
-    await expect(page.locator('#btn-2d-face-toggle')).toHaveAttribute('aria-pressed', 'true');
-    expect(await page.evaluate(() => window.RackStudio.STATE.activeFace)).toBe('rear');
-    await page.evaluate(() => window.setToolsOpen(true));
-    expect(await page.locator('#rack-viewport').evaluate(el => getComputedStyle(el).pointerEvents)).toBe('none');
-    const beforeWheel = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
-    await page.mouse.move(Math.min(width / 2, 700), 400);
-    await page.mouse.wheel(0, -300);
-    await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.scale)).toBeGreaterThan(beforeWheel);
-    await page.evaluate(() => window.setToolsOpen(false));
-    const openCanvasZoom = await page.evaluate(() => window.RackStudio.ZOOM_STATE.scale);
-    await page.mouse.wheel(0, 300);
-    await expect.poll(() => page.evaluate(() => window.RackStudio.ZOOM_STATE.scale)).toBeLessThan(openCanvasZoom);
+    const page = await browser.newPage({viewport:{width,height:800}}); await page.goto(baseUrl);
+    await page.waitForSelector('.studio-editor[data-ready="true"]');
+    const boxes = await page.evaluate(() => ['workspace-toolbar','sidebar-left','sidebar-right'].map(id=>document.getElementById(id).getBoundingClientRect().toJSON()));
+    expect(boxes[1].top).toBe(boxes[0].bottom); expect(boxes[2].top).toBe(boxes[0].bottom);
+    expect(boxes[1].width).toBeGreaterThan(200);
+    await page.locator('#btn-2d-face-toggle').click();
+    await expect(page.locator('#btn-2d-face-toggle')).toHaveAttribute('aria-pressed','true');
+    expect(await page.evaluate(()=>RackStudio.STATE.activeFace)).toBe('rear');
+    await page.locator('#btn-tools-menu-toggle').click();
+    const before=await page.evaluate(()=>RackStudio.ZOOM_STATE.scale);
+    await page.mouse.move(width/2,400); await page.mouse.wheel(0,-300); await page.waitForTimeout(70);
+    expect(await page.evaluate(()=>RackStudio.ZOOM_STATE.scale)).toBe(before);
+    await page.keyboard.press('Escape');
+    await page.mouse.wheel(0,300);
+    await expect.poll(()=>page.evaluate(()=>RackStudio.ZOOM_STATE.scale)).toBeLessThan(before);
     await page.close();
   }
 });
@@ -775,6 +733,7 @@ test('2D device actions belong to the selected device, never hover alone', async
 test('cable inspector actions focus endpoints and open circuit trace', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(baseUrl);
+  await page.evaluate(() => window.RackStudio.setStudioWorkMode('cabling'));
   await page.waitForFunction(() => window.RackStudio?.STATE?.cables?.length > 0);
   const cableId = await page.evaluate(() => {
     const RS = window.RackStudio;

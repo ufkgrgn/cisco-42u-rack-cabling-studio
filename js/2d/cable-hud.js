@@ -193,6 +193,11 @@
         </button>
         <div class="menu-divider"></div>
         <div class="context-menu-section-title">Katman Sırası</div>
+        <label class="cable-layer-control" for="ctx-layer">
+          <span>Arka → Ön <output id="ctx-layer-value">${STATE.cables.indexOf(cable) + 1} / ${STATE.cables.length}</output></span>
+          <input id="ctx-layer" type="range" min="0" max="${Math.max(0, STATE.cables.length - 1)}" value="${STATE.cables.indexOf(cable)}" aria-label="Kablonun çizim sırası" ${STATE.cables.length < 2 ? 'disabled' : ''}>
+          <small>Kesişimlerde hangi kablonun üstte çizileceğini belirler.</small>
+        </label>
         <button class="context-menu-item menu-item" id="ctx-bring-front">
           <span class="context-menu-icon">${iconArrowUp}</span>
           <span>En öne getir</span>
@@ -248,18 +253,30 @@
       setDuct('right');
     });
 
+    let layerDirty = false;
+    const layer = menu.querySelector('#ctx-layer');
+    layer.addEventListener('input', () => {
+      layerDirty = RS.setCableLayer?.(cableId, Number(layer.value), { commit: false }) || layerDirty;
+      menu.querySelector('#ctx-layer-value').textContent = `${Number(layer.value) + 1} / ${STATE.cables.length}`;
+      layer.setAttribute('aria-valuetext', `${Number(layer.value) + 1}. sıra, toplam ${STATE.cables.length} kablo`);
+    });
+    const commitLayer = () => {
+      if (layerDirty) RS.commitCableLayer?.();
+      layerDirty = false;
+    };
+    layer.addEventListener('change', commitLayer);
+    layer.addEventListener('blur', commitLayer);
+
     menu.querySelector('#ctx-bring-front')?.addEventListener('click', (e) => {
       e.stopPropagation();
       hideCableContextMenu();
       RS.bringCableToFront?.(cableId);
-      highlightCable(cableId, true);
     });
 
     menu.querySelector('#ctx-send-back')?.addEventListener('click', (e) => {
       e.stopPropagation();
       hideCableContextMenu();
       RS.sendCableToBack?.(cableId);
-      highlightCable(cableId, true);
     });
 
     menu.querySelector('#ctx-disconnect').addEventListener('click', (e) => {
@@ -692,6 +709,7 @@
   }
 
   function showDeviceFloatingControls(instanceId) {
+    if (RS.WorkspaceUI?.openPanel && window.matchMedia("(max-width: 1199px), (pointer: coarse)").matches) { hideDeviceFloatingControls(true); return; }
     if (!instanceId) {
       hideDeviceFloatingControls();
       return;
@@ -738,6 +756,7 @@
       });
     }
 
+    deviceFloatingControlsEl.hidden = false;
     activeFloatingDeviceId = instanceId;
     deviceFloatingControlsEl.dataset.instanceId = instanceId;
     const rack = (STATE.racks || []).find(item => (item.devices || []).some(itemDev => itemDev.instanceId === instanceId));
@@ -807,7 +826,7 @@
     if (activeFloatingDeviceId) updateDeviceFloatingControlsPosition(activeFloatingDeviceId);
   });
   window.addEventListener('resize', () => {
-    if (activeFloatingDeviceId) updateDeviceFloatingControlsPosition(activeFloatingDeviceId);
+    if (activeFloatingDeviceId) showDeviceFloatingControls(activeFloatingDeviceId);
   });
 
   RS.showCableQuickHud = showCableQuickHud;

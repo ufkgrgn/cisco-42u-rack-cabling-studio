@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-netbox-configure"
+description = "Enables the netbox_configure command without any pre-configured scope."
+commands.allow = ["netbox_configure"]
+
+[[permission]]
+identifier = "deny-netbox-configure"
+description = "Denies the netbox_configure command without any pre-configured scope."
+commands.deny = ["netbox_configure"]

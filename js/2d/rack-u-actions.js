@@ -22,6 +22,7 @@
    * so they sit beside the rack without being affected by the zoom/pan transform.
    */
   function _injectFloatingRackButtons(activeRack) {
+    if (RS.WorkspaceUI?.openPanel) return;
     const canvas = dom.viewportCanvas || document.getElementById('viewport-canvas');
     if (!canvas) return;
 

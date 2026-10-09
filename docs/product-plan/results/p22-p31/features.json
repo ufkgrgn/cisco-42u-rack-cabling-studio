@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "features",
+  "command": "npm run test:extensions",
+  "startedAt": "2026-10-08T07:38:14.754Z",
+  "finishedAt": "2026-10-08T07:38:23.950Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "73b4b1ff5611a9d4e69fb2543a3f32fcaaedfe2957d4b7565fedb135b5264015"
+}

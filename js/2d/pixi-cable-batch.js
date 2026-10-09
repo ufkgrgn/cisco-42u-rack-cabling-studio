@@ -303,19 +303,27 @@
     destroyContainerChildren(connectorsContainer);
     batchedRackGroups.clear();
 
-    const byRack = new Map();
-    for (const display of cableDisplays.values()) {
+    // Preserve global paint order, including cables crossing different racks.
+    // Consecutive rack runs retain the normal small-batch optimization.
+    const runs = [];
+    for (const cable of (RS.STATE.cables || [])) {
+      const display = cableDisplays.get(cable.id);
+      if (!display) continue;
       const rackKey = display.rackKey || '__cross__:unknown:unknown';
-      let displays = byRack.get(rackKey);
-      if (!displays) {
-        displays = [];
-        byRack.set(rackKey, displays);
+      let run = runs[runs.length - 1];
+      if (!run || run.rackKey !== rackKey) {
+        run = { rackKey, displays: [] };
+        runs.push(run);
       }
-      displays.push(display);
+      run.displays.push(display);
     }
-
-    byRack.forEach((displays, rackKey) => {
-      batchedRackGroups.set(rackKey, buildRetainedRackBatch(rackKey, displays));
+    const seen = new Set();
+    PixiContext.orderedRackRuns = false;
+    runs.forEach(({ rackKey, displays }, index) => {
+      const repeated = seen.has(rackKey);
+      if (repeated) PixiContext.orderedRackRuns = true;
+      seen.add(rackKey);
+      batchedRackGroups.set(repeated ? `${rackKey}:run:${index}` : rackKey, buildRetainedRackBatch(rackKey, displays));
     });
 
     if (renderStats) {
@@ -326,6 +334,7 @@
   }
 
   function appendBatchedDisplays(cableIds) {
+    if (PixiContext.orderedRackRuns) return false;
     const usesBatched = PixiContext.usesBatchedViewportRenderer?.();
     const batchedRackGroups = PixiContext.batchedRackGroups;
     const cableDisplays = PixiContext.cableDisplays;
@@ -389,6 +398,7 @@
   }
 
   function rebuildBatchedRackGroups(rackKeys) {
+    if (PixiContext.orderedRackRuns) return false;
     const usesBatched = PixiContext.usesBatchedViewportRenderer?.();
     const batchedRackGroups = PixiContext.batchedRackGroups;
     const cableDisplays = PixiContext.cableDisplays;
@@ -464,6 +474,7 @@
   }
 
   function rebuildBatchedStyleGroups(arg1, arg2) {
+    if (PixiContext.orderedRackRuns) return false;
     const usesBatched = PixiContext.usesBatchedViewportRenderer?.();
     const batchedRackGroups = PixiContext.batchedRackGroups;
     const cableDisplays = PixiContext.cableDisplays;

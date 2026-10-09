@@ -849,6 +849,25 @@
     api.flushProjectChanges = record;
     api.undoProject = () => history(true);
     api.redoProject = () => history(false);
+    api.adoptSharedDocument = async (input, expected, evidence = []) => {
+      if (recoveryPending) throw new Error('Yerel kurtarma henüz tamamlanmadı.');
+      const ensure = () => { const live = api.ProjectDocument.capture(state); if (live.projectId !== expected.projectId || api.ProjectCommands.domainKey(live) !== expected.expectedContent) throw new Error('Ortak kayıt alınırken yerel taslak değişti; taslak korunuyor.'); };
+      ensure(); await api.saveProjectNow(); ensure();
+      const doc = repository.validate(input), previous = await repository.get(doc.projectId, { adopt: true }); ensure();
+      if (previous) {
+        doc.revision = Math.max(doc.revision, previous.document.revision + 1);
+        const receipts = new Map(api.ProjectCommands.receipts(previous.document).map(row => [row.commandId, row]));
+        for (const row of api.ProjectCommands.receipts(doc)) { const old = receipts.get(row.commandId); if (old && old.fingerprint !== row.fingerprint) throw new Error('Ortak komut makbuzu çatışması.'); receipts.set(row.commandId, row); }
+        doc.extensions[api.ProjectCommands.LEDGER] = [...receipts.values()];
+      }
+      await repository.commit(doc, { evidence }); ensure();
+      await repository.release(state.projectDocument.projectId); ensure();
+      restoring = true;
+      try { api.loadCustomTopology(doc); undo = []; redo = []; selected = null; last = snapshot(); revision++; sync(); }
+      finally { restoring = false; }
+      await repository.select(doc.projectId); status('Ortak kabul edilmiş kayıt açıldı; geri alma geçmişi yeni kayıtta başladı');
+      return doc;
+    };
     api.importProjectDocument = async (input, expected, options = {}) => {
       if (recoveryPending) throw new Error('Yerel kurtarma tamamlanmadan proje açılamaz.');
       let doc = repository.validate(input);
@@ -951,7 +970,11 @@
     window.addEventListener('rackstudio:change', handleImmediateChange);
     window.addEventListener('rackstudio:refresh', () => { sync(); scheduleRecord(); });
     window.addEventListener('pagehide', () => { repository.release(state.projectDocument.projectId).catch(() => {}); });
-    window.addEventListener('beforeunload', () => { if (last) repository.rememberDraft(JSON.parse(last)); });
+    window.addEventListener('beforeunload', () => {
+      // Capture pending edits synchronously; the durable write may still be queued.
+      record();
+      if (last) repository.rememberDraft(JSON.parse(last));
+    });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { record(); save(); } });
     last = snapshot(); sync();
     const startupBase = last;

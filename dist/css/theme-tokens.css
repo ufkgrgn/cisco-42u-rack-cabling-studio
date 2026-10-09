@@ -5,6 +5,9 @@
   color-scheme: dark;
 
   --bg-app: #141311;
+  --text-on-accent: #ffffff;
+  --modal-backdrop: rgba(10, 9, 8, 0.65);
+  --modal-blur: 6px;
   --bg-panel: #1c1b19;
   --bg-elevated: #242320;
   --bg-card: #242320;
@@ -132,13 +135,14 @@
 :is([data-theme="light"], [data-theme="high-contrast"]) {
   color-scheme: light;
 
-  --bg-app: #f3f0e8;
-  --bg-panel: #faf8f3;
+  --bg-app: #f4f5f3;
+  --modal-backdrop: rgba(28, 25, 21, 0.35);
+  --bg-panel: #fcfdfc;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
-  --bg-panel-light: #e7e2d6;
-  --bg-inset: #e7e2d6;
-  --border: #d4cec2;
+  --bg-panel-light: #edf0ed;
+  --bg-inset: #edf0ed;
+  --border: #d7ddda;
   --border-subtle: rgba(28, 25, 21, 0.08);
   --border-strong: #8a8478;
 
@@ -174,7 +178,7 @@
   --glass-shadow: none;
   --glass-shadow-hover: none;
 
-  --viewport-bg: #e6e1d6;
+  --viewport-bg: #f4f5f3;
   --chrome-offset: 48px;
   --scrollbar-track: transparent;
   --scrollbar-thumb: rgba(111, 106, 96, 0.4);
@@ -219,13 +223,13 @@
   --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.18);
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.25);
 
-  --rack-body: #343a3f;
-  --rack-post: #252b30;
-  --rack-frame-border: #171c20;
-  --rack-divider: #4b5358;
+  --rack-body: #fafcfb;
+  --rack-post: #edf0ed;
+  --rack-frame-border: #d7ddda;
+  --rack-divider: #d7ddda;
   --rack-hole-bg: #12171b;
   --rack-hole-border: #7a8285;
-  --rack-u-label: #e4e8e8;
+  --rack-u-label: #65716e;
   --rack-u-label-hover: #1f4e79;
   --rack-slot-hover: rgba(31, 78, 121, 0.08);
 
@@ -304,6 +308,8 @@ html {
 }
 
 [data-theme="high-contrast"] {
+  --modal-backdrop: rgba(0, 0, 0, 0.55);
+  --modal-blur: 0px;
   color-scheme: light;
   --bg-app: #fff;
   --bg-panel: #fff;
@@ -366,3 +372,6 @@ html {
   --surface-shadow: none;
   --glass-blur: 0px;
 }
+
+/* Shared workspace proportions; preferences never enter project files. */
+:root { --selection-bg: color-mix(in srgb, var(--accent-strong) 12%, var(--bg-panel)); --workspace-library-width: 260px; --workspace-inspector-width: 300px; }

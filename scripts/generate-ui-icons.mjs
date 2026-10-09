@@ -6,7 +6,7 @@ const bindings = {
   'btn-3d-undo': 'Undo2',
   'btn-3d-redo': 'Redo2',
   'btn-command-palette': 'Search',
-  'btn-tools-menu-toggle': 'Settings2',
+  'btn-tools-menu-toggle': 'Menu',
   'btn-mobile-catalog': 'PanelLeft',
   'btn-mobile-schedule': 'Cable',
   'btn-view-3d': 'Box',
@@ -65,7 +65,7 @@ const extraShapes = {
 const names = [...new Set([...Object.values(bindings), ...Object.keys(extraShapes),
   'X', 'Check', 'Minus', 'Star', 'Save', 'Pencil', 'Search', 'RefreshCw', 'Info', 'CircleHelp',
   'ClipboardList', 'Palette', 'ArrowUp', 'ArrowDown', 'Link', 'Plug', 'Circle', 'Filter', 'Keyboard',
-  'FilePlus', 'Maximize', 'Minimize', 'ChevronDown', 'Settings2', 'ZoomIn', 'ZoomOut'])];
+  'Network', 'Router', 'Cable', 'PanelsTopLeft', 'Layers', 'SlidersHorizontal', 'Cpu', 'ChevronRight', 'FilePlus', 'Maximize', 'Minimize', 'ChevronDown', 'Settings2', 'ZoomIn', 'ZoomOut'])];
 for (const name of names) if (!lucide[name]) throw new Error('Unknown Lucide icon: ' + name);
 const shapes = Object.fromEntries(names.map(name => [name, lucide[name]]));
 

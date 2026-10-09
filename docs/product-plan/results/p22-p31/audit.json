@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "audit",
+  "command": "npm audit --json",
+  "startedAt": "2026-10-08T07:34:41.197Z",
+  "finishedAt": "2026-10-08T07:34:43.948Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "196a5f6bc3b552dba07da665da417ef75a06fa7bc7c4eac58b3339483ad27c98"
+}

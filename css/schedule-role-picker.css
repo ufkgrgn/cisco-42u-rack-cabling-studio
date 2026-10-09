@@ -27,7 +27,7 @@
 .role-picker-title {
   font-size: 9.5px;
   font-weight: 800;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 4px 6px 3px;
@@ -78,7 +78,7 @@
 .role-badge-preview.routed { background: #b91c1c; color: #fff; box-shadow: 0 0 6px #b91c1c; }
 .role-badge-preview.fiber { background: #facc15; color: #000; font-weight: 900; box-shadow: 0 0 6px #facc15; }
 .role-badge-preview.console { background: #00bceb; color: #000; font-weight: 900; box-shadow: 0 0 6px #00bceb; }
-.role-badge-preview.standard { background: #334155; color: #cbd5e1; }
+.role-badge-preview.standard { background: #334155; color: var(--text-main); }
 
 .role-text-group {
   display: flex;
@@ -90,7 +90,7 @@
 .role-label {
   font-size: 11px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-main);
 }
 
 .role-hint {
@@ -135,6 +135,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.tree-cable-row .del-cable-btn { min-width: 44px; min-height: 44px; }
 .del-cable-btn {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.25);
@@ -161,11 +162,10 @@
    SCHEDULE VIEW & SORT TOOLBAR
    ========================================================================== */
 #schedule-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 8px;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
   box-shadow: none;
@@ -192,7 +192,9 @@
 }
 
 .schedule-sort-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
   align-items: center;
   gap: 3px;
   background: var(--bg-inset);
@@ -201,13 +203,14 @@
   border: 1px solid var(--border);
 }
 
-.sort-tab-btn {
+.schedule-sort-group .sort-tab-btn {
+  min-width: 0; min-height: 44px; height: 44px;
   background: transparent;
   border: none;
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 3px 4px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -231,6 +234,7 @@
    SWITCH TREE VIEW ACCORDION & ROWS
    ========================================================================== */
 .schedule-tree-switch-card {
+  display: block; width: 100%; box-sizing: border-box;
   background: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -250,8 +254,11 @@
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent-strong) 30%, transparent);
 }
 
+.schedule-tree-switch-card > td { display: block; width: 100%; box-sizing: border-box; }
 .tree-switch-header {
-  display: flex;
+  border-left: 4px solid var(--accent-strong);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
@@ -259,14 +266,15 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--accent-strong) 18%, var(--bg-panel));
+  border-bottom: 2px solid var(--border-strong);
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
 
 .tree-switch-info {
-  display: flex;
+  display: grid;
+  grid-template-columns: 12px auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -299,15 +307,16 @@
 .tree-switch-title {
   font-weight: 700;
   font-size: 12px;
-  color: #f1f5f9;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tree-switch-model {
+  grid-column: 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: 10.5px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -325,11 +334,11 @@
 
 .tree-switch-body {
   border-top: 1px solid var(--border);
-  padding: 4px 6px 6px 12px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  background: var(--bg-inset);
+  background: var(--bg-app);
 }
 
 .schedule-tree-switch-card.collapsed .tree-switch-body {
@@ -337,8 +346,9 @@
 }
 
 .tree-cable-row {
+  flex-direction: column; min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   padding: 4px 8px;
   background: var(--bg-panel);
@@ -354,7 +364,7 @@
 .tree-cable-row.hovered {
   background: var(--bg-elevated);
   border-color: var(--border-strong);
-  transform: translateX(2px);
+  transform: none;
 }
 
 .tree-cable-row.active {
@@ -364,7 +374,7 @@
 }
 
 .tree-branch-symbol {
-  color: #64748b;
+  color: var(--text-muted);
   font-family: monospace;
   font-size: 12px;
   user-select: none;
@@ -372,7 +382,9 @@
 }
 
 .tree-port-left {
-  display: flex;
+  display: grid;
+  grid-template-columns: 12px auto minmax(0, 1fr);
+  width: 100%;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -383,8 +395,8 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 800;
   font-size: 11.5px;
-  color: #f1f5f9;
-  background: #1e293b;
+  color: var(--text-main);
+  background: var(--bg-inset);
   border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 1px 6px;
   border-radius: 3px;
@@ -397,43 +409,53 @@
   text-shadow: 0 0 5px rgba(250, 204, 21, 0.4);
 }
 
+.tree-port-left > .route-center-sep { justify-self: start; }
 .tree-dest-info {
-  display: flex;
+  grid-column: 2 / -1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 5px;
-  color: #cbd5e1;
+  color: var(--text-main);
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.tree-dest-label { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tree-dest-port { grid-column: 3; color: var(--text-muted); font: 600 10px var(--font-mono); }
 .tree-dest-u {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 900;
   font-size: 11px;
   color: var(--accent-strong);
-  background: #0b1320;
+  background: var(--bg-inset);
   border: 1px solid rgba(0, 229, 255, 0.4);
   padding: 0 4px;
   border-radius: 3px;
 }
 
 .tree-cable-right {
+  justify-content: flex-start;
   display: flex;
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
 }
 
+.tree-cable-right .del-cable-btn { margin-left: auto; }
 .tree-switch-actions {
+  justify-content: space-between;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
 
-.btn-switch-bulk-color {
+.tree-switch-actions .btn-switch-bulk-color {
+  min-height: 44px; height: 44px;
   font-family: inherit;
   font-size: 10.5px;
   font-weight: 600;

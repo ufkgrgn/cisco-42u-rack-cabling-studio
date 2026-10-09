@@ -1,0 +1,949 @@
+{
+  "format": "rack-studio-catalog-pilot",
+  "version": 1,
+  "mode": "baseline-only",
+  "createdAt": "2026-10-08T07:07:11.313Z",
+  "fixtureHash": "a9b1361f9468dea3866b017a5bbc815da2bed6143fd52cdb58c2c9af26b2a88d",
+  "catalogHash": "7600d6a05b458df7bac18693b05f3d39848562020c919037cb36629f423b49a0",
+  "queries": 60,
+  "publicCandidates": 2,
+  "technicalTop3Improvement": null,
+  "gate": {
+    "passed": false,
+    "reason": "No live credentials or quality/cost evidence; experiment stays off. Two public models cannot establish top-3 improvement."
+  },
+  "results": [
+    {
+      "id": "tr-1",
+      "language": "tr",
+      "category": "exact",
+      "query": "C9200L-24P-4G",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-1",
+      "language": "en",
+      "category": "exact",
+      "query": "C9200L-24P-4G",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-2",
+      "language": "tr",
+      "category": "exact",
+      "query": "Cisco C9200L-24P-4G",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-2",
+      "language": "en",
+      "category": "exact",
+      "query": "Cisco C9200L-24P-4G",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-3",
+      "language": "tr",
+      "category": "exact",
+      "query": "JL677A",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-3",
+      "language": "en",
+      "category": "exact",
+      "query": "JL677A",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-4",
+      "language": "tr",
+      "category": "exact",
+      "query": "Aruba JL677A",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-4",
+      "language": "en",
+      "category": "exact",
+      "query": "Aruba JL677A",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-5",
+      "language": "tr",
+      "category": "exact",
+      "query": "c9200l-24p-4g",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-5",
+      "language": "en",
+      "category": "exact",
+      "query": "c9200l-24p-4g",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-6",
+      "language": "tr",
+      "category": "exact",
+      "query": "jl677a",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-6",
+      "language": "en",
+      "category": "exact",
+      "query": "jl677a",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-7",
+      "language": "tr",
+      "category": "exact",
+      "query": "C9200L-24P-4G modeli",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-7",
+      "language": "en",
+      "category": "exact",
+      "query": "model C9200L-24P-4G",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-8",
+      "language": "tr",
+      "category": "exact",
+      "query": "JL677A anahtar",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-8",
+      "language": "en",
+      "category": "exact",
+      "query": "JL677A switch",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-9",
+      "language": "tr",
+      "category": "technical",
+      "query": "24 port gigabit PoE anahtar",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-9",
+      "language": "en",
+      "category": "technical",
+      "query": "24 port gigabit PoE switch",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-10",
+      "language": "tr",
+      "category": "technical",
+      "query": "370 watt PoE bütçesi",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-10",
+      "language": "en",
+      "category": "technical",
+      "query": "370 watt PoE budget",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-11",
+      "language": "tr",
+      "category": "technical",
+      "query": "30 watt port başına PoE",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-11",
+      "language": "en",
+      "category": "technical",
+      "query": "30 watt PoE per port",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-12",
+      "language": "tr",
+      "category": "technical",
+      "query": "4 adet 10 gigabit uplink",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-12",
+      "language": "en",
+      "category": "technical",
+      "query": "four 10 gigabit uplinks",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-13",
+      "language": "tr",
+      "category": "technical",
+      "query": "4 adet 1 gigabit SFP uplink",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-13",
+      "language": "en",
+      "category": "technical",
+      "query": "four 1 gigabit SFP uplinks",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-14",
+      "language": "tr",
+      "category": "technical",
+      "query": "1U 24 bakır port",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-14",
+      "language": "en",
+      "category": "technical",
+      "query": "1U 24 copper ports",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-15",
+      "language": "tr",
+      "category": "technical",
+      "query": "SFP+ uplinkli Aruba",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-15",
+      "language": "en",
+      "category": "technical",
+      "query": "Aruba with SFP+ uplinks",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-16",
+      "language": "tr",
+      "category": "technical",
+      "query": "Cisco 1G uplink",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-16",
+      "language": "en",
+      "category": "technical",
+      "query": "Cisco 1G uplink",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-17",
+      "language": "tr",
+      "category": "technical",
+      "query": "802.3at PoE anahtar",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-17",
+      "language": "en",
+      "category": "technical",
+      "query": "802.3at PoE switch",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-18",
+      "language": "tr",
+      "category": "technical",
+      "query": "24 PoE port ve 4 uplink",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-18",
+      "language": "en",
+      "category": "technical",
+      "query": "24 PoE ports and four uplinks",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-19",
+      "language": "tr",
+      "category": "technical",
+      "query": "Aruba 24 port PoE",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-19",
+      "language": "en",
+      "category": "technical",
+      "query": "Aruba 24 port PoE",
+      "expected": [
+        "eng-aruba-jl677a"
+      ],
+      "baseline": [
+        "eng-aruba-jl677a",
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-20",
+      "language": "tr",
+      "category": "technical",
+      "query": "Cisco 24 port PoE",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-20",
+      "language": "en",
+      "category": "technical",
+      "query": "Cisco 24 port PoE",
+      "expected": [
+        "eng-cisco-c9200l-24p-4g"
+      ],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": true,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-21",
+      "language": "tr",
+      "category": "no-match",
+      "query": "48 bakır port",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-21",
+      "language": "en",
+      "category": "no-match",
+      "query": "48 copper ports",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-22",
+      "language": "tr",
+      "category": "no-match",
+      "query": "100 gigabit uplink",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-22",
+      "language": "en",
+      "category": "no-match",
+      "query": "100 gigabit uplink",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-23",
+      "language": "tr",
+      "category": "no-match",
+      "query": "800 watt PoE",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-23",
+      "language": "en",
+      "category": "no-match",
+      "query": "800 watt PoE",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-24",
+      "language": "tr",
+      "category": "no-match",
+      "query": "2U yönlendirici",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-24",
+      "language": "en",
+      "category": "no-match",
+      "query": "2U router",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-25",
+      "language": "tr",
+      "category": "no-match",
+      "query": "doğrulanmış 50 watt giriş tüketimi",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-25",
+      "language": "en",
+      "category": "no-match",
+      "query": "verified 50 watt input consumption",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-26",
+      "language": "tr",
+      "category": "no-match",
+      "query": "24 port pasif panel",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-26",
+      "language": "en",
+      "category": "no-match",
+      "query": "24 port passive patch panel",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-27",
+      "language": "tr",
+      "category": "noise",
+      "query": "masaüstü yazıcı",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-27",
+      "language": "en",
+      "category": "noise",
+      "query": "desktop printer",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-28",
+      "language": "tr",
+      "category": "noise",
+      "query": "kahve makinesi",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-28",
+      "language": "en",
+      "category": "noise",
+      "query": "coffee machine",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-29",
+      "language": "tr",
+      "category": "noise",
+      "query": "12 volt kamera",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-29",
+      "language": "en",
+      "category": "noise",
+      "query": "12 volt camera",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "tr-30",
+      "language": "tr",
+      "category": "noise",
+      "query": "bilinmeyen ZZZ999 modeli",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    },
+    {
+      "id": "en-30",
+      "language": "en",
+      "category": "noise",
+      "query": "unknown ZZZ999 model",
+      "expected": [],
+      "baseline": [
+        "eng-cisco-c9200l-24p-4g",
+        "eng-aruba-jl677a"
+      ],
+      "baselineCorrect": false,
+      "ai": null,
+      "aiCorrect": null
+    }
+  ]
+}

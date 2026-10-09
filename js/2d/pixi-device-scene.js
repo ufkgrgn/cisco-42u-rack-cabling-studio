@@ -124,7 +124,7 @@
   }
 
   function hitDevicePortAt(clientX, clientY) {
-    if (!PixiContext.deviceSceneContainer?.visible || RS.StudioView?.isOverview()) return null;
+    if (!PixiContext.deviceSceneContainer?.visible || RS.StudioView?.isOverview() || !['ports', 'detail'].includes(RS.StudioView?.getCameraLod())) return null;
     const rect = PixiContext.getPixiCanvasRect?.();
     if (!rect?.width || !rect?.height) return null;
     const point = PixiContext.clientToRenderer ? PixiContext.clientToRenderer(clientX, clientY, rect, hitTestPoint) : hitTestPoint;
@@ -306,7 +306,7 @@
 
     // Paint crisp safety-orange separators between patch panel port groups
     const isPatch = entry.device.category === 'patch' || /patch/i.test(entry.device.catalogKey || '');
-    if (isPatch && !RS.StudioView?.isOverview()) {
+    if (isPatch && RS.StudioView?.getCameraLod() === 'detail' && !RS.StudioView?.isOverview()) {
       const cat = RS.resolveCatalogItem ? RS.resolveCatalogItem(entry.device.catalogKey) : null;
       if (cat?.ports && cat.ports.length > 1) {
         for (let i = 0; i < cat.ports.length - 1; i++) {
@@ -325,7 +325,7 @@
     }
 
     // Option 4: Switch Port Block Separator Lines (12'li / 8'li bloklar & Uplink ayraçları)
-    if (!isPatch && !RS.StudioView?.isOverview()) {
+    if (!isPatch && RS.StudioView?.getCameraLod() === 'detail' && !RS.StudioView?.isOverview()) {
       const cat = RS.resolveCatalogItem ? RS.resolveCatalogItem(entry.device.catalogKey) : null;
       if (cat?.ports && cat.ports.length >= 24) {
         const primaryPorts = cat.ports.filter(p => p.type === 'rj45' || !String(p.id).startsWith('up'));
@@ -365,7 +365,7 @@
     }
 
     // Option 3: Vivid Active Link LEDs and Role Badges on Ports
-    if (!RS.StudioView?.isOverview()) {
+    if (RS.StudioView?.getCameraLod() === 'detail' && !RS.StudioView?.isOverview()) {
       devicePortSprites.forEach((s, key) => {
         const [devId, portId] = key.split('::');
         if (devId !== id) return;
@@ -522,14 +522,16 @@
       if (chassisSprite || overlays) spriteCount++;
 
       const macroContainer = RS.DeviceLayoutPresentation.createPixiLayer(device);
+      const flatChassis = RS.PixiDeviceChassis.createFlat(device);
 
       const chrome = new window.PIXI.Graphics();
       chrome.eventMode = 'none';
-      devContainer.addChild(portsContainer, portLabels, macroContainer, chrome);
+      devContainer.addChild(flatChassis, portsContainer, portLabels, macroContainer, chrome);
       scene.container.addChild(devContainer);
       const entry = {
         container: devContainer,
         chassis: chassisSprite,
+        flatChassis,
         overlays,
         chrome,
         ports: portsContainer,
@@ -696,7 +698,7 @@
     const scale = Number(RS.ZOOM_STATE?.scale) || 1;
     const overview = RS.StudioView?.isOverview() || activeDeviceSceneLod === 'macro';
     const userEnabled = STATE.portNumbersVisible !== false;
-    const showLabels = userEnabled && !overview && scale >= 0.65;
+    const showLabels = userEnabled && !overview && RS.StudioView?.getCameraLod() === 'detail' && scale > 2;
     let anyChanged = false;
     deviceContainers.forEach(dev => {
       if (dev.portLabels && dev.portLabels.visible !== showLabels) {
@@ -755,6 +757,7 @@
 
         // --- Hardware Port Silhouette Sprite ---
         const sprite = new window.PIXI.Sprite(texture);
+        sprite.detailTexture = texture;
         sprite.anchor.set(0.5);
         sprite.position.set(localX, localY);
         // Maintain authentic physical square aspect ratio for hardware ports (never stretch into oblong rectangles)
@@ -826,7 +829,7 @@
       const previousTextureKey = portVariantKey(port, devicePortOccupancy.get(key));
       const nextTextureKey = portVariantKey(port, isOccupied);
       const texture = portTextureFor(port, isOccupied);
-      if (texture) sprite.texture = texture;
+      if (texture) { sprite.detailTexture = texture; sprite.texture = activeDeviceSceneLod === 'detail' ? texture : RS.PixiDeviceChassis.getFlatPortTexture(); }
       devicePortOccupancy.set(key, isOccupied);
       applyPortTint(sprite, key, port, isOccupied);
       adjustDevicePortVariantCount(previousTextureKey, -1);
@@ -863,11 +866,35 @@
 
   function revealDeviceSprites() {
     const overview = RS.StudioView?.isOverview() || activeDeviceSceneLod === 'macro';
+    const detail = !overview && activeDeviceSceneLod === 'detail';
+    const showPorts = !overview && ['ports', 'detail'].includes(activeDeviceSceneLod);
     deviceContainers.forEach(dev => {
-      if (dev.chassis) dev.chassis.visible = !overview;
-      if (dev.overlays) dev.overlays.visible = !overview;
-      if (dev.ports) dev.ports.visible = !overview;
+      if (dev.chassis) dev.chassis.visible = detail;
+      if (dev.overlays) dev.overlays.visible = detail;
+      if (dev.flatChassis) {
+        dev.flatChassis.visible = !overview && !detail;
+        const label = dev.flatChassis.children[1];
+        label.text = RS.DeviceLayoutPresentation.describe(dev.device).model;
+        const portLeft = showPorts && dev.ports.children.length
+          ? Math.min(...dev.ports.children.map(port => port.x - port.width / 2)) : dev.width;
+        const width = Math.max(40, portLeft - label.x - 8);
+        label.style.fontSize = showPorts ? 12 : 20;
+        label.style.wordWrap = showPorts;
+        label.style.wordWrapWidth = width;
+        label.style.breakWords = true;
+        label.style.lineHeight = showPorts ? 13 : 22;
+        while (label.height > dev.height - 4 && label.style.fontSize > 9) {
+          label.style.fontSize -= .5; label.style.lineHeight = label.style.fontSize + 1;
+        }
+        while ((label.width > width || label.height > dev.height - 4) && label.text.length > 3)
+          label.text = label.text.replace(/…$/, '').slice(0, -1) + '…';
+      }
+      if (dev.ports) dev.ports.visible = showPorts;
       if (dev.macroLabel) dev.macroLabel.visible = overview;
+    });
+    devicePortSprites.forEach(sprite => {
+      const texture = detail ? sprite.detailTexture : RS.PixiDeviceChassis.getFlatPortTexture();
+      if (texture && sprite.texture !== texture) sprite.texture = texture;
     });
     updatePortLabelsVisibility();
   }
@@ -876,7 +903,7 @@
     const pixiApp = PixiContext.pixiApp;
     const deviceSceneContainer = PixiContext.deviceSceneContainer;
     if (!deviceSceneContainer || !pixiApp) return false;
-    const lod = RS.StudioView?.isOverview() ? 'macro' : 'detail';
+    const lod = RS.StudioView?.isOverview() ? 'macro' : RS.StudioView?.getCameraLod() || 'detail';
     const presentationKey = `pixi:${lod}`;
     deviceSceneContainer.visible = true;
     document.documentElement.setAttribute('data-device-renderer', 'pixi');

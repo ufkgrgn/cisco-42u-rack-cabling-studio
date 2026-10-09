@@ -723,3 +723,5 @@
   border-color: var(--accent-strong);
 }
 
+
+.viewport-bottom-hint[hidden] { display: none; }

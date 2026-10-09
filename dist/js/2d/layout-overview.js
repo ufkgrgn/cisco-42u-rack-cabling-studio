@@ -18,14 +18,10 @@
     if (!panel) return;
     const layout = RS.STATE.studioWorkMode === 'layout';
     const overview = RS.StudioView.isOverview();
-    panel.hidden = !layout;
-    legend.hidden = !overview;
-    const title = document.querySelector('#sidebar-right .schedule-title');
-    if (title) title.textContent = layout ? 'Kabin yerleşimi' : 'Bağlantı Listesi';
-    const mobile = document.getElementById('btn-mobile-schedule');
-    if (mobile) mobile.textContent = layout ? 'Cihazlar' : 'Bağlantılar';
+    legend.hidden = false;
     const note = document.getElementById('studio-view-note');
-    if (note) note.textContent = layout ? 'Cihazları yerleştir · boş U alanına bırak' : overview ? 'Genel yerleşim · port ve kablolar için yakınlaş' : 'Port seç · bağlantıları düzenle';
+    const lod = RS.StudioView.getCameraLod();
+    if (note) note.textContent = layout ? 'Port ve kablolar gizli · bağlamak için Kablolama’yı seçin' : overview || lod === 'medium' ? 'Port ve kablolar gizli · %115 üzerine yakınlaşın' : lod === 'ports' ? 'Sade portlar · ayrıntılar için %200 üzerine yakınlaşın' : 'Port seç · bağlantıları düzenle';
   }
   function refresh() {
     if (!panel) return;
@@ -38,6 +34,9 @@
     const devices = racks.flatMap(r => r.devices), used = devices.reduce((sum, d) => sum + d.uHeight, 0);
     const total = racks.reduce((sum, r) => sum + r.heightU, 0);
     const summary = node('div', undefined, 'layout-summary');
+    const scope = node('p', `${racks.length} kabin · toplam ${total}U kapasite`, 'layout-summary-scope');
+    const context = node('span', racks.length === 1 ? racks[0].name : 'Görünümdeki tüm kabinlerin toplamı');
+    scope.append(context); summary.append(scope);
     [[devices.length, 'cihaz'], [used + 'U', 'dolu'], [(total - used) + 'U', 'boş']].forEach(([value, label]) => {
       const item = node('div'); item.append(node('strong', String(value)), node('span', label)); summary.append(item);
     });
@@ -68,10 +67,13 @@
         });
         li.append(button); list.append(li);
       });
-      if (!rack.devices.length) panel.append(node('p', 'Kütüphaneden cihaz seçip boş bir U alanına bırakın.', 'layout-help'));
+      if (!rack.devices.length) {
+        panel.append(node('p', 'Kütüphaneden cihaz seçip boş bir U alanına bırakın.', 'layout-help'));
+        const help = node('button', 'Cihaz yerleştirmeyi öğren', 'section-help-button'); help.type = 'button'; help.dataset.helpOpen = 'devices'; panel.append(help);
+      }
       panel.append(list);
     });
-    legend.replaceChildren(node('span', 'Cihaz türleri', 'layout-legend-title'));
+    legend.replaceChildren();
     for (const key of Object.keys(RS.DeviceLayoutPresentation.profiles)) {
       if (!keys.has(key)) continue;
       const profile = RS.DeviceLayoutPresentation.profile(key), item = node('span', profile.label, 'layout-legend-item');
@@ -81,17 +83,10 @@
   function init() {
     panel = node('section', undefined, 'layout-overview'); panel.id = 'layout-overview';
     panel.setAttribute('aria-label', 'Kabin cihaz yerleşimi');
-    document.getElementById('sidebar-right')?.append(panel);
+    document.getElementById('workspace-content-devices')?.append(panel);
     legend = node('div', undefined, 'layout-legend'); legend.id = 'layout-legend';
     legend.setAttribute('aria-label', 'Yerleşim renk açıklamaları');
-    const bar = node('div', undefined, 'studio-view-caption');
-    const modeSwitch = document.getElementById('studio-work-mode-switch');
-    const cableToggle = document.getElementById('btn-toggle-cables');
-    const note = node('span', undefined, 'studio-view-note'); note.id = 'studio-view-note';
-    if (modeSwitch) bar.append(modeSwitch);
-    if (cableToggle) bar.append(cableToggle);
-    bar.append(note);
-    document.getElementById('rack-viewport')?.append(bar, legend);
+    document.getElementById('workspace-device-types')?.append(legend);
     ['rackstudio:change', 'rackstudio:refresh', 'rackstudio:studio-work-mode'].forEach(type => document.addEventListener(type, refresh));
     window.addEventListener('rackstudio:refresh', refresh);
     new MutationObserver(refresh).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

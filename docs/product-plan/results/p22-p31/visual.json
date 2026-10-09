@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "visual",
+  "command": "npm run test:visual",
+  "startedAt": "2026-10-08T07:36:10.820Z",
+  "finishedAt": "2026-10-08T07:37:01.784Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "120bf5d2a7f431ccfe3fe5ec7d38d14d4fb486ef3bd79e7522c5e8097f972961"
+}

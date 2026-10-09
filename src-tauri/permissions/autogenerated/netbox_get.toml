@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-netbox-get"
+description = "Enables the netbox_get command without any pre-configured scope."
+commands.allow = ["netbox_get"]
+
+[[permission]]
+identifier = "deny-netbox-get"
+description = "Denies the netbox_get command without any pre-configured scope."
+commands.deny = ["netbox_get"]

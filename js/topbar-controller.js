@@ -382,9 +382,9 @@
     toolsPanel?.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (btn && btn.id !== 'btn-tools-menu-toggle') {
-        // Keep menu open for file import; close for other actions shortly after
+        // Close before opening another surface; toggles keep the menu available.
         if (!['btn-import-json-3d', 'btn-network-compliance', 'btn-audio-toggle', 'btn-show-dpad', 'btn-door-toggle', 'btn-routing-toggle', 'btn-lighting-toggle', 'btn-field-mode'].includes(btn.id)) {
-          setTimeout(() => setToolsOpen(false), 80);
+          setToolsOpen(false);
         }
       }
     });

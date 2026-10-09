@@ -50,6 +50,8 @@
         const archive = button(project.archived ? 'Arşivden çıkar' : 'Arşivle', run(async () => { await RS.ProjectRepository.archive(project.projectId, !project.archived); await refresh(); }));
         if (!project.archived && project.projectId === RS.STATE.projectDocument.projectId) { archive.disabled = true; archive.title = 'Açık projeyi arşivlemek için önce başka projeyi açın.'; }
         actions.append(archive); row.append(actions); list.append(row);
+        actions.append(button('Bakım: son 100 kaydı koru',run(async()=>{const result=await RS.ProjectLifecycle.maintain(project.projectId);status.textContent=`${result.revisions} eski kayıt, ${result.evidence} referanssız ek temizlendi.`;})));
+        if(project.archived){const confirmation=field('Kalıcı silme için proje adı');actions.append(confirmation.wrap,button('Kalıcı sil',run(async()=>{await RS.ProjectLifecycle.remove(project.projectId,confirmation.input.value);await refresh();status.textContent='Yerel arşiv silindi. Sunucu ve dış yedekler ayrı kalır.';})));}
       }
       if (!list.children.length) list.append(node('p','Eşleşen proje yok.'));
     }

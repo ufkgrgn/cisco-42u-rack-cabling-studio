@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, '..');
 console.log('🚀 Building standalone studio bundles via esbuild...');
 
 try {
+  esbuild.buildSync({entryPoints:[path.join(root,'js/src/pixi-runtime.js')],bundle:true,outfile:path.join(root,'js/pixi.min.js'),format:'iife',target:['es2020'],minify:true,legalComments:'inline'});
   // 1. Build 3D Studio Engine Bundle
   const start3D = Date.now();
   esbuild.buildSync({
@@ -42,6 +43,7 @@ try {
   console.log(`✅ Built js/studio3d-ui.js (${fs.statSync(path.join(root, 'js/studio3d-ui.js')).size} bytes) in ${Date.now() - startUI}ms`);
 
   console.log('🎉 All standalone bundles compiled successfully!');
+  esbuild.buildSync({entryPoints:[path.join(root,'js/src/workspace-yjs.js')],bundle:true,outfile:path.join(root,'js/workspace-yjs.js'),format:'iife',target:['es2020'],legalComments:'inline'});
 } catch (err) {
   console.error('❌ Bundle build failed:', err);
   process.exit(1);

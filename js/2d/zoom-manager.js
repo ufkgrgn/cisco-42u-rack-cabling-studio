@@ -114,7 +114,7 @@
     // Leave room for the bottom resize grip and the fixed camera toolbar.
     const toolbar = canvas.querySelector('.zoom-toolbar') || document.querySelector('.zoom-toolbar');
     const toolbarHeight = toolbar?.getBoundingClientRect().height || 0;
-    const paddingY = Math.max(48, toolbarHeight + 64);
+    const paddingY = document.querySelector('.workspace-canvas-footer') ? 20 : Math.max(48, toolbarHeight + 64);
     const scaleX = (cw - paddingX * 2) / rackW;
     const scaleY = (ch - paddingY * 2) / rackH;
 
@@ -372,6 +372,7 @@
 
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
+      if (window.UIInteraction?.isSceneBlocked()) return;
       if (typeof cancelCameraAnimation === 'function') cancelCameraAnimation();
       if (wheelCleanupTimer) {
         clearTimeout(wheelCleanupTimer);
@@ -403,18 +404,6 @@
         wheelCleanupTimer = 0;
       }, 150);
     }, { passive: false });
-
-    // A floating menu disables rack pointer targets, but wheel zoom must still
-    // reach the canvas when the pointer is over the exposed viewport area.
-    document.addEventListener('wheel', (e) => {
-      if (!e.isTrusted || getComputedStyle(canvas).pointerEvents !== 'none') return;
-      if (e.target.closest('.instrument-overlay, .hud-tools-panel, .cable-context-menu, .device-context-menu')) return;
-      const rect = canvas.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX >= rect.right || e.clientY < rect.top || e.clientY >= rect.bottom) return;
-      e.preventDefault();
-      if (typeof cancelCameraAnimation === 'function') cancelCameraAnimation();
-      setZoom(RS.ZOOM_STATE.scale * (e.deltaY < 0 ? 1.12 : 1 / 1.12), e.clientX, e.clientY, false);
-    }, { capture: true, passive: false });
 
     let panOriginClientX = 0;
     let panOriginClientY = 0;

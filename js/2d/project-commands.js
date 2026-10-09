@@ -117,6 +117,11 @@
       topology.cables.push(cable);
     } else if(command.type==='ImportObservations'){
       RS.FieldObservations.appendToDocument(draft,command.payload.observations);
+      for (const mapping of command.payload.mappings || []) {
+        const previous = draft.integrationMappings.find(row => row.sourceSystem === mapping.sourceSystem && row.sourceInstance === mapping.sourceInstance && row.externalId === mapping.externalId);
+        if (previous) Object.assign(previous, mapping);
+        else draft.integrationMappings.push(mapping);
+      }
     } else if(command.type==='ApplyObservationDifferences'){
       RS.FieldObservations.applyToDocument(draft,command.payload.observationId,command.payload.fields,command.payload.allowStale);
     } else if (command.type === 'UpdateProjectDetails') {
@@ -177,5 +182,5 @@
     committed?.catch(() => {});
     return { commandId: command.commandId, revision: draft.revision, duplicate: false, status: 'localDraft', renderingWarning, committed };
   }
-  RS.ProjectCommands = Object.freeze({ begin, execute, domainKey, semanticDocument, receipts, LEDGER });
+  RS.ProjectCommands = Object.freeze({ begin, execute, domainKey, semanticDocument, receipts, stable, LEDGER });
 })();

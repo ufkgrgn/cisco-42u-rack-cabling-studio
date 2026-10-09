@@ -38,7 +38,7 @@
     stencilHoverPreview.classList.remove('visible');
     stencilHoverPreview.dataset.state = 'idle';
     if (stencilHoverOriginalButton?.isConnected) {
-      stencilHoverOriginalButton.textContent = 'Gerçek stencil’i göster';
+      stencilHoverOriginalButton.textContent = 'Önizleme';
       stencilHoverOriginalButton.removeAttribute('aria-busy');
     }
     stencilHoverAnchor = null;
@@ -95,7 +95,7 @@
     if (!stencilHoverOriginalUrl || stencilHoverImage.src !== stencilHoverOriginalUrl) return;
     stencilHoverPreview.dataset.state = 'ready';
     if (stencilHoverOriginalButton?.isConnected) {
-      stencilHoverOriginalButton.textContent = 'Gerçek stencil’i kapat';
+      stencilHoverOriginalButton.textContent = 'Önizlemeyi kapat';
       stencilHoverOriginalButton.removeAttribute('aria-busy');
     }
   });

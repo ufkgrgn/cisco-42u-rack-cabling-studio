@@ -20,10 +20,12 @@
   const hideCableContextMenu = (...args) => (RS.hideCableContextMenu && RS.hideCableContextMenu(...args));
 
   function cancelPendingConnection() {
+    const wasPending = Boolean(STATE.pendingConnection);
     if (STATE.pendingConnection && STATE.pendingConnection.element) {
       STATE.pendingConnection.element.classList.remove('selected');
     }
     STATE.pendingConnection = null;
+    if (wasPending) RS.Guidance?.clear();
     RS.refreshPixiPortHighlights?.();
     if (dom.connectionStatusHint) {
       dom.connectionStatusHint.innerHTML = 'Bağlamak için <b>Kaynak Porta</b> tıklayın';
@@ -114,10 +116,11 @@
     dom.tooltip.style.display = 'block';
     dom.tooltip.style.left = `${e.clientX + 10}px`;
     dom.tooltip.style.top = `${e.clientY - 10}px`;
+    queueMicrotask(() => RS.Help?.clampTooltip(dom.tooltip));
     dom.tooltip.innerHTML = `
       <b>${escapeHtml(cable.id)}</b> (${Number(cable.lengthMeters || 0).toFixed(1)}m)<br>
       <span style="color:${cable.color};">&#9632;</span> <strong>${escapeHtml(cableLabel)}</strong><br>
-      <span style="color:#f59e0b;font-size:11px;">Yeniden adlandırmak için çift tıklayın</span>
+      <span style="color:var(--status-warn);font-size:11px;">Yeniden adlandırmak için çift tıklayın</span>
     `;
   }
 
@@ -268,30 +271,38 @@
     });
   }
 
-  function bringCableToFront(cableId) {
-    if (!cableId || !STATE.cables) return;
-    const index = STATE.cables.findIndex(c => c.id === cableId);
-    if (index < 0 || index === STATE.cables.length - 1) return;
+  // Array order is the persistent paint order: back first, front last.
+  function setCableLayer(cableId, position, { commit = true } = {}) {
+    const index = (STATE.cables || []).findIndex(c => c.id === cableId);
+    if (index < 0 || !Number.isFinite(Number(position))) return false;
+    const target = Math.max(0, Math.min(STATE.cables.length - 1, Math.round(Number(position))));
+    // Clear temporary focus even when the cable is already at that extreme.
+    STATE.highlightedCableId = null;
+    RS.setCableHover?.(null);
+    RS.setDeviceCablesHover?.(null, false);
+    RS.syncPixiCableSelection?.();
+    document.querySelectorAll('#schedule-tbody tr.active').forEach(row => row.classList.remove('active'));
+    renderHighlightedCableInspector();
+    if (index === target) return false;
     const [cable] = STATE.cables.splice(index, 1);
-    STATE.cables.push(cable);
-    RS.takeHistorySnapshot?.();
-    renderScheduleTable();
+    STATE.cables.splice(target, 0, cable);
     RS.renderAllCables?.();
+    if (commit) commitCableLayer();
+    return true;
+  }
+
+  function commitCableLayer() {
+    renderScheduleTable();
     document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
     window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
   }
 
+  function bringCableToFront(cableId) {
+    return setCableLayer(cableId, (STATE.cables || []).length - 1);
+  }
+
   function sendCableToBack(cableId) {
-    if (!cableId || !STATE.cables) return;
-    const index = STATE.cables.findIndex(c => c.id === cableId);
-    if (index <= 0) return;
-    const [cable] = STATE.cables.splice(index, 1);
-    STATE.cables.unshift(cable);
-    RS.takeHistorySnapshot?.();
-    renderScheduleTable();
-    RS.renderAllCables?.();
-    document.dispatchEvent(new CustomEvent('rackstudio:change', { bubbles: true }));
-    window.dispatchEvent(new CustomEvent('rackstudio:refresh'));
+    return setCableLayer(cableId, 0);
   }
 
   function appendSingleCable(cable) {
@@ -312,6 +323,8 @@
   RS.disconnectCable = disconnectCable;
   RS.highlightCable = highlightCable;
   RS.addDirectCable = addDirectCable;
+  RS.setCableLayer = setCableLayer;
+  RS.commitCableLayer = commitCableLayer;
   RS.bringCableToFront = bringCableToFront;
   RS.sendCableToBack = sendCableToBack;
 })();

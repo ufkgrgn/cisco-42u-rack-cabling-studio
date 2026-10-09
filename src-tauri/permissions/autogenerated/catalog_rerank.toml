@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-catalog-rerank"
+description = "Enables the catalog_rerank command without any pre-configured scope."
+commands.allow = ["catalog_rerank"]
+
+[[permission]]
+identifier = "deny-catalog-rerank"
+description = "Denies the catalog_rerank command without any pre-configured scope."
+commands.deny = ["catalog_rerank"]

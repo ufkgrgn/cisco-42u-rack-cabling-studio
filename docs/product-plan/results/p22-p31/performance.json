@@ -1,0 +1,12 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "performance",
+  "command": "npm run test:performance",
+  "startedAt": "2026-10-08T07:41:52.416Z",
+  "finishedAt": "2026-10-08T07:41:59.985Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "benchmarkRacks": 100,
+  "logHash": "f057e15cc5f3c0182de6f7c851e2d37d8966a2efe51db5b04e418f09c95415b1"
+}

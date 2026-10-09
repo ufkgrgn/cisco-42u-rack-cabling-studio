@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "product",
+  "command": "npm run test:product",
+  "startedAt": "2026-10-08T07:34:40.715Z",
+  "finishedAt": "2026-10-08T07:36:06.823Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "e4ca4bdbd51f3ecfbe7e14e174559a91704aede34531c671928f565e3c8ab3cf"
+}

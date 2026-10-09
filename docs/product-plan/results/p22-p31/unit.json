@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "unit",
+  "command": "npx vitest run tests/unit/device-scene-registry.test.ts tests/unit/network-rules-active.test.ts",
+  "startedAt": "2026-10-08T07:34:41.011Z",
+  "finishedAt": "2026-10-08T07:34:44.872Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "f693c6f43c3cd3fe06c769130847d2411be1c966751116fe591850e1ddeb318f"
+}

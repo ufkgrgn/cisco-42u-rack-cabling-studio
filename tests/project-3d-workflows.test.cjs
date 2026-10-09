@@ -79,7 +79,7 @@ test('actual metadata and stable-port forms write once; clear and IDF preset sha
     assert.equal(result.revision, revision + 2); assert.equal(result.topology.racks[0].devices[0].portsConfig.p2.vlan, '42');
     await page.evaluate(() => { window.PortConfigEditor.open('device-1', 'p2', '3d'); window.PortConfigEditor.reset(); });
     assert.equal(await page.evaluate(() => !!window.RackStudio.STATE.racks[0].devices[0].portsConfig.p2), false);
-    await page.locator('#btn-3d-catalog').click();
+    await page.locator('#btn-compact-view').click();await page.locator('#btn-3d-catalog').click();
     await page.locator('#tab-btn-installed').click();
     await page.locator('#btn-dismount-all').click();
     assert.equal(await page.evaluate(() => window.RackStudio.STATE.racks[0].devices.length), 0);

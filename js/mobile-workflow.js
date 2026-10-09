@@ -155,6 +155,7 @@
   }
 
   function openSelection(trigger) {
+    if(RS.WorkspaceUI){RS.WorkspaceUI.openPanel('selection',trigger);return;}
     const body = open('Seçim', trigger);
     if(RS.WorkflowSelection){RS.WorkflowSelection.render(body);return;}
     body.replaceChildren();
@@ -184,7 +185,7 @@
     body.append(ports);
   }
 
-  document.getElementById('btn-mobile-selection')?.addEventListener('click', event => openSelection(event.currentTarget));
+
   window.openMobileMountFlow = openMount;
   RS.openMobilePortPicker = openPorts;
   RS.openMobileSelection = openSelection;

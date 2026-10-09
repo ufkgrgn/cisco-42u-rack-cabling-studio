@@ -147,6 +147,6 @@
         return target;
     }
     R.FieldEvents = Object.freeze({
-        scope, status, history, record, preserveHistory, labels, results
+        scope, status, history, record, preserveHistory, validateInput, labels, results
     });
 })();

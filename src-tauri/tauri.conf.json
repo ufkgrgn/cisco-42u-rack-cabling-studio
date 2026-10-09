@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Cisco 42U Rack & Cabling Studio",
-  "version": "1.0.0",
+  "productName": "Rack Studio",
+  "version": "4.0.0",
   "identifier": "com.cisco.rackcablingstudio",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -10,25 +10,28 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Cisco 42U Rack & Cabling Studio",
+        "title": "Rack Studio",
         "width": 1600,
         "height": 1000,
-        "minWidth": 1280,
-        "minHeight": 800,
+        "minWidth": 640,
+        "minHeight": 480,
         "resizable": true,
         "fullscreen": false,
         "dragDropEnabled": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:8787; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws://127.0.0.1:8787 http://localhost:5173 ws://localhost:5173; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
     }
   },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "windows": { "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }, "nsis": { "installMode": "currentUser" } },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

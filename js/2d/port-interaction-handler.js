@@ -193,7 +193,7 @@
       (c.to.instanceId === instanceId && c.to.portId === portId)
     );
 
-    let connectionInfo = '<span style="color:#94a3b8;">Boş / Bağlantı Yok</span>';
+    let connectionInfo = '<span style="color:var(--text-muted);">Boş / Bağlantı Yok</span>';
     if (connectedCable) {
       const isFrom = (connectedCable.from.instanceId === instanceId && connectedCable.from.portId === portId);
       const otherEndpoint = isFrom ? connectedCable.to : connectedCable.from;
@@ -203,7 +203,7 @@
       const otherPort = otherCat ? otherCat.ports.find(p => p.id === otherEndpoint.portId) : null;
 
       const isInterRack = otherEndpoint.rackId !== deviceRack.id;
-      connectionInfo = `<span style="color:${isInterRack ? '#38bdf8' : '#22c55e'}; font-weight:600;">
+      connectionInfo = `<span style="color:${isInterRack ? 'var(--accent)' : 'var(--status-ok)'}; font-weight:600;">
         Bağlı -> ${isInterRack ? `[${escapeHtml(otherRack ? otherRack.name : 'Dış Kabin')}] ` : ''}${escapeHtml(otherCat ? otherCat.name : '')} [${escapeHtml(otherPort ? otherPort.name : otherEndpoint.portId)}]
       </span>`;
     }
@@ -225,14 +225,14 @@
     let configDetail = '';
     if (portCfg) {
       const role = (portCfg.role || (portCfg.isTrunk ? 'trunk' : 'access')).toUpperCase();
-      const cfgColor = portCfg.color || '#38bdf8';
+      const cfgColor = portCfg.color || 'var(--accent)';
       const cName = portCfg.ciscoName ? ` · ${escapeHtml(portCfg.ciscoName)}` : '';
       const vText = portCfg.vlan ? ` | VLAN: ${escapeHtml(portCfg.vlan)}` : '';
       const poeText = portCfg.poeState === 'never' ? ' | PoE: Kapalı' : '';
-      const dText = portCfg.description ? `<div style="color:#94a3b8; font-size:10px; font-style:italic;">"${escapeHtml(portCfg.description)}"</div>` : '';
+      const dText = portCfg.description ? `<div style="color:var(--text-muted); font-size:12px; font-style:italic;">"${escapeHtml(portCfg.description)}"</div>` : '';
       configDetail = `
-        <div style="background:rgba(15,23,42,0.6); border-left:3px solid ${cfgColor}; padding:2px 6px; margin:4px 0; border-radius:2px;">
-          <span style="color:${cfgColor}; font-weight:700;">⚡ ${role}${cName}${vText}${poeText}</span>
+        <div style="background:var(--bg-inset); border-left:3px solid ${cfgColor}; padding:2px 6px; margin:4px 0; border-radius:2px;">
+          <span style="color:var(--text-main); font-weight:700;">⚡ ${role}${cName}${vText}${poeText}</span>
           ${dText}
         </div>
       `;
@@ -253,6 +253,7 @@
       dom.tooltip.style.display = 'block';
       dom.tooltip.style.left = `${rect.right + 12}px`;
       dom.tooltip.style.top = `${rect.top - 6}px`;
+      queueMicrotask(() => RS.Help?.clampTooltip(dom.tooltip));
 
       // If currently connecting a cable, show connection validation & target status
       if (STATE.pendingConnection) {
@@ -260,10 +261,10 @@
         const isSelf = src.instanceId === instanceId && src.portId === portId;
         if (isSelf) {
           dom.tooltip.innerHTML = `
-            <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; padding-bottom:3px; margin-bottom:4px;">
+            <div style="font-weight:800; font-size:0.875rem; color:var(--status-warn); padding-bottom:3px; margin-bottom:4px;">
               ⚠️ Kaynak Port Seçildi
             </div>
-            <div style="color:var(--text-muted); font-size:0.68rem;">Bağlantıyı iptal etmek için bu porta tekrar tıklayın.</div>
+            <div style="color:var(--text-muted); font-size:0.8125rem;">Bağlantıyı iptal etmek için bu porta tekrar tıklayın.</div>
           `;
           return;
         }
@@ -275,10 +276,10 @@
 
         if (isOccupied) {
           dom.tooltip.innerHTML = `
-            <div style="font-weight:800; font-size:0.75rem; color:#ef4444; padding-bottom:3px; margin-bottom:4px;">
+            <div style="font-weight:800; font-size:0.875rem; color:var(--status-danger); padding-bottom:3px; margin-bottom:4px;">
               ⛔ Port Dolu
             </div>
-            <div style="color:var(--text-muted); font-size:0.68rem;">Bu porta zaten başka bir kablo bağlı.</div>
+            <div style="color:var(--text-muted); font-size:0.8125rem;">Bu porta zaten başka bir kablo bağlı.</div>
           `;
           return;
         }
@@ -291,10 +292,10 @@
 
         if (!validation.allowed) {
           dom.tooltip.innerHTML = `
-            <div style="font-weight:800; font-size:0.75rem; color:#ef4444; border-bottom:1px solid #7f1d1d; padding-bottom:3px; margin-bottom:4px;">
+            <div style="font-weight:800; font-size:0.875rem; color:var(--status-danger); border-bottom:1px solid var(--border-strong); padding-bottom:3px; margin-bottom:4px;">
               ⛔ Bağlantı Uyumsuz
             </div>
-            <div style="color:#f87171; font-size:0.68rem; line-height:1.3;">${escapeHtml(validation.reason || 'Bu porta bağlanamaz')}</div>
+            <div style="color:var(--status-danger); font-size:0.8125rem; line-height:1.3;">${escapeHtml(validation.reason || 'Bu porta bağlanamaz')}</div>
           `;
           return;
         }
@@ -304,52 +305,52 @@
           if (isPatchPassThrough) {
             // Panel-to-panel cross-connect: show blue info card (allowed, just informational)
             dom.tooltip.innerHTML = `
-              <div style="font-weight:800; font-size:0.75rem; color:var(--accent-blue); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
+              <div style="font-weight:800; font-size:0.875rem; color:var(--accent-blue); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
                 ℹ️ Panel Çapraz Aktarma
               </div>
-              <div style="color:var(--accent-blue); font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
-              <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-              <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
+              <div style="color:var(--accent-blue); font-size:0.8125rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:var(--text-main); font-size:0.8125rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:var(--status-ok); font-size:0.8125rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
             `;
           } else {
             // Other warnings (e.g. same-panel loopback)
             dom.tooltip.innerHTML = `
-              <div style="font-weight:800; font-size:0.75rem; color:#f59e0b; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
+              <div style="font-weight:800; font-size:0.875rem; color:var(--status-warn); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
                 ⚠️ Bağlantı Uyarısı
               </div>
-              <div style="color:#d97706; font-size:0.68rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
-              <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-              <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
+              <div style="color:var(--status-warn); font-size:0.8125rem; line-height:1.3; margin-bottom:4px;">${escapeHtml(validation.warning)}</div>
+              <div style="color:var(--text-main); font-size:0.8125rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+              <div style="color:var(--status-ok); font-size:0.8125rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
             `;
           }
           return;
         }
 
         dom.tooltip.innerHTML = `
-          <div style="font-weight:800; font-size:0.75rem; color:#22c55e; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
+          <div style="font-weight:800; font-size:0.875rem; color:var(--status-ok); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px;">
             🔗 Bağlantıyı Tamamla
           </div>
-          <div style="color:var(--text-main); font-size:0.68rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
-          <div style="color:#16a34a; font-size:0.65rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
+          <div style="color:var(--text-main); font-size:0.8125rem;"><b>Hedef:</b> ${escapeHtml(cat.modelTag || cat.name)} · <b>${escapeHtml(portName)}</b></div>
+          <div style="color:var(--status-ok); font-size:0.8125rem; margin-top:2px; font-weight:700;">Bağlamak için tıklayın.</div>
         `;
         return;
       }
 
       const trunkBadge = isTrunk ? `<span style="background:${trunkColor}; color:#fff; font-size:9px; font-weight:800; padding:1px 4px; border-radius:2px; margin-left:6px;">802.1Q TRUNK</span>` : '';
-      const vlanInfo = portCfg?.vlan ? `<div style="color:var(--accent-blue); font-size:0.68rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
-      const connInfo = connectedCable ? `<div style="color:#16a34a; font-size:0.68rem; margin-top:3px; font-weight:600;">🔗 ${connectionInfo}</div>` : `<div style="color:var(--text-muted); font-size:0.68rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
+      const vlanInfo = portCfg?.vlan ? `<div style="color:var(--accent-blue); font-size:0.8125rem; margin-top:2px;">🏷️ VLAN: <b>${escapeHtml(portCfg.vlan)}</b></div>` : '';
+      const connInfo = connectedCable ? `<div style="color:var(--status-ok); font-size:0.8125rem; margin-top:3px; font-weight:600;">🔗 ${connectionInfo}</div>` : `<div style="color:var(--text-muted); font-size:0.8125rem; margin-top:3px;">⚪ Bağlantı Yok (Boş)</div>`;
       
       dom.tooltip.innerHTML = `
-        <div style="font-weight:800; font-size:0.75rem; color:var(--text-main); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-weight:800; font-size:0.875rem; color:var(--text-main); border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between;">
           <span>${escapeHtml(cat.modelTag || cat.name)}</span>
-          <span style="color:var(--accent-blue); font-family:monospace; font-size:0.75rem; font-weight:700;">${escapeHtml(portName)}</span>
+          <span style="color:var(--accent-blue); font-family:monospace; font-size:0.875rem; font-weight:700;">${escapeHtml(portName)}</span>
           ${trunkBadge}
         </div>
-        <div style="color:var(--text-main); font-size:0.68rem;">⚡ <b>Hız:</b> ${escapeHtml(portSpeed)}</div>
-        <div style="color:var(--text-muted); font-size:0.66rem;">🔌 <b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
+        <div style="color:var(--text-main); font-size:0.8125rem;">⚡ <b>Hız:</b> ${escapeHtml(portSpeed)}</div>
+        <div style="color:var(--text-muted); font-size:0.8125rem;">🔌 <b>Tip:</b> ${escapeHtml(portEl.dataset.portType.toUpperCase())}</div>
         ${vlanInfo}
         ${connInfo}
-        <div style="color:var(--accent-blue); font-size:0.63rem; margin-top:4px; border-top:1px dashed var(--border); padding-top:2px;">⚙️ Sağ Tık / Shift+Tık: <i>Port Yapılandırması</i></div>
+        <div style="color:var(--accent-blue); font-size:0.8125rem; margin-top:4px; border-top:1px dashed var(--border); padding-top:2px;">⚙️ Sağ Tık / Shift+Tık: <i>Port Yapılandırması</i></div>
       `;
     }
   }
@@ -404,6 +405,8 @@
         element: portEl
       };
 
+      RS.Guidance?.clear();
+      RS.Guidance?.update();
       portEl.classList.add('selected');
       RS.refreshPixiPortHighlights?.();
       const dev = devRack.devices.find(d => d.instanceId === instanceId);
@@ -414,7 +417,7 @@
       }
 
       if (dom.connectionStatusHint && cat && port) {
-        dom.connectionStatusHint.innerHTML = `Kaynak: <span style="color:#38bdf8;">[${escapeHtml(devRack.name)}] ${escapeHtml(cat.modelTag)} (${escapeHtml(port.name)})</span> &rarr; <b>Hedef Porta Tıklayın (Kabin değiştirebilirsiniz)</b>`;
+        dom.connectionStatusHint.innerHTML = `Kaynak: <span style="color:var(--accent);">[${escapeHtml(devRack.name)}] ${escapeHtml(dev.hostname || dev.name || cat.modelTag || cat.name)} (${escapeHtml(port.name)})</span> &rarr; <b>Hedef Porta Tıklayın (Kabin değiştirebilirsiniz)</b>`;
       }
     } else {
       const source = STATE.pendingConnection;
@@ -430,7 +433,7 @@
       );
 
       if (isTargetOccupied) {
-        alert("Hedef port dolu! Lütfen boş bir port seçin.");
+        RS.Guidance?.error("Hedef port dolu. Boş bir hedef port seçin.");
         return;
       }
 
@@ -445,15 +448,16 @@
             window.SoundFX.playError();
           }
           if (dom.connectionStatusHint) {
-            dom.connectionStatusHint.innerHTML = `<span style="color:#ef4444; font-weight:bold;">⛔ ${escapeHtml(validation.reason || 'Kural İhlali!')}</span>`;
+            dom.connectionStatusHint.innerHTML = `<span style="color:var(--status-danger); font-weight:bold;">⛔ ${escapeHtml(validation.reason || 'Kural İhlali!')}</span>`;
           }
           const rect = portEl.getBoundingClientRect();
           showConnectionErrorToast(rect.left + rect.width / 2, rect.top, validation.reason || 'Bağlantı kuralı ihlali!');
           cancelPendingConnection();
+          RS.Guidance?.error(validation.reason || 'Bağlantı kuralı ihlali');
           return;
         }
         if (validation.warning && dom.connectionStatusHint) {
-          dom.connectionStatusHint.innerHTML = `<span style="color:#f59e0b; font-weight:600;">${escapeHtml(validation.warning)}</span>`;
+          dom.connectionStatusHint.innerHTML = `<span style="color:var(--status-warn); font-weight:600;">${escapeHtml(validation.warning)}</span>`;
         }
       }
 
@@ -664,14 +668,19 @@
               portsConfig: { ...configs.get(device.instanceId)?.portsConfig, ...device.portsConfig }
             });
           }
-          RS.ProjectCommands.execute({ ...commandEnvelope, type: 'ConnectCable', payload: {
+          const result = RS.ProjectCommands.execute({ ...commandEnvelope, type: 'ConnectCable', payload: {
             cable: newCable,
             portConfigs: [...configs.values()]
           } });
+          Promise.resolve(result.committed).then(
+            () => RS.Guidance?.success(newCable),
+            error => RS.Guidance?.error('Kayıt tamamlanamadı: ' + error.message)
+          );
         } catch (error) {
           const rect = portEl.getBoundingClientRect();
           showConnectionErrorToast(rect.left + rect.width / 2, rect.top, error.message);
           cancelPendingConnection();
+          RS.Guidance?.error(error.message);
           return;
         }
         cancelPendingConnection();

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-netbox-forget"
+description = "Enables the netbox_forget command without any pre-configured scope."
+commands.allow = ["netbox_forget"]
+
+[[permission]]
+identifier = "deny-netbox-forget"
+description = "Denies the netbox_forget command without any pre-configured scope."
+commands.deny = ["netbox_forget"]

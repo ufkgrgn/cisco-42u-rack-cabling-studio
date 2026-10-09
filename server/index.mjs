@@ -1,0 +1,15 @@
+import {postgres,migrate} from './database.mjs';
+import {oidc} from './auth.mjs';
+import {Projects} from './projects.mjs';
+import {httpServer} from './http.mjs';
+import {Collaboration} from './collaboration.mjs';
+if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL must name the local development database');
+const port=Number(process.env.PORT||8787);if(!Number.isInteger(port)||port<1||port>65535)throw new Error('Invalid local server port');
+const database=postgres(process.env.DATABASE_URL);
+const authenticate=oidc({issuer:process.env.OIDC_ISSUER,audience:process.env.OIDC_AUDIENCE,jwks:process.env.OIDC_JWKS_URL});
+await migrate(database);
+let collaboration;
+const server=httpServer({projects:new Projects(database),authenticate,onCommand:(id,result)=>collaboration.broadcast(id,{type:'accepted',...result})});
+collaboration=new Collaboration(server,database,authenticate);
+server.listen(port,'127.0.0.1',()=>console.log('Rack Studio workspace API listening on localhost'));
+let stopping=false;for(const signal of ['SIGINT','SIGTERM'])process.on(signal,async()=>{if(stopping)return;stopping=true;await collaboration.close();await new Promise(resolve=>server.close(resolve));await database.close();process.exit(0);});

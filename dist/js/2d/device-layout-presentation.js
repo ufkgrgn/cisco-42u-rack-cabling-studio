@@ -97,6 +97,12 @@
       entry.container.addChildAt(next, entry.container.getChildIndex(previous));
       entry.container.removeChild(previous); previous.destroy({ children: true });
       entry.macroLabel = next;
+      if (entry.flatChassis) {
+        const oldFlat = entry.flatChassis, newFlat = RS.PixiDeviceChassis.createFlat(entry.device);
+        newFlat.visible = oldFlat.visible;
+        entry.container.addChildAt(newFlat, entry.container.getChildIndex(oldFlat));
+        entry.container.removeChild(oldFlat); oldFlat.destroy({ children: true }); entry.flatChassis = newFlat;
+      }
     });
   }
   RS.DeviceLayoutPresentation = Object.freeze({ profiles, profile, profileKey, describe, createPixiLayer, refreshLabels });

@@ -54,4 +54,4 @@ Kontrol tarihi: 7 Ekim 2026. Belgeler uygulamada bağlantı olarak tutulur; tam 
 
 Yerel otomasyon kabulü A25–A30'un yazılım davranışlarını kapsar. Gerçek switch/transceiver/PSU/PDU, fiziksel kablo sınıfı, enerji ölçümü, ekran okuyucu ve dokunmatik cihaz pilotu henüz yapılmadı. Üretici kaynaklı sınırlı pilot alanlar tüm katalog modellerinin doğrulandığı anlamına gelmez. Geniş model/firmware destek matrisi açık veri çalışmasıdır.
 
-Doğrulama sonuçları ve test günlükleri: `results/p17-p21-*.log`; görüntüler ve sentetik raporlar `results/p17-p21/`. Testler `tests/engineering-scenarios.test.cjs`; çalıştırma `npm run test:engineering`. Bu paket ayrıca `npm test` ve `npm run check` akışına eklenmiştir. Sıradaki paket **P22 — Tauri SQLite repository**.
+Doğrulama sonuçları ve test günlükleri: `results/p17-p21-*.log`; görüntüler ve sentetik raporlar `results/p17-p21/`. Testler `tests/engineering-scenarios.test.cjs`; çalıştırma `npm run test:engineering`. Bu paket ayrıca `npm test` ve `npm run check` akışına eklenmiştir. P22 ve devamının güncel kaydı [22-local-workspace.md](22-local-workspace.md) içindedir.

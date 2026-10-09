@@ -503,7 +503,7 @@ export function registerDeviceMeshMethods(Studio3D) {
           roughness: 0.2
         });
         const ledMesh = new THREE.Mesh(ledGeo, ledMat);
-        ledMesh.position.set(-w / 2 + 0.28 + i * 0.1, -h / 2 + 0.06, d / 2 + 0.035);
+        ledMesh.position.set(-w / 2 + 0.28 + i * 0.08, h / 2 - 0.045, d / 2 + 0.035);
         devGroup.add(ledMesh);
 
         this.ledObjects.push({
@@ -691,10 +691,15 @@ export function registerDeviceMeshMethods(Studio3D) {
         const customColor = portCfg && portCfg.color;
         const trunkColorNum = customColor ? parseInt(customColor.replace('#', '0x'), 16) : (isTrunk ? 0xa855f7 : null);
 
+        const isOccupied = Array.isArray(this.state.cables) && this.state.cables.some(c =>
+          (c.from && c.from.devId === dev.id && (c.from.portIdx === p + 1 || c.from.portId === portDefinition?.id)) ||
+          (c.to && c.to.devId === dev.id && (c.to.portIdx === p + 1 || c.to.portId === portDefinition?.id))
+        );
+
         const portMat = new THREE.MeshStandardMaterial({
-          color: isTrunk ? (trunkColorNum || 0xa855f7) : isFiber ? 0x0284c7 : isUplink ? 0x94a3b8 : visualKind === 'patch-panel' ? 0x111827 : effectivePortType === 'qsfp28' ? 0x0ea5e9 : effectivePortType === 'c13' ? 0xef4444 : 0x374151,
+          color: isTrunk ? (trunkColorNum || 0xa855f7) : isFiber ? 0x0284c7 : isUplink ? 0x94a3b8 : visualKind === 'patch-panel' ? 0x1e293b : 0x475569,
           metalness: isTrunk ? 0.65 : 0.85,
-          roughness: isTrunk ? 0.25 : 0.25,
+          roughness: 0.25,
           emissive: isTrunk ? (trunkColorNum || 0xa855f7) : 0x000000,
           emissiveIntensity: isTrunk ? 0.45 : 0
         });
@@ -702,18 +707,20 @@ export function registerDeviceMeshMethods(Studio3D) {
         portMesh.position.set(anchor ? (anchor.x - 0.5) * (w - 0.06) : px,
           anchor ? (0.5 - anchor.y) * (h - 0.02) : py, pz);
 
-        const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.75, drawnHeight * 0.7, 0.02);
-        const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 0x150d24 : 0x090d16 });
+        const cavityGeo = new THREE.BoxGeometry(drawnWidth * 0.78, drawnHeight * 0.74, 0.02);
+        const cavityMat = new THREE.MeshBasicMaterial({ color: isTrunk ? 0x150d24 : 0x02040a });
         const cavity = new THREE.Mesh(cavityGeo, cavityMat);
         cavity.position.set(0, 0, 0.02);
         portMesh.add(cavity);
 
-        if (visualKind === 'switch' && !isFiber) {
-          const ledGeo = new THREE.BoxGeometry(pWidth * 0.22, 0.012, 0.012);
-          const ledColor = isTrunk ? (trunkColorNum || 0xa855f7) : 0xf59e0b;
+        // Authentic link LED (green on connected ports, cyan on fiber, purple on trunk)
+        if (visualKind === 'switch' || isOccupied || isTrunk) {
+          const ledActive = isOccupied || isTrunk;
+          const ledColor = isTrunk ? (trunkColorNum || 0xa855f7) : (isFiber ? 0x00d2ff : (ledActive ? 0x22c55e : 0x0f291e));
+          const ledGeo = new THREE.BoxGeometry(0.016, 0.016, 0.012);
           const ledMat = new THREE.MeshBasicMaterial({ color: ledColor });
           const portLed = new THREE.Mesh(ledGeo, ledMat);
-          portLed.position.set(0, -drawnHeight * 0.38, 0.032);
+          portLed.position.set(-drawnWidth * 0.32, drawnHeight * 0.32, 0.025);
           portMesh.add(portLed);
         }
 

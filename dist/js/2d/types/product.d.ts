@@ -1,4 +1,5 @@
 export type EntityKind = 'project' | 'location' | 'rack' | 'device' | 'cable';
+declare global { interface Window { is3DMode?: boolean; } }
 export interface EntityRef { kind: EntityKind; id: string; }
 export interface ProjectRecord {
   id: string;
@@ -78,7 +79,7 @@ export interface ProjectDocument {
 export interface CommandEnvelope { commandId: string; projectId: string; expectedRevision: number; expectedContent: string; }
 export interface CommandReceipt { commandId: string; fingerprint: string; revision: number; }
 export type ProjectCommand = CommandEnvelope & (
-  { type: 'ImportObservations'; payload: { observations: Observation[] } } |
+  { type: 'ImportObservations'; payload: { observations: Observation[]; mappings?: IntegrationMapping[] } } |
   { type: 'ApplyObservationDifferences'; payload: { observationId: string; fields: string[]; allowStale?: boolean } } |
   { type: 'MoveDevice'; payload: { deviceId: string; targetRackId: string; moves: { deviceId: string; topU: number }[] } } |
   { type: 'ConnectCable'; payload: { cable: CableRecord; portConfigs?: { deviceId: string; portsConfig: Record<string, unknown> }[] } } |

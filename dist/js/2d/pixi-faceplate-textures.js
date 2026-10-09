@@ -664,18 +664,18 @@
     const isOccupied = !!style.occupied;
 
     if (isLight) {
-      let fill = isKeystone ? '#ffffff' : '#ffffff';
-      let stroke = isKeystone ? (isOccupied ? '#ea580c' : '#64748b') : (isOccupied ? '#0284c7' : '#64748b');
+      let fill = isKeystone ? '#ffffff' : '#f8fafc';
+      let stroke = isKeystone ? (isOccupied ? '#ea580c' : '#475569') : (isOccupied ? '#0284c7' : '#475569');
 
       if (style.shape === 'optic') {
         fill = '#f8fafc';
-        stroke = isOccupied ? '#0284c7' : '#64748b';
+        stroke = isOccupied ? '#0284c7' : '#475569';
       } else if (style.shape === 'lc' || style.shape === 'sc') {
         fill = '#faf5ff';
-        stroke = isOccupied ? (style.shape === 'lc' ? '#8b5cf6' : '#a855f7') : '#64748b';
+        stroke = isOccupied ? (style.shape === 'lc' ? '#8b5cf6' : '#a855f7') : '#475569';
       } else if (style.shape === 'power') {
         fill = '#f0fdf4';
-        stroke = isOccupied ? '#16a34a' : '#64748b';
+        stroke = isOccupied ? '#16a34a' : '#475569';
       }
 
       ctx.fillStyle = fill;
@@ -686,21 +686,23 @@
       ctx.stroke();
 
       // Top rim highlight & bottom bevel
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.fillRect(x + 3, 2.5, 14, 1);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(x + 3, 17, 14, 1);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.fillRect(x + 3, 16.5, 14, 1);
 
       if (style.shape === 'copper') {
         // Dark recessed socket cavity
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = '#050814';
         roundRect(ctx, x + 4, 4.5, 12, 11, 1);
         ctx.fill();
 
         // 6 precision gold/brass contact wire pins
-        const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+        const pinColor = isOccupied ? '#d97706' : '#f59e0b';
         ctx.fillStyle = pinColor;
         [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
+        ctx.fillStyle = '#fbbf24';
+        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 0.8));
 
         // RJ45 lower socket latch notch
         ctx.fillStyle = isOccupied ? '#334155' : '#1e293b';
@@ -714,19 +716,25 @@
         ctx.beginPath();
         ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
         ctx.fill();
+        if (isOccupied) {
+          ctx.fillStyle = '#86efac';
+          ctx.beginPath();
+          ctx.arc(x + 4.2, 3.5, 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         if (isKeystone) {
           ctx.fillStyle = isOccupied ? '#ea580c' : '#94a3b8';
           ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
         }
       } else if (style.shape === 'optic') {
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = '#050814';
         roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
         ctx.fill();
         ctx.fillStyle = isOccupied ? '#475569' : '#94a3b8';
         ctx.fillRect(x + 5, 9.2, 10, 1.6);
         // Optical twin bores
-        ctx.fillStyle = '#020617';
+        ctx.fillStyle = '#000000';
         roundRect(ctx, x + 5.2, 5.2, 3.8, 3.4, 0.8);
         ctx.fill();
         roundRect(ctx, x + 11.0, 5.2, 3.8, 3.4, 0.8);
@@ -743,7 +751,7 @@
         ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
         ctx.fill();
       } else if (style.shape === 'lc') {
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = '#050814';
         roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
         ctx.fillStyle = isOccupied ? stroke : '#64748b';
@@ -757,7 +765,7 @@
         ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
         ctx.fill();
       } else if (style.shape === 'sc') {
-        ctx.fillStyle = '#0f172a';
+        ctx.fillStyle = '#050814';
         roundRect(ctx, x + 3, 5, 14, 10, 1.5);
         ctx.fill();
         ctx.fillStyle = isOccupied ? stroke : '#64748b';
@@ -782,9 +790,19 @@
       return;
     }
 
-    // --- DARK THEME: Crisp High-Definition Hardware Sockets ---
-    const fill = isKeystone ? (isOccupied ? '#141c2c' : '#0e141f') : style.shape === 'power' ? '#0e1814' : style.shape === 'optic' ? (isOccupied ? '#111929' : '#0c111c') : (isOccupied ? '#151d2c' : '#0f1622');
-    const stroke = isKeystone ? (isOccupied ? '#f97316' : '#334155') : style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'optic' ? (isOccupied ? '#38bdf8' : '#334155') : style.shape === 'power' ? '#22c55e' : style.shape === 'sc' ? '#a855f7' : (isOccupied ? '#a855f7' : '#475569');
+    // --- DARK THEME: High-Contrast Metallic Hardware Sockets ---
+    // Outer metallic shield frame & collar
+    const fill = isKeystone ? (isOccupied ? '#221914' : '#1e293b') :
+      style.shape === 'power' ? '#0c2419' :
+      style.shape === 'optic' ? (isOccupied ? '#142033' : '#1e293b') :
+      (isOccupied ? '#1a2638' : '#1e293b');
+
+    const stroke = isKeystone ? (isOccupied ? '#f97316' : '#cbd5e1') :
+      style.shape === 'copper' ? (isOccupied ? '#38bdf8' : '#94a3b8') :
+      style.shape === 'optic' ? (isOccupied ? '#38bdf8' : '#cbd5e1') :
+      style.shape === 'power' ? (isOccupied ? '#22c55e' : '#86efac') :
+      style.shape === 'sc' ? '#a855f7' :
+      (isOccupied ? '#c084fc' : '#a855f7');
 
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
@@ -793,57 +811,64 @@
     ctx.fill();
     ctx.stroke();
 
-    // Stamped metal rim highlight & shadow
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+    // High-contrast stamped metal chamfer highlight & shadow
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
     ctx.fillRect(x + 3, 2.5, 14, 1);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.fillRect(x + 3, 17, 14, 1);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(x + 3, 16.5, 14, 1);
 
     if (style.shape === 'copper') {
-      // Recessed dark socket cavity
-      ctx.fillStyle = '#050811';
+      // Recessed pitch black socket cavity (ultra-high contrast against metal shield)
+      ctx.fillStyle = '#000000';
       roundRect(ctx, x + 4, 4.5, 12, 11, 1);
       ctx.fill();
       ctx.fillStyle = '#020409';
-      ctx.fillRect(x + 4.5, 4.5, 11, 1);
+      ctx.fillRect(x + 4.5, 4.5, 11, 0.8);
 
-      // 6 precision gold/brass contact wire pins
-      const pinColor = isOccupied ? '#f59e0b' : '#94a3b8';
+      // 6 precision gleaming gold contact wire pins
+      const pinColor = isOccupied ? '#fbbf24' : '#f59e0b';
       ctx.fillStyle = pinColor;
       [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 2.6));
-      if (isOccupied) {
-        ctx.fillStyle = '#fef08a';
-        [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 0.7));
-      }
+      ctx.fillStyle = '#fef08a';
+      [5.0, 6.8, 8.6, 10.4, 12.2, 14.0].forEach(p => ctx.fillRect(x + p, 4.8, 1.0, 0.8));
 
       // RJ45 lower socket latch notch
-      ctx.fillStyle = isOccupied ? '#1e293b' : '#0a0f1d';
+      ctx.fillStyle = isOccupied ? '#334155' : '#0f172a';
       roundRect(ctx, x + 7, 11.5, 6, 3.5, 0.8);
       ctx.fill();
-      ctx.fillStyle = isOccupied ? '#27354a' : '#141d2e';
+      ctx.fillStyle = isOccupied ? '#64748b' : '#334155';
       ctx.fillRect(x + 8.5, 13, 3, 2);
 
       // Micro status link LED
-      ctx.fillStyle = isOccupied ? '#22c55e' : '#1e293b';
-      ctx.beginPath();
-      ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
-      ctx.fill();
       if (isOccupied) {
-        ctx.fillStyle = '#86efac';
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#bbf7d0';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#334155';
+        ctx.beginPath();
+        ctx.arc(x + 4.2, 3.5, 1.0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#64748b';
         ctx.beginPath();
         ctx.arc(x + 4.2, 3.5, 0.5, 0, Math.PI * 2);
         ctx.fill();
       }
 
       if (isKeystone) {
-        ctx.fillStyle = isOccupied ? '#f97316' : '#475569';
+        ctx.fillStyle = isOccupied ? '#f97316' : '#ea580c';
         ctx.fillRect(x + 3.5, 2.5, 13, 1.4);
       }
     } else if (style.shape === 'optic') {
-      ctx.fillStyle = '#050811';
+      ctx.fillStyle = '#000000';
       roundRect(ctx, x + 3.8, 4.2, 12.4, 11.6, 1);
       ctx.fill();
-      ctx.fillStyle = isOccupied ? '#475569' : '#334155';
+      ctx.fillStyle = isOccupied ? '#64748b' : '#475569';
       ctx.fillRect(x + 5, 9.2, 10, 1.6);
       // Optical twin bores
       ctx.fillStyle = '#020617';
@@ -857,46 +882,69 @@
         ctx.arc(x + 7.1, 6.9, 1.1, 0, Math.PI * 2);
         ctx.arc(x + 12.9, 6.9, 1.1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#e0f2fe';
+        ctx.beginPath();
+        ctx.arc(x + 7.1, 6.9, 0.5, 0, Math.PI * 2);
+        ctx.arc(x + 12.9, 6.9, 0.5, 0, Math.PI * 2);
+        ctx.fill();
       }
-      ctx.fillStyle = isOccupied ? '#00d2ff' : '#1e293b';
+      ctx.fillStyle = isOccupied ? '#00d2ff' : '#64748b';
       ctx.beginPath();
       ctx.arc(x + 15.8, 3.5, 1.0, 0, Math.PI * 2);
       ctx.fill();
     } else if (style.shape === 'lc') {
-      ctx.fillStyle = '#04060a';
+      ctx.fillStyle = '#000000';
       roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillStyle = isOccupied ? stroke : '#475569';
       ctx.fillRect(x + 9.5, 5, 1, 10);
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(x + 4.5, 7, 4, 6);
       ctx.fillRect(x + 11.5, 7, 4, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.3, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.3, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
       ctx.beginPath();
-      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
-      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 6.5, 10, 0.7, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 0.7, 0, Math.PI * 2);
       ctx.fill();
     } else if (style.shape === 'sc') {
-      ctx.fillStyle = '#04060a';
+      ctx.fillStyle = '#000000';
       roundRect(ctx, x + 3, 5, 14, 10, 1.5);
       ctx.fill();
-      ctx.fillStyle = isOccupied ? stroke : '#334155';
+      ctx.fillStyle = isOccupied ? stroke : '#475569';
       ctx.fillRect(x + 9.5, 5, 1, 10);
       ctx.fillStyle = '#1e293b';
       roundRect(ctx, x + 4.5, 7, 4, 6, 1);
       ctx.fill();
       roundRect(ctx, x + 11.5, 7, 4, 6, 1);
       ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x + 6.5, 10, 1.3, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 1.3, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = isOccupied ? '#38bdf8' : '#94a3b8';
       ctx.beginPath();
-      ctx.arc(x + 6.5, 10, 1.1, 0, Math.PI * 2);
-      ctx.arc(x + 13.5, 10, 1.1, 0, Math.PI * 2);
+      ctx.arc(x + 6.5, 10, 0.7, 0, Math.PI * 2);
+      ctx.arc(x + 13.5, 10, 0.7, 0, Math.PI * 2);
       ctx.fill();
     } else if (style.shape === 'power') {
-      ctx.fillStyle = '#22c55e';
+      ctx.fillStyle = '#000000';
+      roundRect(ctx, x + 4, 5, 12, 10, 1.5);
+      ctx.fill();
+      ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
-      ctx.arc(x + 7, 10, 2.2, 0, Math.PI * 2);
-      ctx.arc(x + 13, 10, 2.2, 0, Math.PI * 2);
+      ctx.arc(x + 7, 10, 1.6, 0, Math.PI * 2);
+      ctx.arc(x + 13, 10, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(x + 7, 10, 0.8, 0, Math.PI * 2);
+      ctx.arc(x + 13, 10, 0.8, 0, Math.PI * 2);
       ctx.fill();
     }
   }

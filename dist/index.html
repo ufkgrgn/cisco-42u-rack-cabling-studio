@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cisco Enterprise 3D Rack & Cabling Studio (60 FPS)</title>
+  <title>Rack Studio</title>
   <script>
     try {
       var t = localStorage.getItem('rack-studio-theme');
@@ -35,6 +35,7 @@
   <link rel="stylesheet" href="css/revision-manager.css">
   <link rel="stylesheet" href="css/workflow-views.css">
   <link rel="stylesheet" href="css/onboarding.css">
+  <link rel="stylesheet" href="css/help.css">
   <link rel="stylesheet" href="css/field-observations.css">
   <link rel="stylesheet" href="css/field-workflow.css">
   <link rel="stylesheet" href="css/delivery-center.css">
@@ -47,6 +48,8 @@
   <link rel="stylesheet" href="css/ui-consistency.css">
   <link rel="stylesheet" href="css/studio-view-mode.css">
   <link rel="stylesheet" href="css/product-surfaces.css">
+  <link rel="stylesheet" href="css/integrations.css">
+  <link rel="stylesheet" href="css/workspace-shell.css">
 </head>
 <body>
 
@@ -116,16 +119,27 @@
           <button class="hud-btn cam-btn" id="cam-top" title="Üst (4)">Üst</button>
           <button class="hud-btn cam-btn" id="cam-focus" title="Odak (5)">Odak</button>
         </div>
+        <button type="button" class="hud-btn active" id="btn-3d-routing-toggle" title="3D Kablolama Düzeni: Yapısal Yan Kanal veya Serbest Sarkma (C)" aria-pressed="true">
+          <span class="btn-text">Yapısal Kanal</span>
+        </button>
       </div>
 
       <div id="controls-2d-group" class="context-toolbar" style="display:flex;">
-        <div class="segmented-control studio-work-mode-switch" id="studio-work-mode-switch" role="group" aria-label="Çalışma Modu">
-          <button type="button" class="segmented-btn active" aria-pressed="true" id="btn-mode-layout" title="Kabin Yerleşimi Modu (Cihaz montajı ve U planlaması)">Kabin yerleşimi</button>
-          <button type="button" class="segmented-btn" aria-pressed="false" id="btn-mode-cabling" title="Kablolama Modu (Portlar ve kablo yönetimi)">Kablo ayrıntıları</button>
+        <div class="segmented-control studio-work-mode-switch" id="studio-work-mode-switch" role="group" aria-label="Çalışma Modu" style="position:relative;">
+          <button type="button" class="segmented-btn active" aria-pressed="true" id="btn-mode-layout" title="Kabin Yerleşimi Modu (Cihaz montajı ve U planlaması)">Yerleşim</button>
+          <button type="button" class="segmented-btn" aria-pressed="false" id="btn-mode-cabling" title="Kablolama Modu (Portlar ve kablo yönetimi)">
+            <span>Kablolama</span>
+          </button>
+          <!-- Canonical cable controls are composed into the workspace view menu. -->
+          <div class="cabling-sub-popover" id="cabling-sub-popover" style="display:none;" role="toolbar" aria-label="Kablo Ayrıntı Seçenekleri">
+            <button type="button" class="hud-btn cabling-sub-btn active" id="btn-toggle-cables" title="Kabloları Gizle / Göster (C)" aria-pressed="true">
+              <span class="btn-text">Kablolar (C)</span>
+            </button>
+            <button type="button" class="hud-btn cabling-sub-btn active" id="btn-toggle-port-numbers" title="Port Numaralarını Gizle / Göster (N)" aria-pressed="true">
+              <span class="btn-text">Port No (N)</span>
+            </button>
+          </div>
         </div>
-        <button class="hud-btn active" id="btn-toggle-cables" title="Kabloları Gizle / Göster (C)" aria-pressed="true">
-          <span class="btn-text">Kablolar</span>
-        </button>
         <div class="rack-view-mode-switch" id="rack-view-mode-switch" role="group" aria-label="Kabin görünüm modu">
           <button type="button" class="rack-view-mode-btn" id="btn-view-mode-single" title="Tek kabin">
             <span class="rack-view-mode-text">Tek</span>
@@ -142,9 +156,10 @@
       <button type="button" class="hud-btn" id="btn-compact-view" aria-controls="compact-view-panel" aria-expanded="false">Görünüm</button>
       <div class="compact-view-panel" id="compact-view-panel" hidden>
         <div id="compact-view-2d">
-          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-layout">Kabin yerleşimi</button>
-          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-cabling">Kablo ayrıntıları</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-layout">Yerleşim</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-mode-cabling">Kablolama</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-toggle-cables">Kablolar (C)</button>
+          <button type="button" class="hud-btn" data-shortcut-for="btn-toggle-port-numbers">Port No (N)</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-single">Tek kabin</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-view-mode-multi">Yan yana</button>
           <button type="button" class="hud-btn" data-shortcut-for="btn-2d-face-toggle">Ön / Arka yüz</button>
@@ -179,6 +194,7 @@
       </div>
 
       <button type="button" class="hud-btn" id="btn-command-palette" title="Komutlar (Ctrl+K)">Komut</button>
+      <button type="button" class="hud-btn" id="btn-help" aria-haspopup="dialog">Yardım</button>
 
       <div class="hud-tools-menu" id="hud-tools-menu">
         <button type="button" class="hud-btn" id="btn-tools-menu-toggle" aria-expanded="false" aria-controls="hud-tools-panel" title="Diğer araçlar">Araçlar</button>
@@ -241,6 +257,9 @@
             <button class="hud-btn" id="btn-export-json-3d" title="Projeyi JSON dosyasına kaydet">Dosyaya kaydet</button>
             <button class="hud-btn" id="btn-import-json-3d" title="JSON proje dosyası aç">Dosya aç</button>
             <button class="hud-btn" id="btn-inventory-import" title="Çevrim dışı envanter gözlemi yükle">Envanter karşılaştır</button>
+            <button class="hud-btn" id="btn-netbox-import" title="NetBox envanterini gözlem olarak al">NetBox gözlemleri</button>
+            <button class="hud-btn" id="btn-workspace" title="Yerel ekip sunucusu, ortak açıklamalar ve bekleyen taslaklar">Ekip çalışma alanı</button>
+            <button class="hud-btn" id="btn-diagnostics" title="Proje içeriğini paylaşmadan yerel teşhis indir">Yerel teşhis</button>
             <button class="hud-btn" id="btn-field-observations" title="Kaynaklar ve plan/gözlem farkları">Gözlem geçmişi</button>
             <button class="hud-btn" id="btn-delivery-center" title="Dondurulmuş rapor, malzeme, etiket ve teslim paketi">Teslim merkezi</button>
             <button class="hud-btn" id="btn-field-workflow" title="Uygulama, etiketleme, test ve kanıt ekleri">Saha iş akışı</button>
@@ -300,7 +319,7 @@
           <button class="cat-pill" data-category="switch">Switch</button>
           <button class="cat-pill" data-category="router">Router</button>
           <button class="cat-pill" data-category="server">Sunucu</button>
-          <button class="cat-pill" data-category="patch-panel">Patch Panel</button>
+          <button class="cat-pill" data-category="patch-panel">Yapısal Panel</button>
           <button class="cat-pill" data-category="accessory">Kablo Paneli</button>
           <button class="cat-pill" data-category="pdu">PDU</button>
         </div>
@@ -342,8 +361,8 @@
       <button type="button" data-camera-view="front" aria-pressed="false">Ön</button>
       <button type="button" data-camera-view="rear" aria-pressed="false">Arka</button>
       <button type="button" data-camera-view="focus" aria-pressed="false">Odak</button>
-      <button type="button" data-camera-action="zoom-in" aria-label="3D yakınlaş">＋</button>
-      <button type="button" data-camera-action="zoom-out" aria-label="3D uzaklaş">−</button>
+      <button type="button" data-camera-action="zoom-in" aria-label="3D yakınlaş"></button>
+      <button type="button" data-camera-action="zoom-out" aria-label="3D uzaklaş"></button>
       <details class="mobile-3d-more"><summary>Diğer</summary>
         <div>
           <button type="button" data-camera-view="top">Üst görünüm</button>
@@ -1645,9 +1664,9 @@
       <!-- Zoom & section jump (bottom-right chip) -->
       <div class="viewport-zoom-dock" id="viewport-zoom-dock" aria-label="Görünüm kontrolleri">
         <div class="zoom-toolbar">
-          <button class="zoom-btn" id="btn-zoom-out" title="Uzaklaştır (Fare Tekerleği Aşağı)">−</button>
+          <button class="zoom-btn" id="btn-zoom-out" title="Uzaklaştır (Fare Tekerleği Aşağı)" aria-label="Uzaklaştır"></button>
           <span class="zoom-badge" id="zoom-badge" title="Tıkla: %100 veya Ekrana Sığdır">100%</span>
-          <button class="zoom-btn" id="btn-zoom-in" title="Yakınlaştır (Fare Tekerleği Yukarı)">+</button>
+          <button class="zoom-btn" id="btn-zoom-in" title="Yakınlaştır (Fare Tekerleği Yukarı)" aria-label="Yakınlaştır"></button>
           <button class="zoom-btn" id="btn-zoom-fit" title="Kabini Ekrana Sığdır">Sığdır</button>
           <button class="zoom-btn" id="btn-zoom-actual" title="%100 Net Çözünürlük">1:1</button>
         </div>
@@ -1832,8 +1851,10 @@
   <script src="js/2d/project-adapters.js" vite-ignore></script>
   <script src="js/2d/project-commands.js" vite-ignore></script>
   <script src="js/2d/project-storage-idb.js" vite-ignore></script>
+  <script src="js/2d/project-storage-native.js" vite-ignore></script>
   <script src="js/2d/project-repository.js" vite-ignore></script>
   <script src="js/2d/project-archive.js" vite-ignore></script>
+  <script src="js/2d/project-lifecycle.js" vite-ignore></script>
   <script src="js/project-recovery-ui.js" vite-ignore></script>
   <script src="js/2d/project-management.js" vite-ignore></script>
   <script src="js/project-manager.js" vite-ignore></script>
@@ -1858,6 +1879,7 @@
   <script src="js/ui-icons.js" vite-ignore></script>
   <script src="js/ui-actions.js" vite-ignore></script>
   <script src="js/ui-icon-controller.js" vite-ignore></script>
+  <script src="js/workspace-shell.js" vite-ignore></script>
   <script src="js/ui-interactions.js" vite-ignore></script>
   <script src="js/topbar-controller.js" vite-ignore></script>
   <script src="js/sidebar-controller.js" vite-ignore></script>
@@ -1873,6 +1895,16 @@
   <script src="js/inventory-import.js" vite-ignore></script>
   <script src="js/field-observations.js" vite-ignore></script>
   <script src="js/field-observation-controller.js" vite-ignore></script>
+  <script src="js/integrations/netbox-adapter.js" vite-ignore></script>
+  <script src="js/integrations/netbox-controller.js" vite-ignore></script>
+  <script src="js/integrations/catalog-reranker.js" vite-ignore></script>
+  <script src="js/integrations/catalog-ai-controller.js" vite-ignore></script>
+  <script src="js/workspace-yjs.js" vite-ignore></script>
+  <script src="js/collaboration/outbox.js" vite-ignore></script>
+  <script src="js/collaboration/rebase.js" vite-ignore></script>
+  <script src="js/collaboration/workspace-session.js" vite-ignore></script>
+  <script src="js/collaboration/workspace-controller.js" vite-ignore></script>
+  <script src="js/product-diagnostics.js" vite-ignore></script>
   <script src="js/field-evidence.js" vite-ignore></script>
   <script src="js/field-events.js" vite-ignore></script>
   <script src="js/field-controller.js" vite-ignore></script>
@@ -1908,5 +1940,8 @@
   <script src="js/saved-views.js" vite-ignore></script>
   <script src="js/onboarding-example.js" vite-ignore></script>
   <script src="js/onboarding-controller.js" vite-ignore></script>
+  <script src="js/help-catalog.js" vite-ignore></script>
+  <script src="js/help-controller.js" vite-ignore></script>
+  <script src="js/workflow-guidance.js" vite-ignore></script>
 </body>
 </html>

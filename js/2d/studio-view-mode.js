@@ -5,26 +5,29 @@
   let cameraLod = null;
   function getCameraLod() {
     const scale = RS.ZOOM_STATE?.scale || 1;
-    // Hysteresis prevents rapid layer switches at the two zoom boundaries.
-    if (!cameraLod) cameraLod = scale < 0.48 ? 'macro' : scale < 0.72 ? 'medium' : 'detail';
-    else if (cameraLod === 'macro') cameraLod = scale < 0.52 ? 'macro' : scale < 0.76 ? 'medium' : 'detail';
-    else if (cameraLod === 'detail') cameraLod = scale >= 0.68 ? 'detail' : scale < 0.44 ? 'macro' : 'medium';
-    else cameraLod = scale < 0.44 ? 'macro' : scale >= 0.76 ? 'detail' : 'medium';
+    // Keep fine details strictly above 200%; separate thresholds avoid flicker.
+    const previous = cameraLod;
+    const macroBoundary = previous === 'macro' ? 0.70 : 0.65;
+    const portBoundary = previous === 'ports' || previous === 'detail' ? 1.10 : 1.15;
+    const detailBoundary = previous === 'detail' ? 2.00 : 2.05;
+    cameraLod = scale <= macroBoundary ? 'macro' : scale < portBoundary ? 'medium'
+      : scale <= detailBoundary ? 'ports' : 'detail';
     return cameraLod;
   }
   function isOverview() { return STATE.studioWorkMode === 'layout' || getCameraLod() === 'macro'; }
-  function areCablesShown() { return STATE.cablesVisible !== false && !isOverview(); }
+  function areCablesShown() { return STATE.cablesVisible !== false && !isOverview() && ['ports', 'detail'].includes(getCameraLod()); }
   function flushDeferredCables() {
     if (areCablesShown() && RS.PixiContext?.cablesDeferred) RS.renderAllCablesPixi?.();
   }
   function syncCableVisibility() {
     const ctx = RS.PixiContext, show = areCablesShown(), detail = getCameraLod() === 'detail';
-    const layers = [ctx?.getCablesContainer?.(), ctx?.getFocusContainer?.(), ctx?.organizerOverlayContainer];
+    const layers = [ctx?.getCablesContainer?.(), ctx?.getFocusContainer?.()];
     layers.forEach(layer => { if (layer) layer.visible = show; });
+    if (ctx?.organizerOverlayContainer) ctx.organizerOverlayContainer.visible = show && detail;
     const connectors = ctx?.getConnectorsContainer?.();
     if (connectors) connectors.visible = show && detail;
     const button = document.getElementById('btn-toggle-cables');
-    const reason = STATE.studioWorkMode === 'layout' ? 'Yerleşimde kablolar gizli' : getCameraLod() === 'macro' ? 'Yakınlaşınca kablolar görünür' : '';
+    const reason = STATE.studioWorkMode === 'layout' ? 'Yerleşimde kablolar gizli' : !['ports', 'detail'].includes(getCameraLod()) ? 'Port ve kablolar için %115 üzerine yakınlaşın' : '';
     if (button) {
       button.disabled = STATE.studioWorkMode === 'layout';
       button.classList.toggle('active', show);
@@ -53,7 +56,7 @@
     const changed = RS.dom?.rackStage?.getAttribute('data-lod') !== lod;
     RS.dom?.rackStage?.setAttribute('data-lod', lod);
     document.documentElement.dataset.studioOverview = String(isOverview());
-    if (changed && isOverview()) clearCableInteraction();
+    if (changed && !['ports', 'detail'].includes(lod)) clearCableInteraction();
     syncCableVisibility();
     RS.syncPixiDeviceSceneLOD?.();
     flushDeferredCables();
@@ -70,10 +73,6 @@
       button?.setAttribute('aria-pressed', String(value === mode));
       document.querySelectorAll(`[data-shortcut-for="btn-mode-${value}"]`).forEach(btn => btn.setAttribute('aria-pressed', String(value === mode)));
     });
-    const subPopover = document.getElementById('cabling-sub-popover');
-    if (subPopover) {
-      subPopover.style.display = mode === 'cabling' ? 'flex' : 'none';
-    }
     if (mode === 'layout') clearCableInteraction();
     syncPresentation();
     document.dispatchEvent(new CustomEvent('rackstudio:studio-work-mode', { detail: { mode } }));

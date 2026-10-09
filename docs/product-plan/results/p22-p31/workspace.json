@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "workspace",
+  "command": "npm run test:workspace",
+  "startedAt": "2026-10-08T07:38:14.896Z",
+  "finishedAt": "2026-10-08T07:38:23.538Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "3d478b1c61f6aabd2b1d8c5b19e43b474ebec2f394e97e829bc26b477540e299"
+}

@@ -78,7 +78,7 @@
           const clone = template.content.cloneNode(true);
           const legacyWrap = document.getElementById('legacy-wrapper');
           if (legacyWrap) {
-            document.body.insertBefore(clone, legacyWrap);
+            legacyWrap.parentNode.insertBefore(clone, legacyWrap);
           } else {
             document.body.appendChild(clone);
           }
@@ -156,6 +156,7 @@
 
   function applyMode() {
     document.body.classList.toggle('studio-3d-mode', window.is3DMode);
+    window.RackStudio?.WorkspaceUI?.syncStudioMode();
     if (window.is3DMode && window.matchMedia('(max-width: 1023px)').matches) {
       window.setLeftSidebarCollapsed?.(true);
       window.setRightSidebarCollapsed?.(true, false);

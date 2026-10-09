@@ -1,6 +1,6 @@
 # Rack Studio — ürünleştirme uygulama planı
 
-Tarih: 7 Ekim 2026 · Durum: P17–P21 kaynaklı katalog, fiziksel uyumluluk, PoE/güç, açıklayan denetim ve iki alternatifli senaryo uygulandı; sırada P22 Tauri SQLite repository. Kalan fiziksel kabul kanıtları uygulama kaydında.
+Tarih: 8 Ekim 2026 · Durum: P22–P31 yazılım dilimleri ve yerel geliştirme araçları eklendi. Gerçek saha pilotu, temiz Windows kurulumu, canlı entegrasyon/AI ve Compose dağıtım kanıtları açık; bütün planın kabul kapıları kapanmış sayılmaz.
 
 ## Ürün hedefi
 
@@ -16,7 +16,7 @@ Bu paket konuşmadaki bütün önerileri kapsar. Birbirine bağımlı işleri a�
 4. [Doğrulama, pilot ve sürüm kapıları](04-validation-and-release.md): 44 kabul senaryosu, komutlar, gerçek cihaz ve saha kanıtı.
 5. [Teknoloji kararları ve kaynaklar](05-technology-decisions.md): TypeScript, IndexedDB, Tauri/SQLite, NetBox, Jev ve Yjs kararları.
 
-Her paketin tamamlanması kod, ilgili kabul kanıtı ve kısa teslim notu gerektirir. Güncel uygulama ve doğrulama kaydı: [06-implementation-status.md](06-implementation-status.md). Çalışan veri biçimi: [07-project-document-v1.md](07-project-document-v1.md). Teslim merkezi: [18-delivery-reports-bom-labels.md](18-delivery-reports-bom-labels.md). Mühendislik ve senaryolar: [19-engineering-and-scenarios.md](19-engineering-and-scenarios.md). Sıradaki geliştirme paketi **P22**.
+Her paketin tamamlanması kod, ilgili kabul kanıtı ve kısa teslim notu gerektirir. Güncel uygulama ve doğrulama kaydı: [06-implementation-status.md](06-implementation-status.md). Çalışan veri biçimi: [07-project-document-v1.md](07-project-document-v1.md). Teslim merkezi: [18-delivery-reports-bom-labels.md](18-delivery-reports-bom-labels.md). Mühendislik ve senaryolar: [19-engineering-and-scenarios.md](19-engineering-and-scenarios.md). Yeni kapsam: [yerel masaüstü/ekip yapılandırması](22-local-workspace.md), [kullanım ve bakım](23-user-guide-and-maintenance.md), [gerçek pilot kaydı](pilot-results.md). Sıradaki kabul işleri gerçek kurulum, entegrasyon ve saha kanıtlarıdır.
 
 ## Aşamalar ve çıktılar
 

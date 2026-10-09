@@ -1,0 +1,11 @@
+{
+  "format": "rack-studio-release-check",
+  "id": "native",
+  "command": "npm run test:native",
+  "startedAt": "2026-10-08T07:34:40.869Z",
+  "finishedAt": "2026-10-08T07:35:02.425Z",
+  "exitCode": 0,
+  "sourceFingerprint": "23b1e76ab8550a30d63f54c1435d8cfd5be1b69d580318fee3e0f7ea77bb9889",
+  "generatedChanges": false,
+  "logHash": "3f73b575ddcafdf861b558fbc6819b418f3f4a67ec6da75f332dbb685769c69f"
+}
